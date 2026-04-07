@@ -147,12 +147,46 @@ copy_always() {
     print_success "$label installed"
 }
 
+looks_like_project() {
+    local dir="$1"
+    [[ -d "$dir/.git" ]] && return 0
+    [[ -f "$dir/package.json" ]] && return 0
+    [[ -f "$dir/Cargo.toml" ]] && return 0
+    [[ -f "$dir/go.mod" ]] && return 0
+    [[ -f "$dir/pyproject.toml" ]] && return 0
+    [[ -f "$dir/setup.py" ]] && return 0
+    [[ -f "$dir/Gemfile" ]] && return 0
+    [[ -f "$dir/pom.xml" ]] && return 0
+    [[ -f "$dir/build.gradle" ]] && return 0
+    [[ -f "$dir/Makefile" ]] && return 0
+    [[ -f "$dir/*.sln" ]] && return 0
+    [[ -f "$dir/*.csproj" ]] && return 0
+    [[ -d "$dir/src" ]] && return 0
+    return 1
+}
+
 install_to_project() {
     local target="$1"
 
     if [[ ! -d "$target" ]]; then
         print_error "Directory does not exist: $target"
         exit 1
+    fi
+
+    # Resolve to absolute path for clear messaging
+    target="$(cd "$target" && pwd)"
+
+    # Safety check: warn if this doesn't look like a project root
+    if ! looks_like_project "$target"; then
+        print_warning "This directory does not look like a project root:"
+        print_warning "  $target"
+        print_warning "No .git, package.json, go.mod, Cargo.toml, src/, or similar found."
+        echo ""
+        read -rp "Install SPADE here anyway? [y/N] " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            print_info "Aborted. cd into your project directory first, then run: ~/.spade/setup ."
+            exit 0
+        fi
     fi
 
     echo "Installing SPADE into: $target"

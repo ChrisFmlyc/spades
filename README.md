@@ -22,12 +22,22 @@ SCOPE ──► PLAN ──► APPROVE ──► DELIVER ──► EVALUATE
 ## Quick Start
 
 ```bash
+# Install SPADE once (this is the framework itself, not per-project)
 git clone https://github.com/m-kopa/spade-framework.git ~/.spade
+
+# cd into your project, then install SPADE into it
+cd /path/to/your/project
 ~/.spade/setup .
 ```
 
 Then open Claude Code in your project and run `/spade-onboard` to fill in your
 architecture docs. Start working with `/spade-scope`.
+
+> **Note:** You clone SPADE once. You run `~/.spade/setup` once per project you
+> want to use it in. The setup copies framework files into your project so they
+> can be committed to version control and shared with your team. If you'd rather
+> have the skills available everywhere without per-project setup, use
+> `~/.spade/setup --global` (see below).
 
 ---
 
@@ -64,26 +74,42 @@ Optional:
 
 ## Installation
 
+SPADE has two parts: **the framework** (cloned once) and **per-project setup**
+(run in each project that uses SPADE). You only clone the framework once —
+it lives at `~/.spade` and acts as the installer for all your projects.
+
+### Step 0: Clone the framework (once)
+
+```bash
+# macOS / Linux / WSL
+git clone https://github.com/m-kopa/spade-framework.git ~/.spade
+```
+
+```powershell
+# Windows (PowerShell)
+git clone https://github.com/m-kopa/spade-framework.git $HOME\.spade
+```
+
 ### Method 1: Install into a specific project
+
+Run this **inside each project** you want to use SPADE with. It copies
+framework files into the project so they can be committed and shared with
+your team.
 
 **macOS / Linux / WSL:**
 
 ```bash
-# Clone the SPADE framework
-git clone https://github.com/m-kopa/spade-framework.git ~/.spade
-
-# Install into your project
-~/.spade/setup /path/to/your/project
+cd /path/to/your/project
+~/.spade/setup .
+# or: ~/.spade/setup /path/to/your/project
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-# Clone the SPADE framework
-git clone https://github.com/m-kopa/spade-framework.git $HOME\.spade
-
-# Install into your project
-& $HOME\.spade\setup.ps1 C:\path\to\your\project
+cd C:\path\to\your\project
+& $HOME\.spade\setup.ps1 .
+# or: & $HOME\.spade\setup.ps1 C:\path\to\your\project
 ```
 
 This copies the framework files into your project:

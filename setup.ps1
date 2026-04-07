@@ -157,6 +157,21 @@ function Copy-Always {
 
 # --- Install logic ---
 
+function Test-LooksLikeProject {
+    param([string]$Dir)
+    $markers = @(
+        '.git', 'package.json', 'Cargo.toml', 'go.mod', 'pyproject.toml',
+        'setup.py', 'Gemfile', 'pom.xml', 'build.gradle', 'Makefile', 'src'
+    )
+    foreach ($m in $markers) {
+        if (Test-Path (Join-Path $Dir $m)) { return $true }
+    }
+    # Check for .sln / .csproj
+    if (Get-ChildItem $Dir -Filter '*.sln' -ErrorAction SilentlyContinue) { return $true }
+    if (Get-ChildItem $Dir -Filter '*.csproj' -ErrorAction SilentlyContinue) { return $true }
+    return $false
+}
+
 function Install-ToProject {
     param([string]$Target)
 
@@ -166,6 +181,20 @@ function Install-ToProject {
     }
 
     $Target = (Resolve-Path $Target).Path
+
+    # Safety check: warn if this doesn't look like a project root
+    if (-not (Test-LooksLikeProject $Target)) {
+        Write-Warn 'This directory does not look like a project root:'
+        Write-Warn "  $Target"
+        Write-Warn 'No .git, package.json, go.mod, Cargo.toml, src\, or similar found.'
+        Write-Host ''
+        $confirm = Read-Host 'Install SPADE here anyway? [y/N]'
+        if ($confirm -notmatch '^[Yy]$') {
+            Write-Info 'Aborted. cd into your project directory first, then run: & $HOME\.spade\setup.ps1 .'
+            exit 0
+        }
+    }
+
     Write-Host "Installing SPADE into: $Target"
     Write-Host ''
 
