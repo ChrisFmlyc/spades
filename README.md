@@ -66,12 +66,24 @@ Optional:
 
 ### Method 1: Install into a specific project
 
+**macOS / Linux / WSL:**
+
 ```bash
 # Clone the SPADE framework
 git clone https://github.com/m-kopa/spade-framework.git ~/.spade
 
 # Install into your project
 ~/.spade/setup /path/to/your/project
+```
+
+**Windows (PowerShell):**
+
+```powershell
+# Clone the SPADE framework
+git clone https://github.com/m-kopa/spade-framework.git $HOME\.spade
+
+# Install into your project
+& $HOME\.spade\setup.ps1 C:\path\to\your\project
 ```
 
 This copies the framework files into your project:
@@ -84,8 +96,15 @@ This copies the framework files into your project:
 ### Method 2: Install skills globally (all Claude Code sessions)
 
 ```bash
+# macOS / Linux / WSL
 git clone https://github.com/m-kopa/spade-framework.git ~/.spade
 ~/.spade/setup --global
+```
+
+```powershell
+# Windows (PowerShell)
+git clone https://github.com/m-kopa/spade-framework.git $HOME\.spade
+& $HOME\.spade\setup.ps1 -Global
 ```
 
 Global skills are available everywhere, but you still need to install
@@ -94,7 +113,13 @@ AGENTS.md and architecture docs per-project.
 ### Method 3: One-liner install into current project
 
 ```bash
+# macOS / Linux / WSL
 git clone https://github.com/m-kopa/spade-framework.git ~/.spade && ~/.spade/setup .
+```
+
+```powershell
+# Windows (PowerShell)
+git clone https://github.com/m-kopa/spade-framework.git $HOME\.spade; & $HOME\.spade\setup.ps1 .
 ```
 
 ### Integrating into an Existing Project
@@ -122,8 +147,15 @@ so your project-specific content is always safe.
 ### Upgrading
 
 ```bash
+# macOS / Linux / WSL
 cd ~/.spade && git pull
 ~/.spade/setup --upgrade /path/to/your/project
+```
+
+```powershell
+# Windows (PowerShell)
+cd $HOME\.spade; git pull
+& $HOME\.spade\setup.ps1 -Upgrade C:\path\to\your\project
 ```
 
 Framework files (AGENTS.md, CLAUDE.md, skills) are updated. Your architecture
@@ -132,7 +164,13 @@ docs are never overwritten.
 ### Removing
 
 ```bash
+# macOS / Linux / WSL
 ~/.spade/setup --remove /path/to/your/project
+```
+
+```powershell
+# Windows (PowerShell)
+& $HOME\.spade\setup.ps1 -Remove C:\path\to\your\project
 ```
 
 SPADE sections are removed from AGENTS.md and CLAUDE.md (your content is
