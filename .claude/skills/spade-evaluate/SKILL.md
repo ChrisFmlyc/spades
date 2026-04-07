@@ -3,6 +3,12 @@ name: spade-evaluate
 description: Check delivered output against the original Scope's acceptance criteria. Use when delivery is complete and work needs evaluation, when someone says "evaluate this", "check if this is done", "verify the output", or when all sub-issues under a parent issue are marked Done. Also use when a human wants to run acceptance criteria as automated or manual checks.
 ---
 
+## Update Check
+
+Before doing anything else, run `~/.spade/bin/spade-update-check` using the
+Bash tool and show the output to the user if it is non-empty. If the script
+does not exist or fails, skip silently and continue with the skill.
+
 # SPADE Evaluate
 
 You are helping a human evaluate delivered output against the original Scope.

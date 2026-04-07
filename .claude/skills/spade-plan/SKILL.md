@@ -3,6 +3,12 @@ name: spade-plan
 description: Generate a structured SPADE Plan from a Scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "generate a plan", "break this down", or when an issue is in "Scoped" status and needs a plan. Also triggers when a human references a Linear issue and asks the AI to plan against it.
 ---
 
+## Update Check
+
+Before doing anything else, run `~/.spade/bin/spade-update-check` using the
+Bash tool and show the output to the user if it is non-empty. If the script
+does not exist or fails, skip silently and continue with the skill.
+
 # SPADE Plan
 
 You are generating a structured Plan for an approved Scope. The Plan is a

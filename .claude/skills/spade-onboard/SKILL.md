@@ -3,6 +3,12 @@ name: spade-onboard
 description: Onboard a project into the SPADE framework. Creates AGENTS.md, CLAUDE.md, architecture templates, and example files if they don't exist, then analyses the codebase to fill in architecture docs. Use when someone says "onboard this project", "set up SPADE", "spade init", or when starting SPADE in a new repo. Also use when architecture docs are still templates with placeholder comments.
 ---
 
+## Update Check
+
+Before doing anything else, run `~/.spade/bin/spade-update-check` using the
+Bash tool and show the output to the user if it is non-empty. If the script
+does not exist or fails, skip silently and continue with the skill.
+
 # SPADE Onboard
 
 You are onboarding a project into the SPADE framework. Your job is twofold:

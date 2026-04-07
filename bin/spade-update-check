@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# SPADE Framework — Update Check
+#
+# Compares local ~/.spade against its remote origin.
+# Outputs a message if an update is available, nothing otherwise.
+# Caches results to avoid hitting the network on every skill invocation.
+#
+# Usage: ~/.spade/bin/spade-update-check
+#
+# Exit codes: always 0 (never breaks the calling skill)
+
+SPADE_DIR="${HOME}/.spade"
+STATE_DIR="${SPADE_DIR}/.state"
+CACHE_FILE="${STATE_DIR}/last-update-check"
+CACHE_TTL_MINUTES=60
+
+# Ensure state directory exists
+mkdir -p "$STATE_DIR"
+
+# --- Cache check ---
+# If cache exists and is fresh, use cached result
+if [[ -f "$CACHE_FILE" ]]; then
+    if [[ "$(uname)" == "Darwin" ]]; then
+        cache_age=$(( ( $(date +%s) - $(stat -f %m "$CACHE_FILE") ) / 60 ))
+    else
+        cache_age=$(( ( $(date +%s) - $(stat -c %Y "$CACHE_FILE") ) / 60 ))
+    fi
+
+    if (( cache_age < CACHE_TTL_MINUTES )); then
+        # Cache is fresh — output cached result (if any) and exit
+        cached=$(cat "$CACHE_FILE")
+        [[ -n "$cached" ]] && echo "$cached"
+        exit 0
+    fi
+fi
+
+# --- Check for updates ---
+# Bail if this isn't a git repo (e.g., installed via zip)
+if [[ ! -d "${SPADE_DIR}/.git" ]]; then
+    echo "" > "$CACHE_FILE"
+    exit 0
+fi
+
+# Fetch quietly; on failure (no network), cache "up to date" and exit
+if ! git -C "$SPADE_DIR" fetch origin --quiet 2>/dev/null; then
+    echo "" > "$CACHE_FILE"
+    exit 0
+fi
+
+LOCAL=$(git -C "$SPADE_DIR" rev-parse HEAD 2>/dev/null || true)
+REMOTE=$(git -C "$SPADE_DIR" rev-parse origin/main 2>/dev/null || true)
+
+if [[ -z "$LOCAL" || -z "$REMOTE" ]]; then
+    echo "" > "$CACHE_FILE"
+    exit 0
+fi
+
+if [[ "$LOCAL" != "$REMOTE" ]]; then
+    # Count commits behind
+    BEHIND=$(git -C "$SPADE_DIR" rev-list --count HEAD..origin/main 2>/dev/null || echo "?")
+    MSG="SPADE update available (${BEHIND} commit(s) behind). Run: cd ~/.spade && git pull && ~/.spade/setup"
+    echo "$MSG" > "$CACHE_FILE"
+    echo "$MSG"
+else
+    echo "" > "$CACHE_FILE"
+fi
+
+exit 0

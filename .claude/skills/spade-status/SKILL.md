@@ -3,6 +3,12 @@ name: spade-status
 description: Show the current SPADE phase and progress for active work. Use when someone asks "where are we", "what is the status", "show me progress", "what phase are we in", or any question about the current state of work in progress. Also use at the start of a session to orient on active work.
 ---
 
+## Update Check
+
+Before doing anything else, run `~/.spade/bin/spade-update-check` using the
+Bash tool and show the output to the user if it is non-empty. If the script
+does not exist or fails, skip silently and continue with the skill.
+
 # SPADE Status
 
 You are providing a status overview of active SPADE work. This helps humans

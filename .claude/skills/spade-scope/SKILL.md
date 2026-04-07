@@ -3,6 +3,12 @@ name: spade-scope
 description: Help write a well-formed SPADE Scope with acceptance criteria, constraints, and architectural context. Use when starting new work, when a human says "I need to scope X", "create a scope for X", "write a scope", or when work needs to begin on a new feature, fix, or investigation. Also use when someone describes work they want done but has not yet formalised it into a Scope.
 ---
 
+## Update Check
+
+Before doing anything else, run `~/.spade/bin/spade-update-check` using the
+Bash tool and show the output to the user if it is non-empty. If the script
+does not exist or fails, skip silently and continue with the skill.
+
 # SPADE Scope
 
 You are helping a human write a well-formed Scope for the SPADE framework.

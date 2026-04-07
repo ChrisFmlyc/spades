@@ -3,6 +3,12 @@ name: spade-approve
 description: Present a SPADE Plan for human review against the approval checklist. Use when a Plan has been generated and needs approval, when someone says "review the plan", "check this plan", "approve", or when an issue is in "Approval" status. Also use when a human wants to see the approval checklist for a specific piece of work.
 ---
 
+## Update Check
+
+Before doing anything else, run `~/.spade/bin/spade-update-check` using the
+Bash tool and show the output to the user if it is non-empty. If the script
+does not exist or fails, skip silently and continue with the skill.
+
 # SPADE Approve
 
 You are helping a human review and approve (or reject) an AI-generated Plan.
