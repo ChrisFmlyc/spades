@@ -1,6 +1,6 @@
 ---
 name: spade-scope
-description: Help write a well-formed SPADE Scope with acceptance criteria, constraints, and architectural context. Use when starting new work, when a human says "I need to scope X", "create a scope for X", "write a scope", or when work needs to begin on a new feature, fix, or investigation. Also use when someone describes work they want done but has not yet formalised it into a Scope.
+description: Create or edit a well-formed SPADE Scope with acceptance criteria, constraints, and architectural context. Use when starting new work, when someone says "I need to scope X", "create a scope", "edit this scope", "write a scope", or when work needs to begin on a new feature, fix, or investigation. Also use when someone describes work they want done but has not yet formalised it into a Scope.
 ---
 
 ## Update Check
@@ -11,58 +11,145 @@ does not exist or fails, skip silently and continue with the skill.
 
 # SPADE Scope
 
-You are helping a human write a well-formed Scope for the SPADE framework.
-A Scope is the contract that everything downstream is measured against.
+You are helping a human create or edit a well-formed Scope for the SPADE
+framework. A Scope is the contract that everything downstream is measured
+against. Every field matters — a weak Scope produces a weak Plan.
 
-## What You Do
+## Modes
 
-1. Understand what the human wants to achieve and why
-2. Help them articulate it as a clear, actionable Scope
-3. Ensure the Scope has all required components
-4. If Linear MCP is available, create or update the parent issue
+This skill operates in two modes:
 
-## Required Components
+### Create Mode (default)
+When the human wants to scope new work. Walk through the required fields,
+help them articulate each one, and create the issue in Linear.
 
-Every Scope must include:
+### Edit Mode
+When the human references an existing issue or says "edit", "update", or
+"refine" a scope. Pull the existing issue from Linear, show which required
+fields are missing or weak, and help them fill in the gaps. Update the
+issue when done.
 
-### Statement of Intent
+To determine the mode: if the human provides a Linear issue identifier or
+URL, start in Edit mode. Otherwise, start in Create mode.
+
+## Required Fields
+
+Every Scope MUST include all of the following. If any field is missing, the
+Scope is not ready for planning. Flag missing fields clearly.
+
+### 1. Statement of Intent
 What needs to be achieved and why it matters. This is not a task description.
-It is a statement of intent. One to three sentences maximum.
+It is a statement of outcome. One to three sentences maximum.
 
-### Acceptance Criteria
+Good: "Device telemetry is flowing into the intelligence platform and
+available for threat analysis, giving the TI team real-time visibility
+into fleet behaviour patterns."
+
+Bad: "Build the telemetry pipeline."
+
+The first describes an outcome. The second describes an activity.
+
+### 2. Acceptance Criteria
 Specific, verifiable conditions that define "done". Write these as testable
 statements. A person (or AI) reading them should be able to unambiguously
 determine whether each criterion has been met.
 
-Good: "Telemetry data appears in the Elasticsearch index within 5 minutes of
-device transmission."
+Good: "Telemetry data appears in the Elasticsearch index within 5 minutes
+of device transmission."
 
 Bad: "Telemetry works."
 
-### Architectural Constraints
+Each criterion should be a checkbox item. Aim for 3-7 criteria. Fewer
+than 3 suggests the scope is underspecified. More than 7 suggests it
+might be too large.
+
+### 3. Architectural Constraints
 What tech stack, patterns, security requirements, or conventions apply.
 Reference ARCHITECTURE.md and PATTERNS.md where relevant. If the Scope
 touches areas covered by ANTI-PATTERNS.md, note the boundaries.
 
-### Upstream and Downstream Context
-What does this connect to? What depends on it? What does it depend on?
-This helps the AI generate a Plan that accounts for integration points.
+If no constraints apply, explicitly state "No additional constraints
+beyond ARCHITECTURE.md" rather than leaving this blank.
+
+### 4. Dependencies
+What must be true or in place before this work can start or complete.
+This includes:
+- Other issues or scopes that must complete first
+- External teams or services that need to provide something
+- Infrastructure or access that needs provisioning
+- Data or APIs that must be available
+
+If there are no dependencies, state "None" explicitly.
+
+### 5. Context
+What does this connect to in the broader system?
+- **Upstream:** What feeds into this? What triggers it?
+- **Downstream:** What depends on this? What consumes its output?
+- **Related:** What other work is happening in the same area?
+
+### 6. Out of Scope
+What this work explicitly does NOT cover. This prevents scope creep
+during planning and delivery. Be specific.
+
+Good: "This scope covers ingestion only. Enrichment, correlation, and
+alerting on the ingested data are separate scopes."
+
+Bad: (leaving this blank)
+
+### 7. Origin
+Where this work came from:
+- OKR / Milestone reference (e.g., "Q2 2026 OKR: Argus is operationally valuable")
+- Reactive ticket reference (e.g., "Incident INC-1234")
+- Ad-hoc (with brief justification for why it matters now)
+
+### 8. Risk / Unknowns
+Things the scoper is already aware might be tricky, uncertain, or
+require investigation. This saves the AI from generating a plan that
+ignores known landmines.
+
+Examples:
+- "Schema v2 may not be finalised yet — check with data team"
+- "Databricks query performance at scale is untested"
+- "This touches the auth layer which has had reliability issues"
+
+If no known risks, state "None identified" explicitly.
+
+### 9. Delivery Preference
+Whether the human expects this to be:
+- **Mostly AI-delivered** — standard code/config/docs work
+- **Mostly human-delivered** — requires org context, vendor access, etc.
+- **Mixed** — some tasks AI, some human (specify which aspects)
+
+This helps the AI generate a Plan with realistic task assignments.
+
+### 10. Priority / Urgency
+Context about how urgent this is:
+- **Blocks release** — must complete before a specific date or event
+- **This cycle** — expected to complete in the current work cycle
+- **Backlog** — important but not time-sensitive
+- **Exploratory** — investigating whether this is worth doing
 
 ## Quality Checks
 
-Before finalising, verify:
+Before finalising, verify ALL of the following:
 
 - [ ] Could someone start planning this without a follow-up conversation?
 - [ ] Are the acceptance criteria specific and testable?
 - [ ] Is this small enough to plan in a single session? (If it spans multiple
       systems, multiple teams, or multiple months, it needs breaking down.)
-- [ ] Are the architectural constraints explicit?
-- [ ] Is the origin clear? (OKR/milestone, reactive ticket, or ad-hoc)
+- [ ] Are the architectural constraints explicit (or explicitly "none")?
+- [ ] Is out-of-scope clearly defined?
+- [ ] Are dependencies listed (or explicitly "none")?
+- [ ] Are risks acknowledged (or explicitly "none identified")?
+
+If any check fails, flag it to the human and help them fix it before
+creating/updating the issue.
 
 ## Scope Sizing
 
-A Scope should be concrete enough that an AI agent can generate a plan from it
-in a single session. If the Scope feels too large, help the human break it down:
+A Scope should be concrete enough that an AI agent can generate a plan
+from it in a single session. If the Scope feels too large, help the
+human break it down:
 
 - Does it span multiple systems? Split by system boundary.
 - Does it span multiple teams? Split by team responsibility.
@@ -83,33 +170,60 @@ Present the Scope in this format:
 - [ ] [Criterion 2]
 - [ ] [Criterion 3]
 
-**Constraints:**
-- [Tech stack / pattern / security constraints]
+**Architectural Constraints:**
+- [Constraints, or "No additional constraints beyond ARCHITECTURE.md"]
+
+**Dependencies:**
+- [Dependency 1, or "None"]
 
 **Context:**
 - Upstream: [What feeds into this]
 - Downstream: [What depends on this]
+- Related: [Other work in the same area]
 
-**Origin:** [OKR/Milestone name | Reactive ticket reference | Ad-hoc]
+**Out of Scope:**
+- [What this does NOT cover]
+
+**Origin:** [OKR/Milestone | Reactive ticket | Ad-hoc]
+
+**Risk / Unknowns:**
+- [Known risks, or "None identified"]
+
+**Delivery Preference:** [Mostly AI-delivered | Mostly human-delivered | Mixed]
+
+**Priority:** [Blocks release | This cycle | Backlog | Exploratory]
 ```
 
 ## Linear Integration
 
+### Create Mode
 If Linear MCP is available:
-1. Create a parent issue with the Scope content
+1. Create a parent issue with the Scope content in the description
 2. Set status to "Scoped"
-3. Assign to the appropriate team member
+3. Assign to the appropriate team member (ask the human)
 4. Link to the relevant Milestone if applicable
+5. Confirm the issue was created and share the identifier
 
-If Linear is not available, present the Scope for the human to create manually.
+### Edit Mode
+If Linear MCP is available:
+1. Fetch the existing issue
+2. Show the current content and highlight missing required fields
+3. Walk through each missing or weak field with the human
+4. Update the issue description with the complete Scope
+5. Set status to "Scoped" if not already
+6. Confirm the update
+
+If Linear is not available, present the Scope for the human to
+create/update manually.
 
 ## Reactive Work
 
 For small reactive items (bug fixes, config changes), the loop compresses:
 - The ticket itself can serve as the Scope
 - Acceptance criteria may be as simple as "the bug is fixed and verified"
-- Still document intent and constraints, even briefly
+- Out of Scope, Dependencies, and Risk can be brief or "N/A"
+- Still require Intent and Constraints, even if brief
 
-Do not over-engineer the Scope ceremony for small items. But do not skip it
-entirely either. Every piece of work needs a clear "what" and "how we know
-it is done."
+Do not over-engineer the Scope ceremony for small items. But do not skip
+required fields entirely either. For reactive work, you may pre-fill
+obvious fields and just ask the human to confirm.

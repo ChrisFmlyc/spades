@@ -155,11 +155,13 @@ Once installed and onboarded:
 | Skill | What it does |
 |-------|-------------|
 | `/spade-onboard` | Initialise SPADE in a project and fill in architecture docs |
-| `/spade-scope` | Help write a well-formed Scope with acceptance criteria |
+| `/spade-scope` | Create or edit a well-formed Scope (enforces 10 required fields) |
+| `/spade-list` | List active Scopes from Linear, filtered by SPADE phase |
 | `/spade-plan` | Generate a structured Plan from a Scope |
 | `/spade-approve` | Present a Plan for human review against the approval checklist |
 | `/spade-evaluate` | Check delivered output against acceptance criteria |
 | `/spade-status` | Show current SPADE phase and progress for active work |
+| `/spade-update` | Check for and install SPADE framework updates |
 
 ---
 
