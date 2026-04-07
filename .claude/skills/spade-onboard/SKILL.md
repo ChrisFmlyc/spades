@@ -1,26 +1,75 @@
 ---
 name: spade-onboard
-description: Onboard a project into the SPADE framework by analysing the codebase and helping fill in ARCHITECTURE.md, PATTERNS.md, and ANTI-PATTERNS.md. Use when SPADE has been installed but the architecture docs are still templates, when someone says "onboard this project", "set up SPADE", "fill in the architecture docs", or when ARCHITECTURE.md contains placeholder comments rather than real content.
+description: Onboard a project into the SPADE framework. Creates AGENTS.md, CLAUDE.md, architecture templates, and example files if they don't exist, then analyses the codebase to fill in architecture docs. Use when someone says "onboard this project", "set up SPADE", "spade init", or when starting SPADE in a new repo. Also use when architecture docs are still templates with placeholder comments.
 ---
 
 # SPADE Onboard
 
-You are onboarding a project into the SPADE framework. The setup script has
-already installed AGENTS.md, CLAUDE.md, and the skills. Your job is to analyse
-the codebase and help the human fill in the three architecture constraint
-documents that AI agents will read during the Plan phase.
+You are onboarding a project into the SPADE framework. Your job is twofold:
 
-## Why This Matters
+1. **Initialise** — create the SPADE project files if they don't exist
+2. **Analyse** — explore the codebase and help fill in architecture docs
 
-The quality of AI-generated Plans is directly proportional to the quality of
-the architecture context. A blank ARCHITECTURE.md means the AI will guess.
-A detailed one means the AI will propose solutions that fit your world. This
-onboarding step is the single highest-leverage thing you can do to make SPADE
-work well.
+## Step 0: Initialise SPADE Project Files
 
-## Process
+Before anything else, check whether this project already has SPADE files.
+Create or update the following as needed:
 
-### Step 1: Analyse the Codebase
+### AGENTS.md
+
+Check if AGENTS.md exists and whether it contains a SPADE section
+(look for `<!-- SPADE-FRAMEWORK-START`).
+
+- If **no AGENTS.md exists**: read `~/.spade/fragments/AGENTS-section.md` and
+  create AGENTS.md with that content wrapped in SPADE markers:
+  ```
+  <!-- SPADE-FRAMEWORK-START v1.0.0 -->
+  ...content from fragment...
+  <!-- SPADE-FRAMEWORK-END -->
+  ```
+- If **AGENTS.md exists but has no SPADE section**: append the marked section
+  to the end of the file. Preserve all existing content.
+- If **AGENTS.md already has a SPADE section**: leave it alone.
+
+### CLAUDE.md
+
+Same logic as AGENTS.md, using `~/.spade/fragments/CLAUDE-section.md`.
+
+### Architecture Templates
+
+For each of these files, create them **only if they don't exist**. Read the
+template from `~/.spade/` and copy it:
+
+- `ARCHITECTURE.md` (from `~/.spade/ARCHITECTURE.md`)
+- `PATTERNS.md` (from `~/.spade/PATTERNS.md`)
+- `ANTI-PATTERNS.md` (from `~/.spade/ANTI-PATTERNS.md`)
+
+If any of these already exist, do not touch them — they contain project-specific
+content.
+
+### Examples and Docs
+
+- Create `.spade/examples/` if it doesn't exist and copy example files from
+  `~/.spade/examples/`
+- Create `.spade/docs/` and copy docs from `~/.spade/docs/`
+- Create `.spade/version` with install metadata
+
+### Report What Was Done
+
+After initialisation, tell the human what was created and what was skipped:
+
+```
+SPADE project files:
+  ✓ AGENTS.md created
+  ✓ CLAUDE.md created
+  ✓ ARCHITECTURE.md created (template)
+  ! PATTERNS.md already exists, skipped
+  ✓ .spade/examples/ created
+```
+
+If all files already existed, say so and move straight to the analysis step.
+
+## Step 1: Analyse the Codebase
 
 Before asking the human anything, explore the project:
 
@@ -35,7 +84,7 @@ Before asking the human anything, explore the project:
 8. Look for authentication/authorisation patterns
 9. Check for database migrations or schema files
 
-### Step 2: Present Your Understanding
+## Step 2: Present Your Understanding
 
 Summarise what you have found and present it to the human for validation:
 
@@ -52,7 +101,7 @@ Cover:
 - Security considerations
 - External integrations
 
-### Step 3: Fill In ARCHITECTURE.md
+## Step 3: Fill In ARCHITECTURE.md
 
 Based on the validated understanding, generate the content for ARCHITECTURE.md.
 Follow the template structure already in the file, but replace all placeholder
@@ -62,7 +111,7 @@ Present each section to the human for approval before moving to the next.
 They know things about the system that code analysis cannot reveal (planned
 migrations, deprecated components, infrastructure not visible in the repo).
 
-### Step 4: Fill In PATTERNS.md
+## Step 4: Fill In PATTERNS.md
 
 Document the coding patterns, conventions, and approved libraries visible in
 the codebase. Focus on:
@@ -76,7 +125,7 @@ the codebase. Focus on:
 Ask the human: "Are there patterns you want to enforce that are not yet
 consistently applied? These are also worth documenting."
 
-### Step 5: Fill In ANTI-PATTERNS.md
+## Step 5: Fill In ANTI-PATTERNS.md
 
 This requires the most human input because anti-patterns often come from
 painful experience rather than code analysis. Ask the human directly:
@@ -90,21 +139,39 @@ Document each anti-pattern with a clear rationale. The rationale matters
 because it helps AI agents understand why the constraint exists, not just
 that it exists.
 
-### Step 6: Verify and Commit
+## Step 6: Verify and Commit
 
 After all three documents are filled in:
 
 1. Show a summary of what was documented
 2. Ask the human to review and confirm
-3. Suggest they commit the changes
+3. Suggest they commit the changes:
+
+```bash
+git add AGENTS.md CLAUDE.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md .claude/ .spade/
+git commit -m "Onboard project with SPADE framework"
+```
 
 Remind them: "These documents are living. Update them as your architecture
 evolves. The better the context, the better the AI-generated Plans."
+
+Also remind them: "Once these files are committed, teammates who clone
+this repo will have SPADE working automatically — they just need the
+global skills install (`~/.spade/setup`)."
+
+## Why This Matters
+
+The quality of AI-generated Plans is directly proportional to the quality of
+the architecture context. A blank ARCHITECTURE.md means the AI will guess.
+A detailed one means the AI will propose solutions that fit your world. This
+onboarding step is the single highest-leverage thing you can do to make SPADE
+work well.
 
 ## Quality Checks
 
 Before finishing, verify:
 
+- [ ] All SPADE project files exist (AGENTS.md, CLAUDE.md, architecture docs)
 - [ ] ARCHITECTURE.md has no placeholder comments remaining
 - [ ] Tech stack table is complete with actual technologies and versions
 - [ ] PATTERNS.md reflects what the code actually does, not aspirations
@@ -127,6 +194,7 @@ Also help the human set up the Linear integration:
 ## Output
 
 The onboarding is complete when:
+- All SPADE project files are created
 - ARCHITECTURE.md is filled in and validated
 - PATTERNS.md is filled in and validated
 - ANTI-PATTERNS.md is filled in and validated

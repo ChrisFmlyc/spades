@@ -21,23 +21,20 @@ SCOPE ──► PLAN ──► APPROVE ──► DELIVER ──► EVALUATE
 
 ## Quick Start
 
-```bash
-# Install SPADE once (this is the framework itself, not per-project)
-git clone https://github.com/m-kopa/spade-framework.git ~/.spade
+Two steps to get SPADE working:
 
-# cd into your project, then install SPADE into it
-cd /path/to/your/project
-~/.spade/setup .
+```bash
+# 1. Install SPADE globally (one-time)
+git clone https://github.com/m-kopa/spade-framework.git ~/.spade
+~/.spade/setup
+
+# 2. In any project, open Claude Code and run:
+/spade-onboard
 ```
 
-Then open Claude Code in your project and run `/spade-onboard` to fill in your
-architecture docs. Start working with `/spade-scope`.
-
-> **Note:** You clone SPADE once. You run `~/.spade/setup` once per project you
-> want to use it in. The setup copies framework files into your project so they
-> can be committed to version control and shared with your team. If you'd rather
-> have the skills available everywhere without per-project setup, use
-> `~/.spade/setup --global` (see below).
+That's it. The onboard skill creates all the framework files in your project,
+analyses your codebase, and helps you fill in architecture docs. Commit the
+generated files and your team has SPADE automatically.
 
 ---
 
@@ -74,165 +71,71 @@ Optional:
 
 ## Installation
 
-SPADE has two parts: **the framework** (cloned once) and **per-project setup**
-(run in each project that uses SPADE). You only clone the framework once —
-it lives at `~/.spade` and acts as the installer for all your projects.
+### Step 1: Install SPADE (one-time)
 
-### Step 0: Clone the framework (once)
-
-```bash
-# macOS / Linux / WSL
-git clone https://github.com/m-kopa/spade-framework.git ~/.spade
-```
-
-```powershell
-# Windows (PowerShell)
-git clone https://github.com/m-kopa/spade-framework.git $HOME\.spade
-```
-
-### Method 1: Install into a specific project
-
-Run this **inside each project** you want to use SPADE with. It copies
-framework files into the project so they can be committed and shared with
-your team.
+Clone the framework and run setup. This installs the SPADE skills globally
+into `~/.claude/skills/` so they're available in every Claude Code session.
 
 **macOS / Linux / WSL:**
 
 ```bash
-cd /path/to/your/project
-~/.spade/setup .
-# or: ~/.spade/setup /path/to/your/project
+git clone https://github.com/m-kopa/spade-framework.git ~/.spade
+~/.spade/setup
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-cd C:\path\to\your\project
-& $HOME\.spade\setup.ps1 .
-# or: & $HOME\.spade\setup.ps1 C:\path\to\your\project
-```
-
-This copies the framework files into your project:
-
-- `AGENTS.md` and `CLAUDE.md` (framework-owned, updated on upgrade)
-- `.claude/skills/` (all SPADE skills)
-- `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md` (templates, never overwritten)
-- `.spade/examples/` (example Scope and Plan)
-
-### Method 2: Install skills globally (all Claude Code sessions)
-
-```bash
-# macOS / Linux / WSL
-git clone https://github.com/m-kopa/spade-framework.git ~/.spade
-~/.spade/setup --global
-```
-
-```powershell
-# Windows (PowerShell)
 git clone https://github.com/m-kopa/spade-framework.git $HOME\.spade
-& $HOME\.spade\setup.ps1 -Global
+& $HOME\.spade\setup.ps1
 ```
 
-Global skills are available everywhere, but you still need to install
-AGENTS.md and architecture docs per-project.
+That's the only setup step. Skills are now available globally.
 
-### Method 3: One-liner install into current project
+### Step 2: Onboard a project
 
-```bash
-# macOS / Linux / WSL
-git clone https://github.com/m-kopa/spade-framework.git ~/.spade && ~/.spade/setup .
-```
-
-```powershell
-# Windows (PowerShell)
-git clone https://github.com/m-kopa/spade-framework.git $HOME\.spade; & $HOME\.spade\setup.ps1 .
-```
-
-### Integrating into an Existing Project
-
-If your project already has `AGENTS.md` or `CLAUDE.md`, SPADE will not
-overwrite them. Instead, it injects SPADE sections between marker comments:
-
-```html
-<!-- SPADE-FRAMEWORK-START v1.0.0 -->
-...SPADE content...
-<!-- SPADE-FRAMEWORK-END -->
-```
-
-Your existing content outside the markers is preserved. On upgrade, only
-the content between markers is replaced. This means SPADE works cleanly
-alongside other agent configurations or project instructions you already have.
-
-If your project has no existing agent configuration, SPADE creates the files
-from scratch.
-
-Architecture templates (`ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`)
-are only created if they do not already exist. They are never overwritten,
-so your project-specific content is always safe.
-
-### Upgrading
-
-```bash
-# macOS / Linux / WSL
-cd ~/.spade && git pull
-~/.spade/setup --upgrade /path/to/your/project
-```
-
-```powershell
-# Windows (PowerShell)
-cd $HOME\.spade; git pull
-& $HOME\.spade\setup.ps1 -Upgrade C:\path\to\your\project
-```
-
-Framework files (AGENTS.md, CLAUDE.md, skills) are updated. Your architecture
-docs are never overwritten.
-
-### Removing
-
-```bash
-# macOS / Linux / WSL
-~/.spade/setup --remove /path/to/your/project
-```
-
-```powershell
-# Windows (PowerShell)
-& $HOME\.spade\setup.ps1 -Remove C:\path\to\your\project
-```
-
-SPADE sections are removed from AGENTS.md and CLAUDE.md (your content is
-preserved). Skills and `.spade/` directory are deleted. Architecture docs
-are kept since they contain your project-specific content.
-
-### Adding to a Team Repo
-
-Commit the installed files so teammates get SPADE automatically:
-
-```bash
-cd /path/to/your/project
-git add AGENTS.md CLAUDE.md .claude/ ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md .spade/
-git commit -m "Install SPADE framework"
-```
-
-Teammates who clone the repo will have SPADE working immediately in Claude Code.
-They can then run `/spade-onboard` to fill in architecture docs if needed.
-
----
-
-## Onboarding a Project
-
-After installing, open Claude Code in your project and run:
+Open Claude Code in any project and run:
 
 ```
 /spade-onboard
 ```
 
-This analyses your codebase and helps you fill in ARCHITECTURE.md, PATTERNS.md,
-and ANTI-PATTERNS.md with real content specific to your project. These documents
-are what AI agents read during the Plan phase, so the better the context, the
-better the Plans.
+This does two things:
 
-Alternatively, fill them in manually. The template structure guides you through
-what to document.
+1. **Creates framework files** — `AGENTS.md`, `CLAUDE.md`, architecture
+   templates (`ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`), example
+   files, and `.spade/` metadata. If any of these already exist, they are
+   left untouched or augmented (not overwritten).
+
+2. **Analyses your codebase** — explores your project structure, dependencies,
+   patterns, and infrastructure, then helps you fill in the architecture docs
+   with real content specific to your project.
+
+Once onboarding is done, commit the generated files:
+
+```bash
+git add AGENTS.md CLAUDE.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md .claude/ .spade/
+git commit -m "Onboard project with SPADE framework"
+```
+
+Teammates who clone the repo will have SPADE working immediately — they just
+need the global skills install (Step 1).
+
+### Upgrading
+
+```bash
+# macOS / Linux / WSL
+cd ~/.spade && git pull && ~/.spade/setup
+```
+
+```powershell
+# Windows (PowerShell)
+cd $HOME\.spade; git pull; & $HOME\.spade\setup.ps1
+```
+
+This updates the global skills. To update SPADE files in a specific project,
+run `/spade-onboard` again — it will update framework sections while
+preserving your project-specific content.
 
 ---
 
@@ -251,12 +154,12 @@ Once installed and onboarded:
 
 | Skill | What it does |
 |-------|-------------|
+| `/spade-onboard` | Initialise SPADE in a project and fill in architecture docs |
 | `/spade-scope` | Help write a well-formed Scope with acceptance criteria |
 | `/spade-plan` | Generate a structured Plan from a Scope |
 | `/spade-approve` | Present a Plan for human review against the approval checklist |
 | `/spade-evaluate` | Check delivered output against acceptance criteria |
 | `/spade-status` | Show current SPADE phase and progress for active work |
-| `/spade-onboard` | Analyse codebase and fill in architecture docs for a new project |
 
 ---
 
@@ -295,7 +198,7 @@ Passing work ships. Failing work goes back into the loop.
 
 ## Project Structure
 
-After installation, your project will contain:
+After onboarding, your project will contain:
 
 ```
 your-project/
@@ -305,19 +208,7 @@ your-project/
 ├── PATTERNS.md            # Approved patterns and conventions
 ├── ANTI-PATTERNS.md       # Things not to do
 ├── .claude/
-│   └── skills/
-│       ├── spade-scope/   # Skill: write well-formed Scopes
-│       │   └── SKILL.md
-│       ├── spade-plan/    # Skill: generate structured Plans
-│       │   └── SKILL.md
-│       ├── spade-approve/ # Skill: run the approval checklist
-│       │   └── SKILL.md
-│       ├── spade-evaluate/# Skill: check output against acceptance criteria
-│       │   └── SKILL.md
-│       ├── spade-status/  # Skill: show current phase and progress
-│       │   └── SKILL.md
-│       └── spade-onboard/ # Skill: analyse codebase and fill in architecture docs
-│           └── SKILL.md
+│   └── skills/            # (empty — skills are installed globally)
 └── .spade/
     ├── version            # Install metadata
     ├── docs/              # Framework reference documentation
@@ -361,13 +252,17 @@ convenience but are not required for the pattern to work.
 
 ## FAQ
 
+**How do I add SPADE to a new project?**
+Run `/spade-onboard` in Claude Code. It creates all the files and walks you
+through filling in the architecture docs.
+
 **What if I already have an AGENTS.md?**
-SPADE appends its section between marker comments. Your existing content is
-untouched. On upgrade, only the SPADE section is replaced.
+The onboard skill appends its section between marker comments. Your existing
+content is untouched.
 
 **What if I already have ARCHITECTURE.md?**
-SPADE will not overwrite it. Architecture templates are only created if the
-files do not exist.
+It will not be overwritten. The onboard skill skips files that already exist
+and moves straight to helping you fill in content.
 
 **Can I use SPADE without Linear?**
 Yes. Linear integration is optional. Without it, you manage Scopes and Plans
@@ -384,9 +279,10 @@ The loop compresses. For a bug fix, the ticket is the Scope, planning is a
 quick comment, approval is a fast check. The structure exists but the ceremony
 is light. See `docs/FRAMEWORK.md` for details.
 
-**Can I remove SPADE later?**
-Yes. Run `~/.spade/setup --remove /path/to/your/project`. SPADE sections are
-cleaned from your files and your content is preserved.
+**Do teammates need to install SPADE too?**
+They need the global skills install (Step 1). The project files created by
+`/spade-onboard` should be committed to the repo so they're available
+automatically.
 
 ---
 
