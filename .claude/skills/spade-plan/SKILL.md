@@ -132,7 +132,47 @@ Present the Plan in this format:
 3. [Task Z] and [Task W] (parallel, both depend on Task Y)
 ```
 
-## Linear Integration
+## Saving the Plan
+
+The Plan is stored in two places: locally in the repo AND in Linear.
+Both happen when the human approves the plan (not before).
+
+### Local Storage
+
+Write the approved Plan to `.spade/plans/` using the issue identifier
+as the filename:
+
+```
+.spade/plans/M-68-plan.md
+```
+
+The file should contain:
+- The full plan in the output format above
+- A metadata header with the issue ID, title, date, and status
+
+Example header:
+
+```markdown
+---
+issue: M-68
+title: Build ETL pipeline for device telemetry
+date: 2026-04-08
+status: approved
+---
+```
+
+Create the `.spade/plans/` directory if it doesn't exist. If a plan file
+already exists for this issue (from a previous revision), overwrite it —
+the git history preserves the old version.
+
+After writing the file, suggest the human commit it:
+
+```bash
+git add .spade/plans/M-68-plan.md
+git commit -m "SPADE plan for M-68: Build ETL pipeline"
+```
+
+### Linear Integration
 
 If Linear MCP is available:
 1. Update the parent issue status to "Planning"
@@ -148,11 +188,18 @@ If Linear MCP is available:
 ## After Planning
 
 After presenting the Plan, explicitly ask the human to review and approve it.
-Do not begin delivery. Say something like:
+Do not begin delivery. Do NOT save the plan locally or create sub-issues
+until the human approves. Say something like:
 
 "The Plan is ready for your review. Please check it against architecture
 alignment, completeness, feasibility, risk, and task granularity. Let me
 know if you want changes, or approve it so I can begin delivery."
+
+Once approved:
+1. Write the plan to `.spade/plans/`
+2. Create sub-issues in Linear
+3. Post the plan as a comment on the parent issue
+4. Update the parent issue status to "Approval"
 
 You must wait for explicit approval before proceeding to Deliver.
 
@@ -161,6 +208,6 @@ You must wait for explicit approval before proceeding to Deliver.
 If the human requests changes:
 1. Apply the `plan-rejected` label to the parent issue (if Linear available)
 2. Revise the Plan based on their specific feedback
-3. Update sub-issues to reflect changes
-4. Present the revised Plan for approval again
+3. Present the revised Plan for approval again
+4. Once re-approved, update the local plan file and Linear sub-issues
 5. Remove `plan-rejected` and update status to "Approval" when ready
