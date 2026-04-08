@@ -9,6 +9,13 @@ Before doing anything else, run `~/.spade/bin/spade-update-check` using the
 Bash tool and show the output to the user if it is non-empty. If the script
 does not exist or fails, skip silently and continue with the skill.
 
+## Project Config
+
+Read `.spade/config` in the current project directory. This file specifies
+which Linear team, project, and default assignee to use. Use these values
+for all Linear operations. If the file doesn't exist, ask the human which
+team and project to use, or suggest running `/spade-onboard` first.
+
 # SPADE Status
 
 You are providing a status overview of active SPADE work. This helps humans

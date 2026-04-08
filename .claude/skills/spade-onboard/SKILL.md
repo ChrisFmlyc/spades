@@ -53,6 +53,34 @@ template from `~/.spade/` and copy it:
 If any of these already exist, do not touch them — they contain project-specific
 content.
 
+### Project Config
+
+Create `.spade/config` if it doesn't exist. This file tells all SPADE skills
+which Linear team and project to target. If Linear MCP is available, help
+the human fill it in interactively:
+
+1. Use `list_teams` to show available teams. Ask which one.
+2. Use `list_projects` to show projects for that team. Ask which one.
+3. Ask for a default assignee (their name or "me").
+
+Write the config file:
+
+```
+# SPADE project configuration
+# This tells SPADE skills which Linear team and project to use.
+
+linear_team=M-KOPA
+linear_project=Argus
+default_assignee=me
+```
+
+If Linear MCP is not available, create the file with placeholder values
+and tell the human to fill it in manually.
+
+All SPADE skills that interact with Linear MUST read `.spade/config` first
+to determine the team, project, and assignee. Do not prompt for these values
+if the config file exists and is populated.
+
 ### Examples and Docs
 
 - Create `.spade/examples/` if it doesn't exist and copy example files from
@@ -190,12 +218,12 @@ Before finishing, verify:
 
 Also help the human set up the Linear integration:
 
-1. Check if the SPADE statuses exist in their Linear workflow
+1. Confirm the team and project from `.spade/config` are correct
+2. Check if the SPADE statuses exist in their Linear workflow
    (Scoped, Planning, Approval, Delivering, Evaluating, Done)
-2. Check if the SPADE labels exist
+3. Check if the SPADE labels exist
    (ai-planned, ai-delivered, human-delivery, plan-rejected, needs-arch-review)
-3. If not, advise the human on how to create them
-4. Identify the relevant Linear team and projects for this repo
+4. If not, advise the human on how to create them
 
 ## Output
 
