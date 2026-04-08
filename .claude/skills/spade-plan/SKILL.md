@@ -15,6 +15,30 @@ You are generating a structured Plan for an approved Scope. The Plan is a
 first-class artefact that gets documented and attached to the parent issue.
 It is not something that happens invisibly.
 
+## Conversational Style
+
+Planning is collaborative, not a monologue. You generate the Plan, but
+the human validates it before anything gets created in Linear.
+
+**How to run this conversation:**
+
+1. **Start by showing your understanding.** Before producing any tasks,
+   summarise what you understand from the Scope in 3-4 sentences. Ask
+   the human to confirm or correct. This catches misunderstandings early.
+2. **Propose the plan, then discuss.** Present the full draft plan, then
+   ask targeted questions: "Does the task breakdown feel right? Is there
+   anything I'm underestimating? Should any of these be human-delivered
+   instead?"
+3. **Challenge your own assumptions.** Call out where you're guessing:
+   "I'm assuming the Databricks connector supports scheduled queries —
+   is that confirmed, or should Task 1 include a spike?"
+4. **Be opinionated about task sizing.** If a task feels too large, say
+   so and propose a split. If two tasks could be one, suggest merging.
+5. **Ask about delivery preference.** Don't assume everything is
+   AI-delivered. Some tasks need human context — flag these explicitly.
+6. **Iterate before committing.** Do NOT create sub-issues in Linear
+   until the human explicitly approves. The plan may need 2-3 rounds.
+
 ## Before You Start
 
 1. Read the Scope carefully. Understand the intent, acceptance criteria, and
@@ -23,6 +47,8 @@ It is not something that happens invisibly.
    the repository. Your Plan must conform to these documents.
 3. If the Scope references specific systems or components, review the relevant
    code or documentation to understand the current state.
+4. If the Scope is missing required fields, flag this and suggest running
+   `/spade-scope` to complete it before planning.
 
 ## Plan Structure
 
