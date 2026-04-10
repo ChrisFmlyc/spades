@@ -14,6 +14,11 @@ Every unit of work in this project follows five phases:
 Humans own Scope and Evaluate. AI owns Plan and Deliver. Approve is a human gate.
 You must never skip a phase or combine phases without explicit human instruction.
 
+**Exception — the fast-track path.** Trivial work (a typo, a one-line tweak,
+a config nudge) can use `/spade-quick` instead of the full loop. See the
+"Fast-Track Path (Small Work)" section below for the gate criteria. When
+in doubt, use the full loop.
+
 ## Phase Rules
 
 ### 1. Scope (Human-Owned)
@@ -27,6 +32,10 @@ You must never skip a phase or combine phases without explicit human instruction
   Help them write it if needed, but do not proceed to Plan without a documented Scope.
 - Scopes may originate from OKRs, milestones, or reactive work (tickets, incidents).
   The origin does not matter. The clarity of intent does.
+- **Before writing a Scope, check the fast-track gate.** If every criterion
+  in "Fast-Track Path (Small Work)" below passes, invoke `/spade-quick`
+  instead of `/spade-scope`. The full loop is for work that deserves the
+  ceremony; trivial changes deserve speed.
 
 ### 2. Plan (AI-Owned)
 
@@ -38,6 +47,11 @@ You must never skip a phase or combine phases without explicit human instruction
   - Risk callouts (assumptions, unknowns, things that might go wrong)
   - Which tasks are AI-delivered vs human-delivered
   - Testing and verification approach (what tests, what "passing" looks like)
+  - Delivery bundles: how tasks map to pull requests. Default is one bundle
+    (one PR) per Scope. Only split into multiple bundles when tasks are
+    genuinely independent — no shared files or symbols, no dependency arrows,
+    and isolated review or revert provides real value (e.g. a risky migration
+    separated from related feature code, or docs-only work separated from code).
 - The Plan is a first-class artefact. You must:
   - Document it as a comment or attached document on the parent issue
   - Create sub-issues for each task with appropriate labels
@@ -67,11 +81,20 @@ You must never skip a phase or combine phases without explicit human instruction
 
 ### 4. Deliver (AI or Human)
 
-- Execute tasks from the approved Plan, one sub-issue at a time.
-- For each AI-delivered task:
+- Execute tasks from the approved Plan one **delivery bundle** at a time.
+  A bundle is a single branch and a single pull request that closes one or
+  more sub-issues. The approved Plan defines which tasks belong to which
+  bundle. The default is one bundle per Scope.
+- For each bundle:
+  - Create one branch for the whole bundle
+  - Work through the sub-issues in dependency order, committing as you go
+  - Open a single PR that closes every sub-issue in the bundle
+    (e.g. `Closes M-68-1, Closes M-68-2`)
+  - Do not open additional PRs for sub-issues inside the same bundle
+- For each AI-delivered task within a bundle:
   - Read the sub-issue context before starting
   - Write code, tests, configuration, or documentation as specified
-  - Run tests and verify they pass before marking complete
+  - Run tests and verify they pass before marking the sub-issue complete
   - Update the sub-issue status to "Done" when complete
   - Apply the `ai-delivered` label if not already present
 - For human-delivered tasks:
@@ -147,24 +170,213 @@ You must never deliver work that cannot be traced back through this chain.
 This is not optional. The audit trail is the mechanism by which AI-delivered
 work remains trustworthy.
 
-## Reactive and Unplanned Work
+## Fast-Track Path (Small Work)
 
-Not all work originates from OKRs. Tickets, incidents, and ad-hoc requests follow
-the same SPADE loop, but the ceremony scales to the size of the work:
+Not every change deserves a Scope. The fast-track path handles trivial work
+— typo fixes, one-line tweaks, small config nudges, docs changes — through
+`/spade-quick`. On this path, the **PR description is the audit artefact**:
+no sub-issues, no separate Plan, no approval gate beyond PR review.
 
-- Small reactive items (bug fix, config change): the ticket is the Scope.
-  Planning may be a single comment proposing an approach. Approval is a quick check.
-  The loop still exists; it just runs in minutes.
-- Larger reactive work (incident response, multi-system investigation): gets a
-  proper parent issue, scoped with acceptance criteria, and runs the full loop.
+**When a human describes a small fix, tweak, config nudge, or docs change,
+check the fast-track gate BEFORE invoking `/spade-scope`.** If every
+criterion below passes, run `/spade-quick`. Only fall back to the full
+loop if the gate fails.
+
+### The Gate — ALL must be true
+
+1. Single concern (one bug, one tweak, one touch-up)
+2. ≤ 50 lines of code changed total; hard stop above ~100
+3. One file, or a tight cluster in one module
+4. No new dependencies (package.json / go.mod / pyproject / Cargo.toml untouched)
+5. No schema, migration, or data-layer changes
+6. No architectural changes, no new patterns, no new abstractions
+7. No security-sensitive code (auth, crypto, secrets, permissions)
+8. No public API or interface breaking changes
+9. Revertable as one commit
+10. Existing tests cover the area (trivial extension is fine; new test
+    scaffolding is not)
+
+If *any* criterion fails, stop and invoke `/spade-scope` for the full loop.
+The gate is all-or-nothing — do not attempt to "partially" fast-track.
+
+### Linear tracking on the fast-track
+
+- Parent issue gets labels: `spade:quick`, one `type:*` label
+  (`type:bug`, `type:tweak`, `type:chore`, `type:docs`, `type:refactor`),
+  and `ai-delivered` or `human-delivery`.
+- **No sub-issues are created.** The parent issue IS the work unit.
+- The PR description is the audit trail. PR URL is posted as a comment on
+  the parent issue. Human owns the Done transition, as always.
+
+### Incident response
+
+Incidents and larger reactive work do NOT use the fast-track path. Ceremony
+is cheap during an incident — use the full loop so the audit trail is
+complete.
+
+### Evaluating quick-path work
+
+`/spade-evaluate` on a `spade:quick`-labelled issue validates the PR
+directly (merged, CI green, checklist complete) instead of iterating
+sub-issues. If evaluation is PARTIAL: fixes go as new commits on the
+same branch if the PR hasn't merged, or as a new quick-path PR referencing
+the original if it has. **Sub-issue creation is forbidden on the quick
+path regardless of verdict.**
 
 ## What You Must Never Do
 
-- Begin writing code without a documented Scope
-- Begin delivery without an approved Plan
+- Begin writing code without a documented Scope (or a valid fast-track gate pass)
+- Begin delivery without an approved Plan (on the full loop)
 - Mark a parent issue as Done (only humans do this)
 - Skip the Plan documentation step (plans are artefacts, not ephemeral)
+- Misuse `/spade-quick` for work that fails any gate criterion
+- Create sub-issues on the fast-track path
 - Introduce technologies or patterns that conflict with ARCHITECTURE.md
   without flagging the conflict and getting explicit approval
 - Assume organisational context you do not have (ask the human)
 - Combine multiple Scopes into one delivery without human agreement
+
+<!-- SPADE-FRAMEWORK-START v1.0.0 -->
+
+# SPADE Framework — Agent Operating Rules
+
+These rules define mandatory behaviour for AI agents using the SPADE framework
+in this project. They augment any existing agent instructions in this file.
+
+## The SPADE Loop
+
+Every unit of work follows five phases:
+
+    SCOPE → PLAN → APPROVE → DELIVER → EVALUATE
+
+Humans own Scope and Evaluate. AI owns Plan and Deliver. Approve is a human gate.
+You must never skip a phase or combine phases without explicit human instruction.
+
+**Exception — the fast-track path.** Trivial work (a typo, a one-line tweak,
+a config nudge) can use `/spade-quick` instead of the full loop. See the
+"Fast-Track Path" section below for the gate criteria. When in doubt, use
+the full loop.
+
+## Phase Rules
+
+### 1. Scope (Human-Owned)
+- Never begin planning or writing code without a written Scope.
+- A Scope must include: statement of intent, acceptance criteria, and constraints.
+- If asked to "just do X" without a Scope, help define one first.
+- **Before scoping, check the fast-track gate.** If every criterion below
+  passes, invoke `/spade-quick` instead of `/spade-scope`.
+
+### 2. Plan (AI-Owned)
+- Produce a structured Plan (3-7 tasks) before writing any code.
+- Include: technical approach, dependencies, risks, delivery mode, testing strategy, delivery bundles.
+- Delivery bundles map tasks to pull requests. Default to one bundle (one PR)
+  per Scope. Only split when tasks are genuinely independent and isolated
+  review or revert provides real value.
+- Document the Plan on the parent issue as a first-class artefact.
+- Create sub-issues with labels: `ai-planned`, `ai-delivered` or `human-delivery`.
+- Do NOT begin delivery until the Plan is approved by a human.
+
+### 3. Approve (Human Gate)
+- After producing a Plan, STOP and wait for human approval.
+- If rejected, apply `plan-rejected` label, revise, and re-present.
+- Do not begin delivery on a rejected or unapproved plan.
+
+### 4. Deliver (AI or Human)
+- Execute the approved Plan one **delivery bundle** at a time. A bundle is
+  one branch and one PR that closes every sub-issue assigned to it.
+- Within a bundle, work through sub-issues in dependency order, committing
+  as you go. Do not open a separate PR per sub-issue inside the same bundle.
+- Run tests and verify before marking sub-issues complete.
+- If delivery reveals the Plan is wrong, stop and explain before continuing.
+
+### 5. Evaluate (Human-Owned)
+- Never mark a parent issue as Done. Only humans do this.
+- If asked to help evaluate, run acceptance criteria checks and report results.
+
+## Fast-Track Path (Small Work)
+
+Not every change deserves a Scope. The fast-track path handles trivial work
+— typo fixes, one-line tweaks, small config nudges, docs changes — through
+`/spade-quick`. On this path, the **PR description is the audit artefact**:
+no sub-issues, no separate Plan, no approval gate beyond PR review.
+
+**When a human describes a small fix, tweak, config nudge, or docs change,
+check the fast-track gate BEFORE invoking `/spade-scope`.** If every
+criterion below passes, run `/spade-quick`. Only fall back to the full
+loop if the gate fails.
+
+### The Gate — ALL must be true
+
+1. Single concern (one bug, one tweak, one touch-up)
+2. ≤ 50 lines of code changed total; hard stop above ~100
+3. One file, or a tight cluster in one module
+4. No new dependencies (package.json / go.mod / pyproject / Cargo.toml untouched)
+5. No schema, migration, or data-layer changes
+6. No architectural changes, no new patterns, no new abstractions
+7. No security-sensitive code (auth, crypto, secrets, permissions)
+8. No public API or interface breaking changes
+9. Revertable as one commit
+10. Existing tests cover the area (trivial extension is fine; new test
+    scaffolding is not)
+
+If *any* criterion fails, stop and invoke `/spade-scope` for the full loop.
+The gate is all-or-nothing — do not attempt to "partially" fast-track.
+
+### Linear tracking on the fast-track
+
+- Parent issue gets labels: `spade:quick`, one `type:*` label
+  (`type:bug`, `type:tweak`, `type:chore`, `type:docs`, `type:refactor`),
+  and `ai-delivered` or `human-delivery`.
+- **No sub-issues are created.** The parent issue IS the work unit.
+- The PR description is the audit trail. PR URL is posted as a comment on
+  the parent issue. Human owns the Done transition, as always.
+
+### Evaluating quick-path work
+
+`/spade-evaluate` on a `spade:quick`-labelled issue validates the PR
+directly (merged, CI green, checklist complete) instead of iterating
+sub-issues. If evaluation is PARTIAL: fixes go as new commits on the
+same branch if the PR hasn't merged, or as a new quick-path PR referencing
+the original if it has. **Sub-issue creation is forbidden on the quick
+path regardless of verdict.**
+
+## Architecture Constraints
+
+Before generating any Plan, read these files if they exist:
+- `ARCHITECTURE.md` — system architecture and constraints
+- `PATTERNS.md` — approved patterns and conventions
+- `ANTI-PATTERNS.md` — things you must not do
+
+Flag any conflicts between proposed solutions and these documents.
+
+## Linear Integration
+
+When Linear MCP is available, use it to:
+- Read Scopes from parent issues
+- Create sub-issues for Plans with labels and priorities (full loop only)
+- Update statuses: Scoped → Planning → Approval → Delivering → Evaluating → Done
+- Attach Plan documents as comments on parent issues
+- Apply `spade:quick` and `type:*` labels on fast-track items
+
+## Audit Trail
+
+Every piece of work must have: a human-written Scope, a documented Plan,
+an Approval decision, delivery records with labels, and a human Evaluation.
+Work that cannot be traced through this chain must not be delivered.
+
+For fast-track work, the PR description carries the equivalent audit
+trail — the gate checklist, the type classification, the verification
+notes, and the link to Linear (if any). A quick-path PR without a filled
+template is not a valid audit trail.
+
+## What You Must Never Do
+
+- Begin coding without a documented Scope (or a valid fast-track gate pass)
+- Begin delivery without an approved Plan (on the full loop)
+- Mark a parent issue as Done
+- Skip documenting the Plan
+- Misuse `/spade-quick` for work that fails any gate criterion
+- Create sub-issues on the fast-track path
+- Introduce technologies conflicting with ARCHITECTURE.md without flagging it
+- Assume organisational context you do not have
+<!-- SPADE-FRAMEWORK-END -->

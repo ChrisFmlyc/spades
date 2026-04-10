@@ -22,6 +22,80 @@ You are helping a human evaluate delivered output against the original Scope.
 Evaluation is distinct from Approval. Approval validates the approach.
 Evaluation validates the output.
 
+## Quick-Path Branch (spade:quick items)
+
+**Before doing anything else, check the parent issue's labels.** If it has
+`spade:quick`, this is a fast-track item and the evaluation rules are
+different — skip the rest of this skill's default flow and use the
+quick-path procedure below.
+
+Quick-path items have **no sub-issues**, **no separate Plan document**,
+and **no Delivery Bundles**. The PR description is the audit artefact.
+The `type:*` label tells you what kind of change it was.
+
+### Quick-path evaluation steps
+
+1. **Find the PR.** Look for a PR URL in the issue comments, or search
+   for a PR that references the issue ID.
+2. **Check merge status.** Is the PR merged, open, or closed without merge?
+3. **Check CI.** For merged PRs, confirm CI was green at merge. For open
+   PRs, confirm CI is currently green.
+4. **Read the PR description.** It must follow the `/spade-quick` template:
+   Type, SPADE path, Linear link, What, Why, Change, Verification checklist,
+   and the Gate check with all ten boxes ticked.
+5. **Validate the gate retrospectively.** Glance at the diff — does the
+   actual change still match every gate criterion? Specifically check:
+   - ≤ ~50 LoC changed
+   - One file or tight cluster
+   - No new dependencies (check package manifest files in the diff)
+   - No schema / migration files touched
+   - No auth, crypto, or permission-check code touched
+6. **Check the labels.** Confirm `spade:quick` and a `type:*` label are
+   applied, plus `ai-delivered` or `human-delivery`.
+
+### Quick-path verdict
+
+- **PASS** — PR merged, CI green, template filled, gate still holds on
+  review. The human can move the issue to Done.
+- **PARTIAL** — Something small is missing or wrong (a missed verification
+  step, a typo in the fix, a gate-check box that shouldn't have been ticked
+  on closer inspection).
+  - If the PR has **NOT merged yet**: push fixes as **new commits to the
+    same branch/PR**. Re-request review if appropriate.
+  - If the PR **has merged**: open a **new quick-path PR** that references
+    the original (e.g. title prefix "Follow-up to #123 for PARTIAL eval
+    findings"). Run the full `/spade-quick` workflow for the follow-up PR,
+    including the gate check and the template.
+  - **NEVER create sub-issues to track the fix.** Sub-issues are forbidden
+    on the quick path regardless of verdict.
+- **FAIL** — The change fails the gate retrospectively (e.g. actually
+  touched a schema, or actually broke a public API). The fast-track was
+  misused. The work must be rolled back and redone through `/spade-scope`
+  with a proper Plan. Apply `plan-rejected` to the original issue if it
+  exists, explain in a comment what gate criterion was violated, and
+  recommend re-opening the work as a full-loop Scope.
+
+### Quick-path Linear updates
+
+- If PASS: leave the issue in "In Review" for the human to move to Done.
+  Post a brief eval comment confirming the PR meets all gate criteria and
+  the acceptance criteria (from the PR description's "What" / "Why").
+- If PARTIAL: post an eval comment listing the specific findings and what
+  the follow-up looks like (new commits vs new PR).
+- If FAIL: post an eval comment explaining the gate violation and move
+  the issue back to the human for re-scoping.
+
+Do NOT iterate sub-issues for quick-path items — they do not exist.
+Do NOT look for a Plan document — there isn't one. The rest of this
+skill, from "Before You Start" onward, applies only to full-loop items.
+
+---
+
+## Full-Loop Evaluation
+
+For items that are NOT `spade:quick`-labelled, follow the standard
+evaluation flow below.
+
 ## Before You Start
 
 1. Read the original Scope (parent issue), including all acceptance criteria
@@ -94,12 +168,15 @@ Present the evaluation in this format:
 - If confirmed, the human moves the parent issue to "Done"
 - You must NOT mark the parent issue as Done yourself
 
-### If PARTIAL (minor fixes needed)
+### If PARTIAL (minor fixes needed) — full loop only
 
 - List the specific fixes required
 - These go back to Deliver — create new sub-issues or reopen existing ones
 - The fixes should be small and targeted, not a re-plan
 - After fixes are delivered, run evaluation again
+
+**For quick-path items, see the Quick-Path Branch at the top of this
+skill — sub-issue creation is forbidden there regardless of verdict.**
 
 ### If FAIL (fundamental problems)
 

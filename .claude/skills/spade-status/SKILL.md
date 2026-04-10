@@ -25,14 +25,25 @@ understand where things stand at a glance.
 
 ### If Linear MCP is available
 
-1. Query for active parent issues (status not "Done")
-2. For each active issue, show:
+1. Query for active parent issues (status not "Done"). Include items with
+   any of: `ai-planned`, `ai-delivered`, `spade:quick`, or standard SPADE
+   status labels.
+2. **Separate fast-track items from full-loop items.** Any issue with the
+   `spade:quick` label belongs in its own "Fast-track items" subsection —
+   these have no sub-issues, no Plan document, and are tracked by PR state
+   rather than SPADE phase.
+3. For each full-loop active issue, show:
    - Issue ID and title
    - Current SPADE phase (based on status)
    - Number of sub-issues: total, completed, in progress, pending
    - Delivery mode breakdown: how many AI-delivered vs human-delivered
    - Any blocked or flagged items
-3. Present as a clean summary table
+4. For each fast-track item, show:
+   - Issue ID and title
+   - `type:*` classification (bug / tweak / chore / docs / refactor)
+   - PR state (no PR yet / open / merged / merged+evaluated)
+   - Whether the gate-check template has been filled
+5. Present both groups as clean summary tables.
 
 ### If Linear MCP is not available
 
@@ -44,11 +55,21 @@ assess which SPADE phase each item is in.
 ```
 ## SPADE Status
 
+### Full-loop items
+
 | Issue | Phase | Progress | Blocked |
 |-------|-------|----------|---------|
 | M-68: Build telemetry worker | Delivering | 3/5 tasks done | None |
 | M-72: Knox Guard analysis | Approval | Plan ready, awaiting review | None |
 | M-75: Slack alerting | Scoped | Not yet planned | None |
+
+### Fast-track items
+
+| Issue | Type | PR state | Notes |
+|-------|------|----------|-------|
+| M-91: Fix typo in README | type:docs | merged | Awaiting human Done |
+| M-93: Bump default timeout to 30s | type:tweak | open | PR in review |
+| M-95: Rename helper function | type:refactor | no PR yet | In progress |
 
 ### Detail: M-68 — Build telemetry worker
 
@@ -89,3 +110,7 @@ After showing status, suggest next actions:
 - Issues in "Approval" → remind the human to review the plan
 - Issues in "Delivering" with all sub-issues done → suggest `/spade-evaluate`
 - Issues stuck in any phase for too long → flag for attention
+- Fast-track items with merged PRs awaiting Done → remind the human to
+  close them out
+- Fast-track items with no PR yet → suggest running `/spade-quick` or
+  ask whether the work has stalled

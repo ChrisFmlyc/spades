@@ -107,6 +107,37 @@ For each task:
 Present the tasks in recommended execution order, noting which can run in
 parallel and which are sequential.
 
+### Delivery Bundles
+
+Group the tasks into **delivery bundles**. A bundle is the unit of shipping:
+one branch, one pull request, closing every sub-issue assigned to it.
+
+**Default: a single bundle containing every task in the Scope.** Six
+interlinked tasks should not produce six PRs. Reviewers want the whole
+story in one place, and interlinked code that moves together should land
+together.
+
+**Only split into multiple bundles when all of these hold:**
+
+- The tasks are genuinely independent — no shared files, no shared
+  symbols, and no dependency arrows between them.
+- Splitting yields real value: isolated review, isolated revert, or
+  independent deploy timing (e.g. a risky migration separated from
+  related feature code, or docs-only work separated from code).
+- The split does not force the reviewer to mentally stitch the Scope
+  back together to understand either half.
+
+If you are unsure, use one bundle. You can always split later; you cannot
+easily re-merge six PRs.
+
+For each bundle, specify:
+
+- **Bundle name**: Short identifier, e.g. `etl-core`
+- **Branch name**: Suggested git branch, e.g. `spade/M-68-etl-core`
+- **PR title**: What the PR will be called
+- **Tasks included**: Which task numbers land in this bundle
+- **Rationale**: Why this grouping (especially if splitting from the default)
+
 ## Output Format
 
 Present the Plan in this format:
@@ -137,6 +168,17 @@ Present the Plan in this format:
 1. [Task X] (no dependencies, start immediately)
 2. [Task Y] (depends on Task X)
 3. [Task Z] and [Task W] (parallel, both depend on Task Y)
+
+### Delivery Bundles
+
+#### Bundle 1: [name]
+- **Branch:** spade/[issue-id]-[name]
+- **PR title:** [title]
+- **Tasks:** Task 1, Task 2, Task 3, Task 4
+- **Rationale:** Single bundle — all tasks share the ETL module and must
+  land together to keep the pipeline coherent.
+
+[If splitting, repeat per bundle with rationale for the split]
 ```
 
 ## Saving the Plan
@@ -188,8 +230,10 @@ If Linear MCP is available:
    - Label: `ai-planned`
    - Label: `ai-delivered` or `human-delivery` as appropriate
    - Label: `needs-arch-review` if the task touches architecture
+   - Label: `bundle:<bundle-name>` so delivery can group them under one PR
    - Priority set based on delivery sequence
-3. Attach the full Plan document as a comment on the parent issue
+3. Attach the full Plan document (including the Delivery Bundles section)
+   as a comment on the parent issue
 4. Update the parent issue status to "Approval" when the Plan is ready
 
 ## After Planning
@@ -199,8 +243,9 @@ Do not begin delivery. Do NOT save the plan locally or create sub-issues
 until the human approves. Say something like:
 
 "The Plan is ready for your review. Please check it against architecture
-alignment, completeness, feasibility, risk, and task granularity. Let me
-know if you want changes, or approve it so I can begin delivery."
+alignment, completeness, feasibility, risk, task granularity, and delivery
+bundling. Let me know if you want changes, or approve it so I can begin
+delivery."
 
 Once approved:
 1. Write the plan to `.spade/plans/`

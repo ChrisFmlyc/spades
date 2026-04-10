@@ -75,6 +75,24 @@ and flag any concerns]
 
 **Your assessment:** [State whether the granularity is right]
 
+### 6. Delivery Bundling
+
+- Does the Plan group tasks into delivery bundles, or is it silent?
+  (A silent Plan defaults to one bundle per Scope — flag that explicitly.)
+- For a single-bundle plan: is that the right call given the scope size?
+  Will the resulting PR be reviewable in one sitting?
+- For a multi-bundle plan: is each split justified? Splits are only
+  warranted when tasks share no files or symbols, have no dependency
+  arrows between them, and benefit from isolated review, revert, or
+  deploy timing. Otherwise the split just multiplies review burden.
+- Would the reviewer prefer to see these changes as one story, or as
+  several independent ones? Default to one story.
+- Are the branch names and PR titles clear enough that the delivery
+  phase can execute without re-deciding the bundling?
+
+**Your assessment:** [State whether the bundling minimises reviewer
+burden while keeping independently-revertable pieces separate]
+
 ## Approval Depth
 
 Scale the review to the risk:

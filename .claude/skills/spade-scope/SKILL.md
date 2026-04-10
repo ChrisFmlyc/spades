@@ -22,6 +22,30 @@ You are helping a human create or edit a well-formed Scope for the SPADE
 framework. A Scope is the contract that everything downstream is measured
 against. Every field matters — a weak Scope produces a weak Plan.
 
+## Check the Fast-Track Gate First
+
+**Before you begin scoping, ask yourself: does this work genuinely need
+the full loop?** If the change is a typo, a one-line tweak, a small
+config nudge, a docs update, or a trivial bug fix, it may belong on the
+fast-track path instead.
+
+Walk the gate (full criteria in `AGENTS.md` → "Fast-Track Path"):
+
+1. Single concern, ≤ 50 LoC, one file/module
+2. No new dependencies, no schema changes, no architectural changes
+3. No auth/crypto/permission code, no public API breakage
+4. Revertable as one commit, existing tests cover the area
+
+If every criterion passes, **stop here and suggest `/spade-quick`
+instead**. Say something like: "This looks like a fast-track candidate —
+it meets every gate criterion. Want me to run `/spade-quick` and skip
+the full scoping flow?" Only continue with `/spade-scope` if the human
+confirms or if any gate criterion fails.
+
+When in doubt, continue with the full loop. The cost of over-scoping a
+trivial change is a few minutes; the cost of fast-tracking something
+that needed a real Scope is a broken audit trail.
+
 ## Conversational Style
 
 This is an interactive, guided conversation — NOT a form to fill in.
