@@ -258,6 +258,25 @@ Present the Scope in this format:
 **Priority:** [Blocks release | This cycle | Backlog | Exploratory]
 ```
 
+## Second Opinion (Optional)
+
+After presenting the finalised Scope (but before creating/updating the
+Linear issue), offer the human a second opinion:
+
+"The Scope looks ready. Before I create the issue, would you like a
+**second opinion** from an independent perspective? This spawns a fresh
+agent that reviews the Scope for blind spots, premise risks, and
+acceptance criteria gaps. (Takes about 30 seconds.)"
+
+If the human says yes, invoke `/spade-review` in Scope Review mode.
+After the review and synthesis, resume here and ask whether they want
+to adjust the Scope before creating the issue.
+
+If the human says no (or doesn't respond to the offer), proceed directly
+to Linear integration.
+
+This is always optional and never blocks the scoping flow.
+
 ## Linear Integration
 
 ### Create Mode

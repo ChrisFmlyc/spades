@@ -41,6 +41,8 @@ the full loop.
 - After producing a Plan, STOP and wait for human approval.
 - If rejected, apply `plan-rejected` label, revise, and re-present.
 - Do not begin delivery on a rejected or unapproved plan.
+- **Second opinion (optional).** The human may request `/spade-review` for
+  an independent perspective before deciding. Non-blocking, informational only.
 
 ### 4. Deliver (AI or Human)
 - Execute the approved Plan one **delivery bundle** at a time. A bundle is

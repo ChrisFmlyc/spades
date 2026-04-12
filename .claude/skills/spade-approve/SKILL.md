@@ -108,6 +108,26 @@ If you are approving every plan in 30 seconds, the gate is not working.
 If you are spending an hour on every trivial plan, the gate is a bottleneck.
 Calibrate.
 
+## Second Opinion (Optional)
+
+After presenting the checklist but **before** asking for the human's
+approval decision, offer an independent review:
+
+"Before you decide — would you like a **second opinion** from an
+independent perspective? This spawns a fresh agent that reviews both
+the Scope and Plan for blind spots, without seeing our conversation.
+(Takes about 30 seconds.)"
+
+If the human says yes, invoke `/spade-review` in Full Review mode
+(scope + plan together). After the review and cross-model synthesis,
+resume here with the approval decision.
+
+If the human says no (or doesn't respond to the offer), proceed directly
+to the decision step.
+
+This is always optional and never blocks or replaces the approval
+checklist. It supplements it with a genuinely independent perspective.
+
 ## Decision
 
 After presenting the checklist, ask the human for one of:

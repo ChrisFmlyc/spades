@@ -159,6 +159,7 @@ Once installed and onboarded:
 | `/spade-list` | List active Scopes from Linear, filtered by SPADE phase |
 | `/spade-plan` | Generate a structured Plan from a Scope |
 | `/spade-approve` | Present a Plan for human review against the approval checklist |
+| `/spade-review` | Get an independent second opinion on a Scope, Plan, or both |
 | `/spade-evaluate` | Check delivered output against acceptance criteria |
 | `/spade-status` | Show current SPADE phase and progress for active work |
 | `/spade-update` | Check for and install SPADE framework updates |

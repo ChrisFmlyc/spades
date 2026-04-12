@@ -78,6 +78,10 @@ in doubt, use the full loop.
 - A fast approval is acceptable for low-risk, granular tasks.
   A thorough review is mandatory for tasks touching architecture, security,
   or cross-system boundaries.
+- **Second opinion (optional).** Before deciding, the human may request an
+  independent review via `/spade-review`. This spawns a fresh agent that
+  reviews the Scope and Plan without seeing the conversation. The second
+  opinion is informational — it never gates approval or delivery.
 
 ### 4. Deliver (AI or Human)
 
@@ -280,6 +284,8 @@ the full loop.
 - After producing a Plan, STOP and wait for human approval.
 - If rejected, apply `plan-rejected` label, revise, and re-present.
 - Do not begin delivery on a rejected or unapproved plan.
+- **Second opinion (optional).** The human may request `/spade-review` for
+  an independent perspective before deciding. Non-blocking, informational only.
 
 ### 4. Deliver (AI or Human)
 - Execute the approved Plan one **delivery bundle** at a time. A bundle is
