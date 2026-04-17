@@ -219,17 +219,21 @@ and your reasoning.
 When spawning the agent:
 
 - **description**: "SPADE second opinion — {mode} review"
-- **prompt**: The assembled prompt above with all `{placeholders}` filled
-- **model**: Use `"sonnet"` for the review agent (fast, capable, different
-  perspective from Opus)
+- **prompt**: The assembled prompt above with all `{placeholders}` filled.
+  Prepend a "Think hard and reason carefully before responding." instruction
+  so the reviewer uses maximal reasoning effort.
+- **model**: Always use `"opus"` for the review agent. This maps to the
+  latest Opus (Opus 4.7) and is required — do not substitute Sonnet or
+  Haiku, even for short reviews. The whole point of a second opinion is
+  the strongest available reasoning from an independent context.
 
 Example:
 
 ```
 Agent({
   description: "SPADE second opinion — full review",
-  model: "sonnet",
-  prompt: "<the assembled full review prompt with all context filled in>"
+  model: "opus",
+  prompt: "Think hard and reason carefully before responding.\n\n<the assembled full review prompt with all context filled in>"
 })
 ```
 
