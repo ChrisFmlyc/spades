@@ -127,11 +127,23 @@ rely on the Plan schema already carrying posture.
 ### Files touched
 
 - `docs/FRAMEWORK.md` — vocabulary reference
-- `.spade/docs/FRAMEWORK.md` — committed copy in sync
 - `examples/example-plan.md` — shape example
-- `.spade/examples/example-plan.md` — committed copy in sync
 - `.claude/skills/spade-plan/SKILL.md` — schema requirement
-- `fragments/AGENTS-section.md` — brief mention of the field
+- `fragments/AGENTS-section.md` — brief mention
+- `.gitignore` — prevent `.spade/docs/` and `.spade/examples/` residue from being committed
+
+**Deviation from the original file list (per cross-bundle risk C1):** the
+original plan included `.spade/docs/FRAMEWORK.md` and
+`.spade/examples/example-plan.md` as "committed copies in sync". Those
+paths are not, and should not be, tracked in the framework repo itself —
+Bundle A's self-onboard guard establishes that this repo is the source of
+truth and never carries injected copies. The `.spade/docs/` and
+`.spade/examples/` directories exist here only as residue from a pre-guard
+local onboarding run. Bundle B therefore updates only the canonical
+`docs/FRAMEWORK.md` and `examples/example-plan.md`, and adds those two
+paths to `.gitignore` so the residue cannot accidentally be committed
+later. Consumer repos will continue to receive `.spade/docs/` and
+`.spade/examples/` via `/spade-onboard`. of the field
 
 ### Risks
 

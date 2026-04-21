@@ -28,6 +28,8 @@ during normalisation, with failed records routed to a dead-letter index.
 - **Mode:** ai-delivered
 - **Depends on:** none
 - **Effort:** moderate (2-3 hours)
+- **Execution posture:** test-first — new workflow behaviour with clear
+  acceptance criteria; failing workflow tests drive the scaffold.
 - **Description:** Set up the Temporal workflow definition, activity stubs,
   and Databricks SQL connector. Use consumer-template as the base.
   Configure the schedule trigger (default 5 minutes).
@@ -40,6 +42,8 @@ during normalisation, with failed records routed to a dead-letter index.
 - **Mode:** ai-delivered
 - **Depends on:** Task 1
 - **Effort:** moderate (2-3 hours)
+- **Execution posture:** test-first — every field mapping is a contract;
+  write the assertions before the transforms.
 - **Description:** Implement the transformation from Databricks telemetry
   schema to Argus data model v2. Include data quality validation (reject
   malformed records, log them to dead-letter index).
@@ -53,6 +57,9 @@ during normalisation, with failed records routed to a dead-letter index.
 - **Mode:** ai-delivered
 - **Depends on:** Task 2
 - **Effort:** brief (1-2 hours)
+- **Execution posture:** straight-through — wrapping a well-known ES client
+  with bulk indexing; covered by the integration test rather than new unit
+  tests.
 - **Description:** Write the Elasticsearch indexing activity. Bulk index
   normalised records. Handle index creation if it does not exist.
 - **Approach:** Use existing ES client from shared libraries. Bulk API for
@@ -63,6 +70,8 @@ during normalisation, with failed records routed to a dead-letter index.
 - **Mode:** ai-delivered
 - **Depends on:** Task 1
 - **Effort:** brief (<1 hour)
+- **Execution posture:** test-first — small surface, fully contract-driven
+  (message shape, error handler path).
 - **Description:** Add Slack notification on workflow failure. Use existing
   Slack webhook pattern from other Argus workers.
 - **Approach:** Wrap workflow execution in error handler. On failure, POST
@@ -74,6 +83,8 @@ during normalisation, with failed records routed to a dead-letter index.
 - **Mode:** human-delivery
 - **Depends on:** Tasks 1-4
 - **Effort:** brief (<1 hour)
+- **Execution posture:** straight-through — operational task, no code
+  change; outcome is webhook created and E2E pipeline validated.
 - **Description:** Create the Slack webhook for #argus-alerts. Run the full
   pipeline against real Databricks data. Validate data appears correctly in
   Elasticsearch and alert fires on simulated failure.
