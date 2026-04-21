@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# SPADE Framework — marker replace
+#
+# Idempotently insert or replace a SPADE fragment inside a target file,
+# delimited by:
+#
+#   <!-- SPADE-FRAMEWORK-START vX.Y.Z -->
+#   ...fragment content...
+#   <!-- SPADE-FRAMEWORK-END -->
+#
+# Usage:
+#   spade-marker-replace TARGET_FILE FRAGMENT_FILE VERSION
+#
+# Semantics:
+#   - TARGET_FILE absent          -> create it with START (vVERSION) + fragment + END.
+#   - TARGET_FILE exists, no pair -> append a blank line, then START + fragment + END.
+#   - TARGET_FILE has one pair    -> replace marker block in place, re-stamping the
+#                                    START marker with vVERSION. Content outside the
+#                                    markers is preserved untouched.
+#   - TARGET_FILE has mismatched  -> exit 2; do not modify.
+#   - TARGET_FILE has duplicated  -> exit 3; do not modify.
+#
+# Running twice with the same inputs produces an unchanged file on the second run.
+#
+# Exit codes:
+#   0 success
+#   1 usage error
+#   2 mismatched markers (START count != END count)
+#   3 duplicate markers (more than one START/END pair)
+#   4 I/O error (fragment missing, write failure)
+
+if [ "$#" -ne 3 ]; then
+  echo "usage: spade-marker-replace TARGET_FILE FRAGMENT_FILE VERSION" >&2
+  exit 1
+fi
+
+target="$1"
+fragment="$2"
+version="$3"
+
+if [ ! -f "$fragment" ]; then
+  echo "spade-marker-replace: fragment file not found: $fragment" >&2
+  exit 4
+fi
+
+start_re='^<!-- SPADE-FRAMEWORK-START v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]* -->$'
+end_re='^<!-- SPADE-FRAMEWORK-END -->$'
+
+start_marker="<!-- SPADE-FRAMEWORK-START v${version} -->"
+end_marker="<!-- SPADE-FRAMEWORK-END -->"
+
+if [ -f "$target" ]; then
+  start_count=$(grep -c -E "$start_re" "$target" || true)
+  end_count=$(grep -c -E "$end_re" "$target" || true)
+else
+  start_count=0
+  end_count=0
+fi
+
+if [ "$start_count" != "$end_count" ]; then
+  echo "spade-marker-replace: mismatched markers in $target (START=$start_count END=$end_count)" >&2
+  exit 2
+fi
+
+if [ "$start_count" -gt 1 ]; then
+  echo "spade-marker-replace: duplicate markers in $target ($start_count blocks found; refusing to modify)" >&2
+  exit 3
+fi
+
+tmp="$(mktemp "${TMPDIR:-/tmp}/spade-marker.XXXXXX")"
+trap 'rm -f "$tmp"' EXIT
+
+if [ "$start_count" -eq 0 ]; then
+  if [ ! -f "$target" ]; then
+    {
+      printf '%s\n' "$start_marker"
+      cat "$fragment"
+      printf '%s\n' "$end_marker"
+    } > "$tmp"
+  else
+    # Append with a blank-line separator. Normalise trailing newline on the
+    # original file so the separator is well-defined regardless of input shape.
+    {
+      cat "$target"
+      last_byte=$(tail -c 1 "$target" 2>/dev/null || true)
+      if [ -n "$last_byte" ] && [ "$last_byte" != "$(printf '\n')" ]; then
+        printf '\n'
+      fi
+      printf '\n%s\n' "$start_marker"
+      cat "$fragment"
+      printf '%s\n' "$end_marker"
+    } > "$tmp"
+  fi
+else
+  # Exactly one pair. Replace the block in place, re-stamping version.
+  awk -v start_m="$start_marker" -v end_m="$end_marker" -v fragfile="$fragment" '
+    BEGIN { in_block = 0; replaced = 0 }
+    /^<!-- SPADE-FRAMEWORK-START v[0-9]+\.[0-9]+\.[0-9]+ -->$/ {
+      if (!replaced) {
+        print start_m
+        while ((getline line < fragfile) > 0) print line
+        close(fragfile)
+        print end_m
+        replaced = 1
+      }
+      in_block = 1
+      next
+    }
+    /^<!-- SPADE-FRAMEWORK-END -->$/ {
+      if (in_block) { in_block = 0; next }
+    }
+    !in_block { print }
+  ' "$target" > "$tmp"
+fi
+
+mv "$tmp" "$target"
+trap - EXIT
+exit 0

@@ -16,30 +16,81 @@ You are onboarding a project into the SPADE framework. Your job is twofold:
 1. **Initialise** — create the SPADE project files if they don't exist
 2. **Analyse** — explore the codebase and help fill in architecture docs
 
+## Self-onboard guard (stop here)
+
+**Before anything else**, check whether the current working directory is the
+SPADE framework repository itself:
+
+```bash
+if [ -f ".claude/skills/spade-onboard/SKILL.md" ] && [ -f "fragments/AGENTS-section.md" ]; then
+  echo "This looks like the SPADE framework repository."
+  echo "Refusing to self-onboard — the framework's own AGENTS.md / CLAUDE.md"
+  echo "are the canonical source, not fragment-wrapped copies."
+  exit 0
+fi
+```
+
+If the guard triggers, stop and tell the human:
+
+> This is the SPADE framework repo itself — no onboarding needed. Its
+> `AGENTS.md`, `CLAUDE.md`, and architecture docs are already the source
+> of truth. If you wanted to onboard a different project, `cd` into it
+> and run `/spade-onboard` there.
+
+Do not proceed to the steps below when in the framework repo.
+
 ## Step 0: Initialise SPADE Project Files
 
-Before anything else, check whether this project already has SPADE files.
-Create or update the following as needed:
+Once the self-onboard guard has passed, initialise or update framework files
+using the **marker-replace contract** implemented by
+`~/.spade/bin/spade-marker-replace`:
+
+```
+spade-marker-replace TARGET_FILE FRAGMENT_FILE VERSION
+```
+
+The contract is deterministic and idempotent:
+
+| Target state                                      | Outcome                                                                 |
+|---------------------------------------------------|-------------------------------------------------------------------------|
+| Target file absent                                | Create with START (vVERSION) + fragment + END                           |
+| Target exists, no markers                         | Append blank line, then START + fragment + END; preserve existing text  |
+| Target has one matching `vX.Y.Z` marker pair      | Replace block in place, re-stamping START to `vVERSION`                 |
+| Target has mismatched markers (START != END)      | Exit 2, no modification                                                 |
+| Target has multiple START/END pairs               | Exit 3, no modification (human must resolve)                            |
+
+Running twice with the same inputs produces an **unchanged file** on the
+second run. This is the property onboarding relies on — re-running
+`/spade-onboard` must not drift the consumer repo.
 
 ### AGENTS.md
 
-Check if AGENTS.md exists and whether it contains a SPADE section
-(look for `<!-- SPADE-FRAMEWORK-START`).
+Call the helper to insert or refresh the SPADE section:
 
-- If **no AGENTS.md exists**: read `~/.spade/fragments/AGENTS-section.md` and
-  create AGENTS.md with that content wrapped in SPADE markers:
-  ```
-  <!-- SPADE-FRAMEWORK-START v1.0.0 -->
-  ...content from fragment...
-  <!-- SPADE-FRAMEWORK-END -->
-  ```
-- If **AGENTS.md exists but has no SPADE section**: append the marked section
-  to the end of the file. Preserve all existing content.
-- If **AGENTS.md already has a SPADE section**: leave it alone.
+```bash
+~/.spade/bin/spade-marker-replace \
+  "$PWD/AGENTS.md" \
+  ~/.spade/fragments/AGENTS-section.md \
+  1.0.0
+```
+
+If the helper exits with code 2 (mismatched markers), stop and show the
+human the error message. Do NOT try to "fix" the target file automatically
+— malformed markers usually signal hand-editing the human should review.
+
+If it exits with code 3 (duplicate markers), same behaviour — refuse, report,
+ask the human to collapse the blocks by hand before re-running.
 
 ### CLAUDE.md
 
-Same logic as AGENTS.md, using `~/.spade/fragments/CLAUDE-section.md`.
+Same pattern, using the CLAUDE fragment:
+
+```bash
+~/.spade/bin/spade-marker-replace \
+  "$PWD/CLAUDE.md" \
+  ~/.spade/fragments/CLAUDE-section.md \
+  1.0.0
+```
 
 ### Architecture Templates
 
