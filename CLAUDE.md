@@ -55,8 +55,10 @@ beyond PR review. Gate criteria and rules live in AGENTS.md under
 - Never create sub-issues on the fast-track path
 - Never misuse `/spade-quick` for work that fails any gate criterion
 
-<!-- Framework-repo note: consumer repos carry a compressed SPADE section
-     between <!-- SPADE-FRAMEWORK-START vX.Y.Z --> and
-     <!-- SPADE-FRAMEWORK-END --> markers. This repo is the framework
-     itself, so the content above IS the source of truth and no wrapped
-     block is needed. /spade-onboard refuses to run here. -->
+<!--
+  Framework-repo note: consumer repos carry a compressed SPADE section
+  between `SPADE-FRAMEWORK-START vX.Y.Z` and `SPADE-FRAMEWORK-END`
+  markers. This repo is the framework itself, so the content above IS
+  the source of truth and no wrapped block is needed. /spade-onboard
+  refuses to run here.
+-->

@@ -19,7 +19,7 @@ approach exists, flag it in the Plan and get human approval before deviating.
 
 ## Project Structure
 
-```
+```text
 spade-framework/
 ├── .claude/skills/spade-*/SKILL.md   # one directory per skill
 ├── .claude/agents/                    # (planned) subagents for review personas

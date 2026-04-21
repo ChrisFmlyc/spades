@@ -45,6 +45,24 @@ if [ ! -f "$fragment" ]; then
   exit 4
 fi
 
+# Validate VERSION up front. A typo here silently bricks idempotency: we
+# would stamp the START marker with an unparseable version, and the next
+# run's marker detection regex would miss the block and append a second
+# one. Stricter to fail loudly than to corrupt state.
+case "$version" in
+  [0-9]*.[0-9]*.[0-9]*)
+    # Reject anything that still has non-digit, non-dot characters.
+    if printf '%s' "$version" | grep -q '[^0-9.]'; then
+      echo "spade-marker-replace: invalid version '$version' (expected MAJOR.MINOR.PATCH, e.g. 1.0.0)" >&2
+      exit 1
+    fi
+    ;;
+  *)
+    echo "spade-marker-replace: invalid version '$version' (expected MAJOR.MINOR.PATCH, e.g. 1.0.0)" >&2
+    exit 1
+    ;;
+esac
+
 start_re='^<!-- SPADE-FRAMEWORK-START v[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]* -->$'
 end_re='^<!-- SPADE-FRAMEWORK-END -->$'
 

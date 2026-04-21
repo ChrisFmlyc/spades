@@ -5,7 +5,7 @@ title: "SPADE v1.1 — compound-engineering borrows"
 plan_version: 1
 generated_by: spade-plan (Claude Opus 4.7)
 generated_at: 2026-04-21
-status: awaiting-approval
+status: approved
 ---
 
 # Plan — SPADE v1.1 improvements (M-323)
@@ -250,7 +250,7 @@ are lint-covered from day one.
 
 1. **Storage format.** `.spade/learnings/YYYY-MM-DD-<slug>.md` with YAML
    frontmatter:
-   ```
+   ```yaml
    ---
    title: string
    scope_ref: LIN-123          # optional, links back to originating Scope
@@ -349,9 +349,10 @@ validating the new review output.
    - `adversarial-reviewer` — what is the strongest reason this will fail
      or produce the wrong thing?
 2. **Finding schema.** JSON:
-   ```
-   { persona, severity: blocking|major|minor|nit,
-     confidence: 0.0..1.0, category, message, refs: [file:line] }
+   ```json
+   { "persona": "string", "severity": "blocking|major|minor|nit",
+     "confidence": "0.0..1.0", "category": "string",
+     "message": "string", "refs": ["file:line"] }
    ```
 3. **Merge logic** in `/spade-review` prose: spawn personas in parallel,
    collect findings, dedupe by `(category, first 100 chars of message)`,

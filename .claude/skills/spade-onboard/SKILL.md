@@ -45,7 +45,7 @@ Once the self-onboard guard has passed, initialise or update framework files
 using the **marker-replace contract** implemented by
 `~/.spade/bin/spade-marker-replace`:
 
-```
+```bash
 spade-marker-replace TARGET_FILE FRAGMENT_FILE VERSION
 ```
 
@@ -114,19 +114,27 @@ the human fill it in interactively:
 2. Use `list_projects` to show projects for that team. Ask which one.
 3. Ask for a default assignee (their name or "me").
 
-Write the config file:
+Write the config file as YAML, using the same nested shape this repo's
+own `.spade/config` uses:
 
-```
-# SPADE project configuration
-# This tells SPADE skills which Linear team and project to use.
+```yaml
+# SPADE per-repo configuration.
+# Read by SPADE skills to avoid prompting for team/project on every invocation.
 
-linear_team=M-KOPA
-linear_project=Argus
-default_assignee=me
+linear:
+  team: M-KOPA
+  team_id: 55069140-fef8-4f1a-8d04-726227e0292b
+  project: Argus
+  project_id: <uuid from list_projects>
+  default_assignee: me
 ```
+
+`team_id` and `project_id` are optional but recommended — capturing them
+during onboarding saves a `list_*` round-trip on every future skill
+invocation.
 
 If Linear MCP is not available, create the file with placeholder values
-and tell the human to fill it in manually.
+(omit the `*_id` fields) and tell the human to fill it in manually.
 
 All SPADE skills that interact with Linear MUST read `.spade/config` first
 to determine the team, project, and assignee. Do not prompt for these values

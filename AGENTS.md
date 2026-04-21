@@ -240,9 +240,11 @@ path regardless of verdict.**
 - Assume organisational context you do not have (ask the human)
 - Combine multiple Scopes into one delivery without human agreement
 
-<!-- Framework-repo note: this file is the canonical SPADE agent operating
-     rules. Consumer repos carry a compressed, fragment-wrapped subset of
-     the rules above, delimited by <!-- SPADE-FRAMEWORK-START vX.Y.Z --> ...
-     <!-- SPADE-FRAMEWORK-END -->. We deliberately do NOT carry that block
-     here — this repo is the source of truth. The /spade-onboard skill
-     refuses to run inside this repository for the same reason. -->
+<!--
+  Framework-repo note: this file is the canonical SPADE agent operating
+  rules. Consumer repos carry a compressed, fragment-wrapped subset of
+  the rules above, delimited by `SPADE-FRAMEWORK-START vX.Y.Z` and
+  `SPADE-FRAMEWORK-END` markers. We deliberately do NOT carry that block
+  here — this repo is the source of truth. The /spade-onboard skill
+  refuses to run inside this repository for the same reason.
+-->

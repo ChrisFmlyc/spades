@@ -122,10 +122,14 @@ block two
 trailing
 EOF
 cp "$tmp/dup.md" "$tmp/dup.backup.md"
-if "$HELPER" "$tmp/dup.md" "$FRAG_AGENTS" "$VERSION" 2>/dev/null; then
-    fail "helper accepted duplicate markers"
+set +e
+"$HELPER" "$tmp/dup.md" "$FRAG_AGENTS" "$VERSION" 2>/dev/null
+dup_rc=$?
+set -e
+if [ "$dup_rc" -eq 3 ]; then
+    pass "helper exited 3 on duplicate markers (per contract)"
 else
-    pass "helper rejected duplicate markers"
+    fail "expected exit 3 on duplicate markers, got $dup_rc"
 fi
 if diff -q "$tmp/dup.backup.md" "$tmp/dup.md" >/dev/null; then
     pass "duplicate-markers file was not modified"
@@ -133,7 +137,7 @@ else
     fail "duplicate-markers file was modified despite rejection"
 fi
 
-# --- Case 5: mismatched markers rejected ---
+# --- Case 5: mismatched markers rejected with exit code 2 ---
 echo
 echo "Case 5: mismatched markers rejected"
 cat > "$tmp/bad.md" <<'EOF'
@@ -141,15 +145,37 @@ cat > "$tmp/bad.md" <<'EOF'
 unterminated
 EOF
 cp "$tmp/bad.md" "$tmp/bad.backup.md"
-if "$HELPER" "$tmp/bad.md" "$FRAG_AGENTS" "$VERSION" 2>/dev/null; then
-    fail "helper accepted mismatched markers"
+set +e
+"$HELPER" "$tmp/bad.md" "$FRAG_AGENTS" "$VERSION" 2>/dev/null
+bad_rc=$?
+set -e
+if [ "$bad_rc" -eq 2 ]; then
+    pass "helper exited 2 on mismatched markers (per contract)"
 else
-    pass "helper rejected mismatched markers"
+    fail "expected exit 2 on mismatched markers, got $bad_rc"
 fi
 if diff -q "$tmp/bad.backup.md" "$tmp/bad.md" >/dev/null; then
     pass "mismatched-markers file was not modified"
 else
     fail "mismatched-markers file was modified despite rejection"
+fi
+
+# --- Case 5b: invalid version string rejected with exit 1 ---
+echo
+echo "Case 5b: invalid version rejected"
+set +e
+"$HELPER" "$tmp/new.md" "$FRAG_AGENTS" "garbage" 2>/dev/null
+ver_rc=$?
+set -e
+if [ "$ver_rc" -eq 1 ]; then
+    pass "helper exited 1 on invalid version (per contract)"
+else
+    fail "expected exit 1 on invalid version, got $ver_rc"
+fi
+if [ ! -f "$tmp/new.md" ]; then
+    pass "invalid-version call did not create the target file"
+else
+    fail "invalid-version call created the target file unexpectedly"
 fi
 
 # --- Case 6: CLAUDE.md fixture also idempotent ---
