@@ -78,10 +78,13 @@ in doubt, use the full loop.
 - A fast approval is acceptable for low-risk, granular tasks.
   A thorough review is mandatory for tasks touching architecture, security,
   or cross-system boundaries.
-- **Second opinion (optional).** Before deciding, the human may request an
-  independent review via `/spade-review`. This spawns a fresh agent that
-  reviews the Scope and Plan without seeing the conversation. The second
-  opinion is informational — it never gates approval or delivery.
+- **Panel second opinion (optional).** Before deciding, the human may request
+  a panel review via `/spade-review`. Since v1.1 this spawns five persona
+  subagents — scope-guardian, architecture-strategist, security-lens,
+  yagni-simplicity, adversarial-reviewer — in parallel where the runtime
+  supports it. Each returns structured findings; the coordinating skill
+  merges, dedupes, and presents a single report. Non-blocking: the panel
+  never gates approval or delivery.
 
 ### 4. Deliver (AI or Human)
 
@@ -123,6 +126,11 @@ in doubt, use the full loop.
 - If evaluation fails:
   - Minor issues: work goes back to Deliver with specific fix instructions
   - Fundamental issues: work goes back to Plan for a revised approach
+- **Capture learnings.** After Evaluate, or anytime during delivery when the
+  team notices something worth carrying forward, suggest `/spade-learn` to
+  record it under `.spade/learnings/`. `/spade-plan` surfaces matching prior
+  learnings automatically when a related Scope comes through next time, so
+  each pass of the loop strengthens the next.
 
 ## Architecture Constraints
 

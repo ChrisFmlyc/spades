@@ -396,11 +396,27 @@ validating the new review output.
 - `.claude/agents/spade-review-*.md` × 5 — new
 - `.claude/skills/spade-review/SKILL.md` — reshape
 - `.claude/skills/spade-update/SKILL.md` — v1.0 → v1.1 migration prose
-- `fragments/AGENTS-section.md`, `fragments/CLAUDE-section.md` — v1.1.0 bump
+- `.claude/skills/spade-onboard/SKILL.md` — bump default stamp to 1.1.0
+- `fragments/AGENTS-section.md`, `fragments/CLAUDE-section.md` — updated prose for multi-persona review, `/spade-learn`, and learnings-capture-on-Evaluate
 - `.spade/version` — `spade_version=1.1.0`
 - `README.md`, `AGENTS.md`, `CLAUDE.md` — doc refresh
-- `docs/FRAMEWORK.md`, `.spade/docs/FRAMEWORK.md` — doc refresh
-- `scripts/lint/` — extend to validate persona frontmatter
+- `docs/FRAMEWORK.md` — "Multi-persona Review" section; v1.1 footer
+- `scripts/lint/lint-agents.sh` — new (see deviation below)
+
+**Deviation at delivery time (per cross-bundle risk C1):** the original
+Plan said "extend lint-skill-frontmatter.sh" to validate persona
+frontmatter. At delivery it landed as its own script
+`scripts/lint/lint-agents.sh` with a matching CI job — consistent with
+the one-lint-one-concern pattern Bundle C established and Bundle D
+followed. `.claude/skills/*/SKILL.md` and `.claude/agents/*.md` live at
+different paths and carry different required fields
+(`name`+`description` vs `name`+`description`+`model`+`tools`+`persona`+`focus`).
+Extending the skills lint would have given it two unrelated concerns.
+Behaviour and coverage are equivalent; only the file location differs.
+
+The `.spade/docs/FRAMEWORK.md` path is not updated, consistent with
+Bundle B's deviation note: consumer copies of `docs/` are gitignored in
+this repo.
 
 ### Risks
 

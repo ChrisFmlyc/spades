@@ -10,9 +10,10 @@ Skills live in `.claude/skills/`. Invoke them by name.
 | Skill | What it does |
 |-------|-------------|
 | `/spade-scope` | Help write a well-formed Scope with acceptance criteria |
-| `/spade-plan` | Generate a structured Plan from a Scope |
+| `/spade-plan` | Generate a structured Plan from a Scope; each task declares an execution posture; surfaces matching prior learnings |
 | `/spade-approve` | Present a Plan for human review against the approval checklist |
-| `/spade-review` | Get an independent second opinion on a Scope, Plan, or both |
+| `/spade-review` | Multi-persona panel second opinion (5 subagents) on a Scope, Plan, or both |
+| `/spade-learn` | Capture a learning for `.spade/learnings/` so future Plans reference it; `--refresh` for housekeeping |
 | `/spade-quick` | Fast-track path for trivial work (typos, tweaks, small fixes) |
 | `/spade-evaluate` | Run acceptance criteria checks against delivered output |
 | `/spade-status` | Show current SPADE phase and progress for active work |
