@@ -120,9 +120,14 @@ human-gated housekeeping pass.
    - *Delete* — remove the file entirely. Only for learnings that
      were factually wrong. Suggest archive instead when uncertain.
 3. **Flag contradictions.** Before prompting per-candidate, scan for
-   pairs of active learnings whose tags overlap ≥50% and whose titles
-   appear to contradict (e.g. "prefer X over Y" and "prefer Y over X").
-   Surface pairs for the human to resolve before doing anything else.
+   pairs of active learnings whose tag sets show **Jaccard similarity
+   ≥ 0.5** and whose titles appear to contradict (e.g. "prefer X over
+   Y" and "prefer Y over X"). Jaccard similarity is
+   `|A ∩ B| / |A ∪ B|` — the size of the tag intersection divided by
+   the size of the tag union, both treated as sets (case-insensitive,
+   de-duplicated). This is a symmetric metric: it does not depend on
+   which learning is picked as "A". Surface qualifying pairs for the
+   human to resolve before doing anything else.
 4. **Never silently modify.** Every archive, delete, or contradiction
    resolution requires explicit human approval, just like the Approve
    gate in the full SPADE loop. The refresh mode is a tool for the
