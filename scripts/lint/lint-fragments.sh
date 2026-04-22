@@ -10,8 +10,9 @@ set -euo pipefail
 # a fragment would produce a malformed block after insertion.
 #
 # Checks:
-#   1. Every fragments/*.md exists and is non-empty.
-#   2. No fragment contains a SPADE-FRAMEWORK-START or -END line.
+#   1. fragments/ directory exists and contains at least one .md file.
+#   2. Every fragments/*.md is non-empty and contains no
+#      SPADE-FRAMEWORK-START or SPADE-FRAMEWORK-END line.
 #   3. The .spade/version file exists and carries a spade_version=X.Y.Z
 #      line. (Version drift between fragments and the pin is covered in
 #      Bundle E's migration test.)
@@ -19,6 +20,7 @@ set -euo pipefail
 # Exit codes:
 #   0  clean
 #   1  violation found
+#   2  fragments/ directory missing or empty
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FRAG_DIR="$REPO_ROOT/fragments"
@@ -26,8 +28,22 @@ VERSION_FILE="$REPO_ROOT/.spade/version"
 
 fail=0
 
-for frag in "$FRAG_DIR"/AGENTS-section.md "$FRAG_DIR"/CLAUDE-section.md; do
-    rel="${frag#$REPO_ROOT/}"
+if [ ! -d "$FRAG_DIR" ]; then
+    echo "lint-fragments: missing fragments directory: $FRAG_DIR" >&2
+    exit 2
+fi
+
+shopt -s nullglob
+fragments=("$FRAG_DIR"/*.md)
+shopt -u nullglob
+
+if [ "${#fragments[@]}" -eq 0 ]; then
+    echo "lint-fragments: no *.md fragments found in $FRAG_DIR" >&2
+    exit 2
+fi
+
+for frag in "${fragments[@]}"; do
+    rel="${frag#"$REPO_ROOT"/}"
     if [ ! -s "$frag" ]; then
         echo "  FAIL: $rel is missing or empty"
         fail=$((fail + 1))

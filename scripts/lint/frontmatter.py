@@ -64,6 +64,11 @@ def parse_frontmatter(text: str) -> Dict[str, str]:
         if not m:
             raise ValueError(f"cannot parse frontmatter line: {raw!r}")
         key, value = m.group(1), m.group(2).rstrip()
+        # Reject duplicate keys loudly: YAML rejects them, and silently
+        # overwriting hides skill-authoring mistakes like two copies of
+        # `name:` or `description:`.
+        if key in fields:
+            raise ValueError(f"duplicate frontmatter key: {key!r}")
         fields[key] = value
         current_key = key
     return fields

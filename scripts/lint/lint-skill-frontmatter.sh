@@ -27,7 +27,7 @@ checked=0
 for skill_md in "$SKILLS_DIR"/*/SKILL.md; do
     [ -f "$skill_md" ] || continue
     checked=$((checked + 1))
-    rel="${skill_md#$REPO_ROOT/}"
+    rel="${skill_md#"$REPO_ROOT"/}"
     if ! python3 "$PARSER" "$skill_md" --require name,description >/dev/null; then
         echo "  FAIL: $rel"
         fail=$((fail + 1))
