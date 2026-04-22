@@ -101,6 +101,23 @@ for f in "${files[@]}"; do
             continue
             ;;
     esac
+
+    # Security gate (M-341): a learning with public_safe=false is private
+    # content and must live under .spade/learnings/private/. If it lands in
+    # the public directory, it can reach a public fork via a merged PR —
+    # fail CI loudly so mis-classification can't ship. We compare against
+    # the literal absolute path prefix (no glob interpretation).
+    private_prefix="$LEARN_DIR/private/"
+    case "$f" in
+        "$private_prefix"*) ;;  # under private/; public_safe=false is fine
+        *)
+            if [ "$public_safe" = "false" ]; then
+                echo "  FAIL: $rel has public_safe=false but is NOT under .spade/learnings/private/ — move it to private/ or change public_safe to true"
+                fail=$((fail + 1))
+                continue
+            fi
+            ;;
+    esac
     if ! echo "$created" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
         echo "  FAIL: $rel created='$created' must be YYYY-MM-DD"
         fail=$((fail + 1))
