@@ -152,6 +152,36 @@ security-lens, yagni-simplicity, adversarial-reviewer. Never skip a
 persona to save time — a three-persona review collapses back toward
 generalist.
 
+### Dispatch-mode determination (v1.1.1)
+
+Record the **dispatch mode** during spawning. It is one of exactly three
+values; the banner in the report header names it verbatim so a consumer
+can distinguish a real panel from a simulated one:
+
+| Value                  | When to record                                                                                                            |
+|------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| `subagent-dispatch`    | The runtime supports spawning `.claude/agents/*.md` (or equivalent) as **independent subagent contexts**, and you spawned all five personas **in parallel** as separate contexts. |
+| `sequential-inproc`    | The runtime supports spawning personas in **isolated contexts** but only one at a time. You ran the five sequentially, still as separate contexts per persona. |
+| `degraded`             | No isolated-context path was available and you simulated the personas by re-prompting a single model context with each persona's priming. This is a fallback, not a panel. |
+
+Decision rules at spawn time:
+
+1. **Try `subagent-dispatch` first.** If the runtime accepts parallel
+   Task-tool invocations that land in isolated contexts, use it. This is
+   the default and strongest path.
+2. **Fall back to `sequential-inproc`** if parallel spawning fails or is
+   unsupported but isolated per-persona contexts are still possible.
+3. **Fall back to `degraded`** only when no isolated-context path is
+   available. Never silently degrade — read the next section.
+
+**Degrading is allowed, concealing that you degraded is not.** Consumers
+whose audit trails cite "multi-persona review" need to be able to tell
+which invocation mode produced a given report. Record the mode honestly
+and emit it in the banner (see Report envelope + Presenting the Report
+below). The `degraded` value is load-bearing — it tells a downstream
+tool that this specific report was generated from one model wearing
+five prompt hats, not five independent contexts.
+
 ## Collecting the Findings
 
 Each persona returns a short prose summary followed by a JSON code
@@ -182,11 +212,69 @@ presentation — they are below the calibration rubric each persona is
 told to respect. Log the count of filtered findings so the human sees
 "3 low-confidence findings hidden" rather than silent loss.
 
+## Report envelope (v1.1.1)
+
+The merged report carries a top-level envelope so downstream tooling
+can parse the report without inspecting the Markdown prose. The
+envelope appears as a `json` code block immediately after the banner
+(see Presenting the Report below) and MUST be valid JSON.
+
+```json
+{
+  "schema_version": "1.1.1",
+  "dispatch_mode": "subagent-dispatch",
+  "personas_spawned": 5,
+  "personas_completed": 5,
+  "findings_total": 0,
+  "findings_filtered_low_confidence": 0
+}
+```
+
+Required fields:
+
+- `schema_version` — the string `"1.1.1"` for this contract. A consumer
+  that encounters a different version knows to fall back to prose
+  parsing or flag the mismatch.
+- `dispatch_mode` — one of `subagent-dispatch`, `sequential-inproc`,
+  `degraded`. Same value as the banner line.
+- `personas_spawned` — integer count of personas actually invoked.
+  Always `5` under v1.1.1.
+- `personas_completed` — integer count of personas whose output parsed
+  successfully. If a persona's JSON block failed to parse, its prose
+  still shows in the report but it does NOT increment this counter.
+- `findings_total` — integer count of findings in the merged report
+  after dedupe and confidence filtering.
+- `findings_filtered_low_confidence` — integer count of findings
+  dropped because their confidence was below 0.3.
+
+Per-persona findings keep the schema they had in v1.1 (Bundle E) — this
+envelope is a wrapper, not a change to finding shape. If a future
+version changes per-persona finding shape, bump `schema_version`.
+
 ## Presenting the Report
 
-Present the merged report in this shape:
+The report begins with a **dispatch-mode banner** (the value you
+recorded during spawning) and the **report envelope** JSON. The section
+title depends on dispatch mode:
+
+- When `dispatch_mode` is `subagent-dispatch` or `sequential-inproc`,
+  the title is `PANEL SECOND OPINION`.
+- When `dispatch_mode` is `degraded`, the title is
+  `SINGLE-CONTEXT SIMULATION (degraded)`. You MUST NOT use the words
+  "panel" or "multi-persona" anywhere in a degraded report's header or
+  framing prose — see "What This Skill Must Never Do" below.
+
+Shape when dispatch mode is `subagent-dispatch` (or `sequential-inproc`):
 
 ```
+Dispatch mode: subagent-dispatch
+
+```json
+{"schema_version":"1.1.1","dispatch_mode":"subagent-dispatch",
+ "personas_spawned":5,"personas_completed":5,
+ "findings_total":4,"findings_filtered_low_confidence":3}
+```
+
 PANEL SECOND OPINION
 ════════════════════════════════════════════════════════════
 
@@ -207,10 +295,48 @@ Merged findings (sorted by severity × confidence):
     also_flagged_by: [adversarial-reviewer]
   ...
 
+Hidden: 3 finding(s) below 0.3 confidence threshold.
+
+════════════════════════════════════════════════════════════
+```
+
+Shape when dispatch mode is `degraded`:
+
+```
+Dispatch mode: degraded
+
+```json
+{"schema_version":"1.1.1","dispatch_mode":"degraded",
+ "personas_spawned":5,"personas_completed":5,
+ "findings_total":4,"findings_filtered_low_confidence":3}
+```
+
+SINGLE-CONTEXT SIMULATION (degraded)
+════════════════════════════════════════════════════════════
+
+This report was produced by re-prompting a single model context with
+each persona's priming in turn — it is NOT a multi-context review.
+Consumers relying on independence between reviewers should treat
+findings as lower-confidence than the headline severity suggests.
+
+Summary from each persona-prompted run (verbatim):
+
+  scope-guardian:           <prose summary>
+  ...
+
+Merged findings (sorted by severity × confidence):
+
+  ...
+
 Hidden: N finding(s) below 0.3 confidence threshold.
 
 ════════════════════════════════════════════════════════════
 ```
+
+The banner line (`Dispatch mode: <value>`) is ALWAYS the first line of
+output, before any prose, the envelope JSON, or the section title.
+This is so a `head -n 1` or a regex scan of the top-of-report surfaces
+the mode without needing to parse the envelope.
 
 **Never summarise a persona's prose in your own words.** The whole
 point is that the human sees each independent view unfiltered. The
@@ -277,6 +403,19 @@ supplements it.
 - **Auto-apply findings.** The human decides what to act on. Never
   rewrite the Scope or Plan based on findings without explicit human
   instruction.
+- **Claim "panel" or "multi-persona" in degraded output.** When
+  `dispatch_mode` is `degraded`, the coordinator MUST NOT use the
+  words "panel" or "multi-persona" in the report title, framing
+  prose, or synthesis — those words imply independence that a
+  single-context simulation did not have. Use
+  `SINGLE-CONTEXT SIMULATION (degraded)` as the title and describe
+  the run accurately. This is the load-bearing honesty rule the whole
+  dispatch-mode machinery exists to enforce; breaking it retroactively
+  falsifies every downstream audit trail that cites the report.
+- **Omit the dispatch-mode banner or envelope.** Both are required on
+  every invocation, even when dispatch is degraded — *especially*
+  when dispatch is degraded. A report without the banner is indistinguishable
+  from a pre-v1.1.1 report, and downstream tooling will misread it.
 - **Leak conversation context into persona prompts.** Each persona
   sees only the structured summary. Passing "primary agent thinks X"
   into the persona prompt defeats the independence.
