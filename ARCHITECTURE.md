@@ -63,7 +63,7 @@ they are not lost if the Linear issue is edited.
 | Issue tracking | Linear (via Linear MCP)           | Primary integration. Other trackers are supported but manual.         |
 | Agents         | Claude Code (primary)             | Skills are portable; behaviour is prose, not code                     |
 | Versioning     | Fragment markers (`<!-- SPADE-FRAMEWORK-START vX.Y.Z -->`) | Gates idempotent onboarding                                           |
-| CI             | GitHub Actions (`.github/workflows/lint.yml`) | Runs on every PR; 6 parallel lint jobs (skill-frontmatter, agents, examples, fragments, learnings, onboard-idempotency). Uses `actions/setup-python@v5` pinned to 3.11 for the stdlib-only frontmatter parser. |
+| CI             | GitHub Actions (`.github/workflows/lint.yml`) | Runs on every PR; 6 parallel lint jobs — see Testing Requirements § CI below for the list. Uses `actions/setup-python@v5` pinned to 3.11 for the stdlib-only frontmatter parser. |
 
 ## External Toolchain Policy
 
