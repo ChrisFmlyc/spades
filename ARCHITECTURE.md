@@ -59,11 +59,62 @@ they are not lost if the Linear issue is edited.
 |----------------|-----------------------------------|-----------------------------------------------------------------------|
 | Skill format   | Markdown with YAML frontmatter    | `.claude/skills/<name>/SKILL.md`                                      |
 | Setup          | Bash (`setup`) + PowerShell       | Copies skills into `~/.claude/skills/`; must stay feature-parity      |
-| Utilities      | Bash (`bin/spade-update-check`)   | POSIX-friendly, must always exit 0                                    |
+| Utilities      | Bash (`bin/spade-update-check`, `bin/spade-marker-replace`) | Both bash 3.2-safe (macOS floor). `spade-update-check` must always exit 0. `spade-marker-replace` is the idempotent consumer-file mutator used by `/spade-onboard` and `/spade-update`; bash-only — Windows consumers use Git-Bash or WSL (see "External Toolchain Policy" below). Setup stays dual-shell (`setup` + `setup.ps1`). |
 | Issue tracking | Linear (via Linear MCP)           | Primary integration. Other trackers are supported but manual.         |
 | Agents         | Claude Code (primary)             | Skills are portable; behaviour is prose, not code                     |
 | Versioning     | Fragment markers (`<!-- SPADE-FRAMEWORK-START vX.Y.Z -->`) | Gates idempotent onboarding                                           |
-| CI             | None (as of v1.0.0)               | A minimal GitHub Actions lint is planned                              |
+| CI             | GitHub Actions (`.github/workflows/lint.yml`) | Runs on every PR; 6 parallel lint jobs — see Testing Requirements § CI below for the list. Uses `actions/setup-python@v5` pinned to 3.11 for the stdlib-only frontmatter parser. |
+
+## External Toolchain Policy
+
+Two toolchains live outside the "Markdown + shell" core and are permitted
+**only** under the narrow conditions below. New toolchain additions
+require a new Scope; this section should not be interpreted as a general
+permit.
+
+### Python is allowed for CI lint only — never at runtime
+
+`scripts/lint/frontmatter.py` and any other `scripts/lint/*.py` use the
+**Python 3.11 standard library only**. No `requirements.txt`, no `pip`,
+no third-party packages. This is acceptable because:
+
+- CI-only: Python never ships to a consumer repo or runs in an agent
+  session — it executes inside GitHub Actions via
+  `actions/setup-python@v5`.
+- Stdlib-only: no supply-chain surface beyond Python itself and the
+  pinned GitHub Action version.
+- Bounded: confined to `scripts/lint/`. Any proposal to use Python
+  outside this directory — including "just a small helper" in
+  `bin/` or a skill — is a runtime dependency and forbidden by
+  `ANTI-PATTERNS.md#dependency-anti-patterns`.
+
+If a future lint genuinely needs a non-stdlib YAML parser or similar, the
+correct response is to simplify the schema, not to add `requirements.txt`.
+
+### Windows consumers need Git-Bash or WSL for `/spade-update` migration
+
+`bin/spade-marker-replace` is bash. There is no PowerShell twin. Windows
+consumers who run `/spade-update` — specifically the v1.0.0 → v1.1.x
+fragment-marker migration step — must do so from **Git-Bash** or
+**WSL**, not native PowerShell.
+
+Rationale:
+
+- Claude Code on Windows already assumes a POSIX-shell posture for most
+  skills. Running `/spade-update` from Git-Bash or WSL is the same shell
+  environment consumers already use.
+- A PowerShell twin of `spade-marker-replace` would roughly double the
+  helper's surface and require its own fixture tests to keep behaviour
+  parity with the bash version — high maintenance cost, low incremental
+  value for a tool that runs once per minor version bump.
+- Dual-shell parity is still enforced for `setup` and `setup.ps1` —
+  those run once per install and must remain cross-shell.
+  `spade-marker-replace` is not a setup script; it is a migration helper
+  called from a skill.
+
+If Windows-native `/spade-update` becomes a real need, the fix is a
+focused Scope that ships `bin/spade-marker-replace.ps1` with its own
+fixture tests, not an ad-hoc PowerShell rewrite.
 
 ## Security Requirements
 
@@ -99,6 +150,9 @@ they are not lost if the Linear issue is edited.
   conform to the documented schema; (c) fragments insert idempotently into
   consumer `AGENTS.md` / `CLAUDE.md`; (d) setup scripts succeed on a clean
   `$HOME`; (e) bash and PowerShell setup produce the same installed file set.
-- **CI** should run the above on every PR (planned; not yet present).
+- **CI** runs the above on every PR via `.github/workflows/lint.yml` —
+  6 parallel jobs (skill-frontmatter, agents, examples, fragments,
+  learnings, onboard-idempotency). Shipped in Bundle C (v1.1); extended
+  by the agents lint in Bundle E.
 - **Consumer projects** are responsible for their own test suites — SPADE does
   not mandate a testing approach, only that Plans describe one.
