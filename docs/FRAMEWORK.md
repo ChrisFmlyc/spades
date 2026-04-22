@@ -643,17 +643,56 @@ entries that match the current Scope:
 
 - A learning matches if its `scope_ref` equals the current Scope's
   Linear identifier, OR
-- At least **two** of its `tags` appear in the Scope title or the tech
-  stack row of `ARCHITECTURE.md`.
+- At least **`T`** of its `tags` appear in the Scope title or the tech
+  stack row of `ARCHITECTURE.md`, where `T` is determined by the
+  cold-start threshold below.
+
+#### Cold-start threshold (v1.1.1)
+
+`T` varies with store size to avoid two opposite failure modes:
+
+- **Empty / small store (cold start):** `N < 20` active non-archived
+  entries → `T = 1`. A single shared tag surfaces a learning. Without
+  this, a consumer's first several Scopes never match anything and the
+  loop looks dead on day one — the store stays empty because capture
+  feels pointless.
+- **Established store:** `N ≥ 20` active non-archived entries → `T = 2`.
+  Single-tag coincidence becomes noise at this volume; two shared tags
+  is the signal.
+
+`N` counts entries with `status: active` under `.spade/learnings/`
+(archived entries and the `private/` subdirectory are excluded from
+the count). The cutover is deterministic — `/spade-plan` reads the
+count at match time.
+
+The `scope_ref` path is unaffected by `T`. An entry whose `scope_ref`
+equals the current Scope's identifier always surfaces, at any store
+size.
+
+The `20` threshold is a **deliberate, named number**. Changing it
+requires a new Scope. Rationale: 20 is large enough that single-tag
+matches produce noticeable noise, but small enough that most repos
+cross the cutover within the first few cycles.
+
+#### Matched-learnings log (v1.1.1)
+
+When `/spade-plan` surfaces learnings, each entry in the `Prior
+Learnings Considered` section carries a match-reason line showing why
+it fired:
+
+- `Match reason: scope_ref=<ID>` — the scope_ref path matched.
+- `Match reason: tags matched [<tag1>, <tag2>, ...]` — the tag path
+  matched; lists only the tags that actually matched the Scope, not
+  the entry's full tag set.
+
+This gives a human scanning the Plan a way to see when matching is
+off — the prose framework has no telemetry, so the match reason is
+the minimum viable observability for "which knob is the learnings
+loop turning."
 
 Matched entries surface in a `Prior Learnings Considered` section near
-the top of the Plan, each with a one-line note on how the Plan honours
-the learning. Archived entries are skipped. No matches = no section;
-silence is cheaper than padding.
-
-The ≥2-tag threshold is deliberate: one shared tag is usually
-coincidence. A human can always ask `/spade-plan` to include a specific
-learning by filename.
+the top of the Plan. Archived entries are skipped. No matches = no
+section; silence is cheaper than padding.
 
 ### Why this matters
 

@@ -55,16 +55,34 @@ the human validates it before anything gets created in Linear.
 3. **Check `.spade/learnings/` for prior learnings.** If the directory
    exists, glob `.spade/learnings/*.md` (ignore `private/` unless the
    human explicitly opts in). For each file, read the frontmatter and
-   surface entries that match the current Scope:
-   - An entry matches if its `scope_ref` equals the current Scope's
-     Linear issue identifier, OR
-   - At least **two** of the entry's `tags` appear (case-insensitive,
-     word-boundary match) in the Scope title or the tech stack row of
-     `ARCHITECTURE.md`.
-   - Skip entries with `status: archived`.
-   Keep the threshold at ≥2 tag matches to avoid surfacing irrelevant
-   learnings — one shared tag is usually coincidence. A human can
-   always ask you to include a specific learning by id.
+   surface entries that match the current Scope.
+
+   **Cold-start threshold (v1.1.1).** Count the number of active
+   non-archived entries under `.spade/learnings/` (exclude
+   `status: archived` and the `private/` subdirectory unless
+   opted-in). Call this count `N`.
+
+   - When `N < 20`, the tag-match threshold is **1** — a single shared
+     tag is enough to surface a learning. This is the cold-start
+     regime: a repo adopting SPADE starts with zero learnings, so
+     `≥ 2` means the loop looks dead on day one.
+   - When `N ≥ 20`, the tag-match threshold is **2** — require at
+     least two matching tags to surface a learning. At this volume
+     single-tag coincidence becomes noise; the higher bar filters it.
+   - The scope_ref path is unaffected by the threshold. An entry
+     whose `scope_ref` equals the current Scope's Linear identifier
+     always surfaces, regardless of `N`.
+
+   So the match rule is: an entry surfaces if its `scope_ref` equals
+   the current Scope's identifier OR at least `T` of its `tags` appear
+   (case-insensitive, word-boundary match) in the Scope title or the
+   tech stack row of `ARCHITECTURE.md`, where `T = 1 if N < 20 else 2`.
+
+   Skip entries with `status: archived`.
+
+   The `20` is a deliberate, named number. Changing it requires a new
+   Scope. The rationale is documented in
+   `docs/FRAMEWORK.md#learnings`.
 4. If the Scope references specific systems or components, review the relevant
    code or documentation to understand the current state.
 5. If the Scope is missing required fields, flag this and suggest running
@@ -136,14 +154,26 @@ For each task, explain the technical approach:
 
 If any `.spade/learnings/*.md` entries matched the Scope (see "Before You
 Start" step 3), include a **Prior Learnings Considered** section near the
-top of the Plan listing each matched learning by title and filename,
-plus a one-line note on how the Plan honours it. If the matched learning
-is archived or already superseded by a later entry, do not include it.
+top of the Plan. Each matched learning gets:
+
+1. The learning's title (verbatim, from its frontmatter).
+2. Its filename in parentheses, e.g. `(2026-04-22-onboarding-must-be-idempotent.md)`.
+3. A one-line note on how the Plan honours it.
+4. **A match-reason log line (v1.1.1)** underneath, showing *why* the
+   learning surfaced. This lets a human scanning the Plan see when
+   matching is off:
+   - `Match reason: scope_ref=<ID>` when the scope_ref path fired.
+   - `Match reason: tags matched [<tag1>, <tag2>, ...]` when the tag
+     path fired — list only the tags that actually matched the Scope
+     title / tech stack, not the entry's full tag set.
+
+If a matched learning is archived or already superseded by a later
+entry, do not include it.
 
 If no entries match, do not include the section at all. Silence is
-cheaper than padding.
+cheaper than padding — no "no matches found" line.
 
-Example:
+Example (cold-start regime, one-tag match):
 
 ```markdown
 ### Prior Learnings Considered
@@ -152,6 +182,19 @@ Example:
   (`2026-04-22-onboarding-must-be-idempotent.md`) — Plan Bundle A extends
   the existing `spade-marker-replace` contract rather than inventing a
   new mechanism.
+  Match reason: tags matched [markers]
+```
+
+Example (scope_ref match):
+
+```markdown
+### Prior Learnings Considered
+
+- *For review and evaluation gates, a panel of persona-specific reviewers
+  beats one generalist*
+  (`2026-04-22-single-reviewer-is-weaker-than-panel.md`) — this Scope
+  preserves the panel shape; only adds verifiability layers.
+  Match reason: scope_ref=M-323
 ```
 
 ### Risk Callouts

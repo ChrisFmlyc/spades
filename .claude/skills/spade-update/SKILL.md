@@ -77,6 +77,36 @@ run. That is tested by
 `tests/onboard-idempotency.sh` (15 assertions including the v1.0.0 →
 v1.1.0 re-stamp path).
 
+### v1.1.0 → v1.1.1 upgrade
+
+**Fragment content is unchanged in v1.1.1.** The release is a
+version-pin-only bump that moves `.spade/version` and extends
+`/spade-review` and `/spade-plan` skill prose — nothing that gets
+injected into consumer `AGENTS.md` / `CLAUDE.md`.
+
+Consumers **do not need** to re-stamp their fragment blocks for
+v1.1.1. A consumer on v1.1.0 who runs `/spade-update` to pull the
+framework and re-run `~/.spade/setup` already gets the updated skills
+globally; the per-repo version pin can optionally be bumped to match:
+
+```bash
+printf 'spade_version=1.1.1\n' > "$PWD/.spade/version"
+git add .spade/version
+git commit -m "Pin .spade/version to 1.1.1"
+```
+
+If consumers prefer, they can run the same `spade-marker-replace`
+command from the v1.0.0 → v1.1.0 recipe above with `1.1.1` in place
+of `1.1.0` — the helper will re-stamp their marker version string
+without changing the wrapped content. Both paths are equivalent;
+choose based on whether the team wants the marker version to tick
+alongside the repo's `.spade/version` pin.
+
+The `v1.1.0 → v1.1.1` path is tested by
+`tests/onboard-idempotency.sh` Case 3 (version bump idempotency — the
+helper accepts any `X.Y.Z` version string and re-stamping is always
+idempotent).
+
 If the helper exits with code 2 or 3, **stop** and surface the error
 to the human. Do not try to auto-fix the file — malformed markers
 usually signal hand-editing that the human should review.
