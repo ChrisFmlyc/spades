@@ -6,3 +6,13 @@
 .env.local
 node_modules/
 .state/
+
+# In consumer repos, `/spade-onboard` injects committed copies of the
+# framework's docs and examples under `.spade/docs/` and `.spade/examples/`.
+# In THIS repo (the framework itself) the canonical copies under `docs/`
+# and `examples/` are the source of truth, so we ignore any residual
+# `.spade/docs/` or `.spade/examples/` that a local pre-guard onboarding
+# run may have created. Bundle A's self-onboard guard prevents this
+# going forward; this is belt-and-braces.
+.spade/docs/
+.spade/examples/

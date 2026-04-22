@@ -29,7 +29,8 @@ the full loop.
 
 ### 2. Plan (AI-Owned)
 - Produce a structured Plan (3-7 tasks) before writing any code.
-- Include: technical approach, dependencies, risks, delivery mode, testing strategy, delivery bundles.
+- Include: technical approach, dependencies, risks, delivery mode, testing strategy, delivery bundles, and per-task **execution posture**.
+- Execution posture is one of `test-first`, `characterization-first`, `refactor-first`, `spike`, or `straight-through`. Every task must declare one — there is no silent default. See `docs/FRAMEWORK.md#execution-posture` for the vocabulary.
 - Delivery bundles map tasks to pull requests. Default to one bundle (one PR)
   per Scope. Only split when tasks are genuinely independent and isolated
   review or revert provides real value.

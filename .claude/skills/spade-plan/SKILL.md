@@ -78,6 +78,38 @@ For each task, specify:
 - **Delivery mode**: `ai-delivered` or `human-delivery`
 - **Dependencies**: Which other tasks must complete first
 - **Estimated effort**: Brief (< 1 hour), moderate (1-4 hours), significant (4+ hours)
+- **Execution posture**: one of `test-first`, `characterization-first`,
+  `refactor-first`, `spike`, or `straight-through`. This is a required
+  field on every task — see the posture selection guide below.
+
+### Choosing an execution posture
+
+Posture declares the delivery strategy for a task: not *what* to build
+but *how* to approach the build. The canonical vocabulary and definitions
+live in `docs/FRAMEWORK.md#execution-posture`. Quick selection:
+
+- **`test-first`** — the desired behaviour is well-specified; write
+  failing tests first, then satisfy them. Default for new features with
+  clear acceptance criteria.
+- **`characterization-first`** — touching existing code without adequate
+  tests; pin down current behaviour in tests *before* changing it.
+  Default for bug fixes and refactors of untested code.
+- **`refactor-first`** — the area can't cleanly absorb the new behaviour;
+  reshape it first, then add the new behaviour. The Plan must name the
+  refactor explicitly so reviewers can confirm it's in scope.
+- **`spike`** — the correct approach is genuinely unknown; the task's
+  output is *learning*, not shippable code. A spike-postured task should
+  produce a decision record or follow-up task, not a merged PR.
+- **`straight-through`** — the change is mechanical enough that extra
+  ceremony adds no value (typo fixes, config bumps, docs edits, one-liners
+  covered by existing tests). **Not a silent default.** If you choose
+  this, state the justification in the task body (usually "covered by
+  existing tests" or "mechanical change"). If you can't justify it,
+  pick a different posture.
+
+A task may declare mixed posture when the work naturally splits — e.g.
+`characterization-first on the existing module; test-first on the new
+behaviour`. Write it on a single line.
 
 ### Technical Approach
 
@@ -158,6 +190,7 @@ Present the Plan in this format:
 - **Mode:** ai-delivered | human-delivery
 - **Depends on:** none | Task N
 - **Effort:** brief | moderate | significant
+- **Execution posture:** test-first | characterization-first | refactor-first | spike | straight-through
 - **Description:** [What needs to be done]
 - **Approach:** [How it will be done]
 - **Tests:** [What tests / what evidence of completion]

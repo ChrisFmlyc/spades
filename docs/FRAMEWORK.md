@@ -209,6 +209,61 @@ If evaluation fails, work goes back, either to Deliver (minor fixes) or to Plan
 
 ---
 
+## Plan Schema
+
+Every Plan produced by `/spade-plan` must conform to a documented schema so
+downstream skills (delivery, review, evaluation) can consume it
+deterministically. Consumers read Plans; drift in the schema breaks them.
+
+### Required fields
+
+Per Plan:
+
+- Scope reference (issue ID or link)
+- Technical approach summary (2-3 sentences)
+- Risks and assumptions
+- Delivery sequence
+- Delivery bundles (default: one; see `/spade-plan` for split rules)
+
+Per task:
+
+- Title
+- Description — what needs to be done
+- Delivery mode — `ai-delivered` or `human-delivery`
+- Dependencies — which other tasks must complete first
+- Effort estimate — brief, moderate, or significant
+- Approach — how it will be done
+- Tests — what tests are expected, or what evidence demonstrates completion
+- **Execution posture** — see vocabulary below
+
+### Execution posture
+
+Execution posture declares the delivery strategy for a task: not *what* to
+build but *how* to approach the build. Posture propagates from Plan to
+delivery: `/spade-plan` emits it, and delivery skills (or humans) honour it
+when picking up the task.
+
+Vocabulary (locked; extensions require a new Scope):
+
+| Posture                 | When to choose                                                                                                     | Typical signal                                                                                          |
+|-------------------------|--------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
+| `test-first`            | The desired behaviour is well-specified and you want failing tests to drive implementation.                        | New features with clear acceptance criteria; protocol/contract work.                                    |
+| `characterization-first`| You are fixing a bug or refactoring existing code and need to pin down current behaviour *before* changing it.     | Bug fixes on code without adequate tests; pre-refactor safety nets.                                     |
+| `refactor-first`        | Touching the area is only viable after a preparatory refactor; the new behaviour follows the cleanup.              | Code you cannot cleanly extend without first reshaping it.                                              |
+| `spike`                 | The correct approach is genuinely unknown; the task's output is learning, not shippable code.                      | New technology evaluation; hard-to-estimate architectural choices.                                      |
+| `straight-through`      | The change is mechanical enough that test-first / characterization-first ceremony adds no value.                   | Typo fixes, config bumps, docs edits, one-liners covered by existing tests.                             |
+
+There is no silent default. Every task must declare a posture. If
+`straight-through` is chosen, the Plan must state *why* — typically "covered
+by existing tests" or "mechanical change". This avoids the failure mode
+where posture becomes a rubber-stamp field.
+
+A task may declare mixed posture when the work naturally splits (for
+example, `characterization-first` on the existing module; `test-first` on
+the new behaviour). Write it as `Execution posture: characterization-first on X; test-first on Y.`.
+
+---
+
 ## Why SPADE Works
 
 ### It matches how AI agents actually perform
