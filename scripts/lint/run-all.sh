@@ -15,6 +15,7 @@ scripts=(
     "lint-skill-frontmatter.sh"
     "lint-examples.sh"
     "lint-fragments.sh"
+    "lint-learnings.sh"
     "lint-onboard-idempotency.sh"
 )
 

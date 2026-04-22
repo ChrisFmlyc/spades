@@ -16,3 +16,10 @@ node_modules/
 # going forward; this is belt-and-braces.
 .spade/docs/
 .spade/examples/
+
+# Private learnings are captured by `/spade-learn` when the human
+# classifies an entry as NOT public-safe. They stay on local disk for
+# the team but must never be committed — they may reference internal
+# systems, credentials paths, or security details that should not leak
+# into public forks. See .claude/skills/spade-learn/SKILL.md.
+.spade/learnings/private/

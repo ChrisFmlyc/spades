@@ -281,8 +281,20 @@ are lint-covered from day one.
    Plan, grep `.spade/learnings/` for entries tagged with any term in the
    Scope's title or the tech stack row from `ARCHITECTURE.md`; surface
    matches in a dedicated "Prior learnings considered" section of the Plan.
-4. **Lint** — extend `scripts/lint/lint-examples.sh` to validate learning
-   frontmatter on any file under `.spade/learnings/`.
+4. **Lint** — validate learning frontmatter on any file under
+   `.spade/learnings/`.
+
+   **Deviation at delivery time (per cross-bundle risk C1):** the
+   original Plan said "extend `scripts/lint/lint-examples.sh`" to do
+   this. At delivery, the lint landed as its own script
+   `scripts/lint/lint-learnings.sh` with a matching CI job, matching the
+   "one lint = one concern" pattern Bundle C established. Extending
+   `lint-examples.sh` would have given it two unrelated concerns
+   (example files + learning files) and a misleading name. The
+   behaviour, coverage, and failure shape are equivalent; only the
+   file location differs. The `lint-learnings.sh` script also warns on
+   active entries older than 180 days to pre-empt the R1 staleness
+   risk.
 5. **Seed** — commit two genuine learnings distilled from this Scope's
    recon:
    - `2026-04-21-onboarding-must-be-idempotent.md`
