@@ -71,7 +71,7 @@ Call the helper to insert or refresh the SPADE section:
 ~/.spade/bin/spade-marker-replace \
   "$PWD/AGENTS.md" \
   ~/.spade/fragments/AGENTS-section.md \
-  1.0.0
+  1.1.0
 ```
 
 If the helper exits with code 2 (mismatched markers), stop and show the
@@ -89,7 +89,7 @@ Same pattern, using the CLAUDE fragment:
 ~/.spade/bin/spade-marker-replace \
   "$PWD/CLAUDE.md" \
   ~/.spade/fragments/CLAUDE-section.md \
-  1.0.0
+  1.1.0
 ```
 
 ### Architecture Templates

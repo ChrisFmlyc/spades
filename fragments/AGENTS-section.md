@@ -42,8 +42,12 @@ the full loop.
 - After producing a Plan, STOP and wait for human approval.
 - If rejected, apply `plan-rejected` label, revise, and re-present.
 - Do not begin delivery on a rejected or unapproved plan.
-- **Second opinion (optional).** The human may request `/spade-review` for
-  an independent perspective before deciding. Non-blocking, informational only.
+- **Panel second opinion (optional).** The human may request `/spade-review` for
+  an independent perspective before deciding. The panel spawns five persona
+  subagents (scope-guardian, architecture-strategist, security-lens,
+  yagni-simplicity, adversarial-reviewer), merges their structured findings
+  into a single deduped report, and presents it. Non-blocking, informational
+  only — the panel never gates approval or delivery.
 
 ### 4. Deliver (AI or Human)
 - Execute the approved Plan one **delivery bundle** at a time. A bundle is
@@ -56,6 +60,10 @@ the full loop.
 ### 5. Evaluate (Human-Owned)
 - Never mark a parent issue as Done. Only humans do this.
 - If asked to help evaluate, run acceptance criteria checks and report results.
+- **Capture learnings.** After Evaluate — or anytime during delivery when the
+  team notices something worth remembering for future work — suggest
+  `/spade-learn` to record it under `.spade/learnings/`. `/spade-plan`
+  surfaces matching learnings automatically on the next related Scope.
 
 ## Fast-Track Path (Small Work)
 

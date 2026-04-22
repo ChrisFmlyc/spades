@@ -13,6 +13,7 @@ LINT_DIR="$REPO_ROOT/scripts/lint"
 
 scripts=(
     "lint-skill-frontmatter.sh"
+    "lint-agents.sh"
     "lint-examples.sh"
     "lint-fragments.sh"
     "lint-learnings.sh"

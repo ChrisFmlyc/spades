@@ -1,6 +1,6 @@
 # SPADE Lint
 
-Five small lints that guard the framework's shape. CI runs them on every
+Six small lints that guard the framework's shape. CI runs them on every
 PR; run them locally before pushing with:
 
 ```bash
@@ -12,6 +12,7 @@ PR; run them locally before pushing with:
 | Script                          | What it guards                                                                                                                        |
 |---------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
 | `lint-skill-frontmatter.sh`     | Every `.claude/skills/*/SKILL.md` parses and carries `name` + `description`.                                                         |
+| `lint-agents.sh`                | Every `.claude/agents/*.md` parses and carries `name`, `description`, `model`, `tools`, `persona`, `focus`. Skips cleanly if the directory is absent (pre-v1.1.0 consumers). |
 | `lint-examples.sh`              | `example-scope.md` has Intent / Acceptance Criteria / Constraints sections; `example-plan.md` carries `Execution posture:` on every task using the locked vocabulary. |
 | `lint-fragments.sh`             | `fragments/*.md` carry no `SPADE-FRAMEWORK-*` markers (fragments are raw content; markers are added on insertion). `.spade/version` pins a valid `spade_version=X.Y.Z`. |
 | `lint-learnings.sh`             | `.spade/learnings/*.md` carry the required learning frontmatter (`title`, `area`, `tags`, `created`, `status`, `public_safe`); `area` and `status` are in-vocabulary; `created` is `YYYY-MM-DD`. Warns on active entries older than 180 days. |
@@ -32,6 +33,7 @@ PyYAML — but update `ANTI-PATTERNS.md` first.
 
 ```bash
 ./scripts/lint/lint-skill-frontmatter.sh
+./scripts/lint/lint-agents.sh
 ./scripts/lint/lint-examples.sh
 ./scripts/lint/lint-fragments.sh
 ./scripts/lint/lint-learnings.sh
@@ -39,7 +41,7 @@ PyYAML — but update `ANTI-PATTERNS.md` first.
 ```
 
 Each script exits 0 on success and non-zero with a clear failure line on
-error. `run-all.sh` is a thin wrapper that runs all five and aggregates
+error. `run-all.sh` is a thin wrapper that runs all six and aggregates
 exit status.
 
 ## Adding a new check

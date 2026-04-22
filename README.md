@@ -3,7 +3,7 @@
 **A human-AI operating model for engineering teams.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-green.svg)](setup)
+[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](setup)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-compatible-blueviolet.svg)](https://claude.ai/code)
 
 SPADE defines clear boundaries between what humans own and what AI handles,
@@ -157,12 +157,14 @@ Once installed and onboarded:
 | `/spade-onboard` | Initialise SPADE in a project and fill in architecture docs |
 | `/spade-scope` | Create or edit a well-formed Scope (enforces 10 required fields) |
 | `/spade-list` | List active Scopes from Linear, filtered by SPADE phase |
-| `/spade-plan` | Generate a structured Plan from a Scope |
+| `/spade-plan` | Generate a structured Plan from a Scope; each task declares an execution posture; surfaces matching prior learnings |
 | `/spade-approve` | Present a Plan for human review against the approval checklist |
-| `/spade-review` | Get an independent second opinion on a Scope, Plan, or both |
+| `/spade-review` | Multi-persona panel second opinion (5 subagents, merged findings) on a Scope, Plan, or both |
+| `/spade-quick` | Fast-track path for trivial work (typos, tweaks, small config / docs changes) |
+| `/spade-learn` | Capture a learning under `.spade/learnings/` (or `private/`) so future Plans reference it; `--refresh` for housekeeping |
 | `/spade-evaluate` | Check delivered output against acceptance criteria |
 | `/spade-status` | Show current SPADE phase and progress for active work |
-| `/spade-update` | Check for and install SPADE framework updates |
+| `/spade-update` | Check for and install SPADE framework updates; handles v1.0.0 → v1.1.0 consumer fragment migration |
 
 ---
 

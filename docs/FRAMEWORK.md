@@ -444,6 +444,80 @@ contract.
 
 ---
 
+## Multi-persona Review
+
+The `/spade-review` skill is a second-opinion gate. Since v1.1 it
+operates as a **panel of five persona subagents** rather than a single
+generalist reviewer. Each persona is defined under `.claude/agents/`
+and is primed to care about one specific concern:
+
+| Persona                         | Focus                                                                       |
+|---------------------------------|------------------------------------------------------------------------------|
+| `scope-guardian`                | Scope completeness, testability, Plan→Scope traceability.                   |
+| `architecture-strategist`       | Conflicts with `ARCHITECTURE.md` / `PATTERNS.md` / `ANTI-PATTERNS.md`.      |
+| `security-lens`                 | Auth, injection, secrets, supply chain, IAM, data sensitivity.               |
+| `yagni-simplicity`              | Over-engineering, premature abstraction, bundle/task proportionality.       |
+| `adversarial-reviewer`          | The strongest attack on the Plan — what will fail, and why.                 |
+
+The rationale is captured in `.spade/learnings/2026-04-22-single-reviewer-is-weaker-than-panel.md`:
+a generalist reviewer tends to collapse a review into the single most
+obvious concern; a persona panel forces five independent angles and
+surfaces findings the generalist would miss.
+
+### How the panel runs
+
+`/spade-review` assembles a structured summary of the Scope and/or
+Plan (the same summary for every persona), then spawns all five
+subagents in parallel where the runtime supports it. Each persona
+returns a short prose summary followed by a JSON block of findings:
+
+```json
+{
+  "persona": "scope-guardian",
+  "severity": "blocking | major | minor | nit",
+  "confidence": 0.0..1.0,
+  "category": "scope-completeness | ...",
+  "message": "One or two lines describing the finding.",
+  "refs": ["<file path>:<line>", "<linear id>", ...]
+}
+```
+
+The coordinating skill then:
+
+1. Parses every persona's JSON block.
+2. **Dedupes** findings by `(category, first 100 characters of message)`
+   — keeps the highest-confidence one; records the other personas that
+   converged on the same finding in `also_flagged_by`.
+3. **Sorts** by severity × confidence, descending.
+4. **Filters** findings below 0.3 confidence (below each persona's
+   documented rubric), and reports the count of hidden findings so
+   nothing is silently lost.
+5. Presents the merged report with each persona's prose summary
+   **verbatim** — never summarised — plus its own cross-model synthesis
+   of agreements, disagreements, and tensions for the human to resolve.
+
+### Non-blocking by contract
+
+The panel is informational. It never gates approval or delivery. The
+approval checklist in `/spade-approve` is the gate; the panel
+supplements that checklist, it does not replace it.
+
+### Why a panel and not a bigger generalist
+
+Two reasons. **Coverage**: each persona is primed to care about one
+angle, so a security concern and an architecture conflict don't
+compete for the same attention budget. **Calibration**: structured
+output with explicit severity and confidence lets the human defer
+low-confidence findings without losing them — a generalist's prose
+review is all-or-nothing.
+
+The panel size is capped at five in v1.1. Adding more personas dilutes
+the signal (overlap causes duplicate findings), and removing personas
+loses coverage. Extending the panel requires a new Scope that explains
+which concern the new persona covers that no existing persona does.
+
+---
+
 ## Learnings
 
 Each pass of the SPADE loop should produce knowledge that strengthens the
@@ -539,4 +613,4 @@ Without a refresh mechanism, the store would rot. The pair of capture
 
 ---
 
-*The SPADE Framework v1.0, April 2026, M-KOPA Product Security Team*
+*The SPADE Framework v1.1, April 2026, M-KOPA Product Security Team*

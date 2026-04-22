@@ -1,6 +1,6 @@
 ---
 name: spade-review
-description: Get an independent second opinion on a SPADE Scope, Plan, or both. Spawns a fresh agent with no conversation history to challenge premises, find blind spots, and surface risks the primary review might miss. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spade-approve. Non-blocking — informs the human but never gates shipping.
+description: Get an independent second opinion on a SPADE Scope, Plan, or both. Spawns a PANEL of five persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, yagni-simplicity, adversarial-reviewer), merges their structured findings, and presents a single deduplicated report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spade-approve. Non-blocking — informs the human but never gates shipping.
 ---
 
 ## Update Check
@@ -16,49 +16,53 @@ which Linear team, project, and default assignee to use. Use these values
 for all Linear operations. If the file doesn't exist, ask the human which
 team and project to use, or suggest running `/spade-onboard` first.
 
-# SPADE Review — Second Opinion
+# SPADE Review — Persona Panel Second Opinion
 
-You are providing an independent second opinion on SPADE work. The value
-of a second opinion comes from **genuine independence** — the reviewing
-agent sees a structured summary, not the full conversation. This prevents
-anchoring bias and lets it spot things the primary agent is blind to.
+You are coordinating an independent multi-persona review of SPADE work.
+The value of a panel review comes from **genuine independence across
+distinct concerns** — each persona sees the same structured summary but
+is primed to care about a different aspect. A generalist reviewer
+collapses a review into the most obvious concern; a persona panel
+surfaces five distinct perspectives and merges the findings.
+
+This is a **second opinion**. It never gates approval or delivery — the
+report is advisory. The human decides what to act on.
 
 ## When This Skill Is Used
 
-This skill operates in three modes depending on what context is available:
+Three modes depending on what context exists:
 
 ### 1. Scope Review (before planning)
 
-When only a Scope exists and no Plan has been generated yet. The outside
-voice challenges the Scope's premises, acceptance criteria completeness,
-and whether the work is well-defined enough for planning.
+Only a Scope exists; no Plan yet. The panel challenges premises,
+acceptance criteria completeness, and whether the work is well-defined
+enough for planning.
 
 ### 2. Plan Review (after planning)
 
-When a Plan exists and the human wants an independent technical review
-before approving. The outside voice looks for gaps, overcomplexity,
-feasibility risks, and strategic miscalibration.
+A Plan exists and the human wants an independent technical review
+before approval. The panel looks for gaps, overcomplexity, feasibility
+risks, security concerns, and strategic miscalibration.
 
 ### 3. Full Review (Scope + Plan together)
 
-When both Scope and Plan are available — the default when invoked during
-`/spade-approve`. The outside voice reviews both artefacts as a pair,
-checking whether the Plan actually solves the Scope and whether either
-has blind spots.
+Both artefacts available — the default when invoked during
+`/spade-approve`. The panel reviews them as a pair.
 
 ## Determining the Mode
 
-1. If the human explicitly says what to review, use that mode.
+1. If the human explicitly names the mode, use it.
 2. If invoked during `/spade-approve`, default to **Full Review**.
 3. If a Plan exists in context (conversation or `.spade/plans/`), use
-   **Full Review** (scope + plan).
-4. If only a Scope exists (Linear issue or conversation), use **Scope Review**.
+   **Full Review**.
+4. If only a Scope exists (Linear issue or conversation), use
+   **Scope Review**.
 5. If only a Plan exists with no clear Scope, use **Plan Review**.
 
 ## Gathering Context
 
-Before spawning the review agent, you must assemble a structured summary.
-The review agent gets ONLY this summary — no conversation history.
+Before spawning the panel, assemble a structured summary. Every persona
+subagent gets the same summary — no conversation history.
 
 ### For Scope Review, gather:
 
@@ -73,9 +77,11 @@ The review agent gets ONLY this summary — no conversation history.
 
 ### For Plan Review, gather:
 
-- **Plan content** — the full plan (tasks, approach, risks, bundles)
-- **Project context** — brief description of the project
-- **Architecture constraints** — from ARCHITECTURE.md and PATTERNS.md
+- **Plan content** — the full plan (tasks, approach, risks, bundles,
+  execution posture per task)
+- **Project context**
+- **Architecture constraints** — from ARCHITECTURE.md, PATTERNS.md,
+  ANTI-PATTERNS.md (personas read these themselves if needed).
 
 ### For Full Review, gather all of the above.
 
@@ -83,237 +89,203 @@ If any of this context comes from Linear, fetch it via MCP. If it is in
 the conversation, extract it. If a plan file exists in `.spade/plans/`,
 read it.
 
-**Truncation:** If the combined context exceeds 30KB, truncate the Plan
-content (keeping task titles and approach summaries) rather than dropping
-Scope fields.
+**Truncation rule:** If the combined context exceeds 30KB, truncate the
+Plan content (keeping task titles and approach summaries) rather than
+dropping Scope fields. Personas need the full Scope to review
+traceability.
 
-## Spawning the Review Agent
+## The Panel
 
-Use the **Agent tool** to spawn an independent subagent. The agent must
-receive a self-contained prompt — it has no access to this conversation.
+Five persona subagents, each defined under `.claude/agents/`:
 
-### Scope Review Prompt
+| Persona file                                    | Focus                                                                   |
+|-------------------------------------------------|-------------------------------------------------------------------------|
+| `spade-review-scope-guardian`                   | Scope completeness, testability, Plan→Scope traceability                |
+| `spade-review-architecture-strategist`          | Conflicts with ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md         |
+| `spade-review-security-lens`                    | Auth, injection, secrets, supply chain, IAM, data sensitivity           |
+| `spade-review-yagni-simplicity`                 | Over-engineering, premature abstraction, bundle/task proportionality    |
+| `spade-review-adversarial-reviewer`             | Strongest attack on the Plan — what will fail and why                   |
+
+Read `.claude/agents/spade-review-*.md` in the framework install
+(`~/.spade/.claude/agents/` if installed globally, or `.claude/agents/`
+in the consumer repo if the consumer has vendored them). Each file
+defines the persona's focus, the severity rubric, and the output
+contract.
+
+## Spawning the Panel
+
+**Spawn all five personas in parallel where the runtime supports it;
+otherwise sequentially.** Parallel is a performance nicety, not a
+correctness requirement — the merge logic doesn't care.
+
+In Claude Code, use the `Task` tool (or the persona-specific
+`subagent_type`) to spawn each persona. Each call gets the same
+self-contained prompt:
 
 ```
-You are an independent technical reviewer examining a SPADE Scope — a
-structured description of work that an AI agent will plan against. You
-have NOT seen any prior discussion about this work. Your job is to find
-what the people closest to this work might be blind to.
+You are reviewing a SPADE {mode} as the {persona} on a multi-persona
+panel. Think hard and reason carefully before responding. Follow the
+output contract in your persona file exactly — prose summary first,
+then a JSON code block labelled `spade-findings` with strictly
+schema-matching finding objects.
 
 PROJECT CONTEXT:
 {project_context}
 
 SCOPE:
-{scope_content}
-
-ARCHITECTURE CONSTRAINTS:
-{architecture_constraints}
-
-Review this Scope and report:
-
-1. PREMISE CHECK — What assumptions does this Scope make that might be
-   wrong? Name the riskiest one and explain what would break if it fails.
-
-2. ACCEPTANCE CRITERIA GAPS — Are the criteria specific and testable?
-   Is there a criterion that should exist but doesn't? Would an AI
-   planner know unambiguously when each criterion is met?
-
-3. SCOPE BOUNDARIES — Is the "Out of Scope" section tight enough?
-   Where might scope creep sneak in during planning or delivery?
-
-4. SIZING — Is this the right size for a single SPADE loop? Should it
-   be split? Could it be combined with something else?
-
-5. THE THING NOBODY SAID — What is the most important consideration
-   about this work that the Scope does not mention at all?
-
-Be direct. Be terse. No preamble, no compliments. Just the problems
-and your reasoning.
-```
-
-### Plan Review Prompt
-
-```
-You are a brutally honest technical reviewer examining a development plan
-that will be executed by an AI agent. You have NOT seen the conversation
-that produced this plan. Your job is to find what the planning process
-missed — not to repeat the review that already happened.
-
-PROJECT CONTEXT:
-{project_context}
+{scope_content}                 # omit for Plan-only reviews
 
 PLAN:
-{plan_content}
+{plan_content}                  # omit for Scope-only reviews
 
 ARCHITECTURE CONSTRAINTS:
-{architecture_constraints}
-
-Review this Plan and report:
-
-1. LOGICAL GAPS — Are there unstated assumptions that survived planning?
-   Steps that depend on something not mentioned?
-
-2. OVERCOMPLEXITY — Is there a fundamentally simpler approach the planner
-   was too deep in the weeds to see? Could fewer tasks achieve the same
-   outcome?
-
-3. FEASIBILITY RISKS — What might go wrong that the plan takes for
-   granted? External dependencies, performance assumptions, integration
-   points?
-
-4. SEQUENCING — Are the task dependencies right? Could the delivery
-   order cause rework? Are there tasks that should be parallel but are
-   sequential (or vice versa)?
-
-5. STRATEGIC FIT — Is this the right thing to build at all, given the
-   architecture constraints? Is it solving the real problem or a symptom?
-
-Be direct. Be terse. No preamble, no compliments. Just the problems
-and your reasoning.
+{architecture_constraints}      # ARCHITECTURE / PATTERNS / ANTI-PATTERNS
 ```
 
-### Full Review Prompt
+The `Think hard and reason carefully before responding` line is
+intentional — each persona should use maximum reasoning effort since
+the panel is meant to be the strongest independent view available.
+
+If the runtime does not support parallel Task spawns, run the five
+sequentially in this order: scope-guardian, architecture-strategist,
+security-lens, yagni-simplicity, adversarial-reviewer. Never skip a
+persona to save time — a three-persona review collapses back toward
+generalist.
+
+## Collecting the Findings
+
+Each persona returns a short prose summary followed by a JSON code
+block labelled `spade-findings`. Parse each block and collect all
+findings into a single list.
+
+If a persona's JSON block is invalid (rare; LLMs occasionally emit
+trailing commas), present its prose summary verbatim and note the
+parse failure alongside the report. Do not attempt to auto-repair
+malformed JSON — showing the human "persona X returned malformed JSON"
+is more useful than risking silent data corruption.
+
+## Merging: Dedupe and Sort
+
+Across all findings:
+
+1. **Dedupe** by `(category, first 100 characters of message)`
+   normalised to lower-case. When two or more findings collapse to the
+   same key, keep the one with highest confidence. Append the other
+   personas' names to a `also_flagged_by` array on the kept finding so
+   the human sees that multiple personas converged.
+2. **Sort** by severity × confidence, descending. Severity order:
+   `blocking` > `major` > `minor` > `nit`. Within a severity bucket,
+   higher confidence comes first.
+
+Findings with confidence below 0.3 are filtered out before
+presentation — they are below the calibration rubric each persona is
+told to respect. Log the count of filtered findings so the human sees
+"3 low-confidence findings hidden" rather than silent loss.
+
+## Presenting the Report
+
+Present the merged report in this shape:
 
 ```
-You are a brutally honest technical reviewer examining both a SPADE Scope
-(the "what") and its Plan (the "how"). You have NOT seen any prior
-discussion. Your job is to find what the people closest to this work are
-blind to.
-
-PROJECT CONTEXT:
-{project_context}
-
-SCOPE:
-{scope_content}
-
-PLAN:
-{plan_content}
-
-ARCHITECTURE CONSTRAINTS:
-{architecture_constraints}
-
-Review both artefacts together and report:
-
-1. SCOPE-PLAN ALIGNMENT — Does the Plan actually solve the Scope? Are
-   there acceptance criteria that no task addresses? Are there tasks
-   that don't trace back to any criterion (scope creep in disguise)?
-
-2. PREMISE CHECK — What is the riskiest assumption across both
-   documents? What breaks if it is wrong?
-
-3. GAPS — What should exist in either the Scope or Plan but doesn't?
-   Missing error handling? Untested edge cases? Deployment concerns?
-
-4. OVERCOMPLEXITY — Is there a fundamentally simpler approach? Could
-   fewer tasks achieve the same outcome?
-
-5. THE THING NOBODY SAID — What is the most important consideration
-   about this work that neither document mentions?
-
-Be direct. Be terse. No preamble, no compliments. Just the problems
-and your reasoning.
-```
-
-### Agent Tool Call
-
-When spawning the agent:
-
-- **description**: "SPADE second opinion — {mode} review"
-- **prompt**: The assembled prompt above with all `{placeholders}` filled.
-  Prepend a "Think hard and reason carefully before responding." instruction
-  so the reviewer uses maximal reasoning effort.
-- **model**: Always use `"opus"` for the review agent. This maps to the
-  latest Opus (Opus 4.7) and is required — do not substitute Sonnet or
-  Haiku, even for short reviews. The whole point of a second opinion is
-  the strongest available reasoning from an independent context.
-
-Example:
-
-```
-Agent({
-  description: "SPADE second opinion — full review",
-  model: "opus",
-  prompt: "Think hard and reason carefully before responding.\n\n<the assembled full review prompt with all context filled in>"
-})
-```
-
-## Presenting the Results
-
-Present the outside voice's findings verbatim, clearly labelled:
-
-```
-SECOND OPINION (independent review):
+PANEL SECOND OPINION
 ════════════════════════════════════════════════════════════
-<full output from the review agent — do not truncate or summarise>
+
+Summary from each persona (their own words, verbatim):
+
+  scope-guardian:           <prose summary>
+  architecture-strategist:  <prose summary>
+  security-lens:            <prose summary>
+  yagni-simplicity:         <prose summary>
+  adversarial-reviewer:     <prose summary>
+
+Merged findings (sorted by severity × confidence):
+
+  [blocking, 0.95] architecture-strategist — <message>
+    refs: ANTI-PATTERNS.md#..., Plan Task 4
+  [major,    0.85] yagni-simplicity — <message>
+    refs: Plan Task 3
+    also_flagged_by: [adversarial-reviewer]
+  ...
+
+Hidden: N finding(s) below 0.3 confidence threshold.
+
 ════════════════════════════════════════════════════════════
 ```
 
-**Never truncate or summarise the outside voice.** The whole point is that
-the human sees the unfiltered perspective.
+**Never summarise a persona's prose in your own words.** The whole
+point is that the human sees each independent view unfiltered. The
+merge only applies to the JSON findings — the prose summaries are
+always shown verbatim.
 
 ## Cross-Model Synthesis
 
-After presenting the findings, add your own synthesis. Compare the outside
-voice's assessment against your understanding from the conversation:
+After presenting the merged panel output, add your own synthesis as
+the coordinating agent. For each finding you disagree with, state what
+you think differently and why — include context the panel did not have
+(conversation history, prior human decisions, and so on). Flag
+genuine tensions neutrally rather than picking a side:
 
 ```
 CROSS-MODEL SYNTHESIS:
+
+Where I agree: <list of findings you second>
+Where I disagree: <findings with reasoning>
+Tension points (for the human to resolve):
+
+  TENSION: <topic>
+  Panel says:    X
+  My view:       Y
+  Context the panel didn't have: Z
 ```
-
-For each point the outside voice raised:
-
-- **Where you agree**: State it briefly. Agreement from independent
-  perspectives strengthens the signal.
-- **Where you disagree**: State what you think differently and why.
-  Include what context you have that the outside voice did not.
-- **Tension points**: Where neither view is clearly right, present both
-  perspectives neutrally and flag it for the human:
-  ```
-  TENSION: [Topic]
-  Outside voice says: X
-  Primary view: Y
-  Context the outside voice didn't have: Z
-  ```
 
 ## User Decision
 
-After synthesis, ask the human what they want to do. Use the AskUserQuestion
-tool:
+After synthesis, ask the human what they want to do via the
+AskUserQuestion tool:
 
 ```
-The second opinion is above. What would you like to do?
+The panel review is above. What would you like to do?
 
-A) **Act on specific points** — tell me which findings to address
-B) **Continue as-is** — the review is noted, proceed without changes
-C) **Discuss further** — talk through specific tension points before deciding
+A) **Act on specific findings** — name which ones to address (by
+   severity, persona, or message).
+B) **Continue as-is** — review noted, proceed without changes.
+C) **Discuss further** — work through tension points before deciding.
 ```
 
-**This is non-blocking.** The human can acknowledge the review and move on.
-The second opinion never gates approval or delivery — it only informs.
+**Non-blocking.** The human can acknowledge the review and move on.
+The panel never gates approval or delivery — it informs.
 
 ## Integration with /spade-approve
 
-When invoked from `/spade-approve`, the flow is:
+When invoked from `/spade-approve`:
 
-1. `/spade-approve` presents the approval checklist with assessments
-2. Before asking for the human's approval decision, it offers:
-   "Want a second opinion from an independent perspective before deciding?"
-3. If the human says yes, `/spade-approve` invokes this skill
-4. After the review and synthesis, `/spade-approve` resumes with the
-   approval decision
+1. `/spade-approve` presents the approval checklist with its own
+   assessments.
+2. Before asking for the approval decision, it offers:
+   "Want a panel review from an independent perspective?"
+3. If the human says yes, `/spade-approve` invokes this skill.
+4. After the merged report, synthesis, and user decision,
+   `/spade-approve` resumes with the approval decision.
 
-The second opinion does NOT replace any part of the approval checklist.
-It supplements it.
+The panel does NOT replace any part of the approval checklist. It
+supplements it.
 
 ## What This Skill Must Never Do
 
-- **Gate shipping.** The second opinion is informational. It does not
-  have authority to reject a plan or block delivery.
-- **Auto-apply findings.** The human decides what to act on.
-- **Leak conversation context.** The review agent gets ONLY the structured
-  summary. Do not pass conversation history, prior disagreements, or the
-  primary agent's opinions into the review prompt.
-- **Summarise the outside voice.** Present findings verbatim.
-- **Run during fast-track (/spade-quick).** Fast-track work is too small
-  to warrant a second opinion. If someone asks for a review on quick-path
-  work, suggest the full loop instead.
+- **Gate shipping.** The panel is informational. It does not have
+  authority to reject a plan or block delivery.
+- **Auto-apply findings.** The human decides what to act on. Never
+  rewrite the Scope or Plan based on findings without explicit human
+  instruction.
+- **Leak conversation context into persona prompts.** Each persona
+  sees only the structured summary. Passing "primary agent thinks X"
+  into the persona prompt defeats the independence.
+- **Summarise a persona's prose in your own words.** Verbatim only.
+- **Run during fast-track (`/spade-quick`).** Fast-track work is too
+  small to warrant a panel review. If someone asks for a review on a
+  quick-path item, suggest the full loop instead.
+- **Skip personas to save time.** Five personas or none. A reduced
+  panel collapses back toward generalist and loses the coverage
+  guarantee.
+- **Repair malformed JSON from a persona.** Report the parse failure;
+  do not guess.
