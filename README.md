@@ -320,6 +320,16 @@ Contributions are welcome. If you have ideas for improving the framework:
 
 For bugs in the setup script, please include your OS and shell version.
 
+### Development
+
+Run the framework's own lint suite before pushing a PR:
+
+```bash
+./scripts/lint/run-all.sh
+```
+
+See `scripts/lint/README.md` for what each check does. The same lints run in CI on every PR (`.github/workflows/lint.yml`).
+
 ---
 
 ## Licence
