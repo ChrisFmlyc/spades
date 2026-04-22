@@ -59,7 +59,7 @@ they are not lost if the Linear issue is edited.
 |----------------|-----------------------------------|-----------------------------------------------------------------------|
 | Skill format   | Markdown with YAML frontmatter    | `.claude/skills/<name>/SKILL.md`                                      |
 | Setup          | Bash (`setup`) + PowerShell       | Copies skills into `~/.claude/skills/`; must stay feature-parity      |
-| Utilities      | Bash (`bin/spade-update-check`, `bin/spade-marker-replace`) | Both POSIX, bash 3.2-safe. `spade-update-check` must always exit 0. `spade-marker-replace` is the idempotent consumer-file mutator used by `/spade-onboard` and `/spade-update`; bash-only — Windows consumers use Git-Bash or WSL (see "External Toolchain Policy" below). Setup stays dual-shell (`setup` + `setup.ps1`). |
+| Utilities      | Bash (`bin/spade-update-check`, `bin/spade-marker-replace`) | Both bash 3.2-safe (macOS floor). `spade-update-check` must always exit 0. `spade-marker-replace` is the idempotent consumer-file mutator used by `/spade-onboard` and `/spade-update`; bash-only — Windows consumers use Git-Bash or WSL (see "External Toolchain Policy" below). Setup stays dual-shell (`setup` + `setup.ps1`). |
 | Issue tracking | Linear (via Linear MCP)           | Primary integration. Other trackers are supported but manual.         |
 | Agents         | Claude Code (primary)             | Skills are portable; behaviour is prose, not code                     |
 | Versioning     | Fragment markers (`<!-- SPADE-FRAMEWORK-START vX.Y.Z -->`) | Gates idempotent onboarding                                           |
@@ -150,6 +150,9 @@ fixture tests, not an ad-hoc PowerShell rewrite.
   conform to the documented schema; (c) fragments insert idempotently into
   consumer `AGENTS.md` / `CLAUDE.md`; (d) setup scripts succeed on a clean
   `$HOME`; (e) bash and PowerShell setup produce the same installed file set.
-- **CI** should run the above on every PR (planned; not yet present).
+- **CI** runs the above on every PR via `.github/workflows/lint.yml` —
+  6 parallel jobs (skill-frontmatter, agents, examples, fragments,
+  learnings, onboard-idempotency). Shipped in Bundle C (v1.1); extended
+  by the agents lint in Bundle E.
 - **Consumer projects** are responsible for their own test suites — SPADE does
   not mandate a testing approach, only that Plans describe one.
