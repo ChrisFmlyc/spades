@@ -65,6 +65,57 @@ they are not lost if the Linear issue is edited.
 | Versioning     | Fragment markers (`<!-- SPADE-FRAMEWORK-START vX.Y.Z -->`) | Gates idempotent onboarding                                           |
 | CI             | None (as of v1.0.0)               | A minimal GitHub Actions lint is planned                              |
 
+## External Toolchain Policy
+
+Two toolchains live outside the "Markdown + shell" core and are permitted
+**only** under the narrow conditions below. New toolchain additions
+require a new Scope; this section should not be interpreted as a general
+permit.
+
+### Python is allowed for CI lint only — never at runtime
+
+`scripts/lint/frontmatter.py` and any other `scripts/lint/*.py` use the
+**Python 3.11 standard library only**. No `requirements.txt`, no `pip`,
+no third-party packages. This is acceptable because:
+
+- CI-only: Python never ships to a consumer repo or runs in an agent
+  session — it executes inside GitHub Actions via
+  `actions/setup-python@v5`.
+- Stdlib-only: no supply-chain surface beyond Python itself and the
+  pinned GitHub Action version.
+- Bounded: confined to `scripts/lint/`. Any proposal to use Python
+  outside this directory — including "just a small helper" in
+  `bin/` or a skill — is a runtime dependency and forbidden by
+  `ANTI-PATTERNS.md#dependency-anti-patterns`.
+
+If a future lint genuinely needs a non-stdlib YAML parser or similar, the
+correct response is to simplify the schema, not to add `requirements.txt`.
+
+### Windows consumers need Git-Bash or WSL for `/spade-update` migration
+
+`bin/spade-marker-replace` is bash. There is no PowerShell twin. Windows
+consumers who run `/spade-update` — specifically the v1.0.0 → v1.1.x
+fragment-marker migration step — must do so from **Git-Bash** or
+**WSL**, not native PowerShell.
+
+Rationale:
+
+- Claude Code on Windows already assumes a POSIX-shell posture for most
+  skills. Running `/spade-update` from Git-Bash or WSL is the same shell
+  environment consumers already use.
+- A PowerShell twin of `spade-marker-replace` would roughly double the
+  helper's surface and require its own fixture tests to keep behaviour
+  parity with the bash version — high maintenance cost, low incremental
+  value for a tool that runs once per minor version bump.
+- Dual-shell parity is still enforced for `setup` and `setup.ps1` —
+  those run once per install and must remain cross-shell.
+  `spade-marker-replace` is not a setup script; it is a migration helper
+  called from a skill.
+
+If Windows-native `/spade-update` becomes a real need, the fix is a
+focused Scope that ships `bin/spade-marker-replace.ps1` with its own
+fixture tests, not an ad-hoc PowerShell rewrite.
+
 ## Security Requirements
 
 - **No secrets in the repo.** Skills, examples, and fragments are public.
