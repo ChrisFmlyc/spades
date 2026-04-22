@@ -59,11 +59,11 @@ they are not lost if the Linear issue is edited.
 |----------------|-----------------------------------|-----------------------------------------------------------------------|
 | Skill format   | Markdown with YAML frontmatter    | `.claude/skills/<name>/SKILL.md`                                      |
 | Setup          | Bash (`setup`) + PowerShell       | Copies skills into `~/.claude/skills/`; must stay feature-parity      |
-| Utilities      | Bash (`bin/spade-update-check`)   | POSIX-friendly, must always exit 0                                    |
+| Utilities      | Bash (`bin/spade-update-check`, `bin/spade-marker-replace`) | Both POSIX, bash 3.2-safe. `spade-update-check` must always exit 0. `spade-marker-replace` is the idempotent consumer-file mutator used by `/spade-onboard` and `/spade-update`; bash-only — Windows consumers use Git-Bash or WSL (see "External Toolchain Policy" below). Setup stays dual-shell (`setup` + `setup.ps1`). |
 | Issue tracking | Linear (via Linear MCP)           | Primary integration. Other trackers are supported but manual.         |
 | Agents         | Claude Code (primary)             | Skills are portable; behaviour is prose, not code                     |
 | Versioning     | Fragment markers (`<!-- SPADE-FRAMEWORK-START vX.Y.Z -->`) | Gates idempotent onboarding                                           |
-| CI             | None (as of v1.0.0)               | A minimal GitHub Actions lint is planned                              |
+| CI             | GitHub Actions (`.github/workflows/lint.yml`) | Runs on every PR; 6 parallel lint jobs (skill-frontmatter, agents, examples, fragments, learnings, onboard-idempotency). Uses `actions/setup-python@v5` pinned to 3.11 for the stdlib-only frontmatter parser. |
 
 ## External Toolchain Policy
 
