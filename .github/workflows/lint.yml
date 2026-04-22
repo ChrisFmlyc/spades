@@ -33,6 +33,16 @@ jobs:
       - uses: actions/checkout@v4
       - run: ./scripts/lint/lint-fragments.sh
 
+  learnings:
+    name: learnings schema
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: ./scripts/lint/lint-learnings.sh
+
   onboard-idempotency:
     name: onboard idempotency
     runs-on: ubuntu-latest

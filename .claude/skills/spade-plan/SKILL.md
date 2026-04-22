@@ -52,9 +52,22 @@ the human validates it before anything gets created in Linear.
    constraints.
 2. Read ARCHITECTURE.md, PATTERNS.md, and ANTI-PATTERNS.md if they exist in
    the repository. Your Plan must conform to these documents.
-3. If the Scope references specific systems or components, review the relevant
+3. **Check `.spade/learnings/` for prior learnings.** If the directory
+   exists, glob `.spade/learnings/*.md` (ignore `private/` unless the
+   human explicitly opts in). For each file, read the frontmatter and
+   surface entries that match the current Scope:
+   - An entry matches if its `scope_ref` equals the current Scope's
+     Linear issue identifier, OR
+   - At least **two** of the entry's `tags` appear (case-insensitive,
+     word-boundary match) in the Scope title or the tech stack row of
+     `ARCHITECTURE.md`.
+   - Skip entries with `status: archived`.
+   Keep the threshold at ≥2 tag matches to avoid surfacing irrelevant
+   learnings — one shared tag is usually coincidence. A human can
+   always ask you to include a specific learning by id.
+4. If the Scope references specific systems or components, review the relevant
    code or documentation to understand the current state.
-4. If the Scope is missing required fields, flag this and suggest running
+5. If the Scope is missing required fields, flag this and suggest running
    `/spade-scope` to complete it before planning.
 
 ## Plan Structure
@@ -118,6 +131,28 @@ For each task, explain the technical approach:
 - Which existing patterns from PATTERNS.md apply
 - Which libraries or tools will be used
 - How it integrates with existing code
+
+### Prior Learnings Considered
+
+If any `.spade/learnings/*.md` entries matched the Scope (see "Before You
+Start" step 3), include a **Prior Learnings Considered** section near the
+top of the Plan listing each matched learning by title and filename,
+plus a one-line note on how the Plan honours it. If the matched learning
+is archived or already superseded by a later entry, do not include it.
+
+If no entries match, do not include the section at all. Silence is
+cheaper than padding.
+
+Example:
+
+```markdown
+### Prior Learnings Considered
+
+- *Any write into a consumer file must be idempotent via delimited markers*
+  (`2026-04-22-onboarding-must-be-idempotent.md`) — Plan Bundle A extends
+  the existing `spade-marker-replace` contract rather than inventing a
+  new mechanism.
+```
 
 ### Risk Callouts
 

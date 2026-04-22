@@ -444,4 +444,99 @@ contract.
 
 ---
 
+## Learnings
+
+Each pass of the SPADE loop should produce knowledge that strengthens the
+next pass. Without a place to capture it, that knowledge vanishes into PR
+descriptions and Evaluate comments. SPADE addresses this with a small
+learnings store and a plan-time integration.
+
+### Storage
+
+Learnings live under `.spade/learnings/` in the consumer repo, one file
+per learning, with the filename pattern
+`YYYY-MM-DD-<short-slug>.md`:
+
+- `.spade/learnings/*.md` — **public-safe** learnings. Committed with
+  the rest of the repo.
+- `.spade/learnings/private/*.md` — **not public-safe**. Gitignored.
+  Use for entries that reference internal systems, credentials paths,
+  security details, or anything else that must not leak into public
+  forks.
+
+Each file carries the following flat YAML frontmatter (no nested
+structures — the framework's linter only supports flat keys):
+
+```yaml
+---
+title: One-line summary of what was learned
+area: onboarding | planning | delivery | review | other
+tags: comma, separated, keywords
+created: YYYY-MM-DD
+status: active               # or "archived"
+public_safe: true            # or false
+scope_ref: LIN-123           # optional; link to originating Scope
+---
+```
+
+Body conventionally has two sections: *What we learned* (specific
+observation, not a platitude) and *Why it matters for future work* (the
+concrete implication). See `.spade/learnings/` in this repo for two
+worked examples distilled from the M-323 recon.
+
+### Capture
+
+Use `/spade-learn` to capture a learning (see
+`.claude/skills/spade-learn/SKILL.md`). The skill drafts a complete
+entry from context, asks whether it is public-safe, and routes to the
+correct directory on write. Capture is cheap and meant to be used
+freely — aim for a few learnings per Scope, not one per quarter.
+
+### Refresh
+
+Learnings decay. `/spade-learn --refresh` is a periodic (quarterly at
+most), human-gated pass that:
+
+- Lists active entries older than 180 days for triage (keep active /
+  archive / delete).
+- Flags pairs of active entries whose tags overlap ≥50% and whose titles
+  appear to contradict, so the human can resolve before surfacing them
+  to future Plans.
+- Never silently modifies anything — every action requires explicit
+  human approval, just like the Approve gate in the main loop.
+
+The lint at `scripts/lint/lint-learnings.sh` surfaces stale entries as
+warnings on every PR so staleness can't accumulate silently.
+
+### Plan-time integration
+
+Before producing a Plan, `/spade-plan` greps `.spade/learnings/*.md` for
+entries that match the current Scope:
+
+- A learning matches if its `scope_ref` equals the current Scope's
+  Linear identifier, OR
+- At least **two** of its `tags` appear in the Scope title or the tech
+  stack row of `ARCHITECTURE.md`.
+
+Matched entries surface in a `Prior Learnings Considered` section near
+the top of the Plan, each with a one-line note on how the Plan honours
+the learning. Archived entries are skipped. No matches = no section;
+silence is cheaper than padding.
+
+The ≥2-tag threshold is deliberate: one shared tag is usually
+coincidence. A human can always ask `/spade-plan` to include a specific
+learning by filename.
+
+### Why this matters
+
+The biggest failure mode of AI-assisted delivery is treating each task
+as isolated. The same mistakes get made repeatedly because the
+knowledge from Evaluate doesn't reach the next Plan. A 60-second
+capture during or after Evaluate closes that loop for free.
+
+Without a refresh mechanism, the store would rot. The pair of capture
++ refresh is what keeps the store high-signal over years, not weeks.
+
+---
+
 *The SPADE Framework v1.0, April 2026, M-KOPA Product Security Team*

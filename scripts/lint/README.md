@@ -14,6 +14,7 @@ PR; run them locally before pushing with:
 | `lint-skill-frontmatter.sh`     | Every `.claude/skills/*/SKILL.md` parses and carries `name` + `description`.                                                         |
 | `lint-examples.sh`              | `example-scope.md` has Intent / Acceptance Criteria / Constraints sections; `example-plan.md` carries `Execution posture:` on every task using the locked vocabulary. |
 | `lint-fragments.sh`             | `fragments/*.md` carry no `SPADE-FRAMEWORK-*` markers (fragments are raw content; markers are added on insertion). `.spade/version` pins a valid `spade_version=X.Y.Z`. |
+| `lint-learnings.sh`             | `.spade/learnings/*.md` carry the required learning frontmatter (`title`, `area`, `tags`, `created`, `status`, `public_safe`); `area` and `status` are in-vocabulary; `created` is `YYYY-MM-DD`. Warns on active entries older than 180 days. |
 | `lint-onboard-idempotency.sh`   | Re-runs `tests/onboard-idempotency.sh` — 15 assertions against the Bundle A marker-replace contract.                                |
 
 ## Dependencies
