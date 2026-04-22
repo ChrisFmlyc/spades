@@ -102,10 +102,15 @@ without changing the wrapped content. Both paths are equivalent;
 choose based on whether the team wants the marker version to tick
 alongside the repo's `.spade/version` pin.
 
-The `v1.1.0 → v1.1.1` path is tested by
-`tests/onboard-idempotency.sh` Case 3 (version bump idempotency — the
-helper accepts any `X.Y.Z` version string and re-stamping is always
-idempotent).
+The **underlying re-stamp mechanism** is tested by
+`tests/onboard-idempotency.sh` Case 3 on the specific `v1.0.0 → v1.1.0`
+transition, and the helper itself is version-agnostic by
+implementation — its regex accepts any `X.Y.Z` version string and
+re-stamping is idempotent by construction. A dedicated
+`v1.1.0 → v1.1.1` fixture is **not** in the test suite: the first real
+consumer invocation is the smoke test. If the helper misbehaves on a
+real `v1.1.0 → v1.1.1` re-stamp, file a bug and we'll add a
+parameterised fixture.
 
 If the helper exits with code 2 or 3, **stop** and surface the error
 to the human. Do not try to auto-fix the file — malformed markers
@@ -137,14 +142,14 @@ gets access to:
 
 ## If already up to date
 
-If `git log HEAD..origin/main` shows no commits, tell the human:
-
-```
-SPADE is up to date (v1.1.0).
-```
-
-Read the current framework version from `~/.spade/.spade/version`
-rather than hard-coding it here — the value moves with every release.
+If `git log HEAD..origin/main` shows no commits, tell the human the
+framework is already current. **Read the version from
+`~/.spade/.spade/version`** — do not hard-code a version literal in
+the message; the value moves with every release. Format the message
+as `SPADE is up to date (v<version>).` where `<version>` is the
+`spade_version=...` value read from that file. If the file is missing
+or unreadable, fall back to a plain `SPADE is up to date.` without a
+version.
 
 ## If ~/.spade does not exist
 

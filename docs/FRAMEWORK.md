@@ -660,10 +660,12 @@ entries that match the current Scope:
   Single-tag coincidence becomes noise at this volume; two shared tags
   is the signal.
 
-`N` counts entries with `status: active` under `.spade/learnings/`
-(archived entries and the `private/` subdirectory are excluded from
-the count). The cutover is deterministic — `/spade-plan` reads the
-count at match time.
+`N` counts entries with `status: active` under `.spade/learnings/`.
+Archived entries are always excluded. The `private/` subdirectory is
+excluded **by default** and included only when the operator explicitly
+opts in via `/spade-plan` — matching the same opt-in rule the skill
+uses when globbing for matches. The cutover is deterministic —
+`/spade-plan` reads the count at match time.
 
 The `scope_ref` path is unaffected by `T`. An entry whose `scope_ref`
 equals the current Scope's identifier always surfaces, at any store

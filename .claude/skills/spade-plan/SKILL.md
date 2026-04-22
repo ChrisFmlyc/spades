@@ -167,8 +167,10 @@ top of the Plan. Each matched learning gets:
      path fired — list only the tags that actually matched the Scope
      title / tech stack, not the entry's full tag set.
 
-If a matched learning is archived or already superseded by a later
-entry, do not include it.
+If a matched learning has `status: archived`, do not include it.
+(The framework has no "supersedes" field — `/spade-learn --refresh`
+resolves conflicts by archiving the superseded entry explicitly, so
+the archived filter is the single source of truth.)
 
 If no entries match, do not include the section at all. Silence is
 cheaper than padding — no "no matches found" line.
