@@ -496,6 +496,60 @@ The coordinating skill then:
    **verbatim** — never summarised — plus its own cross-model synthesis
    of agreements, disagreements, and tensions for the human to resolve.
 
+### Dispatch mode and the report envelope (v1.1.1)
+
+Every `/spade-review` run emits two machine-parseable signals at the
+top of its report so consumers can tell a real panel from a simulation:
+
+1. **Dispatch-mode banner.** The first line of output is always
+   `Dispatch mode: <value>` where `<value>` is one of:
+
+   | Value                  | Meaning                                                                 |
+   |------------------------|--------------------------------------------------------------------------|
+   | `subagent-dispatch`    | Each persona ran as an independent Claude Code subagent context, in parallel. The strongest path — true multi-context review. |
+   | `sequential-inproc`    | Each persona ran in an isolated context, but sequentially (runtime didn't support parallel spawns). Still genuinely multi-context; slower. |
+   | `degraded`             | No isolated-context path was available; the coordinator simulated personas by re-prompting a single model context with each persona's priming. **Not a panel.** |
+
+2. **Report envelope (JSON).** Immediately after the banner, a JSON
+   code block carries structured metadata:
+
+   ```json
+   {
+     "schema_version": "1.1.1",
+     "dispatch_mode": "subagent-dispatch",
+     "personas_spawned": 5,
+     "personas_completed": 5,
+     "findings_total": 0,
+     "findings_filtered_low_confidence": 0
+   }
+   ```
+
+   - `schema_version` — contract version. v1.1.1 is the first version
+     with the envelope; older reports lack it entirely. Future bumps
+     move this string.
+   - `dispatch_mode` — matches the banner value.
+   - `personas_completed` — counts only personas whose JSON parsed
+     successfully. If a persona's output was unparseable, its prose is
+     still shown but this counter does not increment.
+   - `findings_filtered_low_confidence` — count of findings dropped
+     below the 0.3 confidence threshold.
+
+### Degraded-mode honesty
+
+When `dispatch_mode == "degraded"`, two honesty rules take effect:
+
+- The report's section title is **`SINGLE-CONTEXT SIMULATION (degraded)`**,
+  not `PANEL SECOND OPINION`.
+- The coordinator is explicitly forbidden from using the words
+  "panel" or "multi-persona" in the report title, framing prose, or
+  synthesis. A single-context simulation is not a panel; claiming it
+  is would retroactively falsify every audit trail citing the report.
+
+These rules are load-bearing: the whole dispatch-mode machinery exists
+to let consumers tell a real panel from a simulation. If the
+coordinator launders a degraded run as a panel, the machinery is
+useless.
+
 ### Non-blocking by contract
 
 The panel is informational. It never gates approval or delivery. The
