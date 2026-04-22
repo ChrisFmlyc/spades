@@ -1,6 +1,6 @@
 # SPADE Lint
 
-Four small lints that guard the framework's shape. CI runs them on every
+Five small lints that guard the framework's shape. CI runs them on every
 PR; run them locally before pushing with:
 
 ```bash
@@ -34,11 +34,12 @@ PyYAML — but update `ANTI-PATTERNS.md` first.
 ./scripts/lint/lint-skill-frontmatter.sh
 ./scripts/lint/lint-examples.sh
 ./scripts/lint/lint-fragments.sh
+./scripts/lint/lint-learnings.sh
 ./scripts/lint/lint-onboard-idempotency.sh
 ```
 
 Each script exits 0 on success and non-zero with a clear failure line on
-error. `run-all.sh` is a thin wrapper that runs all four and aggregates
+error. `run-all.sh` is a thin wrapper that runs all five and aggregates
 exit status.
 
 ## Adding a new check

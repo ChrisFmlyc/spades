@@ -77,10 +77,13 @@ docs, or prior issues where helpful.
 
 When invoked in the default mode:
 
-1. **Read the context.** If the current Linear issue is known (from the
-   user's message, or `.spade/config`), capture it as `scope_ref`. If the
-   user referenced a specific file path or area of the codebase, use that
-   to pre-fill the `area` field.
+1. **Read the context.** If the current Linear issue is provided in the
+   user's message or conversation (e.g. "capture a learning from M-324"),
+   capture it as `scope_ref`. `.spade/config` holds project-level
+   metadata (Linear team, project, default assignee) and does **not**
+   carry a per-issue identifier, so don't look there for `scope_ref`. If
+   the user referenced a specific file path or area of the codebase, use
+   that to pre-fill the `area` field.
 2. **Propose a draft.** Don't ask eight questions in a row — draft a
    complete learning based on the conversation so far and present it for
    the human to correct. Use the frontmatter + body format above.
