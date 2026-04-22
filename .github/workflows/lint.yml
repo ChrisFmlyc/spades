@@ -1,0 +1,41 @@
+name: lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  skill-frontmatter:
+    name: skill frontmatter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: ./scripts/lint/lint-skill-frontmatter.sh
+
+  examples:
+    name: examples schema
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/lint/lint-examples.sh
+
+  fragments:
+    name: fragments
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/lint/lint-fragments.sh
+
+  onboard-idempotency:
+    name: onboard idempotency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/lint/lint-onboard-idempotency.sh
