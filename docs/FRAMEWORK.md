@@ -262,6 +262,27 @@ A task may declare mixed posture when the work naturally splits (for
 example, `characterization-first` on the existing module; `test-first` on
 the new behaviour). Write it as `Execution posture: characterization-first on X; test-first on Y.`.
 
+### Storage (v1.2.0+)
+
+The canonical store for an approved Plan is the **tracker** (today:
+Linear) — posted as a comment on the parent issue, with sub-issues
+created for each Plan task. When the tracker is unavailable, the Scope
+has no parent issue, or the Linear write fails, `/spade-plan` falls
+back to `.spade/plans/<issue-id>-plan.md` in the consumer repo and
+marks the file with a fallback banner.
+
+The same `.spade/plans/` path also preserves **historical archives**
+written under v1.0–v1.1, when the framework defaulted to a dual-write.
+v1.2.0 is non-destructive: existing archives are never deleted, moved,
+or rewritten. Read-path skills (`/spade-evaluate` in particular) read
+the tracker first and fall back to `.spade/plans/` if the tracker
+cannot supply the Plan, so historical archives remain reachable
+indefinitely.
+
+The behaviour gate is "did the tracker accept the Plan", not merely
+"is MCP present" — see `/spade-plan` § "Saving the Plan" for the
+precise rule.
+
 ---
 
 ## Why SPADE Works

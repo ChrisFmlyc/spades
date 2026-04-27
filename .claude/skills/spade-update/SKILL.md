@@ -116,6 +116,48 @@ If the helper exits with code 2 or 3, **stop** and surface the error
 to the human. Do not try to auto-fix the file — malformed markers
 usually signal hand-editing that the human should review.
 
+### v1.1.1 → v1.2.0 upgrade
+
+**Fragment content is unchanged in v1.2.0.** The release is a
+version-pin-only bump that introduces a **skill behaviour change** in
+`/spade-plan`: from v1.2.0 onward, an approved Plan is stored
+canonically in the tracker (Linear) when one is available, and
+`.spade/plans/` becomes a fallback for Linear-less environments rather
+than a default dual-write. Fragments do not discuss plan storage, so
+nothing that gets injected into consumer `AGENTS.md` / `CLAUDE.md`
+moves.
+
+Consumers **do not need** to re-stamp their fragment blocks for
+v1.2.0. A consumer on v1.1.1 who runs `/spade-update` to pull the
+framework and re-run `~/.spade/setup` already gets the updated skills
+globally; the per-repo version pin can optionally be bumped to match:
+
+```bash
+printf 'spade_version=1.2.0\n' > "$PWD/.spade/version"
+git add .spade/version
+git commit -m "Pin .spade/version to 1.2.0"
+```
+
+If consumers prefer, they can run the same `spade-marker-replace`
+command from the v1.0.0 → v1.1.0 recipe with `1.2.0` in place of
+`1.1.0` — the helper will re-stamp the marker version string without
+changing the wrapped content. Both paths are equivalent; choose based
+on whether the team wants the marker version to tick alongside the
+repo's `.spade/version` pin.
+
+**Existing `.spade/plans/*.md` files stay untouched.** v1.2.0 is
+non-destructive: historical archives are preserved and remain readable
+by any skill that needs to fall back to local storage. The framework
+does not delete or migrate them; consumers who want to clean up may
+do so manually but are not required to.
+
+The first `/spade-plan` invocation after the upgrade exhibits the new
+behaviour: if Linear MCP is available and the parent-issue comment
+write succeeds, no `.spade/plans/<id>-plan.md` is written. If Linear
+is unreachable, fails to accept the Plan, or the Scope has no tracker
+parent, the fallback file is written with a banner line marking it as
+a fallback artefact.
+
 After the migration, suggest a commit:
 
 ```bash
