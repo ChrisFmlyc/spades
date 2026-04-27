@@ -367,8 +367,17 @@ When Linear MCP is available, the tracker-path runs as follows:
 If any of those steps fails — MCP unreachable, parent issue missing,
 comment write rejected — fall through to the fallback-path above and
 write `.spade/plans/<issue-id>-plan.md` instead. Do not retry
-indefinitely; surface the failure to the human and proceed with the
-fallback so they have a Plan artefact to work from.
+indefinitely.
+
+**Surface partial state explicitly.** If the failure happened mid-flow
+(for example: parent status moved to Planning, 3 of 7 sub-issues
+created, comment write then failed), tell the human exactly which
+steps succeeded and which did not — by sub-issue ID where applicable.
+The Plan in the fallback file is the single source of truth at that
+point; the half-created Linear state is something the human decides
+to clean up, complete manually, or leave as-is. Do **not**
+auto-delete partially-created sub-issues — destructive cleanup of
+shared tracker state is a human decision.
 
 ## After Planning
 

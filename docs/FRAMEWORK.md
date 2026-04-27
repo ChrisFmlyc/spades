@@ -268,8 +268,14 @@ The canonical store for an approved Plan is the **tracker** (today:
 Linear) — posted as a comment on the parent issue, with sub-issues
 created for each Plan task. When the tracker is unavailable, the Scope
 has no parent issue, or the Linear write fails, `/spade-plan` falls
-back to `.spade/plans/<issue-id>-plan.md` in the consumer repo and
-marks the file with a fallback banner.
+back to a local file in the consumer repo and marks it with a fallback
+banner. The filename is `.spade/plans/<issue-id>-plan.md` when the
+Scope has a tracker identifier (e.g. `M-420-plan.md`), and
+`.spade/plans/<scope-slug>-plan.md` when there is no parent issue at
+all — the slug is a short kebab-case derivation from the Scope title
+(e.g. `ingest-telegram-messages-plan.md`). Either way the file uses
+the same frontmatter schema, so historical archives and v1.2+
+fallbacks are interchangeable on the read path.
 
 The same `.spade/plans/` path also preserves **historical archives**
 written under v1.0–v1.1, when the framework defaulted to a dual-write.

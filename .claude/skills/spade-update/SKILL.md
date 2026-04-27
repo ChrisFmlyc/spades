@@ -77,6 +77,13 @@ run. That is tested by
 `tests/onboard-idempotency.sh` (15 assertions including the v1.0.0 →
 v1.1.0 re-stamp path).
 
+After the migration, suggest a commit:
+
+```bash
+git add AGENTS.md CLAUDE.md .spade/version
+git commit -m "Update SPADE fragments to v1.1.0"
+```
+
 ### v1.1.0 → v1.1.1 upgrade
 
 **Fragment content is unchanged in v1.1.1.** The release is a
@@ -157,13 +164,6 @@ write succeeds, no `.spade/plans/<id>-plan.md` is written. If Linear
 is unreachable, fails to accept the Plan, or the Scope has no tracker
 parent, the fallback file is written with a banner line marking it as
 a fallback artefact.
-
-After the migration, suggest a commit:
-
-```bash
-git add AGENTS.md CLAUDE.md .spade/version
-git commit -m "Update SPADE fragments to v1.1.0"
-```
 
 ## What is new in v1.1.0 (for the human)
 

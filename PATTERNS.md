@@ -28,7 +28,7 @@ spade-framework/
 │   ├── config                         # Linear team + project binding (per repo)
 │   ├── docs/FRAMEWORK.md              # committed copy of full reference
 │   ├── examples/                      # worked example Scopes/Plans
-│   ├── plans/                         # approved Plans persisted locally
+│   ├── plans/                         # fallback when tracker unavailable; preserves pre-v1.2 archives
 │   └── learnings/                     # (planned) compounding learnings store
 ├── fragments/
 │   ├── AGENTS-section.md              # injected into consumer AGENTS.md
