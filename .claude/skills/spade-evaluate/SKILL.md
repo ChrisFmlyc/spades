@@ -99,7 +99,12 @@ evaluation flow below.
 ## Before You Start
 
 1. Read the original Scope (parent issue), including all acceptance criteria
-2. Read the Plan that was approved
+2. Read the Plan that was approved. **Read order**: tracker first
+   (the Linear parent-issue comment posted by `/spade-plan`), then
+   `.spade/plans/<issue-id>-plan.md` as a fallback. The local file
+   exists only for Linear-less environments (v1.2.0+) or as a
+   pre-v1.2.0 historical archive — if the tracker has the Plan, that
+   is the canonical copy.
 3. Review what was actually delivered across all sub-issues
 
 ## Evaluation Checks

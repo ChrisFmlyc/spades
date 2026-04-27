@@ -28,7 +28,9 @@ the agent reads and follows.
 - **Distribution:** git repository, installed by cloning and running `./setup`
   (bash) or `./setup.ps1` (PowerShell). Copies skills into `~/.claude/skills/`.
 - **Storage:** per-project state in `.spade/` (version pin, config, examples,
-  docs copy). Intended to be committed alongside project code.
+  docs copy, learnings, and fallback Plan artefacts). Intended to be
+  committed alongside project code. Plans themselves are tracker-canonical
+  from v1.2.0 — see Data Flow § "Local state".
 - **Integrations:** Linear (via Anthropic's Linear MCP server) for issue
   tracking. No other external services.
 - **Runtime:** whatever agent environment invokes the skills (Claude Code is
@@ -50,8 +52,15 @@ this repo.
 6. `/spade-evaluate` checks delivered output against acceptance criteria.
 7. A human transitions the parent issue to Done.
 
-Local state: `.spade/plans/` captures approved Plans as checked-in artefacts so
-they are not lost if the Linear issue is edited.
+Local state: from v1.2.0 onward the tracker (Linear) is the **canonical**
+Plan store when available. `.spade/plans/` is a **fallback** for
+Linear-less environments and a **read-path for historical archives**
+written under v1.0–v1.1, when the framework defaulted to a dual-write.
+`/spade-plan` writes to `.spade/plans/` only when the tracker cannot
+accept the Plan (MCP unreachable, no parent issue, or write failure).
+Existing archives are non-destructive — they are never deleted, moved,
+or rewritten by the framework. See `PATTERNS.md` and `/spade-plan` for
+the precise gate.
 
 ## Tech Stack
 

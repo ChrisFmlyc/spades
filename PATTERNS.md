@@ -28,7 +28,7 @@ spade-framework/
 │   ├── config                         # Linear team + project binding (per repo)
 │   ├── docs/FRAMEWORK.md              # committed copy of full reference
 │   ├── examples/                      # worked example Scopes/Plans
-│   ├── plans/                         # approved Plans persisted locally
+│   ├── plans/                         # fallback when tracker unavailable; preserves pre-v1.2 archives
 │   └── learnings/                     # (planned) compounding learnings store
 ├── fragments/
 │   ├── AGENTS-section.md              # injected into consumer AGENTS.md
@@ -92,8 +92,13 @@ requires one, it is a major architectural shift and must be scoped explicitly.
 ## Documentation Patterns
 
 - **Every skill has a SKILL.md.** It is the skill — there is nothing else.
-- **Every Plan lives in two places:** the Linear parent issue (as a comment
-  or description) and `.spade/plans/` (as a checked-in Markdown artefact).
+- **The Plan is tracker-canonical.** When a tracker is available
+  (today: Linear), the Plan lives there — as a comment on the parent
+  issue, with one sub-issue per task. `.spade/plans/` is a fallback for
+  Linear-less environments and a read-path for historical archives
+  written under v1.0–v1.1, not a default dual-write. The behaviour gate
+  is "did the tracker accept the Plan", not merely "is MCP present" —
+  see `/spade-plan` for the precise rule.
 - **Architecture docs (this file, ARCHITECTURE.md, ANTI-PATTERNS.md) apply to
   this repo itself.** Consumer repos get their own copies via `/spade-onboard`
   and fill them in with their own content.

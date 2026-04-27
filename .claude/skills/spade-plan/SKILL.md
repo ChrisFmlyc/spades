@@ -296,23 +296,43 @@ Present the Plan in this format:
 
 ## Saving the Plan
 
-The Plan is stored in two places: locally in the repo AND in Linear.
-Both happen when the human approves the plan (not before).
+The Plan is **canonically stored in the tracker** (today: Linear) when
+one is available. `.spade/plans/` is a **fallback for Linear-less
+environments and a read-path for historical archives written under
+v1.0–v1.1**, not a default. Saving happens when (and only when) the
+human approves the Plan, never before.
 
-### Local Storage
+The behaviour gate is **whether the tracker can accept the Plan**, not
+merely "is the MCP tool present":
 
-Write the approved Plan to `.spade/plans/` using the issue identifier
-as the filename:
+- **Tracker-path** — Linear MCP is available, the Scope has a parent
+  issue ID, and posting the Plan as a comment on that parent issue
+  succeeds. In this path the Plan lives only in Linear (as the
+  parent-issue comment + the sub-issues). Do **not** write to
+  `.spade/plans/`.
 
-```
-.spade/plans/M-68-plan.md
-```
+- **Fallback-path** — Linear MCP is unreachable, the Scope has no
+  tracker parent, or the Linear write fails. Write the Plan locally to
+  `.spade/plans/<issue-id>-plan.md` (using the Scope's identifier; if
+  the Scope has no issue ID, use a short slug derived from its title).
+  Prepend a banner at the top of the body marking it a fallback
+  artefact, e.g.:
 
-The file should contain:
-- The full plan in the output format above
-- A metadata header with the issue ID, title, date, and status
+  ```markdown
+  > **Fallback artefact.** Linear was unavailable when this Plan was
+  > approved; this file is the canonical Plan until it is promoted to
+  > the tracker.
+  ```
 
-Example header:
+  After writing, suggest the human commit it:
+
+  ```bash
+  git add .spade/plans/M-68-plan.md
+  git commit -m "SPADE plan for M-68 (Linear-less fallback)"
+  ```
+
+The plan-file frontmatter schema is unchanged — historical archives
+under v1.0–v1.1 and fallback writes under v1.2+ are schema-compatible:
 
 ```markdown
 ---
@@ -323,20 +343,15 @@ status: approved
 ---
 ```
 
-Create the `.spade/plans/` directory if it doesn't exist. If a plan file
-already exists for this issue (from a previous revision), overwrite it —
-the git history preserves the old version.
-
-After writing the file, suggest the human commit it:
-
-```bash
-git add .spade/plans/M-68-plan.md
-git commit -m "SPADE plan for M-68: Build ETL pipeline"
-```
+Create `.spade/plans/` lazily only when the fallback-path triggers; do
+not pre-create the directory in tracker-path runs. If a fallback file
+already exists for this issue (from a previous revision or a pre-v1.2.0
+archive), overwrite it — git history preserves the old version.
 
 ### Linear Integration
 
-If Linear MCP is available:
+When Linear MCP is available, the tracker-path runs as follows:
+
 1. Update the parent issue status to "Planning"
 2. Create sub-issues for each task with:
    - Title and description from the Plan
@@ -349,6 +364,21 @@ If Linear MCP is available:
    as a comment on the parent issue
 4. Update the parent issue status to "Approval" when the Plan is ready
 
+If any of those steps fails — MCP unreachable, parent issue missing,
+comment write rejected — fall through to the fallback-path above and
+write `.spade/plans/<issue-id>-plan.md` instead. Do not retry
+indefinitely.
+
+**Surface partial state explicitly.** If the failure happened mid-flow
+(for example: parent status moved to Planning, 3 of 7 sub-issues
+created, comment write then failed), tell the human exactly which
+steps succeeded and which did not — by sub-issue ID where applicable.
+The Plan in the fallback file is the single source of truth at that
+point; the half-created Linear state is something the human decides
+to clean up, complete manually, or leave as-is. Do **not**
+auto-delete partially-created sub-issues — destructive cleanup of
+shared tracker state is a human decision.
+
 ## After Planning
 
 After presenting the Plan, explicitly ask the human to review and approve it.
@@ -360,11 +390,16 @@ alignment, completeness, feasibility, risk, task granularity, and delivery
 bundling. Let me know if you want changes, or approve it so I can begin
 delivery."
 
-Once approved:
-1. Write the plan to `.spade/plans/`
-2. Create sub-issues in Linear
-3. Post the plan as a comment on the parent issue
-4. Update the parent issue status to "Approval"
+Once approved, follow the rule in "Saving the Plan" above:
+
+1. **Tracker-path** (default when Linear is reachable): create
+   sub-issues, post the Plan as a comment on the parent issue, and
+   update parent issue status to "Approval". No local file is written.
+2. **Fallback-path** (Linear unreachable, no tracker parent, or write
+   fails): write `.spade/plans/<issue-id>-plan.md` with the fallback
+   banner.
+
+Either way, the Plan is now stored canonically and delivery can begin.
 
 You must wait for explicit approval before proceeding to Deliver.
 
