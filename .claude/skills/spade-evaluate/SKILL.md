@@ -159,6 +159,13 @@ Present the evaluation in this format:
 
 [PASS — ready to ship | PARTIAL — specific fixes needed | FAIL — rework required]
 
+The verdict itself is a fixed-option decision: ask via
+**`AskUserQuestion`** (per `docs/FRAMEWORK.md` § "Asking the Human")
+with the three options *PASS — ready to ship*, *PARTIAL — fixes
+needed*, *FAIL — rework required*. The same applies to the quick-path
+verdict at the top of this skill — never use a free-form "what's the
+verdict?" prompt for the final decision.
+
 ### Required Actions (if not passing)
 
 1. [Specific action needed]

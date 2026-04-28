@@ -15,6 +15,7 @@ Skills live in `.claude/skills/`. Invoke them by name.
 | `/spade-review` | Multi-persona panel second opinion (5 subagents) on a Scope, Plan, or both |
 | `/spade-learn` | Capture a learning for `.spade/learnings/` so future Plans reference it; `--refresh` for housekeeping |
 | `/spade-quick` | Fast-track path for trivial work (typos, tweaks, small fixes) |
+| `/spade-research` | Landscape research via an isolated Opus 4.7 subagent (read-only); optional Linear artefact with explicit consent (v1.3.0+) |
 | `/spade-evaluate` | Run acceptance criteria checks against delivered output |
 | `/spade-status` | Show current SPADE phase and progress for active work |
 | `/spade-onboard` | Analyse codebase and fill in architecture docs for a new project |

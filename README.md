@@ -161,6 +161,7 @@ Once installed and onboarded:
 | `/spade-approve` | Present a Plan for human review against the approval checklist |
 | `/spade-review` | Multi-persona panel second opinion (5 subagents, merged findings) on a Scope, Plan, or both |
 | `/spade-quick` | Fast-track path for trivial work (typos, tweaks, small config / docs changes) |
+| `/spade-research` | Landscape research via an isolated Opus 4.7 subagent (read-only tools); returns a structured findings report; optional Linear comment with explicit consent (v1.3.0+) |
 | `/spade-learn` | Capture a learning under `.spade/learnings/` (or `private/`) so future Plans reference it; `--refresh` for housekeeping |
 | `/spade-evaluate` | Check delivered output against acceptance criteria |
 | `/spade-status` | Show current SPADE phase and progress for active work |

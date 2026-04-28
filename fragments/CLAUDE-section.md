@@ -14,6 +14,7 @@ Read the SPADE section in AGENTS.md for mandatory behaviour rules.
 | `/spade-review` | Multi-persona panel second opinion (5 subagents, merged findings) on a Scope, Plan, or both |
 | `/spade-learn` | Capture a learning under `.spade/learnings/` so future Plans reference it; `--refresh` for housekeeping |
 | `/spade-quick` | Fast-track path for trivial work (typos, tweaks, small fixes) |
+| `/spade-research` | Landscape research via an isolated Opus 4.7 subagent (read-only); optional Linear artefact with explicit consent (v1.3.0+) |
 | `/spade-evaluate` | Check delivered output against acceptance criteria |
 | `/spade-status` | Show current SPADE phase and progress for active work |
 | `/spade-onboard` | Analyse codebase and fill in architecture docs |

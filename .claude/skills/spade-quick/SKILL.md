@@ -93,7 +93,15 @@ Every quick-path change gets a `type:*` label. Pick the closest match:
 - **`type:docs`** — documentation, comments, README updates
 - **`type:refactor`** — rename, extract, inline, or similar non-behavioural change
 
-If the work is ambiguous between two types, ask the human.
+If the work is ambiguous between two types, ask the human via
+**`AskUserQuestion`** (per `docs/FRAMEWORK.md` § "Asking the Human")
+listing the candidate types as options. This is a closed-set
+decision; don't ask in free-form prose.
+
+Similarly, if the gate-check produces an ambiguous "is this trivial
+enough" judgement that the human needs to call, prompt via
+`AskUserQuestion` with options *Continue on quick path* /
+*Fall back to /spade-scope*.
 
 ## Workflow
 

@@ -15,8 +15,9 @@ You are updating the SPADE framework to the latest version.
 cd ~/.spade && git fetch origin && git log --oneline HEAD..origin/main
 ```
 
-2. If there are new commits, show them and ask if the human wants to
-   update.
+2. If there are new commits, show them and ask the human via
+   **`AskUserQuestion`** (per `docs/FRAMEWORK.md` § "Asking the Human")
+   with options *Pull updates* / *Skip*.
 
 3. If the human confirms (or did not need to be asked), run:
 
@@ -165,6 +166,65 @@ is unreachable, fails to accept the Plan, or the Scope has no tracker
 parent, the fallback file is written with a banner line marking it as
 a fallback artefact.
 
+### v1.2.0 → v1.3.0 upgrade
+
+**Fragment content changes in v1.3.0** — the consumer
+`CLAUDE-section.md` fragment gains a `/spade-research` row in its
+skill table. This means consumers must re-stamp their fragment block,
+unlike v1.1.1 → v1.2.0 (which was version-pin-only).
+
+The release ships:
+
+- **A new skill `/spade-research`** — an Opus 4.7 subagent for
+  landscape research with read-only tools (`Read`, `Grep`, `Glob`,
+  `WebSearch`, `WebFetch`). Returns a structured findings document;
+  optionally posts to a Linear parent issue with explicit human
+  consent.
+- **A new framework convention "Asking the Human"** — every SPADE
+  skill that asks a fixed-option decision now uses Claude Code's
+  structured `AskUserQuestion` tool rather than free-form prose.
+  Skills retrofitted: `/spade-scope` (decision prompts only),
+  `/spade-approve`, `/spade-evaluate`, `/spade-quick`, `/spade-learn`,
+  `/spade-update`, `/spade-onboard`. The convention is documented in
+  `docs/FRAMEWORK.md` § "Asking the Human". This is a **user-visible
+  UX change**: prompts that previously read as plain text now appear
+  as numbered choice lists.
+
+**Consumer migration steps:**
+
+In the consumer repo's working directory, run the same
+`spade-marker-replace` recipe as v1.0.0 → v1.1.0 with `1.3.0`:
+
+```bash
+~/.spade/bin/spade-marker-replace \
+  "$PWD/CLAUDE.md" \
+  ~/.spade/fragments/CLAUDE-section.md \
+  1.3.0
+
+~/.spade/bin/spade-marker-replace \
+  "$PWD/AGENTS.md" \
+  ~/.spade/fragments/AGENTS-section.md \
+  1.3.0
+
+printf 'spade_version=1.3.0\n' > "$PWD/.spade/version"
+```
+
+The `AGENTS.md` re-stamp is optional in v1.3.0 — fragment content for
+AGENTS-section did not change, so the helper will only re-stamp the
+START marker version (idempotent, harmless to skip if you prefer).
+The `CLAUDE.md` re-stamp **is** required for consumers to see the
+`/spade-research` row in their skill table.
+
+After the migration, suggest a commit:
+
+```bash
+git add CLAUDE.md AGENTS.md .spade/version
+git commit -m "Update SPADE fragments to v1.3.0"
+```
+
+If the helper exits with code 2 or 3, **stop** and surface the error
+to the human — same posture as the v1.0.0 → v1.1.0 recipe.
+
 ## What is new in v1.1.0 (for the human)
 
 When reporting a successful update, cover the new surface the consumer
@@ -213,4 +273,9 @@ git clone https://github.com/m-kopa/spade-framework.git ~/.spade
 ~/.spade/setup
 ```
 
-Warn the human before running `rm -rf` and get explicit confirmation.
+Warn the human before running `rm -rf` and ask for explicit
+confirmation via **`AskUserQuestion`** (per `docs/FRAMEWORK.md` §
+"Asking the Human") with options *Confirm — wipe and reinstall* /
+*Cancel*. Free-form "y/n?" prose is not acceptable here — the
+command is destructive and the structured prompt makes the choice
+unambiguous.

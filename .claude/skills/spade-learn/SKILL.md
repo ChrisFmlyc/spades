@@ -87,11 +87,15 @@ When invoked in the default mode:
 2. **Propose a draft.** Don't ask eight questions in a row — draft a
    complete learning based on the conversation so far and present it for
    the human to correct. Use the frontmatter + body format above.
-3. **Classify public-safe.** Ask explicitly: *"Is this public-safe?"*
+3. **Classify public-safe.** Ask via **`AskUserQuestion`** (per
+   `docs/FRAMEWORK.md` § "Asking the Human") with three options:
+   - *Public-safe — commit to .spade/learnings/*
+   - *Private — write to .spade/learnings/private/ (gitignored)*
+   - *Skip — don't capture*
    Public-safe learnings are OK to land in a public fork of this repo.
-   Private learnings name internal systems, customers, credentials paths,
-   security details, or anything else that should not leak. When in
-   doubt, route to `private/` — downgrading later is cheap.
+   Private learnings name internal systems, customers, credentials
+   paths, security details, or anything else that should not leak. When
+   in doubt, route to `private/` — downgrading later is cheap.
 4. **Confirm and write.** After the human approves the draft:
    - If `public_safe: true` → write to `.spade/learnings/YYYY-MM-DD-<slug>.md`.
    - If `public_safe: false` → write to `.spade/learnings/private/YYYY-MM-DD-<slug>.md`.

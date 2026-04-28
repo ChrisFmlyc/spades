@@ -71,7 +71,7 @@ Call the helper to insert or refresh the SPADE section:
 ~/.spade/bin/spade-marker-replace \
   "$PWD/AGENTS.md" \
   ~/.spade/fragments/AGENTS-section.md \
-  1.1.0
+  1.3.0
 ```
 
 If the helper exits with code 2 (mismatched markers), stop and show the
@@ -89,7 +89,7 @@ Same pattern, using the CLAUDE fragment:
 ~/.spade/bin/spade-marker-replace \
   "$PWD/CLAUDE.md" \
   ~/.spade/fragments/CLAUDE-section.md \
-  1.1.0
+  1.3.0
 ```
 
 ### Architecture Templates
@@ -101,8 +101,39 @@ template from `~/.spade/` and copy it:
 - `PATTERNS.md` (from `~/.spade/PATTERNS.md`)
 - `ANTI-PATTERNS.md` (from `~/.spade/ANTI-PATTERNS.md`)
 
-If any of these already exist, do not touch them — they contain project-specific
-content.
+If any of these already exist, decide whether to prompt the human
+deterministically by **detecting unfilled template markers**. The
+framework templates use HTML comments of the shape
+`<!-- Describe ... -->`, `<!-- List ... -->`, `<!-- Example: ... -->`,
+or `<!-- Add ... -->` to mark sections the consumer is meant to
+fill in. A real filled-in document has zero such markers (the comment
+prompt has been replaced with project-specific prose).
+
+**Detection mechanism:**
+
+```bash
+# Case-insensitive match for the four canonical template marker
+# openings. Two or more matches in a single file = still a template.
+grep -ciE '<!--[[:space:]]*(Describe|List|Example:|Add)[[:space:]]' "$f"
+```
+
+If the count is **≥ 2**, treat the file as still a template and
+prompt the human via **`AskUserQuestion`** (per `docs/FRAMEWORK.md`
+§ "Asking the Human") with options:
+
+- *Overwrite with fresh template*
+- *Merge — keep existing content, add missing sections*
+- *Skip — leave as-is*
+
+If the count is **0 or 1**, leave the file untouched — the consumer
+already has real project-specific content and the prompt would be
+noise. (The "1 match" tolerance covers a stray HTML comment in
+otherwise-filled-in prose.)
+
+Open-ended steps later in this skill (architecture-conflict
+resolution, free-form pattern descriptions) stay free-form per the
+convention's exception clause — only the overwrite/merge/skip
+decision is structured.
 
 ### Project Config
 

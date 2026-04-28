@@ -599,6 +599,200 @@ which concern the new persona covers that no existing persona does.
 
 ---
 
+## Asking the Human
+
+SPADE skills routinely ask the human to make a decision: approve a
+Plan, pick a verdict, confirm a destructive action, choose a label.
+From v1.3.0 onward, the framework's convention for *fixed-option*
+decision prompts is **Claude Code's `AskUserQuestion` tool** rather
+than free-form prose. The structured prompt renders as a numbered
+choice list — the human picks one, and the skill receives a clean,
+unambiguous answer instead of having to parse a free-text reply.
+
+This section defines the convention. Skill prose **references** it
+rather than re-stating the rule in every skill.
+
+### When to use `AskUserQuestion`
+
+Use `AskUserQuestion` whenever **all** of the following hold:
+
+- The set of valid answers is **closed** — there are 2–5 distinct
+  choices and you can name each one.
+- The human is being asked to **decide**, not to compose. ("Approve /
+  Revise / Reject" is a decision; "Describe why this should ship" is
+  composition.)
+- The skill's next action **branches on which choice** the human
+  picked. (If the choice doesn't change behaviour, why ask?)
+
+Examples that fit:
+
+- `/spade-approve`: *Approve / Approve with notes / Revise / Reject*.
+- `/spade-evaluate`: *PASS / PARTIAL / FAIL*.
+- `/spade-learn`: *Public-safe / Private / Skip*.
+- `/spade-update`: *Pull updates / Skip*; destructive recovery
+  *Confirm — wipe and reinstall / Cancel*.
+- `/spade-scope`: priority *Urgent / High / Medium / Low*; *File in
+  Linear now / Save as draft locally*.
+- `/spade-research`: consent before Linear write *Post / Show only /
+  Edit then post / Cancel*.
+
+### When **not** to use `AskUserQuestion`
+
+Stay free-form when:
+
+- The human is composing content (writing a Scope's intent, drafting
+  acceptance criteria, describing what failed in evaluation).
+- The set of valid answers is open or unbounded (resolving an
+  architecture conflict, naming a new pattern).
+- The reply is naturally multi-line (a code-review comment, a
+  rationale paragraph).
+
+The convention is fixed-option-only. Forcing an open-ended question
+into a 5-option list erases information the skill genuinely needs.
+
+### Option-label style
+
+Keep options scannable:
+
+- **Verb-first.** *Approve*, *Revise*, *Pull updates*, *Confirm and
+  wipe*. Not *Approval* or *Yes I would like to pull updates*.
+- **Sentence case.** *Approve with notes*, not *APPROVE WITH NOTES*
+  or *approve_with_notes*.
+- **≤8 words per option.** Longer means split the prompt or rethink
+  the question.
+- **Distinguishable at a glance.** Two options that read nearly the
+  same are a sign you should collapse them.
+
+### Limits
+
+- **≤5 options per prompt.** If a decision genuinely needs more,
+  break it into two sequential prompts (e.g. "first pick a category,
+  then pick a sub-option") or rethink whether some of those options
+  are really the same choice.
+- **One question at a time.** Don't bundle independent decisions into
+  one prompt — they belong in separate prompts so the human can
+  reverse one without re-doing the other.
+
+### Why prose-only enforcement
+
+The convention lives in skill prose, not in code or lint. SPADE skills
+are Markdown — the agent reads the prose and follows it. We **don't**
+have a runtime that intercepts free-form prompts and rewrites them.
+That means the convention is a **review surface**: `/spade-review`'s
+yagni-simplicity and scope-guardian personas can flag prose prompts
+that should have been `AskUserQuestion`. New skills are expected to
+follow the convention from day one.
+
+---
+
+## Research
+
+The `/spade-research` skill (v1.3.0+) spawns an isolated subagent
+(`spade-researcher`, defined under `.claude/agents/`) on Opus 4.7 with
+a read-only tool allowlist (`Read`, `Grep`, `Glob`, `WebSearch`,
+`WebFetch`) to perform **landscape research** on a question the human
+asks: prior art, library/SOTA evaluation, comparison shape, external
+documentation reads. The subagent returns a single condensed report;
+the parent skill displays it inline and (optionally, with explicit
+human consent) posts it as a comment on a Linear parent issue.
+
+The skill is **callable any time** — it is not tied to a SPADE phase.
+Auto-trigger phrases include *"properly research this"*, *"look into
+X"*, *"check the prior art"*, *"second opinion on the landscape"*, plus
+the explicit slash-command form.
+
+### Findings schema (locked)
+
+Every report from the researcher subagent conforms to this shape, in
+this order, with no preamble:
+
+```markdown
+## Question
+
+<the asker's question, verbatim or near-verbatim>
+
+## Findings
+
+- <bullet 1, with inline footnote citation [^1]>
+- <bullet 2, [^2]>
+- <bullet 3, (no source — model knowledge)>
+- ...
+
+## Recommendation
+
+<one paragraph, opinionated, ≤8 lines>
+
+## Sources
+
+[^1]: <Title> — <URL> (fetched YYYY-MM-DD)
+[^2]: <Title> — <URL> (fetched YYYY-MM-DD)
+```
+
+The shape is locked. Consumers (`/spade-research`, future
+`/spade-evaluate` integrations) parse it positionally.
+
+### Read-only contract
+
+The researcher subagent's tool allowlist is exactly `Read, Grep,
+Glob, WebSearch, WebFetch`. It **may not** edit files, run shell
+commands, create Linear issues, or chain to other subagents. The
+parent `/spade-research` skill — running in the main session, not the
+subagent — is responsible for any state mutation, gated by explicit
+human consent.
+
+### No fabricated citations
+
+The single rule that distinguishes a research subagent from a
+plausible-sounding bullshitter:
+
+- Every URL in **Sources** must come from a real `WebSearch` /
+  `WebFetch` result actually retrieved during the run.
+- Facts from training data are marked `(no source — model
+  knowledge)` inline in the bullet — never given a fake URL.
+- Failed fetches are reported as failures, not papered over.
+
+This rule is reinforced in the subagent's prose contract because the
+failure mode (a fabricated citation that looks real) erodes trust
+faster than any other.
+
+### Consent before Linear write
+
+When `/spade-research` is invoked with a Scope context (`--scope
+<linear-id>` or implicitly from a phase that already has a parent
+issue), it asks the human via `AskUserQuestion` (per the "Asking the
+Human" convention above) whether to post the report:
+
+- *Post this comment to <issue-id>*
+- *Just show me — don't post*
+- *Let me edit it first, then post*
+- *Cancel*
+
+Never silent, never free-form. The Linear comment, when posted,
+carries a `research:` prefix in the body so it is visually distinct
+from Plan comments.
+
+### Ephemeral by default
+
+Research outputs are not persisted under `.spade/`. There is no
+`.spade/research/` directory and no read-back from past research. If
+the human wants the report retained, they choose to attach it to a
+Linear issue at consent-prompt time. Otherwise the report exists only
+in the conversation transcript.
+
+This is a deliberate constraint. A persistent research store would
+introduce a second source-of-truth alongside Linear, the same drift
+risk that v1.2.0 eliminated for Plans. If a real need for persistent
+research surfaces, it gets a separate Scope.
+
+### One question per invocation
+
+The skill is one-shot per call. Iterative deep-dives, batched
+multi-question runs, and follow-up "now research X' from those
+findings" are out of scope and are expected to be separate
+invocations.
+
+---
+
 ## Learnings
 
 Each pass of the SPADE loop should produce knowledge that strengthens the

@@ -258,22 +258,39 @@ Present the Scope in this format:
 **Priority:** [Blocks release | This cycle | Backlog | Exploratory]
 ```
 
+## Decision Prompts (AskUserQuestion)
+
+Scope **content** (intent, acceptance criteria, constraints, etc.) is
+open-ended composition and stays free-form. But the **decisions**
+this skill asks the human along the way are fixed-option choices and
+must use **`AskUserQuestion`** (per `docs/FRAMEWORK.md` § "Asking the
+Human"), not free-form prose. The decision points are:
+
+- **Priority selection** — *Urgent* / *High* / *Medium* / *Low*.
+- **File now vs save as draft** — *File in Linear now* /
+  *Save as draft locally*.
+- **Second-opinion offer** — *Yes, run /spade-review on this Scope* /
+  *No, skip* (see "Second Opinion" below).
+- **Mode confirmation when ambiguous** — if the human's intent is
+  unclear between Create and Edit modes, prompt
+  *Create new Scope* / *Edit existing Scope (paste ID)*.
+
+These are the closed-set decisions. Every other prompt — drafting
+intent, acceptance criteria, constraints, out-of-scope content — is
+composition and stays free-form.
+
 ## Second Opinion (Optional)
 
-After presenting the finalised Scope (but before creating/updating the
-Linear issue), offer the human a second opinion:
+After presenting the finalised Scope (but before creating/updating
+the Linear issue), offer the human a second opinion via
+**`AskUserQuestion`** with options *Yes, run /spade-review on this
+Scope* / *No, skip*.
 
-"The Scope looks ready. Before I create the issue, would you like a
-**second opinion** from an independent perspective? This spawns a fresh
-agent that reviews the Scope for blind spots, premise risks, and
-acceptance criteria gaps. (Takes about 30 seconds.)"
+If the human picks "yes", invoke `/spade-review` in Scope Review
+mode. After the review and synthesis, resume here and ask whether
+they want to adjust the Scope before creating the issue.
 
-If the human says yes, invoke `/spade-review` in Scope Review mode.
-After the review and synthesis, resume here and ask whether they want
-to adjust the Scope before creating the issue.
-
-If the human says no (or doesn't respond to the offer), proceed directly
-to Linear integration.
+If the human picks "no", proceed directly to Linear integration.
 
 This is always optional and never blocks the scoping flow.
 

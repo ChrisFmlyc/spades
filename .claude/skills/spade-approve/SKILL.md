@@ -111,26 +111,27 @@ Calibrate.
 ## Second Opinion (Optional)
 
 After presenting the checklist but **before** asking for the human's
-approval decision, offer an independent review:
+approval decision, offer an independent review via **`AskUserQuestion`**
+(per `docs/FRAMEWORK.md` § "Asking the Human"):
 
-"Before you decide — would you like a **second opinion** from an
-independent perspective? This spawns a fresh agent that reviews both
-the Scope and Plan for blind spots, without seeing our conversation.
-(Takes about 30 seconds.)"
+- *Yes, run /spade-review*
+- *No, skip*
 
-If the human says yes, invoke `/spade-review` in Full Review mode
+If the human picks "yes", invoke `/spade-review` in Full Review mode
 (scope + plan together). After the review and cross-model synthesis,
 resume here with the approval decision.
 
-If the human says no (or doesn't respond to the offer), proceed directly
-to the decision step.
+If the human picks "no", proceed directly to the decision step.
 
 This is always optional and never blocks or replaces the approval
 checklist. It supplements it with a genuinely independent perspective.
 
 ## Decision
 
-After presenting the checklist, ask the human for one of:
+After presenting the checklist (and the optional second-opinion step),
+ask the human for the verdict using **`AskUserQuestion`** (per
+`docs/FRAMEWORK.md` § "Asking the Human" — fixed-option decisions are
+structured prompts, not free-form prose). The four options are:
 
 1. **Approve** — Plan is good. Proceed to delivery.
 2. **Approve with notes** — Plan is acceptable but note specific concerns
@@ -138,6 +139,10 @@ After presenting the checklist, ask the human for one of:
 3. **Revise** — Plan needs changes. Specify what needs to change and why.
 4. **Reject** — Fundamental approach is wrong. Go back to scoping or
    rethink the approach entirely.
+
+When the chosen option is "Approve with notes" or "Revise", follow up
+with a free-form prompt asking for the notes / feedback content — that
+part is composition, not a fixed-option choice.
 
 ## After Approval
 
