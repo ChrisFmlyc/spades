@@ -24,10 +24,10 @@ $Version = '1.0.0'
 
 function Write-Header {
     Write-Host ''
-    Write-Host ([char]0x2501 * 52) -ForegroundColor Blue
+    Write-Host ([string][char]0x2501 * 52) -ForegroundColor Blue
     Write-Host "  SPADE Framework v${Version}" -ForegroundColor Blue
     Write-Host '  A Human-AI Operating Model for Engineering Teams' -ForegroundColor Blue
-    Write-Host ([char]0x2501 * 52) -ForegroundColor Blue
+    Write-Host ([string][char]0x2501 * 52) -ForegroundColor Blue
     Write-Host ''
 }
 
@@ -59,9 +59,9 @@ foreach ($skillDir in (Get-ChildItem $srcSkills -Directory)) {
 Write-Host ''
 Write-OK 'Global skills installed.'
 Write-Host ''
-Write-Host ([char]0x2501 * 52) -ForegroundColor Green
+Write-Host ([string][char]0x2501 * 52) -ForegroundColor Green
 Write-Host '  SPADE installed successfully.' -ForegroundColor Green
-Write-Host ([char]0x2501 * 52) -ForegroundColor Green
+Write-Host ([string][char]0x2501 * 52) -ForegroundColor Green
 Write-Host ''
 Write-Host 'Next steps:'
 Write-Host ''
