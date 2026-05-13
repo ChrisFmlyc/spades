@@ -46,7 +46,7 @@ beyond PR review. Gate criteria and rules live in AGENTS.md under
 
 - Never write code without a Scope (or a valid fast-track gate pass)
 - Never deliver without an approved Plan (on the full loop)
-- Never mark parent issues as Done (humans only)
+- Be certain before marking a parent issue Done — verify every acceptance criterion against the delivered artefact (PR merged, CI green, smoke-test evidence) and confirm all sub-issues are Done. AI may close parent issues when those conditions hold.
 - Always document Plans on the parent issue
 - Always read architecture docs before planning
 - Never create sub-issues on the fast-track path

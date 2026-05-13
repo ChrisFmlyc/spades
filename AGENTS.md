@@ -118,7 +118,13 @@ in doubt, use the full loop.
 
 - After all sub-issues are complete, the human evaluates the output against
   the original Scope's acceptance criteria.
-- You must NOT mark the parent issue as "Done". Only a human can do this.
+- You may mark the parent issue as "Done" once you have verified every
+  acceptance criterion against the delivered artefact (PR merged, CI
+  green, smoke-test or evaluation evidence in hand) and every sub-issue
+  is Done. Be certain before flipping it — Done is the audit-trail
+  endpoint and downstream readers treat it as authoritative. If you are
+  not certain, leave it in "Evaluating" and surface the gaps to the
+  human.
 - If asked to help with evaluation, you may:
   - Run the acceptance criteria as checks and report results
   - Highlight areas where output may not fully meet the Scope
