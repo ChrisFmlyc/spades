@@ -225,6 +225,57 @@ git commit -m "Update SPADE fragments to v1.3.0"
 If the helper exits with code 2 or 3, **stop** and surface the error
 to the human — same posture as the v1.0.0 → v1.1.0 recipe.
 
+### v1.3.x → v1.6.0 upgrade
+
+**Fragment content is unchanged in v1.6.0.** The release adds a new
+HTML-rendering capability (`bin/spade-render` + `render/template.html`
++ `render/spade.css`) and updates `/spade-scope` and `/spade-plan` to
+append a `View in browser: file://...` terminal link after every
+local write. None of this changes the consumer fragments injected
+into `AGENTS.md` / `CLAUDE.md`.
+
+(Releases v1.4 and v1.5 are scoped in this repo but not yet shipped at
+the time of v1.6 publication. Consumers upgrading from v1.3.x jump
+directly to v1.6.0; once v1.4 and v1.5 ship, this section will be
+re-paragraphed as `v1.5.x → v1.6.0`.)
+
+Consumers **do not need** to re-stamp their fragment blocks for v1.6.0.
+A consumer on v1.3.x who runs `/spade-update` to pull the framework
+and re-run `~/.spade/setup` gets the updated skills globally; the
+per-repo version pin can optionally be bumped to match:
+
+```bash
+printf 'spade_version=1.6.0\n' > "$PWD/.spade/version"
+git add .spade/version
+git commit -m "Pin .spade/version to 1.6.0"
+```
+
+If consumers prefer, they can re-stamp the marker block via the same
+`spade-marker-replace` recipe with `1.6.0` in place of the prior
+version — idempotent, content unchanged.
+
+**Pandoc presence check.** `/spade-update` should probe for `pandoc`
+after the framework pull and report its status to the human:
+
+```bash
+if command -v pandoc >/dev/null 2>&1; then
+  echo "pandoc: $(pandoc --version | head -1) — HTML rendering enabled"
+else
+  echo "pandoc: not installed — HTML rendering will be skipped on every"
+  echo "  scope/plan write until you install it:"
+  echo "  brew install pandoc | apt install pandoc | winget install pandoc"
+fi
+```
+
+This is informational only; the upgrade itself does not require
+pandoc and **does not bulk-render historical** `.spade/scopes/*.md`
+or `.spade/plans/*.md`. Existing files are rendered lazily on next
+write only.
+
+If the helper exits with code 2 or 3 during the fragment re-stamp,
+**stop** and surface the error to the human — same posture as the
+v1.0.0 → v1.1.0 recipe.
+
 ## What is new in v1.1.0 (for the human)
 
 When reporting a successful update, cover the new surface the consumer

@@ -927,6 +927,108 @@ capture during or after Evaluate closes that loop for free.
 Without a refresh mechanism, the store would rot. The pair of capture
 + refresh is what keeps the store high-signal over years, not weeks.
 
+## HTML Rendering
+
+From v1.6, every locally-stored Scope and Plan gets a sibling HTML
+rendering produced by `bin/spade-render` (a POSIX-shell wrapper around
+`pandoc`). Markdown remains canonical — HTML is a **read-only rendered
+view**, regeneratable and `.gitignore`-able. Skills never read HTML
+back; they read `.md`.
+
+### Installing pandoc
+
+| OS      | Command                                          |
+|---------|--------------------------------------------------|
+| macOS   | `brew install pandoc`                            |
+| Linux   | `sudo apt install pandoc` (or distro equivalent) |
+| Windows | `winget install pandoc`                          |
+
+Pandoc 3.0+ is required (`--embed-resources` was added in 3.0,
+replacing the removed `--self-contained`). When pandoc is absent,
+`spade-render` exits 2 and the calling skill surfaces an install hint
+on every write until pandoc is installed — the `.md` is the canonical
+artefact and is always written.
+
+### Renderer interface
+
+```bash
+spade-render <input.md>                   # writes sibling <input>.html
+spade-render <input.md> --output <file>   # writes to <file>
+spade-render <input.md> --stdout          # prints HTML to stdout
+```
+
+Exit codes: 0 success (prints absolute output path to stdout); 1 usage
+or input-not-found; 2 pandoc not installed; 3 pandoc render error.
+
+### Status pill palette
+
+The renderer maps frontmatter `status:` to a coloured pill. These six
+hex values are the single source of truth — mirrored verbatim in
+`render/spade.css` as `--spade-status-<phase>` custom properties:
+
+| Phase        | Colour    |
+|--------------|-----------|
+| `scoped`     | `#4f6cb5` |
+| `planning`   | `#c69022` |
+| `approval`   | `#d96e2a` |
+| `delivering` | `#7b4ec3` |
+| `evaluating` | `#2a8a8a` |
+| `done`       | `#2f8b46` |
+
+### Security stance
+
+Renderer pins these Pandoc flags: `--from markdown-raw_html` (strips
+inline HTML, blocking `<script>` and event-handler attribute
+injection), `--standalone --embed-resources` (self-contained HTML, no
+external references). The template emits a restrictive Content
+Security Policy meta on every render:
+
+```text
+default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'
+```
+
+CI enforces this via `scripts/lint/lint-render-security.sh` (greps
+rendered fixtures for `<script`, `on*=`, `javascript:`, leaked
+filesystem paths, and the exact CSP literal). The fixture suite lives
+at `tests/fixtures/render/`.
+
+### Recommended `.gitignore` line
+
+By default, HTML siblings are regeneratable and need not be committed.
+Add this line to the consumer's `.gitignore` to keep them out of PR
+diffs:
+
+```gitignore
+.spade/**/*.html
+```
+
+This is **not** auto-injected by `/spade-onboard`; consumers add it
+explicitly. Teams that prefer to commit HTML (offline reading,
+PR-comment screenshots, GitHub Pages hosting) can leave it out.
+
+### Terminal `file://` links
+
+`/spade-scope` and `/spade-plan` append a closing line on every local
+write:
+
+```text
+View in browser: file://<absolute-path>.html
+```
+
+Modern terminals (iTerm2, Warp, VS Code, Terminal.app) auto-linkify
+the URL for cmd-click. SSH, tmux, screen and CI runners may not — the
+plain-text URL still works as a copy-paste fallback. macOS/Linux paths
+map directly (`file:///Users/...`, `file:///home/...`); Windows under
+Git-Bash/WSL produces `file:///C:/...` via `realpath`.
+
+### Determinism
+
+Identical `.md` produces identical `.html` **within the same Pandoc
+minor version**. Across minor versions, output may differ slightly
+(typically whitespace and id slug changes). Consumers who commit HTML
+should expect small diffs on Pandoc upgrades; this is documented
+behaviour, not a defect.
+
 ---
 
 *The SPADE Framework v1.1, April 2026, M-KOPA Product Security Team*

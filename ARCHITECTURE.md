@@ -72,7 +72,7 @@ the precise gate.
 | Issue tracking | Linear (via Linear MCP)           | Primary integration. Other trackers are supported but manual.         |
 | Agents         | Claude Code (primary)             | Skills are portable; behaviour is prose, not code                     |
 | Versioning     | Fragment markers (`<!-- SPADE-FRAMEWORK-START vX.Y.Z -->`) | Gates idempotent onboarding                                           |
-| CI             | GitHub Actions (`.github/workflows/lint.yml`) | Runs on every PR; 6 parallel lint jobs — see Testing Requirements § CI below for the list. Uses `actions/setup-python@v5` pinned to 3.11 for the stdlib-only frontmatter parser. |
+| CI             | GitHub Actions (`.github/workflows/lint.yml`) | Runs on every PR; 8 parallel lint jobs — see Testing Requirements § CI below for the list. Uses `actions/setup-python@v5` pinned to 3.11 for the stdlib-only frontmatter parser. |
 
 ## External Toolchain Policy
 
@@ -125,6 +125,20 @@ If Windows-native `/spade-update` becomes a real need, the fix is a
 focused Scope that ships `bin/spade-marker-replace.ps1` with its own
 fixture tests, not an ad-hoc PowerShell rewrite.
 
+### Pandoc is a recommended consumer binary for HTML rendering (v1.6+)
+
+`bin/spade-render` wraps a `pandoc` invocation to produce sibling
+`<scope>.html` and `<plan>.html` files for cmd-click reading. Pandoc
+sits in the same dependency category as `git` or `jq` — a system tool
+the consumer has or installs (`brew install pandoc` /
+`apt install pandoc` / `winget install pandoc`). When pandoc is
+absent, `spade-render` exits 2 and the calling skill surfaces a
+one-line install hint on every write until pandoc is installed; the
+underlying `.md` is the canonical artefact and is always written.
+This is a recommended optional dep, not a runtime — no npm, no Node,
+no vendored bundle. See `docs/FRAMEWORK.md` §HTML Rendering for the
+full contract.
+
 ## Security Requirements
 
 - **No secrets in the repo.** Skills, examples, and fragments are public.
@@ -160,8 +174,9 @@ fixture tests, not an ad-hoc PowerShell rewrite.
   consumer `AGENTS.md` / `CLAUDE.md`; (d) setup scripts succeed on a clean
   `$HOME`; (e) bash and PowerShell setup produce the same installed file set.
 - **CI** runs the above on every PR via `.github/workflows/lint.yml` —
-  6 parallel jobs (skill-frontmatter, agents, examples, fragments,
-  learnings, onboard-idempotency). Shipped in Bundle C (v1.1); extended
-  by the agents lint in Bundle E.
+  8 parallel jobs (skill-frontmatter, agents, examples, fragments,
+  learnings, onboard-idempotency, render-css-budget, render-security).
+  Shipped in Bundle C (v1.1); extended by the agents lint in Bundle E;
+  render-css-budget and render-security added in v1.6.
 - **Consumer projects** are responsible for their own test suites — SPADE does
   not mandate a testing approach, only that Plans describe one.

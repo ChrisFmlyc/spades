@@ -18,13 +18,24 @@ scripts=(
     "lint-fragments.sh"
     "lint-learnings.sh"
     "lint-onboard-idempotency.sh"
+    "lint-render-security.sh"
 )
 
 overall=0
+skipped=0
 for s in "${scripts[@]}"; do
     echo
     echo "=== $s ==="
-    if ! "$LINT_DIR/$s"; then
+    # `set -e` is on; capture exit without aborting via `||` then inspect.
+    set +e
+    "$LINT_DIR/$s"
+    rc=$?
+    set -e
+    if [ $rc -eq 2 ]; then
+        # Documented skip signal (currently only lint-render-security.sh
+        # uses this when pandoc is absent).
+        skipped=$((skipped + 1))
+    elif [ $rc -ne 0 ]; then
         overall=$((overall + 1))
     fi
 done
@@ -32,7 +43,11 @@ done
 echo
 echo "=========================================="
 if [ "$overall" -eq 0 ]; then
-    echo "All ${#scripts[@]} lint checks passed."
+    if [ "$skipped" -gt 0 ]; then
+        echo "All ${#scripts[@]} lint checks passed ($skipped skipped)."
+    else
+        echo "All ${#scripts[@]} lint checks passed."
+    fi
 else
     echo "$overall lint check(s) failed."
     exit 1

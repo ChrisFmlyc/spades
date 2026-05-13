@@ -18,7 +18,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$Version = '1.0.0'
+$Version = '1.6.0'
 
 # --- Output helpers ---
 

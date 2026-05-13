@@ -59,3 +59,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: ./scripts/lint/lint-onboard-idempotency.sh
+
+  render-css-budget:
+    name: render css budget (<= 12KB)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: assert spade.css under 12288 bytes
+        run: |
+          size=$(wc -c < render/spade.css)
+          echo "render/spade.css is $size bytes"
+          if [ "$size" -ge 12288 ]; then
+            echo "::error::render/spade.css must be < 12288 bytes (was $size)"
+            exit 1
+          fi
+
+  render-security:
+    name: render security (XSS / CSP / no path leak)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: install pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+      - name: chmod renderer
+        run: chmod +x bin/spade-render scripts/lint/lint-render-security.sh
+      - run: ./scripts/lint/lint-render-security.sh

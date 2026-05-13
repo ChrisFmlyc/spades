@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="$lang$" xml:lang="$lang$">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+  <meta name="generator" content="spade-render (Pandoc $pandoc-version$)">
+$for(author-meta)$
+  <meta name="author" content="$author-meta$">
+$endfor$
+  <title>$if(title-prefix)$$title-prefix$ – $endif$$pagetitle$</title>
+$for(css)$
+  <style>
+$styles.css()$
+$css-content()$
+  </style>
+$endfor$
+$for(header-includes)$
+  $header-includes$
+$endfor$
+</head>
+<body>
+$for(include-before)$
+$include-before$
+$endfor$
+
+<header class="spade-status-header">
+$if(status)$
+  <span class="spade-pill spade-status-$status$">$status$</span>
+$endif$
+$if(type)$
+  <span class="spade-pill spade-type">$type$</span>
+$endif$
+$if(created)$
+  <span class="spade-meta">created $created$</span>
+$endif$
+$if(updated)$
+  <span class="spade-meta">updated $updated$</span>
+$endif$
+$if(linear_issue)$
+$if(linear_url)$
+  <a class="spade-linear" href="$linear_url$" rel="noopener noreferrer">$linear_issue$</a>
+$else$
+  <span class="spade-linear">$linear_issue$</span>
+$endif$
+$endif$
+  <h1 class="spade-title">$if(title)$$title$$else$$pagetitle$$endif$</h1>
+</header>
+
+$if(toc)$
+<nav id="TOC" class="spade-toc" role="doc-toc">
+$if(toc-title)$
+<h2 class="spade-toc-title">$toc-title$</h2>
+$else$
+<h2 class="spade-toc-title">Contents</h2>
+$endif$
+$table-of-contents$
+</nav>
+$endif$
+
+<main class="spade-body">
+$body$
+</main>
+
+$for(include-after)$
+$include-after$
+$endfor$
+</body>
+</html>
