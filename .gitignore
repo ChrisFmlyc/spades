@@ -7,6 +7,10 @@
 node_modules/
 .state/
 
+# Local gstack tooling state (headless browser / QA); not part of the
+# framework and never committed.
+.gstack/
+
 # In consumer repos, `/spade-onboard` injects committed copies of the
 # framework's docs and examples under `.spade/docs/` and `.spade/examples/`.
 # In THIS repo (the framework itself) the canonical copies under `docs/`
