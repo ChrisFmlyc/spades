@@ -5,6 +5,50 @@ Versions follow [semver](https://semver.org/) at the framework level
 (consumer fragments carry their own version stamp via
 `<!-- SPADE-FRAMEWORK-START vX.Y.Z -->` markers).
 
+## [1.6.1] — 2026-05-16
+
+**Patch release — renderer fix and polish.** v1.6.0's HTML renderer
+did not work on Pandoc 3.x. This release fixes it, gives the rendered
+output a real visual design, and realigns the render lint with what
+the feature is — a local-only convenience renderer, not a web app.
+
+Renderer:
+
+- `render/template.html`: fixed the `$for(css)$` block. It called
+  non-existent Pandoc partials (`$styles.css()$`, `$css-content()$`)
+  and made `spade-render` fail with exit 3 (`Could not find data file
+  templates/styles.css`) on Pandoc 3.x. The stylesheet is now linked
+  and inlined via `--embed-resources`, with `$highlighting-css$` for
+  syntax highlighting. The `<html>` element carries `data-spade-status`
+  so the stylesheet can theme to the document's phase.
+- `bin/spade-render`: switched the deprecated `--highlight-style` flag
+  to `--syntax-highlighting` (Pandoc 3.9+).
+- `render/spade.css`: editorial redesign — status-coloured top accent
+  bar, restructured document header (kicker pills, prominent title,
+  quiet meta line), refined table of contents with nested indent
+  guides, zebra-striped tables, softer code chips, tightened type
+  scale. Light and dark both verified. 8.9KB, within the 12KB budget.
+
+Lint:
+
+- `scripts/lint/lint-render-security.sh` → `lint-render-smoke.sh`. The
+  XSS / CSP / path-leak scan is replaced by a render smoke test: every
+  fixture must render (exit 0) to a non-empty, standalone HTML document
+  with the stylesheet inlined. `spade-render` turns the user's own
+  Markdown into a local file they open themselves, so there is no
+  web-security threat model to enforce; a functional regression guard
+  (it would have caught the Pandoc 3.x breakage) is the right check.
+  CI job renamed `render-security` → `render-smoke`.
+
+Skills:
+
+- `/spade-scope`: the render-and-link step is now a mandatory closing
+  step, promoted from a trailing section so it is not treated as an
+  optional appendix.
+
+No fragment changes. Consumers on v1.6.0 only need to bump their
+`.spade/version` pin to `1.6.1`.
+
 ## [1.6.0] — 2026-05-13
 
 **HTML rendering for scopes and plans (Pandoc).** Every locally-stored

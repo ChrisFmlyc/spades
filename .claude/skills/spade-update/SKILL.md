@@ -276,6 +276,31 @@ If the helper exits with code 2 or 3 during the fragment re-stamp,
 **stop** and surface the error to the human — same posture as the
 v1.0.0 → v1.1.0 recipe.
 
+### v1.6.0 → v1.6.1 upgrade
+
+**Fragment content is unchanged in v1.6.1.** The release is a patch:
+it fixes `spade-render` on Pandoc 3.x (the v1.6.0 `render/template.html`
+called non-existent Pandoc partials and failed with exit 3), gives the
+rendered HTML an editorial redesign, repurposes the render lint from an
+XSS/CSP scan into a render smoke test, and promotes the `/spade-scope`
+render-and-link step to a mandatory closing step. Nothing that gets
+injected into consumer `AGENTS.md` / `CLAUDE.md` moves.
+
+Consumers **do not need** to re-stamp their fragment blocks for v1.6.1.
+A consumer on v1.6.0 who runs `/spade-update` to pull the framework and
+re-run `~/.spade/setup` gets the updated skills and renderer globally;
+bump the per-repo pin to match:
+
+```bash
+printf 'spade_version=1.6.1\n' > "$PWD/.spade/version"
+git add .spade/version
+git commit -m "Pin .spade/version to 1.6.1"
+```
+
+The pandoc presence check from the v1.3.x → v1.6.0 recipe still applies.
+If the helper exits with code 2 or 3 during a fragment re-stamp,
+**stop** and surface the error to the human.
+
 ## What is new in v1.1.0 (for the human)
 
 When reporting a successful update, cover the new surface the consumer
