@@ -71,7 +71,7 @@ Call the helper to insert or refresh the SPADE section:
 ~/.spade/bin/spade-marker-replace \
   "$PWD/AGENTS.md" \
   ~/.spade/fragments/AGENTS-section.md \
-  1.3.0
+  1.7.0
 ```
 
 If the helper exits with code 2 (mismatched markers), stop and show the
@@ -89,7 +89,7 @@ Same pattern, using the CLAUDE fragment:
 ~/.spade/bin/spade-marker-replace \
   "$PWD/CLAUDE.md" \
   ~/.spade/fragments/CLAUDE-section.md \
-  1.3.0
+  1.7.0
 ```
 
 ### Architecture Templates
@@ -134,6 +134,36 @@ Open-ended steps later in this skill (architecture-conflict
 resolution, free-form pattern descriptions) stay free-form per the
 convention's exception clause — only the overwrite/merge/skip
 decision is structured.
+
+### Intent Document
+
+Create `INTENT.md` at the repository root **only if it does not already
+exist**, by copying the distributable template:
+
+```bash
+[ -f "$PWD/INTENT.md" ] || cp ~/.spade/templates/INTENT.md "$PWD/INTENT.md"
+```
+
+`INTENT.md` is the project's durable statement of intent — the problem it
+solves, who it serves, what it does, what success looks like, and its
+non-goals. It is a root reference document, peer to `ARCHITECTURE.md`.
+
+**Do not AI-fill `INTENT.md`.** This is a deliberate exception to the
+fill-in pattern used for the architecture docs in Steps 3–5. Project intent
+is the most human-owned artefact in SPADE — only a human can author it.
+Onboarding's job is to scaffold the template and hand off; the human fills
+it in with the `/spade-intent` skill.
+
+After scaffolding — or if `INTENT.md` already exists but is still an
+unfilled template — tell the human:
+
+> `INTENT.md` has been scaffolded. Run `/spade-intent` to fill it in — it
+> walks you through the project's problem, users, what it does, success,
+> non-goals, and maturity. The SPADE loop reads `INTENT.md` to keep Scopes
+> aligned with the project's purpose.
+
+If `INTENT.md` already exists and is filled in, leave it untouched — the
+same create-if-absent rule as the architecture templates.
 
 ### Project Config
 
@@ -187,6 +217,7 @@ SPADE project files:
   ✓ AGENTS.md created
   ✓ CLAUDE.md created
   ✓ ARCHITECTURE.md created (template)
+  ✓ INTENT.md created (template — fill with /spade-intent)
   ! PATTERNS.md already exists, skipped
   ✓ .spade/examples/ created
 ```
@@ -296,6 +327,8 @@ work well.
 Before finishing, verify:
 
 - [ ] All SPADE project files exist (AGENTS.md, CLAUDE.md, architecture docs)
+- [ ] INTENT.md scaffolded as a template (onboard does not fill it — that is
+      `/spade-intent`'s job; the human composes project intent)
 - [ ] ARCHITECTURE.md has no placeholder comments remaining
 - [ ] Tech stack table is complete with actual technologies and versions
 - [ ] PATTERNS.md reflects what the code actually does, not aspirations

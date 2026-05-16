@@ -301,6 +301,66 @@ The pandoc presence check from the v1.3.x → v1.6.0 recipe still applies.
 If the helper exits with code 2 or 3 during a fragment re-stamp,
 **stop** and surface the error to the human.
 
+### v1.6.1 → v1.7.0 upgrade
+
+**Fragment content changes in v1.7.0** — the consumer `CLAUDE-section.md`
+fragment gains a `/spade-intent` row in its skill table. Consumers must
+re-stamp their `CLAUDE.md` fragment block, as with v1.2.0 → v1.3.0.
+
+The release ships:
+
+- **A new root document `INTENT.md`** — the project's durable statement of
+  intent (problem, users, what it does, success, non-goals, maturity). It is
+  a reference document peer to `ARCHITECTURE.md`; the SPADE loop reads it to
+  keep Scopes aligned with the project's purpose.
+- **A new skill `/spade-intent`** — an interactive, human-composed /
+  AI-structured conversation that creates or maintains `INTENT.md`.
+
+**Consumer migration steps**, in the consumer repo's working directory:
+
+1. Scaffold `INTENT.md` if the repo does not already have one —
+   create-if-absent, never overwrite an existing file:
+
+   ```bash
+   [ -f "$PWD/INTENT.md" ] || cp ~/.spade/templates/INTENT.md "$PWD/INTENT.md"
+   ```
+
+   Then tell the human to run `/spade-intent` to fill it in. Do **not**
+   AI-author its content — project intent is human-owned.
+
+2. Re-stamp the fragment blocks and bump the version pin:
+
+   ```bash
+   ~/.spade/bin/spade-marker-replace \
+     "$PWD/CLAUDE.md" \
+     ~/.spade/fragments/CLAUDE-section.md \
+     1.7.0
+
+   ~/.spade/bin/spade-marker-replace \
+     "$PWD/AGENTS.md" \
+     ~/.spade/fragments/AGENTS-section.md \
+     1.7.0
+
+   printf 'spade_version=1.7.0\n' > "$PWD/.spade/version"
+   ```
+
+   The `CLAUDE.md` re-stamp **is** required — it adds the `/spade-intent`
+   row to the consumer's skill table. The `AGENTS.md` re-stamp is optional
+   (AGENTS-section content did not change in v1.7.0); the helper will only
+   re-stamp the START marker version.
+
+After the migration, suggest a commit:
+
+```bash
+git add CLAUDE.md AGENTS.md INTENT.md .spade/version
+git commit -m "Update SPADE to v1.7.0; scaffold INTENT.md"
+```
+
+The pandoc presence check from the v1.3.x → v1.6.0 recipe still applies.
+If the helper exits with code 2 or 3 during a fragment re-stamp, **stop**
+and surface the error to the human — same posture as the v1.0.0 → v1.1.0
+recipe.
+
 ## What is new in v1.1.0 (for the human)
 
 When reporting a successful update, cover the new surface the consumer
