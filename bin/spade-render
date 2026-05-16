@@ -145,7 +145,7 @@ if ! pandoc \
         --standalone \
         --embed-resources \
         --toc --toc-depth=3 \
-        --syntax-highlighting=tango \
+        --highlight-style=tango \
         ${TEMPLATE_ARGS[@]+"${TEMPLATE_ARGS[@]}"} \
         ${CSS_ARGS[@]+"${CSS_ARGS[@]}"} \
         ${SAFETY_META[@]+"${SAFETY_META[@]}"} \
