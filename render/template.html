@@ -10,11 +10,13 @@ $for(author-meta)$
 $endfor$
   <title>$if(title-prefix)$$title-prefix$ – $endif$$pagetitle$</title>
 $for(css)$
-  <style>
-$styles.css()$
-$css-content()$
-  </style>
+  <link rel="stylesheet" href="$css$" />
 $endfor$
+$if(highlighting-css)$
+  <style>
+$highlighting-css$
+  </style>
+$endif$
 $for(header-includes)$
   $header-includes$
 $endfor$

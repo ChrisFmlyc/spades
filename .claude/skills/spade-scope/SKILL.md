@@ -22,6 +22,15 @@ You are helping a human create or edit a well-formed Scope for the SPADE
 framework. A Scope is the contract that everything downstream is measured
 against. Every field matters — a weak Scope produces a weak Plan.
 
+> **Mandatory closing step — do not skip.** Every run of this skill that
+> writes a local Scope file MUST finish with the render-and-link step
+> defined in "Closing Step — Render and Link" at the end of this skill.
+> The human always gets a closing line: either
+> `View in browser: file://…` when the render succeeds, or the
+> pandoc-not-installed hint when it does not. Filing the Linear issue is
+> **not** the last step — the render-and-link line is. Do not end your
+> turn without it.
+
 ## Check the Fast-Track Gate First
 
 **Before you begin scoping, ask yourself: does this work genuinely need
@@ -328,7 +337,13 @@ Do not over-engineer the Scope ceremony for small items. But do not skip
 required fields entirely either. For reactive work, you may pre-fill
 obvious fields and just ask the human to confirm.
 
-## Rendering and terminal link (v1.6+)
+## Closing Step — Render and Link (MANDATORY)
+
+This is the **mandatory final step** of every `/spade-scope` run that
+writes a local Scope file — not an optional appendix. The skill run is
+not complete until the human has been shown the closing line below
+(the `file://…` link, or the pandoc hint). Reaching the end of the
+Linear integration is not the end of the skill.
 
 After writing a local Scope file to `.spade/scopes/<slug>.md`
 (modes `local` and `hybrid` per M-879 — skip in `linear` mode where
