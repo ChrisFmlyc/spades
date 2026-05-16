@@ -74,13 +74,13 @@ jobs:
             exit 1
           fi
 
-  render-security:
-    name: render security (XSS / CSP / no path leak)
+  render-smoke:
+    name: render smoke test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: install pandoc
         run: sudo apt-get update && sudo apt-get install -y pandoc
       - name: chmod renderer
-        run: chmod +x bin/spade-render scripts/lint/lint-render-security.sh
-      - run: ./scripts/lint/lint-render-security.sh
+        run: chmod +x bin/spade-render scripts/lint/lint-render-smoke.sh
+      - run: ./scripts/lint/lint-render-smoke.sh

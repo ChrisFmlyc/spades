@@ -18,7 +18,7 @@ scripts=(
     "lint-fragments.sh"
     "lint-learnings.sh"
     "lint-onboard-idempotency.sh"
-    "lint-render-security.sh"
+    "lint-render-smoke.sh"
 )
 
 overall=0
@@ -32,7 +32,7 @@ for s in "${scripts[@]}"; do
     rc=$?
     set -e
     if [ $rc -eq 2 ]; then
-        # Documented skip signal (currently only lint-render-security.sh
+        # Documented skip signal (currently only lint-render-smoke.sh
         # uses this when pandoc is absent).
         skipped=$((skipped + 1))
     elif [ $rc -ne 0 ]; then
