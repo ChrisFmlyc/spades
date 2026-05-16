@@ -13,7 +13,7 @@ status: approved
 
 ## Risks and Assumptions
 
-- **R1 (open — human decision before T1 implementation):** SPADE's architecture-template distribution is ambiguous. `/spade-onboard` copies `ARCHITECTURE.md` from `~/.spade/` but this repo's copy is filled in. `INTENT.md` faces the same fork: the framework's own dogfooded `INTENT.md` (T2) and the consumer template (T3) cannot be the same file. T1 must decide: (a) follow the `ARCHITECTURE.md` precedent as-is, or (b) ship the distributable template at a distinct path. Plan recommends (b).
+- **R1 (resolved — distinct template path, plan option b):** SPADE's architecture-template distribution is ambiguous — `/spade-onboard` copies `ARCHITECTURE.md` from `~/.spade/` but this repo's copy is filled in, so the framework's own `INTENT.md` and the consumer template cannot be the same file. T1 resolved this by shipping the distributable template at `templates/INTENT.md`, distinct from the framework's own root `INTENT.md`; `/spade-onboard` and `/spade-update` copy from that path. The decision is final.
 - **R2:** SPADE's posture vocabulary is code-centric; most tasks edit skill *prose*, which has no executable surface to unit-test (ANTI-PATTERNS: "behaviour is prose, not code"). Several tasks are `straight-through` with explicit justification — flagged so Approve does not read it as rubber-stamping.
 - **R3:** `scope-guardian`'s agent file has a closed finding-`category` enum guarded by `lint-agents.sh`. T6 must decide reuse-`out-of-scope` vs add a category; adding one ripples to the lint and possibly `/spade-review` merge logic.
 - **R4 (carried from Scope):** Adoption — consumers may carry unfilled templates. Dogfooding (T2) mitigates for this repo; broader adoption is a v1.7-Evaluate question.

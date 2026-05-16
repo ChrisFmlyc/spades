@@ -1,6 +1,6 @@
 ---
 name: spade-update
-description: Check for and install SPADE framework updates. Use when someone says "update spade", "upgrade spade", "check for updates", "is spade up to date", or wants to pull the latest version of the framework and reinstall skills. Also handles the v1.0.0 → v1.1.0 fragment marker migration in consumer repos.
+description: Check for and install SPADE framework updates. Use when someone says "update spade", "upgrade spade", "check for updates", "is spade up to date", or wants to pull the latest version of the framework and reinstall skills. Also handles per-version consumer-repo migrations through v1.7.0, including fragment marker re-stamping and INTENT.md scaffolding.
 ---
 
 # SPADE Update
