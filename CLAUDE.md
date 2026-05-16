@@ -19,6 +19,7 @@ Skills live in `.claude/skills/`. Invoke them by name.
 | `/spade-evaluate` | Run acceptance criteria checks against delivered output |
 | `/spade-status` | Show current SPADE phase and progress for active work |
 | `/spade-onboard` | Analyse codebase and fill in architecture docs for a new project |
+| `/spade-intent` | Create or maintain INTENT.md — the project's durable statement of intent (problem, users, what it does, success, non-goals, maturity) |
 
 ## Architecture
 

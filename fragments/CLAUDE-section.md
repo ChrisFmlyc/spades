@@ -18,6 +18,7 @@ Read the SPADE section in AGENTS.md for mandatory behaviour rules.
 | `/spade-evaluate` | Check delivered output against acceptance criteria |
 | `/spade-status` | Show current SPADE phase and progress for active work |
 | `/spade-onboard` | Analyse codebase and fill in architecture docs |
+| `/spade-intent` | Create or maintain INTENT.md — the project's durable intent (problem, users, what it does, success, non-goals) |
 
 ### Architecture Context
 
