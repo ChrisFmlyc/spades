@@ -3,9 +3,11 @@ set -euo pipefail
 
 # SPADE Framework — examples lint
 #
-# Validates the shape of examples/example-scope.md and examples/example-plan.md.
-# These files are the canonical reference for what a well-formed Scope and
-# Plan look like; drift here means agents generate the wrong shape.
+# Validates the shape of examples/example-scope.md, examples/example-plan.md,
+# the INTENT.md template (templates/INTENT.md), and examples/example-intent.md.
+# These files are the canonical reference for what a well-formed Scope, Plan,
+# and project-intent document look like; drift here means agents generate the
+# wrong shape.
 #
 # Checks:
 #   1. examples/example-scope.md carries **Intent:**, **Acceptance Criteria:**,
@@ -15,11 +17,16 @@ set -euo pipefail
 #   3. Every posture value is in the locked vocabulary:
 #         test-first, characterization-first, refactor-first, spike, straight-through
 #      Mixed values are allowed if every token in the value is in the vocab.
+#   4. templates/INTENT.md and examples/example-intent.md each carry the locked
+#      INTENT.md conformance schema (SPADE v1.7, M-951): the six section
+#      headings (Problem, Users, What it does, Success, Non-goals, Maturity)
+#      and the last_reviewed frontmatter key. Changing this set requires a new
+#      Scope.
 #
 # Exit codes:
-#   0  both examples conform
+#   0  every file conforms
 #   1  one or more violations found
-#   2  an example file is missing
+#   2  an example or template file is missing
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SCOPE="$REPO_ROOT/examples/example-scope.md"
@@ -134,6 +141,47 @@ if [ "$bad_vocab" -eq 0 ]; then
 else
     fail=$((fail + bad_vocab))
 fi
+
+# --- INTENT.md template + example ------------------------------------------
+#
+# The six section headings + the last_reviewed frontmatter key are the locked
+# INTENT.md conformance schema (SPADE v1.7, M-951). Both the distributable
+# template and the worked example must carry every element. Changing this set
+# requires a new Scope.
+
+INTENT_TEMPLATE="$REPO_ROOT/templates/INTENT.md"
+INTENT_EXAMPLE="$REPO_ROOT/examples/example-intent.md"
+
+intent_require() {
+    local file="$1"
+    local label="$2"
+    local pattern="$3"
+    local desc="$4"
+    if grep -qE "$pattern" "$file"; then
+        echo "  ok:   $label has $desc"
+    else
+        echo "  FAIL: $label missing $desc (pattern: $pattern)"
+        fail=$((fail + 1))
+    fi
+}
+
+for intent_pair in "INTENT template:$INTENT_TEMPLATE" "INTENT example:$INTENT_EXAMPLE"; do
+    intent_label="${intent_pair%%:*}"
+    intent_file="${intent_pair#*:}"
+
+    if [ ! -f "$intent_file" ]; then
+        echo "lint-examples: missing $intent_file" >&2
+        exit 2
+    fi
+
+    intent_require "$intent_file" "$intent_label" '^last_reviewed:' 'last_reviewed frontmatter key'
+    intent_require "$intent_file" "$intent_label" '^## Problem[[:space:]]*$' 'Problem section'
+    intent_require "$intent_file" "$intent_label" '^## Users[[:space:]]*$' 'Users section'
+    intent_require "$intent_file" "$intent_label" '^## What it does[[:space:]]*$' 'What it does section'
+    intent_require "$intent_file" "$intent_label" '^## Success[[:space:]]*$' 'Success section'
+    intent_require "$intent_file" "$intent_label" '^## Non-goals[[:space:]]*$' 'Non-goals section'
+    intent_require "$intent_file" "$intent_label" '^## Maturity[[:space:]]*$' 'Maturity section'
+done
 
 echo
 echo "lint-examples: $fail failure(s)"
