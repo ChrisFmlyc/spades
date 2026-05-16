@@ -27,3 +27,8 @@ node_modules/
 # systems, credentials paths, or security details that should not leak
 # into public forks. See .claude/skills/spade-learn/SKILL.md.
 .spade/learnings/private/
+
+# HTML renderings of Scopes and Plans are a regeneratable read-only view
+# produced by `bin/spade-render` (v1.6+). The Markdown is canonical; the
+# `.html` siblings need not be committed. See docs/FRAMEWORK.md §HTML Rendering.
+.spade/**/*.html
