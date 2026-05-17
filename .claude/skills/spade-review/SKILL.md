@@ -146,6 +146,22 @@ The `Think hard and reason carefully before responding` line is
 intentional — each persona should use maximum reasoning effort since
 the panel is meant to be the strongest independent view available.
 
+### Scope Review mode — suppress Plan-only findings
+
+When the `{mode}` is **Scope Review**, append this line to every
+persona prompt, immediately after the output-contract sentence:
+
+> This is a Scope Review — no Plan exists yet. Do not emit findings
+> that assume a Plan: no `Task N` references, no bundle-count or
+> task-count findings, no Plan-traceability findings. Review the Scope
+> on its own terms — intent clarity, acceptance-criteria testability,
+> premises, dependencies, and risks.
+
+The five persona files are written generically and several lean
+Plan-oriented in their rubric examples; this line keeps a Scope-only
+review from producing findings that reference a Plan that does not
+exist. Do not append it for Plan Review or Full Review.
+
 If the runtime does not support parallel Task spawns, run the five
 sequentially in this order: scope-guardian, architecture-strategist,
 security-lens, yagni-simplicity, adversarial-reviewer. Never skip a
@@ -194,23 +210,107 @@ parse failure alongside the report. Do not attempt to auto-repair
 malformed JSON — showing the human "persona X returned malformed JSON"
 is more useful than risking silent data corruption.
 
-## Merging: Dedupe and Sort
+## Merging: Convergence and Sort
 
-Across all findings:
+The merge turns five separate findings lists into one ranked report. It
+has two jobs: surface **convergence** — where independent personas
+landed on the same concern — and rank what remains.
 
-1. **Dedupe** by `(category, first 100 characters of message)`
-   normalised to lower-case. When two or more findings collapse to the
-   same key, keep the one with highest confidence. Append the other
-   personas' names to a `also_flagged_by` array on the kept finding so
-   the human sees that multiple personas converged.
-2. **Sort** by severity × confidence, descending. Severity order:
-   `blocking` > `major` > `minor` > `nit`. Within a severity bucket,
-   higher confidence comes first.
+### Convergence: cluster by underlying concern
+
+Read every finding across all five lists and group those that describe
+the **same underlying concern** — the same risk, gap, or weakness —
+even when the personas filed them under different `category` values or
+worded them differently. Each such group collapses to a **single
+finding**: keep the one with the highest `confidence` and add an
+`also_flagged_by` array naming the other personas that raised it.
+Findings that describe **distinct concerns stay separate**, even if
+their `category` or wording happens to coincide.
+
+Convergence is the panel's strongest signal: "four of five personas
+independently flagged this" is worth far more than any lone finding.
+Detecting it is a judgement the coordinator makes by reading the
+findings — not a mechanical key match.
+
+> **Why this is a judgement, not a dedupe key.** Earlier versions
+> deduped on `(category, first 100 characters of message)`. That key
+> can never fire across personas: each persona file defines a
+> **disjoint** `category` enum — scope-guardian emits `traceability`,
+> security-lens emits `auth`, yagni-simplicity emits `gold-plating`,
+> and so on, with no value shared between any two personas. Two
+> personas therefore can never produce the same key, and the
+> `also_flagged_by` array was unreachable. Keep the distinction clear:
+> personas using **distinct categories** is *staying in lane* — the
+> deliberate design that stops the panel collapsing into five
+> restatements of one concern. That is not the same as personas never
+> **converging**. Two personas in different lanes routinely see the
+> same underlying risk from different angles; convergence detection is
+> what makes that visible.
+
+Be conservative when clustering. If two findings are *related* but not
+the *same concern* — say, a security-lens worry about an auth boundary
+and an adversarial-reviewer worry about a different failure mode on the
+same task — keep them separate and let both stand. A false merge hides
+a finding; a missed merge only costs a convergence annotation.
+
+### Sort
+
+**Sort** by severity × confidence, descending. Severity order:
+`blocking` > `major` > `minor` > `nit`. Within a severity bucket,
+higher confidence comes first.
+
+### Confidence filter
 
 Findings with confidence below 0.3 are filtered out before
 presentation — they are below the calibration rubric each persona is
 told to respect. Log the count of filtered findings so the human sees
 "3 low-confidence findings hidden" rather than silent loss.
+
+### Worked example
+
+Five findings arrive from three personas (refs omitted for brevity):
+
+```json
+[
+  {"persona": "security-lens", "severity": "major", "confidence": 0.78,
+   "category": "trust-boundary",
+   "message": "Task 2's webhook handler trusts the caller-supplied signature header without verifying it against the shared secret."},
+  {"persona": "adversarial-reviewer", "severity": "major", "confidence": 0.70,
+   "category": "hidden-assumption",
+   "message": "The Plan assumes the webhook caller is already authenticated upstream; if that assumption is wrong, Task 2 processes forged events."},
+  {"persona": "scope-guardian", "severity": "minor", "confidence": 0.60,
+   "category": "acceptance-criteria",
+   "message": "Acceptance criterion 3 ('events are handled') states no success condition and is not testable."},
+  {"persona": "adversarial-reviewer", "severity": "minor", "confidence": 0.55,
+   "category": "integration-blind-spot",
+   "message": "No retry or backoff is described for the downstream call in Task 4."},
+  {"persona": "yagni-simplicity", "severity": "nit", "confidence": 0.20,
+   "category": "speculation",
+   "message": "The config struct carries an unused 'region' field."}
+]
+```
+
+The merge produces **three** findings, with one hidden:
+
+1. The **security-lens** and **adversarial-reviewer** findings describe
+   the *same underlying concern* — the webhook trusts an unverified
+   caller — even though they were filed under different categories
+   (`trust-boundary` vs `hidden-assumption`). They converge into one
+   finding: keep the higher-confidence security-lens finding (0.78) and
+   set `also_flagged_by: ["adversarial-reviewer"]`.
+2. The **scope-guardian** finding is a *distinct concern* (an
+   untestable criterion) — it stays on its own.
+3. The second **adversarial-reviewer** finding is also *distinct* (a
+   missing retry path on a different task). It stays separate and is
+   **not** merged with finding 1, even though both came from
+   adversarial-reviewer — convergence is about the concern, not the
+   persona.
+4. The **yagni-simplicity** finding is dropped by the confidence filter
+   (0.20 < 0.3) and reported as "1 low-confidence finding hidden".
+
+Sorted, the merged report is: finding 1 (`major`, 0.78) → finding 2
+(`minor`, 0.60) → finding 3 (`minor`, 0.55). The envelope records
+`findings_total: 3` and `findings_filtered_low_confidence: 1`.
 
 ## Report envelope (v1.1.1)
 
@@ -239,13 +339,16 @@ Required fields:
   `degraded`. Same value as the banner line.
 - `personas_spawned` — integer count of personas actually invoked.
   Always `5` under v1.1.1.
-- `personas_completed` — integer count of personas whose output parsed
-  successfully. If a persona's JSON block failed to parse, its prose
-  still shows in the report but it does NOT increment this counter.
-- `findings_total` — integer count of findings in the merged report
-  after dedupe and confidence filtering.
-- `findings_filtered_low_confidence` — integer count of findings
-  dropped because their confidence was below 0.3.
+- `personas_completed` — the number of personas whose `spade-findings`
+  block parsed successfully. Count them; do not estimate. If a
+  persona's JSON block failed to parse, its prose still shows in the
+  report but it does NOT increment this counter.
+- `findings_total` — the number of findings in the merged report:
+  literally the length of the final merged list, counted after
+  convergence merging and the confidence filter. Do not estimate.
+- `findings_filtered_low_confidence` — the number of findings dropped
+  by the confidence filter (confidence below 0.3). Count them as they
+  are dropped; do not estimate.
 
 Per-persona findings keep the schema they had in v1.1 (Bundle E) — this
 envelope is a wrapper, not a change to finding shape. If a future

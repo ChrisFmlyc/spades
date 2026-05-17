@@ -512,9 +512,12 @@ returns a short prose summary followed by a JSON block of findings:
 The coordinating skill then:
 
 1. Parses every persona's JSON block.
-2. **Dedupes** findings by `(category, first 100 characters of message)`
-   — keeps the highest-confidence one; records the other personas that
-   converged on the same finding in `also_flagged_by`.
+2. **Detects convergence** by clustering findings that describe the
+   same underlying concern — even across personas that filed them
+   under different `category` values — into one finding, keeping the
+   highest-confidence one and recording the other personas in
+   `also_flagged_by`. This is a coordinator judgement, not a mechanical
+   key match; see `/spade-review` SKILL.md § Merging.
 3. **Sorts** by severity × confidence, descending.
 4. **Filters** findings below 0.3 confidence (below each persona's
    documented rubric), and reports the count of hidden findings so
