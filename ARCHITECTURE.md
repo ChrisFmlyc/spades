@@ -28,9 +28,10 @@ the agent reads and follows.
 - **Distribution:** git repository, installed by cloning and running `./setup`
   (bash) or `./setup.ps1` (PowerShell). Copies skills into `~/.claude/skills/`.
 - **Storage:** per-project state in `.spade/` (version pin, config, examples,
-  docs copy, learnings, and fallback Plan artefacts). Intended to be
-  committed alongside project code. Plans themselves are tracker-canonical
-  from v1.2.0 — see Data Flow § "Local state".
+  docs copy, learnings, panel-review reports, and fallback Plan artefacts).
+  Intended to be committed alongside project code, except `.spade/reviews/`
+  (the `/spade-review` full-report artefacts) which is gitignored. Plans
+  themselves are tracker-canonical from v1.2.0 — see Data Flow § "Local state".
 - **Integrations:** Linear (via Anthropic's Linear MCP server) for issue
   tracking. No other external services.
 - **Runtime:** whatever agent environment invokes the skills (Claude Code is
@@ -45,8 +46,8 @@ this repo.
 2. `/spade-plan` reads the Scope + architecture docs, produces a Plan document,
    and creates sub-issues grouped into delivery bundles.
 3. `/spade-approve` gates the Plan; a human approves or rejects.
-4. `/spade-review` (optional) spawns an independent reviewer for a second
-   opinion on the Scope, the Plan, or both.
+4. `/spade-review` (optional) spawns a four-persona review panel for a
+   second opinion on the Scope, the Plan, or both.
 5. Delivery happens one bundle at a time: one branch → one PR → one or more
    sub-issues closed.
 6. `/spade-evaluate` checks delivered output against acceptance criteria.

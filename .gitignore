@@ -32,3 +32,10 @@ node_modules/
 # produced by `bin/spade-render` (v1.6+). The Markdown is canonical; the
 # `.html` siblings need not be committed. See docs/FRAMEWORK.md §HTML Rendering.
 .spade/**/*.html
+
+# Panel-review reports written by `/spade-review` (v2.0.0+). Each run
+# persists its full report to `.spade/reviews/<slug>-<date>.md` as a
+# local audit artefact. They can carry repository and architectural
+# detail and are not committed — the inline digest is the shareable
+# view. See .claude/skills/spade-review/SKILL.md § Presenting the Report.
+.spade/reviews/

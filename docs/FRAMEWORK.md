@@ -474,35 +474,40 @@ contract.
 ## Multi-persona Review
 
 The `/spade-review` skill is a second-opinion gate. Since v1.1 it
-operates as a **panel of five persona subagents** rather than a single
-generalist reviewer. Each persona is defined under `.claude/agents/`
-and is primed to care about one specific concern:
+operates as a **panel of persona subagents** rather than a single
+generalist reviewer — five personas through v1.1–v1.x, four since
+M-994. Each persona is defined under `.claude/agents/` and is primed to
+care about one specific concern:
 
 | Persona                         | Focus                                                                       |
 |---------------------------------|------------------------------------------------------------------------------|
-| `scope-guardian`                | Scope completeness, testability, Plan→Scope traceability.                   |
+| `scope-guardian`                | Scope completeness, testability, Plan→Scope traceability; gold-plating / proportionality (absorbed remit). |
 | `architecture-strategist`       | Conflicts with `ARCHITECTURE.md` / `PATTERNS.md` / `ANTI-PATTERNS.md`.      |
 | `security-lens`                 | Auth, injection, secrets, supply chain, IAM, data sensitivity.               |
-| `yagni-simplicity`              | Over-engineering, premature abstraction, bundle/task proportionality.       |
-| `adversarial-reviewer`          | The strongest attack on the Plan — what will fail, and why.                 |
+| `adversarial-reviewer`          | The strongest attack on the Plan — what will fail, and why; second-order / compounding cost (absorbed remit). |
+
+M-994 folded the former `yagni-simplicity` persona's remit into the
+scope guardian (gold-plating and proportionality) and the adversarial
+reviewer (second-order and compounding cost); see §"Why a panel and
+not a bigger generalist" below.
 
 The rationale is captured in `.spade/learnings/2026-04-22-single-reviewer-is-weaker-than-panel.md`:
 a generalist reviewer tends to collapse a review into the single most
-obvious concern; a persona panel forces five independent angles and
+obvious concern; a persona panel forces several independent angles and
 surfaces findings the generalist would miss.
 
 ### How the panel runs
 
 `/spade-review` assembles a structured summary of the Scope and/or
-Plan (the same summary for every persona), then spawns all five
+Plan (the same summary for every persona), then spawns all four
 subagents in parallel where the runtime supports it. Each persona
 returns a short prose summary followed by a JSON block of findings:
 
 ```json
 {
   "persona": "scope-guardian",
-  "severity": "blocking | major | minor | nit",
-  "confidence": 0.0..1.0,
+  "severity": "blocking | major | minor",
+  "confidence": "high | low",
   "category": "scope-completeness | ...",
   "message": "One or two lines describing the finding.",
   "refs": ["<file path>:<line>", "<linear id>", ...]
@@ -514,19 +519,22 @@ The coordinating skill then:
 1. Parses every persona's JSON block.
 2. **Detects convergence** by clustering findings that describe the
    same underlying concern — even across personas that filed them
-   under different `category` values — into one finding, keeping the
-   highest-confidence one and recording the other personas in
-   `also_flagged_by`. This is a coordinator judgement, not a mechanical
-   key match; see `/spade-review` SKILL.md § Merging.
-3. **Sorts** by severity × confidence, descending.
-4. **Filters** findings below 0.3 confidence (below each persona's
-   documented rubric), and reports the count of hidden findings so
-   nothing is silently lost.
-5. Presents the merged report with each persona's prose summary
-   **verbatim** — never summarised — plus its own cross-model synthesis
-   of agreements, disagreements, and tensions for the human to resolve.
+   under different `category` values — into one finding, recording the
+   other personas in `also_flagged_by`. This is a coordinator
+   judgement, not a mechanical key match; see `/spade-review` SKILL.md
+   § Merging.
+3. **Sorts** by severity, then by convergence (the size of the
+   `also_flagged_by` set). `confidence` is a display-only `high | low`
+   flag, not a sort key — there is no `severity × confidence`
+   arithmetic.
+4. Presents a **tiered report** — convergence findings and every
+   `blocking` finding inline, `major` up to an inline budget with the
+   rest plus all `minor` collapsed to count lines — and persists the
+   full untiered report to `.spade/reviews/`. Each persona's prose
+   summary is shown **verbatim**, never summarised, plus a cross-model
+   synthesis of disagreements and tensions for the human to resolve.
 
-### Dispatch mode and the report envelope (v1.1.1)
+### Dispatch mode and the report envelope (v2.0.0)
 
 Every `/spade-review` run emits two machine-parseable signals at the
 top of its report so consumers can tell a real panel from a simulation:
@@ -545,24 +553,23 @@ top of its report so consumers can tell a real panel from a simulation:
 
    ```json
    {
-     "schema_version": "1.1.1",
+     "schema_version": "2.0.0",
      "dispatch_mode": "subagent-dispatch",
-     "personas_spawned": 5,
-     "personas_completed": 5,
-     "findings_total": 0,
-     "findings_filtered_low_confidence": 0
+     "personas_spawned": 4,
+     "personas_completed": 4,
+     "findings_total": 0
    }
    ```
 
-   - `schema_version` — contract version. v1.1.1 is the first version
-     with the envelope; older reports lack it entirely. Future bumps
-     move this string.
+   - `schema_version` — report-envelope contract version. v1.1.1 added
+     the envelope; v2.0.0 (M-994) is the four-persona redesign — `nit`
+     dropped from `severity`, `confidence` recast to `high | low`, and
+     the merge-side confidence filter removed. It is independent of the
+     framework's `.spade/version` and fragment-marker mechanism.
    - `dispatch_mode` — matches the banner value.
    - `personas_completed` — counts only personas whose JSON parsed
      successfully. If a persona's output was unparseable, its prose is
      still shown but this counter does not increment.
-   - `findings_filtered_low_confidence` — count of findings dropped
-     below the 0.3 confidence threshold.
 
 ### Degraded-mode honesty
 
@@ -595,10 +602,13 @@ output with explicit severity and confidence lets the human defer
 low-confidence findings without losing them — a generalist's prose
 review is all-or-nothing.
 
-The panel size is capped at five in v1.1. Adding more personas dilutes
-the signal (overlap causes duplicate findings), and removing personas
-loses coverage. Extending the panel requires a new Scope that explains
-which concern the new persona covers that no existing persona does.
+The panel was five personas through v1.1–v1.x; M-994 reduced it to
+four, folding the `yagni-simplicity` persona's remit into the scope
+guardian (gold-plating and proportionality) and the adversarial
+reviewer (second-order and compounding cost). Changing the panel
+roster — adding or removing a persona — requires a new Scope that
+explains the coverage rationale: more personas dilute the signal with
+duplicate findings, fewer lose coverage.
 
 ---
 
@@ -682,8 +692,8 @@ The convention lives in skill prose, not in code or lint. SPADE skills
 are Markdown — the agent reads the prose and follows it. We **don't**
 have a runtime that intercepts free-form prompts and rewrites them.
 That means the convention is a **review surface**: `/spade-review`'s
-yagni-simplicity and scope-guardian personas can flag prose prompts
-that should have been `AskUserQuestion`. New skills are expected to
+scope-guardian persona can flag prose prompts that should have been
+`AskUserQuestion`. New skills are expected to
 follow the convention from day one.
 
 ---

@@ -29,7 +29,8 @@ spade-framework/
 │   ├── docs/FRAMEWORK.md              # committed copy of full reference
 │   ├── examples/                      # worked example Scopes/Plans
 │   ├── plans/                         # fallback when tracker unavailable; preserves pre-v1.2 archives
-│   └── learnings/                     # (planned) compounding learnings store
+│   ├── learnings/                     # (planned) compounding learnings store
+│   └── reviews/                       # /spade-review full-report artefacts (gitignored)
 ├── fragments/
 │   ├── AGENTS-section.md              # injected into consumer AGENTS.md
 │   └── CLAUDE-section.md              # injected into consumer CLAUDE.md

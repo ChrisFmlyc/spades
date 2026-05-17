@@ -79,12 +79,12 @@ in doubt, use the full loop.
   A thorough review is mandatory for tasks touching architecture, security,
   or cross-system boundaries.
 - **Panel second opinion (optional).** Before deciding, the human may request
-  a panel review via `/spade-review`. Since v1.1 this spawns five persona
-  subagents — scope-guardian, architecture-strategist, security-lens,
-  yagni-simplicity, adversarial-reviewer — in parallel where the runtime
-  supports it. Each returns structured findings; the coordinating skill
-  merges, dedupes, and presents a single report. Non-blocking: the panel
-  never gates approval or delivery.
+  a panel review via `/spade-review`. It spawns four persona subagents —
+  scope-guardian, architecture-strategist, security-lens,
+  adversarial-reviewer — in parallel where the runtime supports it. Each
+  returns structured findings; the coordinating skill merges them by
+  convergence and presents a tiered report. Non-blocking: the panel never
+  gates approval or delivery.
 
 ### 4. Deliver (AI or Human)
 

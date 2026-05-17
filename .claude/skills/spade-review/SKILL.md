@@ -1,6 +1,6 @@
 ---
 name: spade-review
-description: Get an independent second opinion on a SPADE Scope, Plan, or both. Spawns a PANEL of five persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, yagni-simplicity, adversarial-reviewer), merges their structured findings, and presents a single deduplicated report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spade-approve. Non-blocking — informs the human but never gates shipping.
+description: Get an independent second opinion on a SPADE Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spade-approve. Non-blocking — informs the human but never gates shipping.
 ---
 
 ## Update Check
@@ -23,7 +23,7 @@ The value of a panel review comes from **genuine independence across
 distinct concerns** — each persona sees the same structured summary but
 is primed to care about a different aspect. A generalist reviewer
 collapses a review into the most obvious concern; a persona panel
-surfaces five distinct perspectives and merges the findings.
+surfaces four distinct perspectives and merges the findings.
 
 This is a **second opinion**. It never gates approval or delivery — the
 report is advisory. The human decides what to act on.
@@ -96,15 +96,20 @@ traceability.
 
 ## The Panel
 
-Five persona subagents, each defined under `.claude/agents/`:
+Four persona subagents, each defined under `.claude/agents/`:
 
 | Persona file                                    | Focus                                                                   |
 |-------------------------------------------------|-------------------------------------------------------------------------|
-| `spade-review-scope-guardian`                   | Scope completeness, testability, Plan→Scope traceability                |
+| `spade-review-scope-guardian`                   | Scope completeness, testability, Plan→Scope traceability; gold-plating / proportionality (absorbed remit) |
 | `spade-review-architecture-strategist`          | Conflicts with ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md         |
 | `spade-review-security-lens`                    | Auth, injection, secrets, supply chain, IAM, data sensitivity           |
-| `spade-review-yagni-simplicity`                 | Over-engineering, premature abstraction, bundle/task proportionality    |
-| `spade-review-adversarial-reviewer`             | Strongest attack on the Plan — what will fail and why                   |
+| `spade-review-adversarial-reviewer`             | Strongest attack on the Plan — what will fail and why; second-order / compounding cost (absorbed remit) |
+
+The panel was five personas through v1.1–v1.x; M-994 folded the
+`yagni-simplicity` persona's remit into the scope guardian (gold-plating
+and proportionality) and the adversarial reviewer (second-order and
+compounding cost), and the panel is now four. See `docs/FRAMEWORK.md`
+§Multi-persona Review for the rationale.
 
 Read `.claude/agents/spade-review-*.md` in the framework install
 (`~/.spade/.claude/agents/` if installed globally, or `.claude/agents/`
@@ -114,7 +119,7 @@ contract.
 
 ## Spawning the Panel
 
-**Spawn all five personas in parallel where the runtime supports it;
+**Spawn all four personas in parallel where the runtime supports it;
 otherwise sequentially.** Parallel is a performance nicety, not a
 correctness requirement — the merge logic doesn't care.
 
@@ -157,16 +162,15 @@ persona prompt, immediately after the output-contract sentence:
 > on its own terms — intent clarity, acceptance-criteria testability,
 > premises, dependencies, and risks.
 
-The five persona files are written generically and several lean
+The four persona files are written generically and several lean
 Plan-oriented in their rubric examples; this line keeps a Scope-only
 review from producing findings that reference a Plan that does not
 exist. Do not append it for Plan Review or Full Review.
 
-If the runtime does not support parallel Task spawns, run the five
+If the runtime does not support parallel Task spawns, run the four
 sequentially in this order: scope-guardian, architecture-strategist,
-security-lens, yagni-simplicity, adversarial-reviewer. Never skip a
-persona to save time — a three-persona review collapses back toward
-generalist.
+security-lens, adversarial-reviewer. Never skip a persona to save
+time — a reduced panel collapses back toward generalist.
 
 ### Dispatch-mode determination (v1.1.1)
 
@@ -176,8 +180,8 @@ can distinguish a real panel from a simulated one:
 
 | Value                  | When to record                                                                                                            |
 |------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| `subagent-dispatch`    | The runtime supports spawning `.claude/agents/*.md` (or equivalent) as **independent subagent contexts**, and you spawned all five personas **in parallel** as separate contexts. |
-| `sequential-inproc`    | The runtime supports spawning personas in **isolated contexts** but only one at a time. You ran the five sequentially, still as separate contexts per persona. |
+| `subagent-dispatch`    | The runtime supports spawning `.claude/agents/*.md` (or equivalent) as **independent subagent contexts**, and you spawned all four personas **in parallel** as separate contexts. |
+| `sequential-inproc`    | The runtime supports spawning personas in **isolated contexts** but only one at a time. You ran the four sequentially, still as separate contexts per persona. |
 | `degraded`             | No isolated-context path was available and you simulated the personas by re-prompting a single model context with each persona's priming. This is a fallback, not a panel. |
 
 Decision rules at spawn time:
@@ -196,7 +200,7 @@ which invocation mode produced a given report. Record the mode honestly
 and emit it in the banner (see Report envelope + Presenting the Report
 below). The `degraded` value is load-bearing — it tells a downstream
 tool that this specific report was generated from one model wearing
-five prompt hats, not five independent contexts.
+four prompt hats, not four independent contexts.
 
 ## Collecting the Findings
 
@@ -212,22 +216,23 @@ is more useful than risking silent data corruption.
 
 ## Merging: Convergence and Sort
 
-The merge turns five separate findings lists into one ranked report. It
+The merge turns four separate findings lists into one ranked report. It
 has two jobs: surface **convergence** — where independent personas
 landed on the same concern — and rank what remains.
 
 ### Convergence: cluster by underlying concern
 
-Read every finding across all five lists and group those that describe
+Read every finding across all four lists and group those that describe
 the **same underlying concern** — the same risk, gap, or weakness —
 even when the personas filed them under different `category` values or
 worded them differently. Each such group collapses to a **single
-finding**: keep the one with the highest `confidence` and add an
-`also_flagged_by` array naming the other personas that raised it.
+finding**: keep whichever states the concern most sharply (prefer a
+`high`-confidence finding over a `low` one) and add an `also_flagged_by`
+array naming the other personas that raised it.
 Findings that describe **distinct concerns stay separate**, even if
 their `category` or wording happens to coincide.
 
-Convergence is the panel's strongest signal: "four of five personas
+Convergence is the panel's strongest signal: "three of four personas
 independently flagged this" is worth far more than any lone finding.
 Detecting it is a judgement the coordinator makes by reading the
 findings — not a mechanical key match.
@@ -236,12 +241,12 @@ findings — not a mechanical key match.
 > deduped on `(category, first 100 characters of message)`. That key
 > can never fire across personas: each persona file defines a
 > **disjoint** `category` enum — scope-guardian emits `traceability`,
-> security-lens emits `auth`, yagni-simplicity emits `gold-plating`,
-> and so on, with no value shared between any two personas. Two
-> personas therefore can never produce the same key, and the
-> `also_flagged_by` array was unreachable. Keep the distinction clear:
-> personas using **distinct categories** is *staying in lane* — the
-> deliberate design that stops the panel collapsing into five
+> security-lens emits `auth`, adversarial-reviewer emits
+> `hidden-assumption`, and so on, with no value shared between any two
+> personas. Two personas therefore can never produce the same key, and
+> the `also_flagged_by` array was unreachable. Keep the distinction
+> clear: personas using **distinct categories** is *staying in lane* —
+> the deliberate design that stops the panel collapsing into four
 > restatements of one concern. That is not the same as personas never
 > **converging**. Two personas in different lanes routinely see the
 > same underlying risk from different angles; convergence detection is
@@ -255,64 +260,81 @@ a finding; a missed merge only costs a convergence annotation.
 
 ### Sort
 
-**Sort** by severity × confidence, descending. Severity order:
-`blocking` > `major` > `minor` > `nit`. Within a severity bucket,
-higher confidence comes first.
+**Sort** by severity, then by convergence. Severity order:
+`blocking` > `major` > `minor`. Within a severity bucket, a finding
+with a longer `also_flagged_by` array — more personas independently
+converged on it — comes first. `confidence` is **not** a sort key: it
+is a display-only `high | low` annotation (see the persona files).
+There is no `severity × confidence` arithmetic, and `nit` is no longer
+a severity.
 
-### Confidence filter
+### No merge-side filter
 
-Findings with confidence below 0.3 are filtered out before
-presentation — they are below the calibration rubric each persona is
-told to respect. Log the count of filtered findings so the human sees
-"3 low-confidence findings hidden" rather than silent loss.
+There is no confidence filter at merge time. Under v1.1 the merge
+dropped findings with `confidence` below `0.3`; `confidence` is now a
+coarse `high | low` flag, not a float, and every persona already
+self-caps at three primary findings (plus, for the scope guardian and
+adversarial reviewer, one reserved-slot finding) — the filtering moved
+to generation time. The merge keeps every finding each persona emits;
+volume is controlled at presentation time by the tiered report (see
+"Presenting the Report"), not by dropping findings here.
 
 ### Worked example
 
-Five findings arrive from three personas (refs omitted for brevity):
+Six findings arrive from four personas (refs omitted for brevity):
 
 ```json
 [
-  {"persona": "security-lens", "severity": "major", "confidence": 0.78,
+  {"persona": "security-lens", "severity": "major", "confidence": "high",
    "category": "trust-boundary",
    "message": "Task 2's webhook handler trusts the caller-supplied signature header without verifying it against the shared secret."},
-  {"persona": "adversarial-reviewer", "severity": "major", "confidence": 0.70,
+  {"persona": "adversarial-reviewer", "severity": "major", "confidence": "high",
    "category": "hidden-assumption",
    "message": "The Plan assumes the webhook caller is already authenticated upstream; if that assumption is wrong, Task 2 processes forged events."},
-  {"persona": "scope-guardian", "severity": "minor", "confidence": 0.60,
+  {"persona": "architecture-strategist", "severity": "major", "confidence": "low",
+   "category": "patterns-drift",
+   "message": "Task 2's handler bypasses the shared request-validation middleware PATTERNS.md mandates."},
+  {"persona": "scope-guardian", "severity": "minor", "confidence": "high",
    "category": "acceptance-criteria",
    "message": "Acceptance criterion 3 ('events are handled') states no success condition and is not testable."},
-  {"persona": "adversarial-reviewer", "severity": "minor", "confidence": 0.55,
+  {"persona": "adversarial-reviewer", "severity": "minor", "confidence": "high",
    "category": "integration-blind-spot",
    "message": "No retry or backoff is described for the downstream call in Task 4."},
-  {"persona": "yagni-simplicity", "severity": "nit", "confidence": 0.20,
-   "category": "speculation",
-   "message": "The config struct carries an unused 'region' field."}
+  {"persona": "scope-guardian", "severity": "minor", "confidence": "low",
+   "category": "gold-plating",
+   "message": "Task 5 adds a config flag for an export format the Scope does not mention."}
 ]
 ```
 
-The merge produces **three** findings, with one hidden:
+The merge produces **four** findings:
 
-1. The **security-lens** and **adversarial-reviewer** findings describe
-   the *same underlying concern* — the webhook trusts an unverified
-   caller — even though they were filed under different categories
-   (`trust-boundary` vs `hidden-assumption`). They converge into one
-   finding: keep the higher-confidence security-lens finding (0.78) and
-   set `also_flagged_by: ["adversarial-reviewer"]`.
-2. The **scope-guardian** finding is a *distinct concern* (an
-   untestable criterion) — it stays on its own.
+1. The **security-lens**, **adversarial-reviewer**, and
+   **architecture-strategist** findings all describe the *same
+   underlying concern* — Task 2's webhook trusts an unverified caller —
+   even though they were filed under three different categories
+   (`trust-boundary`, `hidden-assumption`, `patterns-drift`). They
+   converge into one finding: keep one of the three (all `major`) and
+   set `also_flagged_by: ["adversarial-reviewer", "architecture-strategist"]`.
+2. The **scope-guardian** `acceptance-criteria` finding is a *distinct
+   concern* (an untestable criterion) — it stays on its own.
 3. The second **adversarial-reviewer** finding is also *distinct* (a
    missing retry path on a different task). It stays separate and is
    **not** merged with finding 1, even though both came from
    adversarial-reviewer — convergence is about the concern, not the
    persona.
-4. The **yagni-simplicity** finding is dropped by the confidence filter
-   (0.20 < 0.3) and reported as "1 low-confidence finding hidden".
+4. The **scope-guardian** `gold-plating` finding is the reserved-slot
+   absorbed-remit finding — a *distinct concern*, so it stays on its
+   own.
 
-Sorted, the merged report is: finding 1 (`major`, 0.78) → finding 2
-(`minor`, 0.60) → finding 3 (`minor`, 0.55). The envelope records
-`findings_total: 3` and `findings_filtered_low_confidence: 1`.
+Nothing is dropped: there is no merge-side confidence filter.
 
-## Report envelope (v1.1.1)
+Sorted by severity, then convergence: finding 1 (`major`,
+`also_flagged_by` length 2) → then the three `minor` findings (2, 3,
+4), whose order among themselves is not significant — `confidence` is
+a display annotation, not a tiebreak. The envelope records
+`findings_total: 4`.
+
+## Report envelope (v2.0.0)
 
 The merged report carries a top-level envelope so downstream tooling
 can parse the report without inspecting the Markdown prose. The
@@ -321,44 +343,63 @@ envelope appears as a `json` code block immediately after the banner
 
 ```json
 {
-  "schema_version": "1.1.1",
+  "schema_version": "2.0.0",
   "dispatch_mode": "subagent-dispatch",
-  "personas_spawned": 5,
-  "personas_completed": 5,
-  "findings_total": 0,
-  "findings_filtered_low_confidence": 0
+  "personas_spawned": 4,
+  "personas_completed": 4,
+  "findings_total": 0
 }
 ```
 
 Required fields:
 
-- `schema_version` — the string `"1.1.1"` for this contract. A consumer
+- `schema_version` — the string `"2.0.0"` for this contract. A consumer
   that encounters a different version knows to fall back to prose
-  parsing or flag the mismatch.
+  parsing or flag the mismatch. `2.0.0` is the M-994 redesign: four
+  personas, `nit` removed from `severity`, `confidence` recast to a
+  `high | low` string, no merge-side confidence filter. This is the
+  **report-envelope** contract version — it is independent of the
+  framework's `.spade/version` and of the fragment-marker mechanism
+  `/spade-update` uses to rewrite consumer skill files.
 - `dispatch_mode` — one of `subagent-dispatch`, `sequential-inproc`,
   `degraded`. Same value as the banner line.
 - `personas_spawned` — integer count of personas actually invoked.
-  Always `5` under v1.1.1.
+  Always `4` under v2.0.0.
 - `personas_completed` — the number of personas whose `spade-findings`
   block parsed successfully. Count them; do not estimate. If a
   persona's JSON block failed to parse, its prose still shows in the
   report but it does NOT increment this counter.
 - `findings_total` — the number of findings in the merged report:
   literally the length of the final merged list, counted after
-  convergence merging and the confidence filter. Do not estimate.
-- `findings_filtered_low_confidence` — the number of findings dropped
-  by the confidence filter (confidence below 0.3). Count them as they
-  are dropped; do not estimate.
+  convergence merging. Do not estimate.
 
-Per-persona findings keep the schema they had in v1.1 (Bundle E) — this
-envelope is a wrapper, not a change to finding shape. If a future
-version changes per-persona finding shape, bump `schema_version`.
+The v1.1 envelope carried a sixth field,
+`findings_filtered_low_confidence`, counting findings dropped by the
+merge-side confidence filter. v2.0.0 removes both the filter and the
+field — `confidence` is no longer a float, and the per-persona caps
+moved filtering to generation time.
+
+Per-persona finding shape changed in v2.0.0: `severity` lost the `nit`
+value and `confidence` became a `high | low` string. If a future
+version changes finding shape again, bump `schema_version`.
 
 ## Presenting the Report
 
-The report begins with a **dispatch-mode banner** (the value you
-recorded during spawning) and the **report envelope** JSON. The section
-title depends on dispatch mode:
+A panel run produces two artefacts: a **tiered inline report** written
+to the terminal, and a **full report** persisted to a file. The inline
+report is a digest — it leads with the signal and fits on a screen; the
+full report is the complete audit record.
+
+### The dispatch-mode banner and envelope
+
+Both artefacts begin with a **dispatch-mode banner** (the value you
+recorded during spawning) and the **report envelope** JSON. The banner
+line (`Dispatch mode: <value>`) is ALWAYS the first line of output,
+before any prose, the envelope JSON, or the section title — so a
+`head -n 1` or a regex scan of the top-of-report surfaces the mode
+without parsing the envelope.
+
+The section title depends on dispatch mode:
 
 - When `dispatch_mode` is `subagent-dispatch` or `sequential-inproc`,
   the title is `PANEL SECOND OPINION`.
@@ -367,15 +408,49 @@ title depends on dispatch mode:
   "panel" or "multi-persona" anywhere in a degraded report's header or
   framing prose — see "What This Skill Must Never Do" below.
 
-Shape when dispatch mode is `subagent-dispatch` (or `sequential-inproc`):
+**Degraded-detection check.** The dispatch mode is asserted in three
+places that MUST agree: the banner's first line, the envelope's
+`dispatch_mode` field, and the section title (`PANEL SECOND OPINION`
+for a real panel; `SINGLE-CONTEXT SIMULATION (degraded)` for a degraded
+run). A reader — or a downstream tool — confirms a run was a genuine
+multi-context panel by checking that all three agree and none say
+`degraded`. If the three disagree, the report is malformed. This
+three-point agreement is the stated check that a degraded run can never
+be silently presented as a panel; it holds in the inline report and the
+persisted file alike.
+
+### The tiered inline report
+
+The inline report shows, in order:
+
+1. The banner and the envelope JSON.
+2. The section title.
+3. **Persona summaries** — each persona's prose summary, verbatim.
+   Never summarise a persona's prose in your own words; the whole point
+   is that the human sees each independent view unfiltered.
+4. **Convergence** — every merged finding with a non-empty
+   `also_flagged_by` array, shown in full. Convergence is the panel's
+   strongest signal, so it leads the findings.
+5. **Blocking and major findings.** Every `blocking` finding is shown
+   in full, always — blocking is never suppressed or collapsed. `major`
+   findings then fill an inline budget of roughly 5–7 findings total
+   (the convergence and blocking findings already shown count toward
+   that budget). `major` findings beyond the budget are not printed
+   individually — they collapse to a count line:
+   `+N more major finding(s) — see full report`.
+6. **Minor findings** never print individually inline. They collapse to
+   a single count line: `N minor finding(s) — see full report`.
+7. A pointer to the persisted full report: `Full report: <path>`.
+
+Inline shape when dispatch mode is `subagent-dispatch` (or
+`sequential-inproc`):
 
 ```
 Dispatch mode: subagent-dispatch
 
 ```json
-{"schema_version":"1.1.1","dispatch_mode":"subagent-dispatch",
- "personas_spawned":5,"personas_completed":5,
- "findings_total":4,"findings_filtered_low_confidence":3}
+{"schema_version":"2.0.0","dispatch_mode":"subagent-dispatch",
+ "personas_spawned":4,"personas_completed":4,"findings_total":14}
 ```
 
 PANEL SECOND OPINION
@@ -386,32 +461,36 @@ Summary from each persona (their own words, verbatim):
   scope-guardian:           <prose summary>
   architecture-strategist:  <prose summary>
   security-lens:            <prose summary>
-  yagni-simplicity:         <prose summary>
   adversarial-reviewer:     <prose summary>
 
-Merged findings (sorted by severity × confidence):
+Convergence — independent personas on the same concern:
 
-  [blocking, 0.95] architecture-strategist — <message>
+  [major, also_flagged_by ×2] security-lens — <message>
+    refs: Plan Task 2
+    also_flagged_by: [adversarial-reviewer, architecture-strategist]
+
+Findings — every blocking in full; major up to the inline budget:
+
+  [blocking] architecture-strategist — <message>
     refs: ANTI-PATTERNS.md#..., Plan Task 4
-  [major,    0.85] yagni-simplicity — <message>
+  [major]    scope-guardian — <message>
     refs: Plan Task 3
-    also_flagged_by: [adversarial-reviewer]
-  ...
+  +3 more major finding(s) — see full report.
+  9 minor finding(s) — see full report.
 
-Hidden: 3 finding(s) below 0.3 confidence threshold.
+Full report: .spade/reviews/m-994-2026-05-17.md
 
 ════════════════════════════════════════════════════════════
 ```
 
-Shape when dispatch mode is `degraded`:
+Inline shape when dispatch mode is `degraded`:
 
 ```
 Dispatch mode: degraded
 
 ```json
-{"schema_version":"1.1.1","dispatch_mode":"degraded",
- "personas_spawned":5,"personas_completed":5,
- "findings_total":4,"findings_filtered_low_confidence":3}
+{"schema_version":"2.0.0","dispatch_mode":"degraded",
+ "personas_spawned":4,"personas_completed":4,"findings_total":14}
 ```
 
 SINGLE-CONTEXT SIMULATION (degraded)
@@ -427,45 +506,77 @@ Summary from each persona-prompted run (verbatim):
   scope-guardian:           <prose summary>
   ...
 
-Merged findings (sorted by severity × confidence):
+Convergence — runs that landed on the same concern:
 
   ...
 
-Hidden: N finding(s) below 0.3 confidence threshold.
+Findings — every blocking in full; major up to the inline budget:
+
+  ...
+  +N more major finding(s) — see full report.
+  N minor finding(s) — see full report.
+
+Full report: .spade/reviews/m-994-2026-05-17.md
 
 ════════════════════════════════════════════════════════════
 ```
 
-The banner line (`Dispatch mode: <value>`) is ALWAYS the first line of
-output, before any prose, the envelope JSON, or the section title.
-This is so a `head -n 1` or a regex scan of the top-of-report surfaces
-the mode without needing to parse the envelope.
+### The persisted full report
 
-**Never summarise a persona's prose in your own words.** The whole
-point is that the human sees each independent view unfiltered. The
-merge only applies to the JSON findings — the prose summaries are
-always shown verbatim.
+On **every** panel run — `degraded` runs included — write the full
+report to a file under `.spade/reviews/`:
+
+- **Path:** `.spade/reviews/<slug>-<date>.md`. `<slug>` is the reviewed
+  Scope or Plan's tracker identifier lower-cased (e.g. `m-994`), or a
+  short kebab-case slug derived from its title when there is no
+  identifier; `<date>` is `YYYY-MM-DD`.
+- **Collision rule:** if that path already exists — a repeat run of the
+  same slug on the same date — append a numeric suffix:
+  `<slug>-<date>-2.md`, then `-3`, and so on. Never overwrite an
+  existing review file; each run is its own audit record.
+- **Contents:** the banner, the envelope, the section title, every
+  persona's prose summary verbatim, **every** merged finding at every
+  severity shown in full (the file is not tiered — it is the complete
+  record), and the cross-model synthesis.
+- `.spade/reviews/` is gitignored by default; the review file is a
+  local audit artefact, not committed output.
+
+Create `.spade/reviews/` lazily on the first write; do not pre-create
+it. The inline report's `Full report:` pointer names the file just
+written. If the write fails, say so plainly inline
+(`Full report: write failed — <reason>`) and continue — a failed
+persistence write never aborts the review; the inline digest stands.
 
 ## Cross-Model Synthesis
 
-After presenting the merged panel output, add your own synthesis as
-the coordinating agent. For each finding you disagree with, state what
-you think differently and why — include context the panel did not have
-(conversation history, prior human decisions, and so on). Flag
-genuine tensions neutrally rather than picking a side:
+After presenting the merged panel output, add your synthesis as the
+coordinating agent — but keep it to what changes a decision. Show only:
+
+- **Disagreements** — findings you think are wrong, mis-severity, or
+  miss context the panel did not have (conversation history, prior
+  human decisions). State what you think differently and why.
+- **Tension points** — genuine conflicts for the human to resolve,
+  stated neutrally rather than picking a side.
+
+Do **not** enumerate the findings you agree with — agreement needs no
+airtime. Collapse it to a single line. If there are no disagreements
+and no tensions, that one line is the whole synthesis.
 
 ```
 CROSS-MODEL SYNTHESIS:
 
-Where I agree: <list of findings you second>
-Where I disagree: <findings with reasoning>
-Tension points (for the human to resolve):
+Agreement: <one line — e.g. "No disagreements; I second the panel.">
+Disagreements: <findings with reasoning — omit this line if none>
+Tension points (for the human to resolve — omit if none):
 
   TENSION: <topic>
   Panel says:    X
   My view:       Y
   Context the panel didn't have: Z
 ```
+
+This synthesis appears in both the inline report and the persisted
+full report.
 
 ## User Decision
 
@@ -519,6 +630,11 @@ supplements it.
   every invocation, even when dispatch is degraded — *especially*
   when dispatch is degraded. A report without the banner is indistinguishable
   from a pre-v1.1.1 report, and downstream tooling will misread it.
+- **Suppress a blocking finding, or skip the persisted report.** Every
+  `blocking` finding is shown in full in the inline report — blocking is
+  never collapsed to a count line. The full report is written to
+  `.spade/reviews/` on every run, `degraded` runs included. The inline
+  digest tiers `major` and `minor`; it never tiers `blocking`.
 - **Leak conversation context into persona prompts.** Each persona
   sees only the structured summary. Passing "primary agent thinks X"
   into the persona prompt defeats the independence.
@@ -526,7 +642,7 @@ supplements it.
 - **Run during fast-track (`/spade-quick`).** Fast-track work is too
   small to warrant a panel review. If someone asks for a review on a
   quick-path item, suggest the full loop instead.
-- **Skip personas to save time.** Five personas or none. A reduced
+- **Skip personas to save time.** Four personas or none. A reduced
   panel collapses back toward generalist and loses the coverage
   guarantee.
 - **Repair malformed JSON from a persona.** Report the parse failure;

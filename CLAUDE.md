@@ -12,7 +12,7 @@ Skills live in `.claude/skills/`. Invoke them by name.
 | `/spade-scope` | Help write a well-formed Scope with acceptance criteria |
 | `/spade-plan` | Generate a structured Plan from a Scope; each task declares an execution posture; surfaces matching prior learnings |
 | `/spade-approve` | Present a Plan for human review against the approval checklist |
-| `/spade-review` | Multi-persona panel second opinion (5 subagents) on a Scope, Plan, or both |
+| `/spade-review` | Multi-persona panel second opinion (4 subagents) on a Scope, Plan, or both |
 | `/spade-learn` | Capture a learning for `.spade/learnings/` so future Plans reference it; `--refresh` for housekeeping |
 | `/spade-quick` | Fast-track path for trivial work (typos, tweaks, small fixes) |
 | `/spade-research` | Landscape research via an isolated Opus 4.7 subagent (read-only); optional Linear artefact with explicit consent (v1.3.0+) |
