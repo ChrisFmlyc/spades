@@ -12,10 +12,18 @@ scope_ref: M-343
 
 During v1.1 delivery we ran `/spade-review` as a 5-persona panel
 against M-323 (the Scope that delivered the panel itself). The merge
-pass received 22 findings from 5 personas; the `(category, first 100
-chars)` dedupe fired on **zero** findings — every persona stayed in
-lane as designed. That was the first real evidence the panel shape
-produces distinct signal rather than five restatements.
+pass received 22 findings from 5 personas, each persona staying in its
+lane and surfacing distinct concerns rather than five restatements.
+
+> **Correction (2026-05-17, M-968).** An earlier version of this
+> learning cited the `(category, first 100 chars)` dedupe "firing on
+> zero findings" as the evidence of that distinct signal. That
+> inference was wrong: the dedupe could *never* fire across personas,
+> because the persona `category` enums are disjoint — a zero count
+> proved nothing either way. M-968 replaced that dead dedupe with
+> coordinator-side convergence clustering. The panel's distinct signal
+> is real; the evidence for it is the *content* of the 22 findings,
+> not the dedupe count.
 
 The decisive moment was the adversarial-reviewer finding:
 
@@ -77,8 +85,9 @@ to reach for it.
 ## Evidence
 
 - M-323 panel review output (end of the v1.1 delivery session): 22
-  findings, 0 dedupes, 1 blocking / 3 major / 18 minor-nit. The
-  blocking came from adversarial-reviewer.
+  findings, 1 blocking / 3 major / 18 minor-nit; the pre-M-968 dedupe
+  recorded 0 merges (see the Correction above — it could not fire).
+  The blocking came from adversarial-reviewer.
 - M-343 Scope ([Linear](https://linear.app/m-kopa/issue/M-343)):
   acceptance criteria 1–5 all trace back to adversarial-reviewer
   findings. Provenance table in the Scope is verbatim from the panel

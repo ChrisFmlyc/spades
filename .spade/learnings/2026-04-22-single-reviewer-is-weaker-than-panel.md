@@ -30,8 +30,11 @@ mattered:
 Bundle E operationalises this for `/spade-review`: at least five
 personas (scope-guardian, architecture-strategist, security-lens,
 yagni-simplicity, adversarial-reviewer) spawned in parallel where the
-runtime supports it, findings merged and deduped by
-`(category, first 100 chars of message)`, sorted by severity × confidence.
+runtime supports it, findings merged by convergence clustering and
+sorted by severity × confidence. (Bundle E originally deduped by
+`(category, first 100 chars of message)`; M-968 replaced that with
+coordinator-side convergence clustering — the old key could never fire
+across the disjoint persona `category` enums.)
 
 ## Why it matters for future work
 
