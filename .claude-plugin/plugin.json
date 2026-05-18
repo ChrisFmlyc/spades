@@ -1,0 +1,20 @@
+{
+  "name": "spade",
+  "version": "1.7.0",
+  "description": "SPADE Framework — a human-AI operating model for engineering teams. Fourteen scope/plan/review skills plus four persona reviewer subagents and a researcher.",
+  "author": {
+    "name": "M-KOPA Product Security Team"
+  },
+  "homepage": "https://github.com/M-KOPA/spade-framework",
+  "repository": "https://github.com/M-KOPA/spade-framework",
+  "license": "MIT",
+  "keywords": [
+    "spade",
+    "engineering",
+    "scope",
+    "plan",
+    "review",
+    "linear",
+    "workflow"
+  ]
+}

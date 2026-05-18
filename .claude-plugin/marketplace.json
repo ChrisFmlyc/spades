@@ -1,0 +1,30 @@
+{
+  "name": "spade-framework",
+  "owner": {
+    "name": "M-KOPA Product Security Team",
+    "url": "https://github.com/M-KOPA"
+  },
+  "metadata": {
+    "description": "SPADE Framework marketplace — the SPADE plugin for Claude Code and Cowork.",
+    "version": "1.7.0"
+  },
+  "plugins": [
+    {
+      "name": "spade",
+      "source": ".",
+      "description": "Scope, Plan, Approve, Deliver, Evaluate — fourteen skills, five agents (four reviewer personas and a researcher), three helper scripts.",
+      "version": "1.7.0",
+      "author": {
+        "name": "M-KOPA Product Security Team"
+      },
+      "homepage": "https://github.com/M-KOPA/spade-framework",
+      "license": "MIT",
+      "keywords": [
+        "spade",
+        "engineering",
+        "review",
+        "workflow"
+      ]
+    }
+  ]
+}

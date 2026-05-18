@@ -1,0 +1,265 @@
+---
+name: spade-quick
+description: Fast-track path for trivial work — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADE loop. Use when someone says "just fix this small thing", "quick tweak", "one-line change", "typo fix", "rename this variable", or when you would otherwise invoke /spade-scope for a change that clearly meets every gate criterion below. Do NOT use for anything touching architecture, auth, schemas, public APIs, or requiring more than one focused commit.
+---
+
+## Update Check
+
+Before doing anything else, run `~/.spade/bin/spade-update-check` using the
+Bash tool and show the output to the user if it is non-empty. If the script
+does not exist or fails, skip silently and continue with the skill.
+
+## Project Config
+
+Read `.spade/config` in the current project directory. This file specifies
+which Linear team, project, and default assignee to use. Use these values
+for all Linear operations. If the file doesn't exist, ask the human which
+team and project to use, or suggest running `/spade-onboard` first.
+
+## Mode Resolution
+
+Before any tracker call or local-file access, resolve the operating mode
+**once** per `docs/FRAMEWORK.md` § Mode Resolver:
+
+- Read `mode:` from `.spade/config`. An explicit value (`linear`,
+  `local`, or `hybrid`) wins immediately.
+- If `mode:` is absent, auto-detect: probe with a `list_teams` MCP call
+  (try/skip, 5-second timeout). Resolve `linear` if it returns a team
+  set containing `linear.team_id`; otherwise resolve `local`.
+- Failure policy: an explicit `mode` with a configured `team_id` and a
+  failing probe is a **fail-loud abort**; an absent `mode` with a
+  failing probe **degrades quietly to `local`**.
+
+Do not embed the resolver algorithm — it is single-sourced in
+FRAMEWORK.md. The resolved mode governs every tracker-vs-local branch in
+this skill:
+
+- **`linear`** — the tracker is canonical; operate against Linear MCP.
+- **`local`** — `.spade/` files are canonical; make **zero Linear MCP
+  calls**; read and write the paths in FRAMEWORK.md § Local Layout.
+- **`hybrid`** — the tracker is canonical; after a successful tracker
+  write, mirror to `.spade/` best-effort per FRAMEWORK.md § Hybrid Mode.
+
+# SPADE Quick — Fast-Track Path for Small Work
+
+You are delivering a trivial change through the SPADE fast-track path.
+The full loop (Scope → Plan → Approve → Deliver → Evaluate) is friction
+theatre for a typo fix or a one-line config tweak. `/spade-quick` compresses
+it into four steps — **Identify → Fix → Verify → PR** — where the PR
+description is the audit artefact and there are no sub-issues.
+
+This path is a privilege, not a default. If *any* gate criterion below
+fails, stop and run `/spade-scope` for the full loop instead. The gate
+exists so fast-track does not slowly swallow the framework.
+
+## Conversational Style
+
+Fast-track should feel fast but not reckless.
+
+1. **Confirm the gate explicitly.** Do not silently decide the work is
+   trivial. Walk the gate criteria with the human, even briefly. If one
+   criterion is ambiguous, flag it and ask — don't assume.
+2. **Be willing to bail.** If anything feels bigger than it first looked
+   (scope creep mid-fix, an unexpected test failure exposing a deeper
+   issue), stop and recommend falling back to `/spade-scope`. The cost
+   of restarting is low; the cost of a fast-track change that should
+   have had a Scope is high.
+3. **Keep the human in the loop on classification.** Ask which `type:*`
+   label applies if it's not obvious.
+4. **Do not monologue.** One sentence per step update is enough.
+
+## The Gate — ALL must be true
+
+Walk through each of these before writing any code. If any one fails,
+stop and invoke `/spade-scope` instead.
+
+1. **Single concern.** One bug, one tweak, one touch-up. Not "fix bug
+   and also clean up a bit while I'm there."
+2. **≤ 50 lines of code changed total.** Soft cap. Hard stop above ~100.
+   If you're not sure, bail.
+3. **One file, or one tight cluster in one module.** Not spread across
+   unrelated files.
+4. **No new dependencies.** `package.json`, `pyproject.toml`, `go.mod`,
+   `Cargo.toml`, `Gemfile`, and equivalents must remain untouched.
+5. **No schema or migration changes.** No touching database schemas,
+   migration files, data-layer models, or anything that would require
+   a data backfill.
+6. **No architectural changes.** No new patterns, no new abstractions,
+   no moving code between layers, no new top-level directories.
+7. **No security-sensitive code.** No auth, crypto, secrets handling,
+   session management, permission checks, or input validation on a
+   trust boundary.
+8. **No public API or interface changes.** Nothing that breaks a caller
+   elsewhere in the codebase or downstream.
+9. **Revertable as one commit.** A single `git revert` should undo the
+   entire change cleanly.
+10. **Existing tests cover the area.** Or a trivial extension of an
+    existing test is enough. If you'd need to build new test scaffolding,
+    the change is not fast-track.
+
+### Gate failure
+
+If any criterion fails, stop immediately and tell the human:
+
+> This doesn't fit the fast-track gate because [specific criterion].
+> Running `/spade-scope` for the full loop is the right call here.
+
+Do not attempt to "partially" fast-track by skipping just one rule.
+The gate is all-or-nothing.
+
+## Classification
+
+Every quick-path change gets a `type:*` label. Pick the closest match:
+
+- **`type:bug`** — fixing incorrect behaviour
+- **`type:tweak`** — small behaviour or UX adjustment that isn't strictly a bug
+- **`type:chore`** — maintenance, version bumps (non-breaking), housekeeping
+- **`type:docs`** — documentation, comments, README updates
+- **`type:refactor`** — rename, extract, inline, or similar non-behavioural change
+
+If the work is ambiguous between two types, ask the human via
+**`AskUserQuestion`** (per `docs/FRAMEWORK.md` § "Asking the Human")
+listing the candidate types as options. This is a closed-set
+decision; don't ask in free-form prose.
+
+Similarly, if the gate-check produces an ambiguous "is this trivial
+enough" judgement that the human needs to call, prompt via
+`AskUserQuestion` with options *Continue on quick path* /
+*Fall back to /spade-scope*.
+
+## Workflow
+
+### 1. Identify
+
+- Read the bug report, ticket, or user description.
+- Walk the gate criteria out loud. Confirm each one. If any fail, bail.
+- Classify with a `type:*` label.
+- If there's a Linear issue, note its ID. If not, ask whether to create
+  one or whether the PR alone is sufficient audit trail (for extremely
+  trivial things like a typo in a comment, the PR may be enough; for
+  anything touching behaviour, create a Linear issue).
+
+### 2. Fix
+
+- Create a quick-path branch: `spade-quick/<issue-id>-<slug>` (or
+  `spade-quick/<slug>` if there's no Linear issue).
+- Make the change in a **single commit**. If you find yourself wanting
+  a second commit, that's a signal the work is bigger than fast-track
+  allows — stop and re-evaluate the gate.
+- Do not refactor nearby code "while you're there". That's out of scope.
+
+### 3. Verify
+
+- Run the existing test suite. It must pass.
+- If the change is behavioural, extend an existing test or add one small
+  assertion. If that would require new test scaffolding, you failed the
+  gate — bail.
+- If the change is visible (UI, output format, CLI help text), manually
+  verify it in the relevant environment and record what you checked.
+
+### 4. PR
+
+- Open a pull request using the template below.
+- The PR description **is the audit artefact**. There is no separate
+  Plan document, no sub-issue, no evaluation comment. The PR carries
+  everything a future reader needs.
+- On the Linear issue (if one exists): add the labels, post the PR URL
+  as a comment, move the status to "In Review". Do not mark Done — the
+  human owns that transition.
+
+## PR Description Template
+
+```markdown
+**Type:** <bug | tweak | chore | docs | refactor>
+**SPADE path:** quick
+**Linear:** <M-123 or "none — trivial">
+
+## What
+<One-sentence description of the change.>
+
+## Why
+<One-sentence reason, or the text of the linked issue.>
+
+## Change
+<One short paragraph describing what changed and how.>
+
+## Verification
+- [ ] Existing tests pass (`<command you ran>`)
+- [ ] Manually verified: <what you checked, or "N/A — non-behavioural">
+
+## Gate check
+- [x] Single concern
+- [x] ≤ 50 LoC changed
+- [x] Scoped to one file / tight cluster
+- [x] No new dependencies
+- [x] No schema or migration changes
+- [x] No architectural changes
+- [x] No security-sensitive code touched
+- [x] No public API changes
+- [x] Revertable as one commit
+- [x] Existing tests cover the area
+
+---
+*Delivered via `/spade-quick` — fast-track path for trivial changes.*
+```
+
+Every gate-check box must be ticked. If you can't tick one, you failed
+the gate and should not have reached this step.
+
+## Linear Integration
+
+In `linear` or `hybrid` mode, when there's an issue:
+
+1. Apply labels to the issue:
+   - `spade:quick`
+   - One of `type:bug`, `type:tweak`, `type:chore`, `type:docs`, `type:refactor`
+   - `ai-delivered` or `human-delivery` (whichever applies)
+2. Update status: Todo → In Progress → In Review.
+3. Post the PR URL as a comment.
+4. **Do NOT create sub-issues.** The parent issue is the whole unit of
+   work on the quick path. Do not attach a Plan document. Do not generate
+   an approval checklist comment.
+5. **Do NOT mark the issue Done.** The human does that after reviewing
+   and merging the PR.
+
+If there's no Linear issue (a pure-PR trivial fix), the PR itself is the
+audit trail. The PR description must still follow the template above.
+
+## When the Gate Changes Mid-Flight
+
+If you're partway through delivering a fast-track change and discover
+that the change is actually bigger than the gate allows (a "simple" bug
+fix that now needs two files, or a "tiny" tweak that exposes a schema
+issue), **stop immediately**:
+
+1. Do not commit what you have.
+2. Explain to the human what you found and which gate criterion now fails.
+3. Recommend falling back to `/spade-scope` for a proper Scope + Plan.
+4. If the human agrees, the in-progress work can be discarded or carried
+   into a proper Scope — but not fast-tracked.
+
+It is not a failure to bail out. It is the gate working correctly.
+
+## What `/spade-quick` is NOT for
+
+- Incident response (use the full loop, ceremony is cheap during an incident)
+- First-pass work on a new feature, even a small one
+- Anything touching ARCHITECTURE.md or PATTERNS.md
+- Anything a human reviewer would want to discuss before it lands
+- "Several small changes bundled together" — if there are several,
+  write a Scope and use delivery bundles on the full loop
+
+## Relationship to the Full Loop
+
+`/spade-quick` exists because full-loop ceremony for trivial work is
+wasteful. It is *not* a replacement for the full loop, and it is *not*
+the default. The defaults remain:
+
+- **Non-trivial work** → `/spade-scope` → `/spade-plan` → `/spade-approve`
+  → deliver → `/spade-evaluate`
+- **Trivial work meeting every gate criterion** → `/spade-quick`
+
+When in doubt, use the full loop. The cost of full-loop ceremony on
+work that could have been fast-track is a few minutes of friction. The
+cost of fast-tracking work that should have had a Scope is a broken
+audit trail and, eventually, a broken framework.

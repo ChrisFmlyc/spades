@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+#
+# spade-render — render a SPADE Scope or Plan markdown file to HTML
+# via Pandoc, using the SPADE template and stylesheet.
+#
+# Usage:
+#   spade-render <input.md>                  # writes sibling <input>.html
+#   spade-render <input.md> --output <file>  # writes to <file>
+#   spade-render <input.md> --stdout         # prints HTML to stdout
+#
+# Exit codes:
+#   0  success — absolute path of rendered file printed to stdout
+#   1  usage error / input not found
+#   2  pandoc not installed (graceful-degradation signal; callers should
+#      surface the install hint to the human on every invocation until
+#      pandoc is installed — not one-time-per-session)
+#   3  pandoc failed at render time
+#
+# This script is bash 3.2-safe (macOS floor). No bashisms beyond what
+# bin/spade-marker-replace already uses.
+
+set -eu
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RENDER_DIR="$(cd "$SCRIPT_DIR/../render" 2>/dev/null && pwd || echo "")"
+TEMPLATE="$RENDER_DIR/template.html"
+CSS="$RENDER_DIR/spade.css"
+
+usage() {
+    cat >&2 <<EOF
+Usage: spade-render <input.md> [--output <output.html>] [--stdout]
+
+Renders a SPADE Scope or Plan markdown file to HTML via Pandoc.
+
+Options:
+  --output <file>  Write to <file> instead of sibling <input>.html
+  --stdout         Print HTML to stdout (overrides --output)
+  -h, --help       Show this help
+
+Requires: pandoc >= 3.0
+EOF
+}
+
+# --- arg parse ----------------------------------------------------------
+INPUT=""
+OUTPUT=""
+TO_STDOUT=0
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help) usage; exit 0 ;;
+        --output)
+            shift
+            [ $# -gt 0 ] || { echo "spade-render: --output requires a path" >&2; exit 1; }
+            OUTPUT="$1"
+            ;;
+        --stdout) TO_STDOUT=1 ;;
+        --) shift; INPUT="${1:-}"; break ;;
+        -*) echo "spade-render: unknown flag '$1'" >&2; exit 1 ;;
+        *)
+            if [ -z "$INPUT" ]; then
+                INPUT="$1"
+            else
+                echo "spade-render: unexpected extra argument '$1'" >&2
+                exit 1
+            fi
+            ;;
+    esac
+    shift
+done
+
+if [ -z "$INPUT" ]; then
+    usage; exit 1
+fi
+if [ ! -f "$INPUT" ]; then
+    echo "spade-render: input not found: $INPUT" >&2
+    exit 1
+fi
+
+# --- pandoc presence check ---------------------------------------------
+if ! command -v pandoc >/dev/null 2>&1; then
+    echo "spade-render: pandoc not installed" >&2
+    echo "  Install: brew install pandoc | apt install pandoc | winget install pandoc" >&2
+    echo "  Docs:    https://pandoc.org/installing.html" >&2
+    exit 2
+fi
+
+# --- pandoc version check ----------------------------------------------
+# --embed-resources (used below) was added in Pandoc 3.0; --self-contained
+# was removed at the same time. Fail fast with a clear message rather
+# than letting pandoc bomb out at render time on Pandoc 2.x.
+pandoc_version_line="$(pandoc --version 2>/dev/null | head -n 1)"
+pandoc_major="$(printf '%s\n' "$pandoc_version_line" | awk '{print $2}' | cut -d. -f1)"
+bad_version=0
+case "$pandoc_major" in
+    ''|*[!0-9]*) bad_version=1 ;;
+    *) [ "$pandoc_major" -lt 3 ] && bad_version=1 ;;
+esac
+if [ "$bad_version" -eq 1 ]; then
+    echo "spade-render: requires pandoc >= 3.0 (found: $pandoc_version_line)" >&2
+    echo "  Upgrade: brew upgrade pandoc | apt install pandoc | winget upgrade pandoc" >&2
+    exit 2
+fi
+
+# --- resolve output path -----------------------------------------------
+if [ "$TO_STDOUT" -eq 1 ]; then
+    PANDOC_OUTPUT="-"
+elif [ -n "$OUTPUT" ]; then
+    PANDOC_OUTPUT="$OUTPUT"
+else
+    # Sibling .html alongside .md
+    PANDOC_OUTPUT="${INPUT%.md}.html"
+    if [ "$PANDOC_OUTPUT" = "$INPUT" ]; then
+        PANDOC_OUTPUT="$INPUT.html"
+    fi
+fi
+
+# --- assemble template + css args (arrays — preserve paths with spaces)
+TEMPLATE_ARGS=()
+[ -f "$TEMPLATE" ] && TEMPLATE_ARGS+=(--template "$TEMPLATE")
+CSS_ARGS=()
+[ -f "$CSS" ] && CSS_ARGS+=(--css "$CSS")
+
+# --- linear_url scheme validation --------------------------------------
+# The template renders linear_url as an <a href=...> if present. Pandoc's
+# template language can't validate the scheme, so allowlist http(s):// here
+# and blank the field otherwise. Prevents javascript:/data: URLs from
+# committed frontmatter becoming clickable href values in the rendered
+# HTML.
+SAFETY_META=()
+linear_url_raw="$(sed -n 's/^linear_url:[[:space:]]*//p' "$INPUT" | head -n 1 | tr -d '"' | tr -d "'" | tr -d '[:space:]')"
+if [ -n "$linear_url_raw" ]; then
+    case "$linear_url_raw" in
+        https://*|http://*) : ;;  # allow
+        *) SAFETY_META+=(--metadata "linear_url=") ;;
+    esac
+fi
+
+# --- render ------------------------------------------------------------
+# Use the `${arr[@]+"${arr[@]}"}` expansion so empty arrays don't trip
+# `set -u` on bash 3.2 (the macOS floor declared in ARCHITECTURE.md).
+if ! pandoc \
+        --from markdown-raw_html \
+        --to html5 \
+        --standalone \
+        --embed-resources \
+        --toc --toc-depth=3 \
+        --highlight-style=tango \
+        ${TEMPLATE_ARGS[@]+"${TEMPLATE_ARGS[@]}"} \
+        ${CSS_ARGS[@]+"${CSS_ARGS[@]}"} \
+        ${SAFETY_META[@]+"${SAFETY_META[@]}"} \
+        --output "$PANDOC_OUTPUT" \
+        "$INPUT"; then
+    echo "spade-render: pandoc failed on $INPUT" >&2
+    exit 3
+fi
+
+# --- print absolute path on success (unless --stdout) -------------------
+if [ "$TO_STDOUT" -ne 1 ]; then
+    if command -v realpath >/dev/null 2>&1; then
+        realpath "$PANDOC_OUTPUT"
+    else
+        # macOS fallback (no realpath in base install)
+        cd "$(dirname "$PANDOC_OUTPUT")" && printf "%s/%s\n" "$(pwd)" "$(basename "$PANDOC_OUTPUT")"
+    fi
+fi

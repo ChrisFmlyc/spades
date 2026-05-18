@@ -73,6 +73,25 @@ Optional:
 
 ### Step 1: Install SPADES (one-time)
 
+You have two ways to install. Pick one.
+
+#### Option A — Claude Code plugin (recommended)
+
+SPADES is published as a Claude Code plugin out of this repo. One-time setup:
+
+```text
+/plugin marketplace add M-KOPA/spade-framework
+/plugin install spade@spade-framework
+```
+
+Updates: `/plugin marketplace update && /plugin update spade@spade-framework`.
+
+For HTML rendering (`spade-render`) and update-check banners to work, also
+clone the repo to `~/.spade` (or symlink the plugin's `scripts/` directory
+into `~/.spade/bin/` — see `.claude-plugin/README.md` if present, or below).
+
+#### Option B — Clone + setup script
+
 Clone the framework and run setup. This installs the SPADES skills globally
 into `~/.claude/skills/` so they're available in every Claude Code session.
 
