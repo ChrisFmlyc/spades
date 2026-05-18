@@ -1,0 +1,220 @@
+#!/usr/bin/env bash
+#
+# spade-handoff-launch — spawn a CLI coding agent in a new macOS terminal
+# window to deliver an approved SPADE Plan.
+#
+# This script is the *mechanism* only. The /spade-handoff skill reads
+# `.spade/config`, resolves the agent + terminal + prompt, and invokes this
+# launcher with everything spelled out as explicit arguments. The launcher
+# never parses YAML and never re-evaluates the handoff prompt: the prompt
+# travels as opaque data (stdin -> a temp file -> a single argv element or
+# the agent's stdin) and is never word-split or expanded.
+#
+# Usage:
+#   spade-handoff-launch --terminal <iterm|terminal> --cwd <dir> \
+#       --prompt-via <arg|stdin> [--invoked-from <dir>] \
+#       [--force-same-worktree] [--dry-run] -- <agent> [agent-arg ...]
+#   # the handoff prompt is read from stdin
+#
+# Exit codes:
+#   0  success (spawned, or --dry-run resolved cleanly)
+#   1  usage error
+#   2  not macOS (osascript/open unavailable) — real spawn only
+#   3  configured terminal app or agent binary not found, or spawn failed
+#   4  worktree collision: --cwd is the same git worktree as --invoked-from
+#      and --force-same-worktree was not given
+#
+# bash 3.2-safe (macOS floor). See docs/FRAMEWORK.md section Handoff.
+
+set -eu
+
+PROG="spade-handoff-launch"
+
+usage() {
+    cat >&2 <<EOF
+Usage: $PROG --terminal <iterm|terminal> --cwd <dir> --prompt-via <arg|stdin>
+              [--invoked-from <dir>] [--force-same-worktree] [--dry-run]
+              -- <agent> [agent-arg ...]
+
+The handoff prompt is read from stdin. See docs/FRAMEWORK.md section Handoff.
+EOF
+}
+
+die() { echo "$PROG: $1" >&2; exit "${2:-1}"; }
+
+# --- arg parse ---------------------------------------------------------
+TERMINAL=""
+CWD=""
+INVOKED_FROM=""
+PROMPT_VIA=""
+FORCE_SAME_WORKTREE=0
+DRY_RUN=0
+AGENT=()
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --terminal)      shift; [ $# -gt 0 ] || die "--terminal requires a value"; TERMINAL="$1" ;;
+        --cwd)           shift; [ $# -gt 0 ] || die "--cwd requires a value"; CWD="$1" ;;
+        --invoked-from)  shift; [ $# -gt 0 ] || die "--invoked-from requires a value"; INVOKED_FROM="$1" ;;
+        --prompt-via)    shift; [ $# -gt 0 ] || die "--prompt-via requires a value"; PROMPT_VIA="$1" ;;
+        --force-same-worktree) FORCE_SAME_WORKTREE=1 ;;
+        --dry-run)       DRY_RUN=1 ;;
+        -h|--help)       usage; exit 0 ;;
+        --)              shift; while [ $# -gt 0 ]; do AGENT+=("$1"); shift; done; break ;;
+        -*)              usage; die "unknown flag '$1'" ;;
+        *)               usage; die "unexpected argument '$1' (the agent command goes after --)" ;;
+    esac
+    shift
+done
+
+# --- validate ----------------------------------------------------------
+[ -n "$TERMINAL" ]   || { usage; die "missing --terminal"; }
+[ -n "$CWD" ]        || { usage; die "missing --cwd"; }
+[ -n "$PROMPT_VIA" ] || { usage; die "missing --prompt-via"; }
+case "$TERMINAL" in
+    iterm|terminal) : ;;
+    *) die "--terminal must be 'iterm' or 'terminal' (got '$TERMINAL')" ;;
+esac
+case "$PROMPT_VIA" in
+    arg|stdin) : ;;
+    *) die "--prompt-via must be 'arg' or 'stdin' (got '$PROMPT_VIA')" ;;
+esac
+[ "${#AGENT[@]}" -gt 0 ] || die "no agent command given after --"
+[ -d "$CWD" ] || die "--cwd is not a directory: $CWD"
+
+# --- read the handoff prompt from stdin (opaque data, never evaluated) -
+PROMPT="$(cat)"
+[ -n "$PROMPT" ] || die "empty handoff prompt (nothing on stdin)"
+
+# --- worktree-collision guard ------------------------------------------
+# If --cwd resolves to the same git worktree as the invoking session,
+# the handoff agent would share a working tree and branch with that
+# session. Refuse unless explicitly forced (the /spade-handoff skill
+# asks the human first, then re-invokes with --force-same-worktree).
+worktree_root() {
+    git -C "$1" rev-parse --show-toplevel 2>/dev/null || echo ""
+}
+if [ -n "$INVOKED_FROM" ]; then
+    cwd_root="$(worktree_root "$CWD")"
+    inv_root="$(worktree_root "$INVOKED_FROM")"
+    if [ -n "$cwd_root" ] && [ "$cwd_root" = "$inv_root" ]; then
+        if [ "$FORCE_SAME_WORKTREE" -ne 1 ]; then
+            die "worktree collision: --cwd and --invoked-from are the same git worktree ($cwd_root). The handoff agent would share the working tree and branch with the invoking session. Re-run with --force-same-worktree to override." 4
+        fi
+    fi
+fi
+
+# --- agent binary must exist -------------------------------------------
+AGENT_BIN="${AGENT[0]}"
+command -v "$AGENT_BIN" >/dev/null 2>&1 || die "agent binary not found on PATH: $AGENT_BIN" 3
+
+# --- shell-quote the resolved agent argv for the generated run script --
+shquote() { printf '%q' "$1"; }
+AGENT_QUOTED=""
+for a in ${AGENT[@]+"${AGENT[@]}"}; do
+    AGENT_QUOTED="$AGENT_QUOTED $(shquote "$a")"
+done
+AGENT_QUOTED="${AGENT_QUOTED# }"
+CWD_QUOTED="$(shquote "$CWD")"
+
+# --- generate the run script -------------------------------------------
+# The run script reads the prompt from a sibling prompt.txt via command
+# substitution into a variable, then deletes the temp dir and runs the
+# agent. The prompt itself is never embedded in the script — it is only
+# ever expanded as "$_spade_prompt" (double-quoted: one argument, never
+# word-split, never re-evaluated).
+generate_run_sh() {
+    printf '%s\n' "#!/bin/bash"
+    printf '%s\n' "# Generated by spade-handoff-launch for one SPADE handoff."
+    printf '%s\n' '_d="$(cd "$(dirname "$0")" && pwd)"'
+    printf '%s\n' '_spade_prompt="$(cat "$_d/prompt.txt")"'
+    printf '%s\n' 'rm -rf "$_d"'
+    printf '%s\n' "cd $CWD_QUOTED || { echo 'spade-handoff: cd to working dir failed' >&2; exit 1; }"
+    if [ "$PROMPT_VIA" = "arg" ]; then
+        printf '%s\n' "exec $AGENT_QUOTED \"\$_spade_prompt\""
+    else
+        printf '%s\n' "printf '%s' \"\$_spade_prompt\" | $AGENT_QUOTED"
+    fi
+}
+
+# --- dry run: resolve and print, spawn nothing -------------------------
+if [ "$DRY_RUN" -eq 1 ]; then
+    echo "$PROG: dry run — nothing spawned"
+    echo "  terminal:     $TERMINAL"
+    echo "  cwd:          $CWD"
+    echo "  prompt-via:   $PROMPT_VIA"
+    echo "  agent:        $AGENT_QUOTED"
+    echo "  prompt-bytes: $(printf '%s' "$PROMPT" | wc -c | tr -d ' ')"
+    echo "  --- generated run.sh ---"
+    generate_run_sh | sed 's/^/  /'
+    echo "  --- handoff prompt (verbatim) ---"
+    printf '%s\n' "$PROMPT" | sed 's/^/  /'
+    echo "  --- end ---"
+    exit 0
+fi
+
+# --- real spawn: macOS only --------------------------------------------
+[ "$(uname)" = "Darwin" ] || die "handoff spawn requires macOS (osascript/open) — host is $(uname)" 2
+# Resolve the terminal app through Launch Services rather than a fixed
+# path — apps live in /Applications, ~/Applications, or elsewhere, and
+# `id of application` finds them wherever they are registered.
+case "$TERMINAL" in
+    iterm)
+        osascript -e 'id of application "iTerm"' >/dev/null 2>&1 \
+            || die "iTerm is not installed (Launch Services cannot resolve \"iTerm\")" 3
+        ;;
+    terminal)
+        osascript -e 'id of application "Terminal"' >/dev/null 2>&1 \
+            || die "Terminal.app is not installed" 3
+        ;;
+esac
+
+TMP_BASE="${TMPDIR:-/tmp}"
+TMP_BASE="${TMP_BASE%/}"   # strip any trailing slash so the path has no //
+TMPD="$(mktemp -d "$TMP_BASE/spade-handoff.XXXXXXXX")" || die "could not create temp dir"
+chmod 700 "$TMPD"
+generate_run_sh > "$TMPD/run.sh"
+printf '%s' "$PROMPT" > "$TMPD/prompt.txt"
+RUNSH="$TMPD/run.sh"
+
+# The run-script path is passed to osascript as an argv item (read via
+# `on run argv`), never interpolated into the AppleScript source, and
+# AppleScript's `quoted form of` shell-quotes it for the typed command.
+spawn_iterm() {
+    osascript - "$1" <<'OSA'
+on run argv
+    set runsh to item 1 of argv
+    tell application "iTerm"
+        activate
+        set w to (create window with default profile)
+        tell current session of w
+            write text "bash " & quoted form of runsh
+        end tell
+    end tell
+end run
+OSA
+}
+
+spawn_terminal() {
+    osascript - "$1" <<'OSA'
+on run argv
+    set runsh to item 1 of argv
+    tell application "Terminal"
+        activate
+        do script "bash " & quoted form of runsh
+    end tell
+end run
+OSA
+}
+
+spawn_ok=0
+case "$TERMINAL" in
+    iterm)    if spawn_iterm "$RUNSH"; then spawn_ok=1; fi ;;
+    terminal) if spawn_terminal "$RUNSH"; then spawn_ok=1; fi ;;
+esac
+if [ "$spawn_ok" -ne 1 ]; then
+    rm -rf "$TMPD"
+    die "failed to open a new $TERMINAL window via osascript" 3
+fi
+
+echo "$PROG: handoff launched in a new $TERMINAL window ($AGENT_BIN, cwd $CWD)."

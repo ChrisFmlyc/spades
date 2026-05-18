@@ -19,6 +19,7 @@ scripts=(
     "lint-learnings.sh"
     "lint-onboard-idempotency.sh"
     "lint-mcp-guard.sh"
+    "lint-handoff.sh"
     "lint-render-smoke.sh"
 )
 

@@ -160,6 +160,7 @@ Once installed and onboarded:
 | `/spade-list` | List active Scopes from Linear, filtered by SPADES phase |
 | `/spade-plan` | Generate a structured Plan from a Scope; each task declares an execution posture; surfaces matching prior learnings |
 | `/spade-approve` | Present a Plan for human review against the approval checklist |
+| `/spade-handoff` | Hand an approved Plan to a fresh CLI agent (Claude Code or Amp) in a new macOS terminal window to deliver it; opt-in, macOS-only |
 | `/spade-review` | Multi-persona panel second opinion (4 subagents, merged findings) on a Scope, Plan, or both |
 | `/spade-quick` | Fast-track path for trivial work (typos, tweaks, small config / docs changes) |
 | `/spade-research` | Landscape research via an isolated Opus 4.7 subagent (read-only tools); returns a structured findings report; optional Linear comment with explicit consent (v1.3.0+) |

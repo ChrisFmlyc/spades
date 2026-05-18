@@ -1178,4 +1178,84 @@ behaviour, not a defect.
 
 ---
 
+## Handoff
+
+`/spade-handoff` hands an approved Plan off to a fresh CLI agent — Claude
+Code or Amp — running in its own macOS terminal window. The planning
+session stays free; delivery runs in a separate, watchable context.
+
+Handoff is **opt-in**: the `/spade-handoff` skill ships installed but is
+**dormant** until a `handoff:` block exists in `.spade/config`. A project
+that never opts in is unaffected. `/spade-onboard` offers to write the
+block.
+
+### What it is — and is not
+
+The framework **spawns and detaches** the delivery agent. It does not
+supervise, restart, or track it — SPADE owns no long-lived process, so
+the "no runtime" architecture constraint holds. Delivery re-enters the
+loop the ordinary way: the spawned agent opens a PR (one bundle, one
+branch, one PR) and the human runs `/spade-evaluate` against it. The
+handoff opens no separate audit channel.
+
+`/spade-handoff` is macOS-only — it spawns terminals via `osascript`. On
+other platforms it reports that and does nothing.
+
+### Configuration
+
+The committed half lives in `.spade/config` under `handoff:`:
+
+```yaml
+handoff:
+  agent: claude            # which agent to spawn: claude | amp
+  autonomous: false        # false = interactive; true = bypass perms (+ confirm)
+  agents:
+    claude:
+      command: ["claude", "--permission-mode", "acceptEdits"]
+      prompt_via: arg
+      autonomous_flag: "--dangerously-skip-permissions"
+    amp:
+      command: ["amp"]
+      prompt_via: stdin
+      autonomous_flag: "--dangerously-allow-all"
+```
+
+The `agents:` map is the **data-driven invocation contract** — `command`
+is the argv, `prompt_via` is how the handoff prompt reaches the agent
+(`arg` = a single trailing argument; `stdin` = piped), and
+`autonomous_flag` is appended only on a confirmed autonomous run. If a
+CLI flag changes, edit it here — no skill or script change.
+
+The machine-specific half — the terminal emulator — lives in the
+**gitignored** `.spade/handoff.local` (`terminal: iterm` or
+`terminal: terminal`), because one developer's iTerm2 is another's
+Terminal.app.
+
+### How a handoff runs
+
+1. `/spade-handoff <ISSUE>` reads `.spade/config`, resolves the agent and
+   terminal, and confirms the issue has an approved Plan.
+2. It builds a handoff prompt that points the spawned agent at the repo's
+   own `AGENTS.md` and architecture docs — SPADE constraint prose is
+   **never inlined**, so there is no second copy to drift.
+3. It invokes `bin/spade-handoff-launch`, the spawn mechanism, passing
+   everything as explicit arguments. The launcher never parses YAML.
+4. The launcher opens a new terminal window and runs the agent there.
+
+### Security posture
+
+| Concern          | Stance                                                                 |
+|------------------|-------------------------------------------------------------------------|
+| Prompt injection | The handoff prompt is opaque data end to end — stdin to a temp file, read back via command substitution, only ever expanded as a double-quoted variable. It is never word-split or re-evaluated, by the launcher or by the generated run script. |
+| Autonomy         | `autonomous: true` adds the agent's skip-permission flag, but only after an explicit per-invocation confirmation. The config value is a default, not standing consent. |
+| Worktree safety  | The launcher refuses a handoff whose working directory is the same git worktree as the invoking session (two agents, one branch) unless the human confirms, which adds `--force-same-worktree`. |
+| Secrets          | No credentials are written into the prompt, the launcher arguments, or `.spade/config`. The spawned agent uses the machine's existing tool configuration. |
+
+Launcher exit codes: 0 success; 1 usage error; 2 not macOS; 3 terminal
+app or agent binary missing, or spawn failed; 4 worktree collision
+without `--force-same-worktree`. CI exercises the launcher headlessly via
+`--dry-run` (`scripts/lint/lint-handoff.sh`).
+
+---
+
 *The SPADE Framework v1.7, May 2026, M-KOPA Product Security Team*

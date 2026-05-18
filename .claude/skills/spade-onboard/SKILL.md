@@ -201,6 +201,70 @@ All SPADE skills that interact with Linear MUST read `.spade/config` first
 to determine the team, project, and assignee. Do not prompt for these values
 if the config file exists and is populated.
 
+### Handoff Config (opt-in)
+
+`/spade-handoff` spawns a fresh CLI agent in a new terminal window to
+deliver an approved Plan. It is **opt-in** — dormant until a `handoff:`
+block exists in `.spade/config`. Offer it; do not assume it.
+
+Ask the human via **`AskUserQuestion`** whether to set up handoff now:
+
+- *Yes — set up `/spade-handoff`*
+- *No — skip (can be added later)*
+
+If they skip, do nothing: `/spade-handoff` stays dormant and a consumer
+who never opts in is unaffected.
+
+If they opt in, ask two structured questions (`AskUserQuestion`):
+
+1. **Agent** — *claude* / *amp* — which CLI agent the handoff spawns.
+2. **Autonomy default** — *Interactive (recommended)* / *Autonomous* —
+   whether the spawned agent runs interactively or with its permission
+   checks bypassed.
+
+Then add the `handoff:` block to `.spade/config` **only if no `handoff:`
+key is already present** — re-running `/spade-onboard` must not duplicate
+or overwrite an existing block (the same idempotency rule the
+marker-replace contract enforces for `AGENTS.md` / `CLAUDE.md`). Use this
+shape, setting `agent` and `autonomous` from the answers above:
+
+```yaml
+handoff:
+  agent: claude            # which agent to spawn: claude | amp
+  autonomous: false        # false = spawned agent runs interactively;
+                           # true  = add the agent's skip-permission flag
+                           #         and confirm on every run
+  agents:
+    claude:
+      command: ["claude", "--permission-mode", "acceptEdits"]
+      prompt_via: arg
+      autonomous_flag: "--dangerously-skip-permissions"
+    amp:
+      command: ["amp"]
+      prompt_via: stdin
+      autonomous_flag: "--dangerously-allow-all"
+```
+
+The `agents:` map is the per-agent command contract: `command` is the
+argv the launcher runs, `prompt_via` is how the handoff prompt reaches
+the agent (`arg` = a single trailing argv element; `stdin` = piped), and
+`autonomous_flag` is appended only when an autonomous handoff is
+confirmed. If a CLI flag changes, edit it here — no skill or script
+change is needed.
+
+Terminal choice is **machine-specific** and must never be committed. Ask
+the human (`AskUserQuestion`: *iTerm2* / *Terminal.app*) and write it to
+`.spade/handoff.local`:
+
+```yaml
+terminal: iterm   # iterm | terminal
+```
+
+Ensure `.spade/handoff.local` appears in `.gitignore` — add the line if
+absent (idempotent; do not duplicate it).
+
+`/spade-handoff` itself is documented in `docs/FRAMEWORK.md` § Handoff.
+
 ## Mode Resolution
 
 Before any tracker call or local-file access, resolve the operating mode

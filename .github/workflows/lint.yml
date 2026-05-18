@@ -60,6 +60,13 @@ jobs:
       - uses: actions/checkout@v4
       - run: ./scripts/lint/lint-onboard-idempotency.sh
 
+  handoff:
+    name: handoff launcher
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/lint/lint-handoff.sh
+
   render-css-budget:
     name: render css budget (<= 12KB)
     runs-on: ubuntu-latest
