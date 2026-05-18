@@ -5,6 +5,61 @@ Versions follow [semver](https://semver.org/) at the framework level
 (consumer fragments carry their own version stamp via
 `<!-- SPADE-FRAMEWORK-START vX.Y.Z -->` markers).
 
+## [1.7.0] — 2026-05-18
+
+**Local mode — read/write parity without Linear.** SPADE skills now
+work end-to-end with no Linear MCP, reading and writing canonical state
+from `.spade/`. A repo declares `mode: local | linear | hybrid` in
+`.spade/config`; the canonical store becomes a per-repo choice rather
+than a framework default. Consumer repos running under a hand-written
+CLAUDE.md override to force local behaviour can drop that override.
+
+Operating modes:
+
+- `docs/FRAMEWORK.md` § Operating Modes — new single-source contract.
+  § Mode Resolver: an explicit `mode:` wins; otherwise a `list_teams`
+  probe with a 5-second timeout, resolving `linear` only when the
+  configured `team_id` is in the returned set. Failure policy is
+  asymmetric — fail-loud when an explicitly-configured tracker is
+  unreachable, degrade-quiet to `local` when the repo was never
+  configured. § Local Layout: canonical `.spade/` paths, slug grammar
+  `[a-z0-9-]{1,64}`, the Scope frontmatter schema, and the
+  `.spade/version` tie with pre-v1.7 grandfathering. § Hybrid Mode:
+  tracker-canonical with a **non-authoritative** local mirror.
+
+Skills:
+
+- All nine skills (`/spade-scope`, `/spade-plan`, `/spade-approve`,
+  `/spade-evaluate`, `/spade-list`, `/spade-status`, `/spade-learn`,
+  `/spade-quick`, `/spade-onboard`) carry a "Mode Resolution" section
+  and key tracker-vs-local behaviour off the resolved mode.
+- `/spade-list` and `/spade-status` gain genuine `local`-mode code
+  paths — they scan `.spade/scopes/` and parse frontmatter instead of
+  hard-requiring Linear MCP. This was the M-879 origin bug.
+- `/spade-onboard` scaffolds `.spade/scopes|plans|learnings` and writes
+  a starter `.spade/config` with an explicit `mode:` chosen once at
+  onboard time.
+- `/spade-update` adds the v1.6.1 → v1.7.0 migration: it writes an
+  explicit `mode:` line into `.spade/config` if absent, leaving every
+  `.spade/plans/*` file grandfathered.
+
+Lint:
+
+- New `scripts/lint/lint-mcp-guard.sh` + `mcp-guard` CI job — fails
+  when a skill names a Linear MCP tool without a "## Mode Resolution"
+  section. A planted-violation fixture self-tests the check on every
+  run, closing the manual-verification gap.
+
+Fixtures:
+
+- `examples/fixture-local-mode/` and `examples/fixture-linear-mode/` —
+  minimal consumer repos for the manual happy-path verification.
+
+Scope: M-879 (planned and delivered under the SPADE loop; the Scope's
+stale "v1.4.0" version target was re-pointed to 1.7.0 at planning, the
+framework already being at 1.6.1). v1.7.0 also carries the INTENT.md
+project-intent loop (M-951).
+
 ## [1.6.1] — 2026-05-16
 
 **Patch release — renderer fix and polish.** v1.6.0's HTML renderer

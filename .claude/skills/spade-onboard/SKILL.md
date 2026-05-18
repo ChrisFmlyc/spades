@@ -201,6 +201,56 @@ All SPADE skills that interact with Linear MUST read `.spade/config` first
 to determine the team, project, and assignee. Do not prompt for these values
 if the config file exists and is populated.
 
+## Mode Resolution
+
+Before any tracker call or local-file access, resolve the operating mode
+**once** per `docs/FRAMEWORK.md` § Mode Resolver:
+
+- Read `mode:` from `.spade/config`. An explicit value (`linear`,
+  `local`, or `hybrid`) wins immediately.
+- If `mode:` is absent, auto-detect: probe with a `list_teams` MCP call
+  (try/skip, 5-second timeout). Resolve `linear` if it returns a team
+  set containing `linear.team_id`; otherwise resolve `local`.
+- Failure policy: an explicit `mode` with a configured `team_id` and a
+  failing probe is a **fail-loud abort**; an absent `mode` with a
+  failing probe **degrades quietly to `local`**.
+
+Do not embed the resolver algorithm — it is single-sourced in
+FRAMEWORK.md.
+
+### Local layout provisioning
+
+Onboarding MUST scaffold the local artefact layout so that `local` and
+`hybrid` modes have somewhere to write. Create these directories if they
+do not already exist — this is **idempotent**, never error when a
+directory is already present:
+
+- `.spade/scopes/`
+- `.spade/plans/`
+- `.spade/learnings/`
+
+Then write a starter `.spade/config` that includes an explicit `mode:`
+line. The mode value is chosen **once, at onboard time** — it is not
+re-derived on every skill run:
+
+1. Probe Linear MCP availability per § Mode Resolver (the `list_teams`
+   try/skip with a 5-second timeout).
+2. Ask the human to confirm the mode via **`AskUserQuestion`** (per
+   `docs/FRAMEWORK.md` § "Asking the Human") with options `linear`,
+   `local`, and `hybrid`. Use the probe result as the recommended
+   default — `linear` when the probe succeeds, `local` when it does
+   not.
+3. Persist the chosen mode to `.spade/config` as the `mode:` line. In
+   `linear` or `hybrid` mode, also write the `linear:` block (§ Project
+   Config above); capturing `team_id`/`project_id` via `list_teams` /
+   `list_projects` is the only tracker call onboarding makes, and it
+   runs *after* the mode is known. In `local` mode, write only
+   `mode: local` and make no tracker calls.
+
+Because the choice is persisted, later skill runs read `mode:` directly
+and never re-probe. The onboard summary output (see § Report What Was
+Done) MUST state the chosen mode.
+
 ### Examples and Docs
 
 - Create `.spade/examples/` if it doesn't exist and copy example files from
@@ -210,7 +260,9 @@ if the config file exists and is populated.
 
 ### Report What Was Done
 
-After initialisation, tell the human what was created and what was skipped:
+After initialisation, tell the human what was created and what was
+skipped. The summary MUST state the operating mode chosen during
+local-layout provisioning:
 
 ```
 SPADE project files:
@@ -219,7 +271,9 @@ SPADE project files:
   ✓ ARCHITECTURE.md created (template)
   ✓ INTENT.md created (template — fill with /spade-intent)
   ! PATTERNS.md already exists, skipped
+  ✓ .spade/scopes/ .spade/plans/ .spade/learnings/ created
   ✓ .spade/examples/ created
+  ✓ .spade/config written — mode: linear
 ```
 
 If all files already existed, say so and move straight to the analysis step.

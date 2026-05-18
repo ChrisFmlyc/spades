@@ -16,6 +16,30 @@ which Linear team, project, and default assignee to use. Use these values
 for all Linear operations. If the file doesn't exist, ask the human which
 team and project to use, or suggest running `/spade-onboard` first.
 
+## Mode Resolution
+
+Before any tracker call or local-file access, resolve the operating mode
+**once** per `docs/FRAMEWORK.md` § Mode Resolver:
+
+- Read `mode:` from `.spade/config`. An explicit value (`linear`,
+  `local`, or `hybrid`) wins immediately.
+- If `mode:` is absent, auto-detect: probe with a `list_teams` MCP call
+  (try/skip, 5-second timeout). Resolve `linear` if it returns a team
+  set containing `linear.team_id`; otherwise resolve `local`.
+- Failure policy: an explicit `mode` with a configured `team_id` and a
+  failing probe is a **fail-loud abort**; an absent `mode` with a
+  failing probe **degrades quietly to `local`**.
+
+Do not embed the resolver algorithm — it is single-sourced in
+FRAMEWORK.md. The resolved mode governs every tracker-vs-local branch in
+this skill:
+
+- **`linear`** — the tracker is canonical; operate against Linear MCP.
+- **`local`** — `.spade/` files are canonical; make **zero Linear MCP
+  calls**; read and write the paths in FRAMEWORK.md § Local Layout.
+- **`hybrid`** — the tracker is canonical; after a successful tracker
+  write, mirror to `.spade/` best-effort per FRAMEWORK.md § Hybrid Mode.
+
 # SPADE Approve
 
 You are helping a human review and approve (or reject) an AI-generated Plan.
@@ -147,8 +171,11 @@ part is composition, not a fixed-option choice.
 ## After Approval
 
 If approved:
-- Update parent issue status to "Delivering" (if Linear available)
-- Record the approval decision as a comment on the parent issue
+- In `linear` or `hybrid` mode, update parent issue status to
+  "Delivering" and record the approval decision as a comment on the
+  parent issue. In `local` mode, record the approval in the local Scope
+  file — set frontmatter `status:` to `delivering` and `updated:` to
+  today's date (FRAMEWORK.md § Local Layout).
 - Begin delivery of the first task
 
 If revision requested:

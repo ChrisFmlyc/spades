@@ -18,6 +18,7 @@ scripts=(
     "lint-fragments.sh"
     "lint-learnings.sh"
     "lint-onboard-idempotency.sh"
+    "lint-mcp-guard.sh"
     "lint-render-smoke.sh"
 )
 

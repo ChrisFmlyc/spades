@@ -84,3 +84,10 @@ jobs:
       - name: chmod renderer
         run: chmod +x bin/spade-render scripts/lint/lint-render-smoke.sh
       - run: ./scripts/lint/lint-render-smoke.sh
+
+  mcp-guard:
+    name: mcp guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/lint/lint-mcp-guard.sh

@@ -16,6 +16,30 @@ which Linear team, project, and default assignee to use. Use these values
 for all Linear operations. If the file doesn't exist, ask the human which
 team and project to use, or suggest running `/spade-onboard` first.
 
+## Mode Resolution
+
+Before any tracker call or local-file access, resolve the operating mode
+**once** per `docs/FRAMEWORK.md` § Mode Resolver:
+
+- Read `mode:` from `.spade/config`. An explicit value (`linear`,
+  `local`, or `hybrid`) wins immediately.
+- If `mode:` is absent, auto-detect: probe with a `list_teams` MCP call
+  (try/skip, 5-second timeout). Resolve `linear` if it returns a team
+  set containing `linear.team_id`; otherwise resolve `local`.
+- Failure policy: an explicit `mode` with a configured `team_id` and a
+  failing probe is a **fail-loud abort**; an absent `mode` with a
+  failing probe **degrades quietly to `local`**.
+
+Do not embed the resolver algorithm — it is single-sourced in
+FRAMEWORK.md. The resolved mode governs every tracker-vs-local branch in
+this skill:
+
+- **`linear`** — the tracker is canonical; operate against Linear MCP.
+- **`local`** — `.spade/` files are canonical; make **zero Linear MCP
+  calls**; read and write the paths in FRAMEWORK.md § Local Layout.
+- **`hybrid`** — the tracker is canonical; after a successful tracker
+  write, mirror to `.spade/` best-effort per FRAMEWORK.md § Hybrid Mode.
+
 # SPADE Scope
 
 You are helping a human create or edit a well-formed Scope for the SPADE
@@ -306,7 +330,7 @@ This is always optional and never blocks the scoping flow.
 ## Linear Integration
 
 ### Create Mode
-If Linear MCP is available:
+In `linear` or `hybrid` mode:
 1. Create a parent issue with the Scope content in the description
 2. Set status to "Scoped"
 3. Assign to the appropriate team member (ask the human)
@@ -314,7 +338,7 @@ If Linear MCP is available:
 5. Confirm the issue was created and share the identifier
 
 ### Edit Mode
-If Linear MCP is available:
+In `linear` or `hybrid` mode:
 1. Fetch the existing issue
 2. Show the current content and highlight missing required fields
 3. Walk through each missing or weak field with the human
@@ -322,8 +346,10 @@ If Linear MCP is available:
 5. Set status to "Scoped" if not already
 6. Confirm the update
 
-If Linear is not available, present the Scope for the human to
-create/update manually.
+In `local` mode, the skill writes the canonical Scope file itself to
+`.spade/scopes/<slug>.md` (no Linear issue is created), then runs the
+mandatory render-and-link closing step below. The human does not create
+the file by hand.
 
 ## Reactive Work
 

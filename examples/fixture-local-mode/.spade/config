@@ -1,0 +1,5 @@
+# SPADE config — fixture-local-mode (M-879 verification fixture).
+# Resolves to `local` mode: `mode:` is explicit, and there is no
+# `linear.team_id`. See docs/FRAMEWORK.md § Operating Modes.
+
+mode: local

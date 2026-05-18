@@ -1,6 +1,10 @@
 # SPADE per-repo configuration.
 # Read by SPADE skills to avoid prompting for team/project on every invocation.
 
+# Operating mode: linear | local | hybrid. An explicit value always wins
+# over auto-detect. See docs/FRAMEWORK.md § Operating Modes.
+mode: linear
+
 linear:
   team: M-KOPA
   team_id: 55069140-fef8-4f1a-8d04-726227e0292b

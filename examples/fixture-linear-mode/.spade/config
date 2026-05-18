@@ -1,0 +1,12 @@
+# SPADE config — fixture-linear-mode (M-879 verification fixture).
+# Resolves to `linear` mode: `mode:` is explicit and `linear.team_id`
+# is set. See docs/FRAMEWORK.md § Operating Modes.
+
+mode: linear
+
+linear:
+  team: M-KOPA
+  team_id: 55069140-fef8-4f1a-8d04-726227e0292b
+  project: SPADE
+  project_id: 576ca5be-0c4a-4a88-b10b-8fd1501a6f82
+  default_assignee: me

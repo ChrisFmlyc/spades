@@ -349,12 +349,59 @@ The release ships:
    (AGENTS-section content did not change in v1.7.0); the helper will only
    re-stamp the START marker version.
 
+3. Migrate `.spade/config` to carry an explicit operating mode. v1.7
+   (M-879) makes the canonical store — tracker or local files — a
+   per-repo `mode:` setting rather than a framework default; see
+   `docs/FRAMEWORK.md` § Operating Modes.
+
+   Read the existing `.spade/config`. If it already has a `mode:`
+   line, this step is a **no-op** — leave the file untouched and
+   report it as already migrated. If it has **no** `mode:` line:
+
+   - Derive the value **once** via the § Mode Resolver auto-detect
+     rule: probe with a `list_teams` MCP call (try/skip, 5-second
+     timeout); resolve `linear` if it returns a team set containing
+     the config's `linear.team_id`, otherwise resolve `local`.
+   - Insert the `mode:` line into `.spade/config`, written inside a
+     delimited SPADE marker block so re-running the migration is
+     detectable and idempotent — extend the existing
+     `spade-marker-replace` mechanism the skill already uses for
+     consumer-file writes (per the M-323 learning
+     `.spade/learnings/2026-04-22-onboarding-must-be-idempotent.md`).
+     **Never blind-append** the line.
+   - The mode is chosen at **upgrade time** and persisted. Later
+     skill runs read it directly and never re-derive it. Record in
+     the change summary that the choice was made during this upgrade.
+
+   The migration is **idempotent**: a config that already has `mode:`
+   is left exactly as-is on a re-run, and the marker block guarantees
+   a second run produces an unchanged file.
+
+   **Existing `.spade/plans/*` files are grandfathered** — this step
+   never rewrites, migrates, or deletes them. The local Plan archives
+   stay readable as written; only `.spade/config` gains the `mode:`
+   line.
+
 After the migration, suggest a commit:
 
 ```bash
-git add CLAUDE.md AGENTS.md INTENT.md .spade/version
-git commit -m "Update SPADE to v1.7.0; scaffold INTENT.md"
+git add CLAUDE.md AGENTS.md INTENT.md .spade/config .spade/version
+git commit -m "Update SPADE to v1.7.0; scaffold INTENT.md; set mode"
 ```
+
+Print a summary of what the migration changed, for example:
+
+```
+v1.6.1 → v1.7.0 migration:
+  ✓ CLAUDE.md fragment re-stamped to v1.7.0
+  ✓ AGENTS.md START marker re-stamped to v1.7.0
+  ✓ INTENT.md scaffolded (template — fill with /spade-intent)
+  ✓ .spade/config — mode: local added (auto-detected at upgrade time)
+  ! .spade/plans/* left untouched (grandfathered)
+```
+
+If `.spade/config` already carried a `mode:` line, the summary line
+reads `! .spade/config already has mode: <value>, skipped` instead.
 
 The pandoc presence check from the v1.3.x → v1.6.0 recipe still applies.
 If the helper exits with code 2 or 3 during a fragment re-stamp, **stop**

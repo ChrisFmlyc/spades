@@ -16,6 +16,36 @@ exist, `/spade-learn` can still run — learnings are local-only by default —
 but suggest running `/spade-onboard` if the human intends to track learnings
 alongside Linear work.
 
+## Mode Resolution
+
+Before any tracker call or local-file access, resolve the operating mode
+**once** per `docs/FRAMEWORK.md` § Mode Resolver:
+
+- Read `mode:` from `.spade/config`. An explicit value (`linear`,
+  `local`, or `hybrid`) wins immediately.
+- If `mode:` is absent, auto-detect: probe with a `list_teams` MCP call
+  (try/skip, 5-second timeout). Resolve `linear` if it returns a team
+  set containing `linear.team_id`; otherwise resolve `local`.
+- Failure policy: an explicit `mode` with a configured `team_id` and a
+  failing probe is a **fail-loud abort**; an absent `mode` with a
+  failing probe **degrades quietly to `local`**.
+
+Do not embed the resolver algorithm — it is single-sourced in
+FRAMEWORK.md. The resolved mode governs every tracker-vs-local branch in
+this skill:
+
+- **`linear`** — the tracker is canonical; operate against Linear MCP.
+- **`local`** — `.spade/` files are canonical; make **zero Linear MCP
+  calls**; read and write the paths in FRAMEWORK.md § Local Layout.
+- **`hybrid`** — the tracker is canonical; after a successful tracker
+  write, mirror to `.spade/` best-effort per FRAMEWORK.md § Hybrid Mode.
+
+In practice `/spade-learn` captures learnings to `.spade/learnings/`
+regardless of the resolved mode and makes **no Linear MCP calls in any
+mode**. The resolver is wired here for consistency with the other eight
+skills, so that a future tracker-backed learnings index would already
+be gated.
+
 # SPADE Learn
 
 Each pass of the SPADE loop should produce knowledge that strengthens the

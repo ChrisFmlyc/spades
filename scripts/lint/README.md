@@ -1,7 +1,7 @@
 # SPADE Lint
 
-Six small lints that guard the framework's shape. CI runs them on every
-PR; run them locally before pushing with:
+Eight small lints that guard the framework's shape. CI runs them on
+every PR; run them locally before pushing with:
 
 ```bash
 ./scripts/lint/run-all.sh
@@ -17,6 +17,8 @@ PR; run them locally before pushing with:
 | `lint-fragments.sh`             | `fragments/*.md` carry no `SPADE-FRAMEWORK-*` markers (fragments are raw content; markers are added on insertion). `.spade/version` pins a valid `spade_version=X.Y.Z`. |
 | `lint-learnings.sh`             | `.spade/learnings/*.md` carry the required learning frontmatter (`title`, `area`, `tags`, `created`, `status`, `public_safe`); `area` and `status` are in-vocabulary; `created` is `YYYY-MM-DD`. Warns on active entries older than 180 days. |
 | `lint-onboard-idempotency.sh`   | Re-runs `tests/onboard-idempotency.sh` — 15 assertions against the Bundle A marker-replace contract.                                |
+| `lint-render-smoke.sh`          | Every fixture under `tests/fixtures/render/` renders via `spade-render` to a non-empty, standalone HTML document. Skips cleanly (exit 2) when pandoc is absent. |
+| `lint-mcp-guard.sh`             | Every skill that names a Linear MCP tool carries a `## Mode Resolution` section (M-879 AC#5 — no unguarded MCP calls). A planted-violation fixture self-tests the check on every run. |
 
 ## Dependencies
 
@@ -38,6 +40,8 @@ PyYAML — but update `ANTI-PATTERNS.md` first.
 ./scripts/lint/lint-fragments.sh
 ./scripts/lint/lint-learnings.sh
 ./scripts/lint/lint-onboard-idempotency.sh
+./scripts/lint/lint-render-smoke.sh
+./scripts/lint/lint-mcp-guard.sh
 ```
 
 Each script exits 0 on success and non-zero with a clear failure line on

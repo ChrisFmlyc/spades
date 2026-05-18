@@ -430,6 +430,140 @@ human-AI handoff pattern, not specific products.
 
 ---
 
+## Operating Modes
+
+SPADE keeps per-project state — Scopes, Plans, learnings — in one of two
+places: a **tracker** (today, Linear) or **local files** under `.spade/`.
+Which side is canonical is a per-repo choice, declared as `mode:` in
+`.spade/config`:
+
+| Mode     | Canonical store   | Local files               | When to use                                                                                  |
+|----------|-------------------|----------------------------|-----------------------------------------------------------------------------------------------|
+| `linear` | Linear tracker    | not written                | Team has Linear MCP; the tracker is the system of record.                                     |
+| `local`  | `.spade/` files   | canonical                  | No tracker access — air-gapped repos, solo work, or projects that deliberately keep work-tracking in-repo. |
+| `hybrid` | Linear tracker    | non-authoritative mirror   | Tracker is canonical, but a local mirror is kept for fallback reads when the tracker is unreachable. |
+
+`linear` mode is the historical default and matches the "Linear as the
+System of Record" model above. `local` and `hybrid` were added in v1.7
+(M-879) so that the canonical side becomes configuration, not a framework
+default. A repo running under a hand-written CLAUDE.md override to force
+local behaviour should drop that override and set `mode: local` instead.
+
+### Mode Resolver
+
+Every skill resolves the operating mode **once, at the top of its run**,
+before any tracker call or local-file access. The resolution is a fixed
+sequence — skills reference this section by a single line ("resolve mode
+per FRAMEWORK.md § Mode Resolver") and never embed a copy of the
+algorithm.
+
+1. **Explicit wins.** If `.spade/config` contains a `mode:` line, that
+   value is the mode. No probe runs — explicit configuration is never
+   second-guessed.
+2. **Auto-detect when absent.** If `.spade/config` has no `mode:` line,
+   the resolver runs a **probe**: a single no-op `list_teams` MCP call,
+   wrapped in a try/skip with a **5-second timeout**.
+3. **Auto-detect outcome.** The probe resolves `linear` if it returns at
+   least one team **and** the `linear.team_id` in `.spade/config` is
+   among the returned teams; otherwise it resolves `local`.
+
+**Failure policy** — what happens when the probe cannot reach Linear:
+
+| Situation                                                          | Behaviour                                                                                                                                              |
+|--------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `mode:` is explicit, `linear.team_id` is set, and the probe fails  | **Fail loud.** Emit a single-line error and abort the skill. A configured tracker that is unreachable is an error the human must see, not route around. |
+| `mode:` is absent (auto-detect path) and the probe fails           | **Degrade quietly.** Resolve `local` and emit one warning per session. A repo that never configured a tracker should keep working offline.             |
+
+The asymmetry is deliberate: an explicit `mode: linear` is a promise the
+repo made, and breaking it silently would hide an outage. An
+unconfigured repo made no such promise.
+
+### Local Layout
+
+In `local` and `hybrid` modes, SPADE artefacts are files under `.spade/`.
+The canonical paths are:
+
+| Artefact | Path                                          |
+|----------|-----------------------------------------------|
+| Scope    | `.spade/scopes/<slug>.md` — one file per Scope |
+| Plan     | `.spade/plans/<scope-slug>-plan.md` — one flat file per Plan |
+| Learning | `.spade/learnings/<YYYY-MM-DD>-<slug>.md`     |
+
+The flat `.spade/plans/<scope-slug>-plan.md` layout matches the M-420
+contract (see § Plan Schema → Storage). This section is the single
+source of truth for **canonical paths and Scope frontmatter**; Plan
+frontmatter is documented in § Plan Schema and learning frontmatter in
+§ Learnings → Storage. Skills reference these sections and never
+re-specify a schema inline.
+
+**Slug grammar.** A slug matches `^[a-z0-9][a-z0-9-]{0,63}$` — 1 to 64
+characters, lowercase letters, digits, and hyphens only, with no
+leading hyphen. The character class excludes `.`, so `..` can never
+appear. Any skill that derives a slug from a Linear title or human
+input applies this grammar.
+An input that cannot produce a valid slug causes the skill to **abort
+with a clear error** rather than write a path outside `.spade/`. The
+grammar is a path-safety boundary, not a cosmetic rule: `..` and
+absolute path components must never reach the filesystem.
+
+**Scope frontmatter.** A Scope file carries flat YAML frontmatter (no
+nested structures — the framework's linter supports only flat keys):
+
+```yaml
+---
+name: <slug>                 # identifier; matches the filename slug
+title: <human-readable title>
+status: scoped | planning | approval | delivering | evaluating | done
+type: feature | bug | chore | docs | refactor | investigation
+phase: scope | plan | delivery | evaluation   # legacy mirror of status
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+# Optional Scope extras:
+origin: milestone | reactive | ad-hoc
+priority: urgent | high | this-cycle | medium | low | backlog | exploratory
+delivery: ai-delivered | human-delivery | mostly-ai-delivered | mixed
+linear_issue: M-123          # present when the repo also has a tracker
+linear_url: https://linear.app/...
+---
+```
+
+**Schema version.** The layout grammar is tied to `.spade/version`. A
+reader MUST consult `spade_version` and apply the grammar for that
+version. Files written before v1.7 (the M-323, M-343, and M-420 era)
+predate this contract: they are **explicitly grandfathered** — skills
+read them tolerantly, accept unknown or missing fields, and never
+silently rewrite them. A skill that does rewrite a legacy file (for
+example `/spade-evaluate` updating `status:`) MUST preserve every field
+it does not recognise.
+
+### Hybrid Mode
+
+`hybrid` mode keeps the **tracker canonical** — exactly as `linear` mode
+does, and consistent with the M-420 rule that the tracker is the system
+of record — while also maintaining a local mirror under `.spade/` for
+resilience.
+
+- **Reads** consult the tracker first. The local mirror is read only as
+  a fallback when the tracker is unreachable.
+- **Writes** go to the tracker first. On a successful tracker write, the
+  corresponding local mirror file is written **best-effort**. If the
+  mirror write fails, the tracker write still stands and a single-line
+  warning surfaces.
+- On a **tracker-write failure**, the skill aborts and surfaces the
+  error to the human. There is no local-only fallback in `hybrid` —
+  writing the Plan to `.spade/plans/` would silently fork the canonical
+  record. (`linear` mode *may* fall back to a local Plan file on a
+  write failure, per § Plan Schema → Storage; `hybrid` deliberately
+  does not, precisely because it also keeps a mirror.)
+
+The local mirror in `hybrid` mode is **explicitly non-authoritative**.
+Downstream tooling, audits, and humans MUST treat the tracker as ground
+truth; the mirror is a convenience for offline reads, never a source of
+record. A repo that wants local files to *be* canonical wants `local`
+mode, not `hybrid`.
+
+---
+
 ## Cycle Rhythm
 
 SPADE does not prescribe a rigid daily schedule. The rhythm is driven by two
@@ -1044,4 +1178,4 @@ behaviour, not a defect.
 
 ---
 
-*The SPADE Framework v1.1, April 2026, M-KOPA Product Security Team*
+*The SPADE Framework v1.7, May 2026, M-KOPA Product Security Team*

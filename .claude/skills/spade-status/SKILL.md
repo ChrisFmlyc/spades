@@ -16,6 +16,23 @@ which Linear team, project, and default assignee to use. Use these values
 for all Linear operations. If the file doesn't exist, ask the human which
 team and project to use, or suggest running `/spade-onboard` first.
 
+## Mode Resolution
+
+Before any tracker call or local-file access, resolve the operating mode
+**once** per `docs/FRAMEWORK.md` § Mode Resolver:
+
+- Read `mode:` from `.spade/config`. An explicit value (`linear`,
+  `local`, or `hybrid`) wins immediately.
+- If `mode:` is absent, auto-detect: probe with a `list_teams` MCP call
+  (try/skip, 5-second timeout). Resolve `linear` if it returns a team
+  set containing `linear.team_id`; otherwise resolve `local`.
+- Failure policy: an explicit `mode` with a configured `team_id` and a
+  failing probe is a **fail-loud abort**; an absent `mode` with a
+  failing probe **degrades quietly to `local`**.
+
+Do not embed the resolver algorithm — it is single-sourced in
+FRAMEWORK.md. The resolved mode governs the data source below.
+
 # SPADE Status
 
 You are providing a status overview of active SPADE work. This helps humans
@@ -23,7 +40,7 @@ understand where things stand at a glance.
 
 ## What To Show
 
-### If Linear MCP is available
+### In `linear` / `hybrid` mode
 
 1. Query for active parent issues (status not "Done"). Include items with
    any of: `ai-planned`, `ai-delivered`, `spade:quick`, or standard SPADE
@@ -45,10 +62,29 @@ understand where things stand at a glance.
    - Whether the gate-check template has been filled
 5. Present both groups as clean summary tables.
 
-### If Linear MCP is not available
+### In `local` mode
 
-Ask the human to tell you about their active work, then help them
-assess which SPADE phase each item is in.
+Read active work from local files under `.spade/`. Make **zero** Linear
+MCP calls.
+
+1. Glob `.spade/scopes/*.md` for Scope files (per FRAMEWORK.md § Local
+   Layout). If the directory is empty or absent, say there is no active
+   SPADE work and suggest running `/spade-scope`.
+2. For each file, parse the YAML frontmatter and read `status:` and
+   `title:`. Tolerate legacy files with missing or unknown fields —
+   never rewrite them.
+3. Map each `status:` to a SPADE phase using the Phase Identification
+   table below, then skip any Scope whose phase is Done.
+4. For each remaining Scope, check whether a matching Plan file exists
+   at `.spade/plans/<slug>-plan.md` (the slug is the Scope's filename
+   slug). Report plan presence in the Progress column: `Plan ready` if
+   the file exists, `Not yet planned` if it does not.
+5. Present the same status table as the `linear` / `hybrid` branch (see
+   `## Output Format`). Sub-issue counts, delivery-mode breakdowns, and
+   the per-Scope sub-issue detail table need a tracker, so omit them in
+   `local` mode — a local Scope has no sub-issues. Fast-track items are
+   a tracker concept (`spade:quick` label), so there is no Fast-track
+   subsection in `local` mode.
 
 ## Output Format
 

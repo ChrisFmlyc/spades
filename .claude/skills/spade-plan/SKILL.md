@@ -16,6 +16,30 @@ which Linear team, project, and default assignee to use. Use these values
 for all Linear operations. If the file doesn't exist, ask the human which
 team and project to use, or suggest running `/spade-onboard` first.
 
+## Mode Resolution
+
+Before any tracker call or local-file access, resolve the operating mode
+**once** per `docs/FRAMEWORK.md` § Mode Resolver:
+
+- Read `mode:` from `.spade/config`. An explicit value (`linear`,
+  `local`, or `hybrid`) wins immediately.
+- If `mode:` is absent, auto-detect: probe with a `list_teams` MCP call
+  (try/skip, 5-second timeout). Resolve `linear` if it returns a team
+  set containing `linear.team_id`; otherwise resolve `local`.
+- Failure policy: an explicit `mode` with a configured `team_id` and a
+  failing probe is a **fail-loud abort**; an absent `mode` with a
+  failing probe **degrades quietly to `local`**.
+
+Do not embed the resolver algorithm — it is single-sourced in
+FRAMEWORK.md. The resolved mode governs every tracker-vs-local branch in
+this skill:
+
+- **`linear`** — the tracker is canonical; operate against Linear MCP.
+- **`local`** — `.spade/` files are canonical; make **zero Linear MCP
+  calls**; read and write the paths in FRAMEWORK.md § Local Layout.
+- **`hybrid`** — the tracker is canonical; after a successful tracker
+  write, mirror to `.spade/` best-effort per FRAMEWORK.md § Hybrid Mode.
+
 # SPADE Plan
 
 You are generating a structured Plan for an approved Scope. The Plan is a
@@ -296,25 +320,31 @@ Present the Plan in this format:
 
 ## Saving the Plan
 
-The Plan is **canonically stored in the tracker** (today: Linear) when
-one is available. `.spade/plans/` is a **fallback for Linear-less
-environments and a read-path for historical archives written under
-v1.0–v1.1**, not a default. Saving happens when (and only when) the
-human approves the Plan, never before.
+In `linear` and `hybrid` mode the Plan is **canonically stored in the
+tracker** (today: Linear). In `local` mode `.spade/plans/` is canonical;
+it also serves as a **fallback when a tracker write fails and a
+read-path for historical archives written under v1.0–v1.1**. Saving
+happens when (and only when) the human approves the Plan, never before.
 
 The behaviour gate is **whether the tracker can accept the Plan**, not
 merely "is the MCP tool present":
 
-- **Tracker-path** — Linear MCP is available, the Scope has a parent
-  issue ID, and posting the Plan as a comment on that parent issue
-  succeeds. In this path the Plan lives only in Linear (as the
-  parent-issue comment + the sub-issues). Do **not** write to
-  `.spade/plans/`.
+- **Tracker-path** — the resolved mode is `linear` or `hybrid`, the
+  Scope has a parent issue ID, and posting the Plan as a comment on that
+  parent issue succeeds. In this path the Plan lives in Linear (as the
+  parent-issue comment + the sub-issues); in `hybrid` mode it is also
+  mirrored to `.spade/plans/` best-effort. In pure `linear` mode do
+  **not** write to `.spade/plans/`.
 
-- **Fallback-path** — Linear MCP is unreachable, the Scope has no
-  tracker parent, or the Linear write fails. Write the Plan locally to
-  `.spade/plans/<issue-id>-plan.md` (using the Scope's identifier; if
-  the Scope has no issue ID, use a short slug derived from its title).
+- **Fallback-path** — the resolved mode is `local`; or, in `linear`
+  mode, the Scope has no tracker parent or the Linear write fails. (A
+  tracker-write failure in `hybrid` mode aborts instead — there is no
+  local fallback; see FRAMEWORK.md § Hybrid Mode.) Write the Plan to
+  `.spade/plans/<issue-id>-plan.md` using the Scope's tracker
+  identifier; if the Scope has no issue ID — the `local`-mode case —
+  use the **Scope's slug** (its `name` field and `.spade/scopes/`
+  filename) so the file is `.spade/plans/<scope-slug>-plan.md` and
+  `/spade-status` and `/spade-list` can locate it.
   Prepend a banner at the top of the body marking it a fallback
   artefact, e.g.:
 
@@ -350,7 +380,7 @@ archive), overwrite it — git history preserves the old version.
 
 ### Linear Integration
 
-When Linear MCP is available, the tracker-path runs as follows:
+In `linear` or `hybrid` mode, the tracker-path runs as follows:
 
 1. Update the parent issue status to "Planning"
 2. Create sub-issues for each task with:
