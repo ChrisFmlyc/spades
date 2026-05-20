@@ -1,6 +1,6 @@
 # SPADE Lint
 
-Eight small lints that guard the framework's shape. CI runs them on
+Ten small lints that guard the framework's shape. CI runs them on
 every PR; run them locally before pushing with:
 
 ```bash
@@ -19,6 +19,8 @@ every PR; run them locally before pushing with:
 | `lint-onboard-idempotency.sh`   | Re-runs `tests/onboard-idempotency.sh` — 15 assertions against the Bundle A marker-replace contract.                                |
 | `lint-render-smoke.sh`          | Every fixture under `tests/fixtures/render/` renders via `spade-render` to a non-empty, standalone HTML document. Skips cleanly (exit 2) when pandoc is absent. |
 | `lint-mcp-guard.sh`             | Every skill that names a Linear MCP tool carries a `## Mode Resolution` section (M-879 AC#5 — no unguarded MCP calls). A planted-violation fixture self-tests the check on every run. |
+| `lint-handoff.sh`               | Exercises `bin/spade-handoff-launch` in `--dry-run` mode via `tests/handoff-launch.sh` — asserts injection-safety of the handoff prompt, the worktree-collision guard, and the documented failure exit codes. |
+| `lint-local-frontmatter.sh`     | `.spade/scopes/*.md` Scope frontmatter is schema-valid — hard-fails on an invalid `status`/`type`/`priority` enum value or a missing core required field; warns (never fails) on an unknown field or a missing `id` (grandfathered, v1.8). `.spade/plans/*.md` gets a light, warn-only parse check. A planted bad-enum / legacy fixture pair self-tests the check on every run. |
 
 ## Dependencies
 
@@ -40,12 +42,14 @@ PyYAML — but update `ANTI-PATTERNS.md` first.
 ./scripts/lint/lint-fragments.sh
 ./scripts/lint/lint-learnings.sh
 ./scripts/lint/lint-onboard-idempotency.sh
-./scripts/lint/lint-render-smoke.sh
 ./scripts/lint/lint-mcp-guard.sh
+./scripts/lint/lint-handoff.sh
+./scripts/lint/lint-local-frontmatter.sh
+./scripts/lint/lint-render-smoke.sh
 ```
 
 Each script exits 0 on success and non-zero with a clear failure line on
-error. `run-all.sh` is a thin wrapper that runs all six and aggregates
+error. `run-all.sh` is a thin wrapper that runs all ten and aggregates
 exit status.
 
 ## Adding a new check

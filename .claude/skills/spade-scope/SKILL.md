@@ -347,9 +347,38 @@ In `linear` or `hybrid` mode:
 6. Confirm the update
 
 In `local` mode, the skill writes the canonical Scope file itself to
-`.spade/scopes/<slug>.md` (no Linear issue is created), then runs the
-mandatory render-and-link closing step below. The human does not create
-the file by hand.
+`.spade/scopes/<slug>.md` (no Linear issue is created) — applying the
+ID and collision rules in § Stable ID and Slug Collision Check below —
+then runs the mandatory render-and-link closing step. The human does
+not create the file by hand.
+
+## Stable ID and Slug Collision Check
+
+These two rules apply whenever the skill **creates** a Scope file under
+`.spade/scopes/` (Create Mode, in `local` and `hybrid` modes). They do
+not apply in Edit Mode — editing an existing Scope keeps its file and
+its `id` unchanged.
+
+**Stable ID.** Every new Scope carries a stable short `id` in its
+frontmatter, per `docs/FRAMEWORK.md` § Local Layout: `sp-` followed by
+six lowercase base32 characters (`[a-z0-9]`), e.g. `sp-7k2m9q`.
+Generate it once, at random, when the Scope is created and write it
+into the frontmatter next to `name`. The `id` is the Scope's permanent
+identity — it never changes even if the title (and therefore the slug)
+is later reworded. Never regenerate or reuse an `id`, and never
+back-fill one into a pre-existing Scope file that lacks it (those are
+grandfathered — see § Local Layout).
+
+**Slug collision check.** The filename slug is derived from the title
+per the § Local Layout slug grammar. **Before writing**
+`.spade/scopes/<slug>.md`, check whether a file with that slug already
+exists. If it does, **abort with a clear error** — never overwrite it:
+
+> A Scope already exists at `.spade/scopes/<slug>.md`. Choose a
+> distinct title, or edit the existing Scope instead.
+
+Silently overwriting would destroy an existing Scope and its audit
+trail. This check is mandatory on every Create-Mode local write.
 
 ## Reactive Work
 

@@ -511,7 +511,8 @@ nested structures — the framework's linter supports only flat keys):
 
 ```yaml
 ---
-name: <slug>                 # identifier; matches the filename slug
+name: <slug>                 # slug identifier; matches the filename
+id: sp-7k2m9q                # stable short ID — generated once, never changes
 title: <human-readable title>
 status: scoped | planning | approval | delivering | evaluating | done
 type: feature | bug | chore | docs | refactor | investigation
@@ -524,8 +525,26 @@ priority: urgent | high | this-cycle | medium | low | backlog | exploratory
 delivery: ai-delivered | human-delivery | mostly-ai-delivered | mixed
 linear_issue: M-123          # present when the repo also has a tracker
 linear_url: https://linear.app/...
+panel_review: <date + summary>   # set by /spade-review when a panel ran
 ---
 ```
+
+The `status`, `type`, and `priority` value sets above are the
+**canonical enum lists** — the schema lint (`lint-local-frontmatter.sh`)
+enforces exactly these, so extending an enum means editing this block.
+
+**Stable identifier.** Every Scope created at v1.8 or later carries an
+`id` — a stable short identifier of the form `sp-` followed by six
+lowercase base32 characters (`[a-z0-9]`), e.g. `sp-7k2m9q`.
+`/spade-scope` generates it once at creation, at random; there is no
+central allocator, and the ~10⁹-value space makes a collision under
+parallel creation negligible. The `id` is **distinct from the slug**:
+the slug (`name`, the filename) derives from the title and changes if
+the title is reworded, whereas the `id` never changes — it is the
+stable join key tooling should rely on. It is a **correctness-only
+identifier** and explicitly **not** an authorisation or trust
+primitive: nothing may grant access or privilege from knowing or
+guessing an `id`.
 
 **Schema version.** The layout grammar is tied to `.spade/version`. A
 reader MUST consult `spade_version` and apply the grammar for that
@@ -535,6 +554,12 @@ read them tolerantly, accept unknown or missing fields, and never
 silently rewrite them. A skill that does rewrite a legacy file (for
 example `/spade-evaluate` updating `status:`) MUST preserve every field
 it does not recognise.
+
+The `id` field (introduced at v1.8) follows the same spirit: it is
+**required on Scopes created at v1.8 or later** but **warn-only on any
+earlier file** — the schema lint flags a missing `id` as a warning,
+never a hard failure, and skills never back-fill it into a pre-v1.8
+file.
 
 ### Hybrid Mode
 

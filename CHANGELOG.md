@@ -5,6 +5,32 @@ Versions follow [semver](https://semver.org/) at the framework level
 (consumer fragments carry their own version stamp via
 `<!-- SPADE-FRAMEWORK-START vX.Y.Z -->` markers).
 
+## [1.8.0] — 2026-05-18
+
+**Local-mode artefact hardening — schema enforcement + stable IDs.**
+The local-mode frontmatter schema is now machine-enforced in CI, and
+every local Scope carries a stable identifier independent of its slug.
+
+- `docs/FRAMEWORK.md` § Local Layout — adds the `id` field: a stable
+  short identifier (`sp-` + six base32 characters) generated once at
+  Scope creation, distinct from the title-derived slug, collision-
+  resistant without a central allocator, and correctness-only — not an
+  authorisation or trust primitive. The `status` / `type` / `priority`
+  value sets are marked the canonical enum lists the schema lint
+  enforces.
+- New `scripts/lint/lint-local-frontmatter.sh` + a `local-frontmatter`
+  CI job. `frontmatter.py` gains a `--schema` mode: Scope files
+  hard-fail on an invalid `status` / `type` / `priority` enum value or
+  a missing core field, and warn (not fail) on an unknown field or a
+  missing `id` (grandfathered on pre-v1.8 files). Plan files get a
+  light warn-only check; learnings stay with `lint-learnings.sh`. A
+  legacy fixture and a bad-enum fixture self-test the check.
+- `/spade-scope` now generates the `id` for new Scopes and aborts on a
+  slug collision rather than silently overwriting an existing Scope.
+
+Scope: M-1023. v1.8.0 also carries the `/spade-handoff` launcher,
+merged unreleased since v1.7.0.
+
 ## [1.7.0] — 2026-05-18
 
 **Local mode — read/write parity without Linear.** SPADE skills now
