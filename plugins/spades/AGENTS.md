@@ -156,12 +156,16 @@ appended) and authoritatively in the `depends_on:` frontmatter field.
 
 - After a PASS verdict, run `/spades:ship`. Behaviour branches on
   `deliverable_type:`:
-  - **`code`** — **two-phase**. Phase 1: push the branch Do created,
-    open the PR with body derived from the Plan, exit. Plan goes to
-    `status: shipping`. Address CodeRabbit feedback by committing to
-    the same branch. After squash-merge, run `/repo:sync`, then
-    re-invoke `/spades:ship` to record the merge SHA and mark the
-    Plan `shipped`.
+  - **`code`** — routed by the `scm:` field in `.spades/config`:
+    - **`scm: github`** — two-phase: push + `gh pr create` (Phase
+      1), then resume after squash-merge to record the merge SHA
+      (Phase 2). CodeRabbit feedback commits to the same branch
+      between phases.
+    - **`scm: local-git`** — single-phase: push to the configured
+      remote (if any), record the commit SHA, mark shipped. No PR,
+      no CodeRabbit.
+    - Other SCMs (GitLab, Bitbucket) follow the contract in
+      `docs/EXTENDING-SCM.md`.
   - **`artefact`** — record the artefact reference (URL, doc ID, file
     path) on the Plan.
   - **`action`** — record evidence of completion (photo, email

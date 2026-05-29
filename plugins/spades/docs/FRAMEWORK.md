@@ -131,10 +131,18 @@ volume is high (plans, where the same description may recur).
 ```yaml
 backend: linear | local
 project: <project-slug>             # active project for this repo
+scm: github | local-git             # source-code-management tool (default: local-git)
 linear:                             # only when backend: linear
   team_id: <uuid>
   project_id: <uuid>                # Linear's own Project ID for this project
+github:                             # only when scm: github
+  remote: origin                    # which git remote to use (default: origin)
+local_git:                          # only when scm: local-git AND a remote is configured
+  remote: origin                    # which git remote to push to (optional)
 ```
+
+Other SCMs (GitLab, Bitbucket, etc.) become drivers per
+`docs/EXTENDING-SCM.md`.
 
 There is **no auto-probe**. The `setup` skill writes this file
 explicitly when the human chooses a backend. Skills that read it

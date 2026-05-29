@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 2.2.0
+version: 2.3.0
 ---
 
 # /spades:setup
@@ -158,6 +158,85 @@ continue.
 
 Nothing to verify externally. Continue.
 
+## Step 1.5 — Source Code Management (SCM) selection
+
+Ask the human which SCM their code lives in via `AskUserQuestion`.
+This drives `/spades:ship`'s code-deliverable flow.
+
+- **`Local git`** (recommended default) — work commits go to local
+  git only. If a remote is configured, `/spades:ship` pushes to it
+  but does NOT open PRs. No external tool dependency. Single-phase
+  ship: push, record commit SHA, mark shipped.
+- **`GitHub`** — work flows through GitHub PRs. `/spades:ship` runs
+  the two-phase publish (push + `gh pr create`, then resume after
+  squash-merge to record the merge SHA). Requires the `gh` CLI
+  installed and authenticated.
+- (future: GitLab, Bitbucket — extension points; see
+  `docs/EXTENDING-SCM.md` for the contract drivers must satisfy.)
+
+If the human has already run setup and is re-running it, fetch the
+current `scm:` from `.spades/config` and offer **Keep current** as
+the recommended option.
+
+### If GitHub was chosen
+
+#### Probe gh CLI
+
+From a terminal:
+
+```bash
+gh auth status
+```
+
+If `gh` is installed and authenticated, the SCM is reachable —
+continue to Step 2.
+
+#### If gh isn't installed or unauthenticated — guide the install
+
+Don't abort. Walk the human through it.
+
+##### 1. Install gh CLI
+
+GitHub publishes packaged binaries for macOS, Linux, and Windows.
+
+- **macOS (Homebrew):** `brew install gh`
+- **Linux (apt):** see <https://cli.github.com/manual/installation>
+  for the apt repo setup, then `sudo apt install gh`
+- **Linux (yum/dnf):** see the same page for the dnf instructions
+- **Windows (winget):** `winget install --id GitHub.cli`
+
+Confirm with `gh --version`.
+
+##### 2. Authenticate
+
+```bash
+gh auth login
+```
+
+Pick `GitHub.com` (or `GitHub Enterprise Server` if applicable),
+authenticate via browser (recommended) or paste a Personal Access
+Token. Choose `HTTPS` or `SSH` for git operations to match your
+existing remote.
+
+##### 3. Verify
+
+```bash
+gh auth status
+```
+
+Should show "Logged in to github.com as <username>". Confirm
+permissions include `repo` scope.
+
+##### 4. Resume /spades:setup
+
+Once gh CLI is installed and authenticated, re-run `/spades:setup`
+and pick **GitHub** again. The probe will succeed this time and
+setup will continue.
+
+### If Local git was chosen
+
+Nothing to verify externally. Continue.
+
 ## Step 2 — Active Project
 
 Ask which project this repo belongs to.
@@ -179,9 +258,12 @@ Write or update `.spades/config` to exactly this shape:
 ```yaml
 backend: linear            # or: local
 project: <project-slug>
+scm: github                # or: local-git (more in docs/EXTENDING-SCM.md)
 linear:                    # only when backend: linear
   team_id: <uuid>
   project_id: <uuid>
+github:                    # only when scm: github
+  remote: origin           # which git remote to push to (default: origin)
 ```
 
 Re-run safety: if a value the human did not change is already in the
@@ -318,11 +400,14 @@ instruction.
 - AI may assist but a human signs off the verdict.
 
 ### 6. Ship (Mixed)
-- For `deliverable_type: code` — **two-phase**. Phase 1: push the
-  Do branch, open the PR, exit (Plan → `shipping`). Address
-  CodeRabbit feedback by committing to the same branch. After
-  squash-merge, run `/repo:sync`, then re-invoke `/spades:ship` to
-  record the merge SHA and mark the Plan `shipped`.
+- For `deliverable_type: code` — routed by the `scm:` field in
+  `.spades/config`:
+  - **`scm: github`** — two-phase: Phase 1 pushes the Do branch and
+    opens the PR; address CodeRabbit feedback on the same branch;
+    after squash-merge, run `/repo:sync`, then re-invoke
+    `/spades:ship` to record the merge SHA and mark `shipped`.
+  - **`scm: local-git`** — single-phase: push to the configured
+    remote (if any), record commit SHA, mark `shipped`. No PR loop.
 - For `deliverable_type: artefact` — record the artefact reference.
 - For `deliverable_type: action` — record evidence of completion.
 - Ship is the moment the deliverable becomes real to the outside world.
