@@ -125,6 +125,11 @@ appended) and authoritatively in the `depends_on:` frontmatter field.
 
 - Execute the approved Plan via `/spades:do`. Routing comes from the
   Plan's `delivery:` field set at Approve time.
+- **For `deliverable_type: code`**, Do creates a feature branch
+  (`feat/`, `fix/`, or `refactor/` per the change's nature) derived
+  from the Plan's title before any commits land. The branch name is
+  recorded in the audit trail. Do-phase commits go onto this branch;
+  `/spades:ship` later pushes it and opens the PR.
 - For `delivery: ai`: run the work autonomously, honouring each task's
   execution posture. Commit as you go.
 - For `delivery: human`: record the assignment in the backend and
@@ -151,8 +156,12 @@ appended) and authoritatively in the `depends_on:` frontmatter field.
 
 - After a PASS verdict, run `/spades:ship`. Behaviour branches on
   `deliverable_type:`:
-  - **`code`** — push the branch, open a PR, walk the inline review
-    checklist, merge. Record PR URL + merge SHA.
+  - **`code`** — **two-phase**. Phase 1: push the branch Do created,
+    open the PR with body derived from the Plan, exit. Plan goes to
+    `status: shipping`. Address CodeRabbit feedback by committing to
+    the same branch. After squash-merge, run `/repo:sync`, then
+    re-invoke `/spades:ship` to record the merge SHA and mark the
+    Plan `shipped`.
   - **`artefact`** — record the artefact reference (URL, doc ID, file
     path) on the Plan.
   - **`action`** — record evidence of completion (photo, email

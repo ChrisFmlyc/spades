@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 2.1.0
+version: 2.2.0
 ---
 
 # /spades:setup
@@ -318,7 +318,11 @@ instruction.
 - AI may assist but a human signs off the verdict.
 
 ### 6. Ship (Mixed)
-- For `deliverable_type: code` — open PR, run review, merge.
+- For `deliverable_type: code` — **two-phase**. Phase 1: push the
+  Do branch, open the PR, exit (Plan → `shipping`). Address
+  CodeRabbit feedback by committing to the same branch. After
+  squash-merge, run `/repo:sync`, then re-invoke `/spades:ship` to
+  record the merge SHA and mark the Plan `shipped`.
 - For `deliverable_type: artefact` — record the artefact reference.
 - For `deliverable_type: action` — record evidence of completion.
 - Ship is the moment the deliverable becomes real to the outside world.

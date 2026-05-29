@@ -8,6 +8,36 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [2.2.0] — 2026-05-29
+
+**Minor** — code-deliverable branch lifecycle is now first-class.
+
+- **`/spades:do` creates a feature branch** at the start of the
+  `deliverable_type: code` flow (Step 1, before any commits land).
+  Branch name is derived from the Plan's title via the same slug
+  rules as `/repo:newbranch`, prefixed `feat/` / `fix/` /
+  `refactor/` per the change's nature, and validated against the
+  `/repo:branch` regex. The branch name is recorded in the Plan's
+  `## Audit Trail` for `/spades:ship` to pick up later.
+- **`/spades:ship` becomes two-phase** for `deliverable_type: code`:
+  - **Phase 1 (fresh):** verify the Do branch, run pre-push checks,
+    push to origin, `gh pr create` with body derived from the Plan,
+    record `PR opened: <URL>` in the audit trail, exit. Plan stays
+    in `status: shipping`. CodeRabbit runs against the PR; fixes
+    commit to the same branch.
+  - **Phase 2 (resume after squash-merge):** re-invoke
+    `/spades:ship` after `/repo:sync` cleans up. Step 0 detects the
+    resume via the `PR opened:` audit-trail marker, verifies the PR
+    is `MERGED` via `gh pr view`, captures the merge SHA, records
+    `Shipped. PR: <URL>. Merge: <sha>` in the audit trail, marks
+    the Plan `shipped`.
+  - No more auto-merge from inside the skill — squash-merge happens
+    in GitHub after CodeRabbit review.
+- **AGENTS.md + the consumer-facing setup fragment** updated to
+  reflect both changes in the Phase Rules.
+- **Skills bumped**: `do` 2.0.0 → 2.1.0, `ship` 2.0.0 → 2.1.0,
+  `setup` 2.1.0 → 2.2.0. Other 12 skills unchanged.
+
 ## [2.1.0] — 2026-05-29
 
 **Minor** — additive changes accumulated since 2.0.0, plus the new
