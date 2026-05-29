@@ -44,14 +44,114 @@ the recommended option.
 
 ### If Linear was chosen
 
-1. Probe Linear MCP with a teams list call. If it fails or returns
-   nothing, abort: *"Linear MCP isn't reachable from this session.
-   Either configure the MCP first, or pick the Local backend."*
-2. Ask the human (via `AskUserQuestion`) which team to use.
-3. Ask which Linear Project to bind this SPADES project to. Offer
-   **Create new Linear Project** as an option (the next step,
-   `newproject`, handles creation).
-4. Record the chosen team ID and Linear Project ID in `.spades/config`.
+#### Probe the Linear MCP
+
+Probe Linear MCP with a teams list call. If it returns at least one
+team, the MCP is reachable — continue to **Bind team and project**
+below.
+
+#### If the probe fails — guide the install, don't abort
+
+If the probe fails (no Linear MCP tool available in this session,
+401/403, connection refused, etc.), the Linear MCP isn't configured
+yet. Don't abort — walk the human through installing it.
+
+Tell the human something like:
+
+> The Linear MCP isn't installed in this Claude Code session yet.
+> Setup needs it to read teams and bind this repo to a Linear
+> Project. Two minutes to install. Here's how.
+
+Then present the install guide below.
+
+##### 1. Install the Linear MCP server
+
+Linear ships an **officially hosted remote MCP server** at
+`https://mcp.linear.app/mcp`. It uses OAuth 2.1 in the browser, so
+there are no API keys to manage. From a terminal outside Claude Code,
+run:
+
+```bash
+claude mcp add --transport http linear https://mcp.linear.app/mcp
+```
+
+That writes the server into Claude Code's local config. The default
+scope is **local** (this project only). If the human wants it
+available across every repo on their machine, use `--scope user`:
+
+```bash
+claude mcp add --transport http linear --scope user https://mcp.linear.app/mcp
+```
+
+If the human wants to **share the configuration with their team via
+version control**, use `--scope project` — it writes to a `.mcp.json`
+at the repo root, designed to be committed:
+
+```bash
+claude mcp add --transport http linear --scope project https://mcp.linear.app/mcp
+```
+
+The three scopes are local-only (per-project), user (every project on
+their machine), and project (shared via `.mcp.json`). Recommend
+**local** by default for the first run; the human can broaden later.
+
+##### 2. Authenticate via OAuth
+
+After adding the server, open a Claude Code session in the same
+project and run:
+
+```text
+/mcp
+```
+
+That opens the `/mcp` panel listing all configured MCP servers.
+Linear will be flagged as needing authentication; selecting it opens
+a browser window for the Linear OAuth flow. The human signs in to
+Linear (or confirms they're already signed in) and grants access to
+the Claude Code MCP client. The token is stored securely by Claude
+Code and refreshed automatically.
+
+If the browser doesn't open, Claude Code prints a URL the human can
+open manually. If the browser redirect fails after authenticating
+(connection-refused on `localhost`), Claude Code prompts for the
+callback URL — paste the full URL from the browser's address bar.
+
+##### 3. Verify the install
+
+From a terminal outside Claude Code:
+
+```bash
+claude mcp list
+```
+
+The `linear` server should appear in the list. Then inside Claude
+Code:
+
+```text
+/mcp
+```
+
+The Linear server should show as connected (not `⏸ Pending
+approval`, not `✗ Failed`) and report a non-zero tool count. The
+Linear MCP exposes about 25 tools — find/create/update issues,
+projects, comments, initiatives, milestones, project updates.
+
+##### 4. Resume /spades:setup
+
+Once the Linear MCP is connected, re-run `/spades:setup` and pick
+**Linear** again. The probe will succeed this time and setup will
+continue.
+
+#### Bind team and project (probe succeeded)
+
+1. Ask the human (via `AskUserQuestion`) which team to use. List the
+   teams returned by the probe.
+2. Ask which Linear Project to bind this SPADES project to. List
+   existing projects for the chosen team and offer **Create new
+   Linear Project** as an option (the next step,
+   `/spades:newproject`, handles creation).
+3. Record the chosen team ID and Linear Project ID in
+   `.spades/config` (Step 3 below).
 
 ### If Local was chosen
 
