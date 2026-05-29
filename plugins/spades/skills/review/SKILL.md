@@ -47,15 +47,53 @@ risks, security concerns, and strategic miscalibration.
 Both artefacts available — the default when invoked during
 `/spades:approve`. The panel reviews them as a pair.
 
-## Determining the Mode
+## Determining the Mode and Target
 
-1. If the human explicitly names the mode, use it.
-2. If invoked during `/spades:approve`, default to **Full Review**.
-3. If a Plan exists in context (conversation or `.spades/plans/`), use
-   **Full Review**.
-4. If only a Scope exists (Linear issue or conversation), use
-   **Scope Review**.
-5. If only a Plan exists with no clear Scope, use **Plan Review**.
+Two pieces of information are needed: the **mode** (Scope / Plan /
+Full review) and the **target** (which Scope or Plan).
+
+### Quick paths (no interactive flow needed)
+
+1. If invoked from inside `/spades:approve`, default to **Full
+   Review** on the Plan and Scope `/spades:approve` is operating on
+   — both are already in context.
+2. If the human invocation explicitly names both mode AND target
+   (e.g. `/spades:review scope S-add-ai-helper-bot` or `/spades:review
+   plan P-rag-pipeline-lookup-3HyD`), honour it directly.
+3. If a Plan or Scope is already in conversation context from the
+   current session (e.g. mid-`/spades:plan`), surface it as the
+   default via a single confirm prompt — `Use <ID> — <title>?` — but
+   still let the human pick a different one.
+
+### Bare-invocation flow
+
+If `/spades:review` is invoked with no argument and no Scope/Plan in
+context, run **Target Resolution** per `docs/FRAMEWORK.md` § Target
+Resolution:
+
+1. **Step 1 (artefact type).** Ask via `AskUserQuestion`:
+   - *Scope review* — review the outcome record (premises,
+     acceptance criteria, constraints)
+   - *Plan review* — review one Plan in detail
+   - *Full review* — review a Plan together with its parent Scope
+2. **Step 2 (list candidates).** Per the per-skill status filter in
+   FRAMEWORK.md § Target Resolution:
+   - **Scope review** → list Scopes for the active project in any
+     active phase (`scoped`, `planning`, `approval`, `delivering`,
+     `evaluating`, `shipping`).
+   - **Plan review** / **Full review** → list Plans for the active
+     project in `draft`, `approved`, `delivering`, or `evaluating`
+     status. Most-recently-updated first.
+3. **Step 3 (picker).** Present up to 3 candidates plus a
+   *Describe a different one* fallback. If the candidate set is
+   empty, suggest `/spades:scope <title>` and stop.
+4. **Step 4 (fuzzy-match if needed).** Resolve any free-form
+   description against the candidate set.
+5. **Step 5 (echo).** Briefly confirm the resolved target before
+   continuing.
+
+For **Full Review**, the Plan is the picked target; the parent
+Scope is read automatically from the Plan's `scope:` frontmatter.
 
 ## Gathering Context
 

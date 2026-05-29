@@ -11,19 +11,24 @@ and reviewed at the Approve gate. Plans can depend on prior plans
 within the same scope, and the dependency chain is encoded in the
 filename.
 
-Read `docs/FRAMEWORK.md` § ID Format, § .spades/ Local Layout, and
-§ Execution Posture before running. Schemas below mirror that
-contract.
+Read `docs/FRAMEWORK.md` § ID Format, § .spades/ Local Layout,
+§ Target Resolution, and § Execution Posture before running. Schemas
+below mirror those contracts.
 
 ## Pre-Flight
 
 1. **Confirm setup + active project.** Abort otherwise.
 2. **Read the backend** from `.spades/config`.
-3. **Identify the target Scope.** The human passes the scope ID
-   (`S-<slug>`), the slug, or the title. Resolve fuzzy:
-   - Read `.spades/scopes/S-<slug>.md` directly if the ID is given.
-   - Otherwise call the backend's `find_scope_fuzzy` and confirm via
-     `AskUserQuestion` if ambiguous.
+3. **Resolve the target Scope** per `docs/FRAMEWORK.md` § Target
+   Resolution. This skill's parameters:
+   - **Artefact type:** Scope (no type-question needed).
+   - **Status filter:** `scoped`, `planning`.
+   - **Zero-candidate suggestion:** `/spades:scope <title>` to create
+     one.
+
+   If the human passed an ID (`S-<slug>`), a slug, or a title in the
+   invocation, fuzzy-resolve directly via `find_scope_fuzzy` and
+   confirm if ambiguous. Otherwise run the interactive picker.
 4. **Verify Scope readiness.** If the Scope is missing required fields,
    abort and suggest `/spades:scope <slug>` (Edit mode) first.
 
