@@ -10,13 +10,21 @@ not a rubber stamp. You walk the human through a fixed checklist, ask
 for the routing decision (who does the work — AI, human, or mixed),
 and write the result back to the Plan record.
 
-Read `docs/FRAMEWORK.md` § .spades/ Local Layout and § Asking the Human
-before running.
+Read `docs/FRAMEWORK.md` § .spades/ Local Layout, § Target
+Resolution, and § Asking the Human before running.
 
 ## Pre-Flight
 
 1. **Confirm setup + active project.** Abort otherwise.
-2. **Resolve the Plan ID** the human provided (`P-<slug>-<suffix>`).
+2. **Resolve the target Plan** per `docs/FRAMEWORK.md` § Target
+   Resolution. This skill's parameters:
+   - **Artefact type:** Plan (no type-question needed).
+   - **Status filter:** `draft`.
+   - **Zero-candidate suggestion:** `/spades:plan S-…` to draft a
+     plan on a Scope.
+
+   If the human passed a Plan ID, resolve directly; otherwise run the
+   interactive picker.
 3. **Read the Plan file** at `.spades/plans/<filename>.md` plus its
    parent Scope at `.spades/scopes/S-<scope-slug>.md`.
 4. **Read `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`** so you

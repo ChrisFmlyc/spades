@@ -10,12 +10,23 @@ moment work becomes real to the outside world: a PR merges, an
 artefact is published, an action's evidence is filed.
 
 Read `docs/FRAMEWORK.md` § Hierarchy (`deliverable_type` semantics)
-before running.
+and § Target Resolution before running.
 
 ## Pre-Flight
 
 1. **Confirm setup + active project.** Abort otherwise.
-2. **Resolve the Plan ID.**
+2. **Resolve the target Plan** per `docs/FRAMEWORK.md` § Target
+   Resolution. This skill's parameters:
+   - **Artefact type:** Plan (no type-question needed).
+   - **Status filter:** `evaluating` with a PASS verdict in the audit
+     trail. When listing candidates, parse the audit trail to surface
+     only PASS-verdict plans first; PARTIAL plans appear below with
+     an annotation; FAIL plans are excluded.
+   - **Zero-candidate suggestion:** `/spades:evaluate P-…` to verify a
+     delivered plan.
+
+   If the human passed a Plan ID, resolve directly; otherwise run the
+   interactive picker.
 3. **Read the Plan and parent Scope.**
 4. **Verify status.** The Plan must be `status: evaluating` with a
    PASS verdict recorded in the audit trail. Acceptable variations:

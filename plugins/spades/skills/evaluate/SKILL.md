@@ -8,14 +8,25 @@ description: Check delivered output against a Plan's acceptance criteria. Return
 You are running the Evaluate gate. This is distinct from Approve:
 Approve validates the *plan*; Evaluate validates the *output*.
 
-Read `docs/FRAMEWORK.md` § .spades/ Local Layout before running.
+Read `docs/FRAMEWORK.md` § .spades/ Local Layout and § Target
+Resolution before running.
 
 ## Pre-Flight
 
 1. **Confirm setup + active project.** Abort otherwise.
-2. **Resolve the target.** The human passes a Plan ID
-   (`P-<slug>-<suffix>`) for full-loop work, or a Scope ID
-   (`S-<slug>`) when evaluating an entire scope's worth of plans.
+2. **Resolve the target** per `docs/FRAMEWORK.md` § Target
+   Resolution. This skill is unusual: it can take either a Plan or a
+   Scope (whole-scope evaluation when every Plan under it is done).
+   - **If the human passed an ID,** resolve directly: `P-<slug>-<suffix>`
+     → Plan; `S-<slug>` → Scope.
+   - **If invoked bare,** ask via `AskUserQuestion`:
+     - *One plan* → Plan picker, status filter `delivering` or
+       `evaluating`.
+     - *Whole scope* → Scope picker, status filter `evaluating`.
+   - **Zero-candidate suggestions:**
+     - No Plans in `delivering`/`evaluating` → `/spades:do P-…` on an
+       approved plan first.
+     - No Scopes in `evaluating` → none yet — keep delivering Plans.
 3. **Read the target.** Plan + parent Scope, OR Scope + every Plan
    under it.
 4. **Read `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`.**

@@ -15,15 +15,23 @@ You are executing an approved Plan. The Plan's `delivery:` field
 
 You do NOT make the routing decision here. That happened at Approve.
 
-Read `docs/FRAMEWORK.md` § Execution Posture before running — every
-task declares a posture (`test-first`, `characterization-first`,
-`refactor-first`, `spike`, `straight-through`) and the posture
-drives how you build.
+Read `docs/FRAMEWORK.md` § Target Resolution and § Execution Posture
+before running — every task declares a posture (`test-first`,
+`characterization-first`, `refactor-first`, `spike`,
+`straight-through`) and the posture drives how you build.
 
 ## Pre-Flight
 
 1. **Confirm setup + active project.** Abort otherwise.
-2. **Resolve the Plan ID** the human provided.
+2. **Resolve the target Plan** per `docs/FRAMEWORK.md` § Target
+   Resolution. This skill's parameters:
+   - **Artefact type:** Plan (no type-question needed).
+   - **Status filter:** `approved`, `delivering` (so resume works).
+   - **Zero-candidate suggestion:** `/spades:approve P-…` on a draft
+     plan.
+
+   If the human passed a Plan ID, resolve directly; otherwise run the
+   interactive picker.
 3. **Read the Plan and the parent Scope.**
 4. **Verify status.** The Plan must be `status: approved`. If it's
    `draft`, abort and suggest `/spades:approve` first. If it's

@@ -291,6 +291,112 @@ The pattern: **decisions are structured; composition is free-form.**
 
 ---
 
+## Target Resolution
+
+Several skills act on an existing Scope or Plan: `review`, `plan`,
+`approve`, `do`, `evaluate`, `ship`. If the human invokes one without
+naming a target (no ID, no slug, no description), the skill must
+walk the human through finding the right one — not abort. This
+section is the canonical contract; skills reference it rather than
+restating it.
+
+### The flow
+
+1. **Determine the artefact type.**
+   - For skills that work on exactly one type (e.g. `/spades:approve`
+     always operates on a Plan), skip this step.
+   - For type-flexible skills (today, only `/spades:review` qualifies
+     — Scope review, Plan review, or Full Review of both), ask via
+     `AskUserQuestion`:
+     - *Scope review* — target is a Scope
+     - *Plan review* — target is a Plan
+     - *Full review* — target is a Plan together with its parent Scope
+
+2. **List candidates from the backend**, filtered to:
+   - The **active project** from `.spades/config`'s `project:` field
+   - The **status set** appropriate for this skill (see the per-skill
+     table below)
+
+   Use the backend interface (`list_scopes(filter)` /
+   `list_plans(scope_id)`) — do NOT hand-roll a filesystem glob in
+   `linear` mode or a Linear MCP call in `local` mode.
+
+3. **Present a picker via `AskUserQuestion`.** `AskUserQuestion`
+   caps at 4 options, so:
+   - If there are ≤ 3 candidates: each candidate is one option,
+     plus a *Describe a different one* free-form fallback as the
+     fourth option (or omit the fallback if the human almost
+     certainly wants one of those three).
+   - If there are > 3 candidates: show the top 3 by relevance
+     (most-recently-updated first, then alphabetical by ID), plus
+     *Describe a different one — list more / search* as the fourth
+     option.
+   - If there are 0 candidates: do NOT call `AskUserQuestion`. Tell
+     the human what's missing and suggest the upstream skill (see
+     the per-skill table). Don't pretend to offer choices.
+
+   Each option's label is the artefact's **ID + short title** (e.g.
+   `S-add-ai-helper-bot — Add AI Helper Bot`). The description
+   field carries status and (for Plans) `delivery:` /
+   `deliverable_type:`.
+
+4. **If the human picked *Describe a different one*,** prompt
+   free-form for a search term. Fuzzy-match the term against the
+   full candidate set (slug substring, title token overlap,
+   id_suffix prefix). Then:
+   - One strong match → confirm via `AskUserQuestion` (*Use this
+     one* / *No, search again*).
+   - Multiple matches → present up to 3 via `AskUserQuestion` plus
+     a re-search option.
+   - No matches → tell the human, offer to re-search or abort.
+
+5. **Resolve and continue.** The resolved ID is what the rest of
+   the skill operates on. Echo it back briefly (*Reviewing
+   S-add-ai-helper-bot — Add AI Helper Bot*) so the human can
+   correct early if it's wrong.
+
+### Per-skill status filter
+
+| Skill | Artefact type | Status filter for the picker |
+|-------|---------------|------------------------------|
+| `/spades:review` | Scope OR Plan (asked at step 1) | Scopes: any active phase; Plans: `draft`, `approved`, `delivering`, `evaluating` |
+| `/spades:plan` | Scope | `scoped`, `planning` |
+| `/spades:approve` | Plan | `draft` |
+| `/spades:do` | Plan | `approved`, `delivering` (so resume works) |
+| `/spades:evaluate` | Plan (or Scope for whole-scope eval) | Plans: `delivering`, `evaluating`. Scopes: `evaluating` |
+| `/spades:ship` | Plan | `evaluating` with a PASS verdict recorded in the audit trail |
+
+### Zero-candidate suggestion table
+
+When the filter returns nothing, suggest the upstream skill:
+
+| Skill returning zero | Suggest |
+|----------------------|---------|
+| `/spades:plan` (no scoped Scopes) | `/spades:scope <title>` to create one |
+| `/spades:approve` (no draft Plans) | `/spades:plan S-…` to draft one |
+| `/spades:do` (no approved Plans) | `/spades:approve P-…` on a draft plan |
+| `/spades:evaluate` (no delivering / evaluating Plans) | `/spades:do P-…` on an approved plan |
+| `/spades:ship` (no evaluating + PASS Plans) | `/spades:evaluate P-…` to verify a delivered plan |
+| `/spades:review` (no active artefacts) | `/spades:scope <title>` to create one |
+
+### When the human DID name a target
+
+If the invocation passed an argument — an ID, a slug, or a phrase —
+skip steps 1–3 and go straight to fuzzy resolution against the
+candidate set. If the argument exactly matches an ID, no
+confirmation prompt is needed; if it's a slug or phrase, surface
+the resolution back via `AskUserQuestion` for one-step confirmation
+before continuing.
+
+### Why this lives in FRAMEWORK.md
+
+Restating the same picker logic in six skills means six places to
+fix when it changes. Skills reference this section by name (*"see
+docs/FRAMEWORK.md § Target Resolution"*) and only state their own
+artefact type + status filter.
+
+---
+
 ## Fast-Track Path
 
 Not every change deserves the full loop. Trivial work — typos, one-line
