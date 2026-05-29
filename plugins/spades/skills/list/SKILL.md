@@ -1,6 +1,7 @@
 ---
 name: list
 description: List active SPADES Scopes, optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades/config`.
+version: 2.0.0
 ---
 
 # /spades:list

@@ -1,9 +1,43 @@
 # Changelog
 
 All notable changes to the SPADES Framework are documented here.
-Versions follow [semver](https://semver.org/) at the framework level
-(the consumer-repo marker block in `AGENTS.md` carries its own version
-stamp via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`).
+Versions follow [semver](https://semver.org/) at the plugin level
+(see `AGENTS.md` § Versioning for the policy: every merged PR bumps
+the plugin version; per-skill `version:` fields bump only when that
+skill's SKILL.md changes). The consumer-repo marker block in
+`AGENTS.md` carries the plugin version via
+`<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
+
+## [2.1.0] — 2026-05-29
+
+**Minor** — additive changes accumulated since 2.0.0, plus the new
+per-PR versioning policy.
+
+- **Per-PR versioning policy** documented in `AGENTS.md` § Versioning
+  and in the consumer-facing fragment embedded in
+  `skills/setup/SKILL.md`. Plugin version bumps on every PR;
+  per-skill `version:` bumps only when that skill changes; both
+  follow semver.
+- **New `version:` field** required on every `SKILL.md` frontmatter,
+  enforced by `scripts/lint/lint-skill-frontmatter.sh` (semver
+  format check: `X.Y.Z`). All 15 skills seeded at `version: 2.0.0`;
+  `setup` bumps to `2.1.0` since this PR modifies its body.
+- **Catches up changes accumulated since 2.0.0:**
+  - PR #2 — `setup` skill: Linear MCP install guidance when the
+    probe fails (skill body expansion)
+  - PR #3 — interactive target pickers for `scope`, `plan`,
+    `approve`, `do`, `evaluate`, `ship`, `review` (new framework
+    section `§ Target Resolution`, all six skills updated)
+  - PR #4 — `review` skill: rule-delimited persona summaries
+    in the inline report (presentation refactor)
+  - PR #5 — `evaluate` skill: AI / Human / Hybrid routing with
+    two-phase resume; renamed `delivery: mixed` → `delivery: hybrid`;
+    new `evaluation:` Plan frontmatter field; vocabulary aligned
+    across `approve` / `do` / `evaluate`
+- **Skills bumped**: `setup` 2.0.0 → 2.1.0 (modified in this PR for
+  the policy embedding). All other 14 skills remain at 2.0.0 (no
+  body changes in this PR — only the new `version:` frontmatter
+  field, which is bookkeeping, not behaviour).
 
 ## [2.0.0] — 2026-05-29
 

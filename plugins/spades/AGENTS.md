@@ -189,6 +189,96 @@ There is no auto-probe: the human chose the backend explicitly during
 `/spades:setup`. See `docs/FRAMEWORK.md` § Backend Interface for the
 full contract drivers must satisfy.
 
+## Versioning
+
+Every PR to this plugin **must** bump the plugin version. Per-skill
+versions bump only when that skill's body or frontmatter changes.
+
+### Two levels of versioning
+
+- **Plugin version** — declared in
+  `plugins/spades/.claude-plugin/plugin.json`, mirrored in
+  `.claude-plugin/marketplace.json` (both the marketplace `metadata.version`
+  and the plugin entry's `version`), and pinned in
+  `plugins/spades/.spades/version` as `spades_version=X.Y.Z`. All four
+  values must match.
+- **Skill version** — declared as a `version:` field in each skill's
+  frontmatter (`plugins/spades/skills/<name>/SKILL.md`). Bumps only
+  when that skill's body, frontmatter, or behaviour changes.
+
+The plugin version bumps on **every** merged PR — even a one-line
+README fix, a lint refinement, or a docs nudge. A skill's `version:`
+bumps **only** if that skill's SKILL.md changed in the PR. So a PR
+that touches three skills bumps those three skills plus the plugin;
+a PR that only touches `docs/FRAMEWORK.md` bumps only the plugin.
+
+### Choosing major / minor / patch
+
+Apply semver based on what changed:
+
+- **Major (X.0.0)** — breaking changes:
+  - Removing a skill, or renaming its slash-command name
+  - Removing or renaming a frontmatter field, status enum value,
+    backend interface operation, or ID format
+  - Removing a required field
+- **Minor (x.Y.0)** — additive, backwards-compatible changes:
+  - New skill
+  - New frontmatter field (optional or with default)
+  - New status enum value, new routing mode, new deliverable_type
+  - New backend driver
+- **Patch (x.y.Z)** — fixes and refinements:
+  - Bug fix in a skill body
+  - Doc improvement
+  - Lint refinement
+  - Wording change with no behavioural shift
+  - Formatting / presentation change to output
+
+When in doubt, **lean toward bumping higher**. A minor that should
+have been patch costs nothing; a patch that should have been minor
+hides a real change from anyone reading the changelog.
+
+### Per-skill semver follows the same rules
+
+A skill's own `version:` field follows semver independently. If a PR
+changes skill A breakingly and skill B additively, both bump at
+different levels:
+
+- Skill A: `2.0.0` → `3.0.0` (breaking)
+- Skill B: `2.0.0` → `2.1.0` (additive)
+- Plugin: `2.0.0` → `3.0.0` (at least the highest of the skill bumps)
+
+The plugin version is always **at least** the highest of the skill
+versions that changed — a breaking change in any one skill forces
+the plugin to bump major.
+
+### Where versions live
+
+| Where | What |
+|-------|------|
+| `plugins/spades/.claude-plugin/plugin.json` `"version"` | Plugin |
+| `.claude-plugin/marketplace.json` `metadata.version` + plugins[0].`version` | Plugin (mirror — must match) |
+| `plugins/spades/.spades/version` (`spades_version=X.Y.Z`) | Plugin pin |
+| `plugins/spades/skills/<name>/SKILL.md` frontmatter `version:` | Per-skill |
+| AGENTS.md marker block (`<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`) | Plugin (consumer-facing) |
+
+### Lint enforces presence
+
+`scripts/lint/lint-skill-frontmatter.sh` requires a `version:` field
+on every skill's SKILL.md. CI fails if a skill is missing one.
+
+### CHANGELOG
+
+Every PR adds an entry to `plugins/spades/CHANGELOG.md` at the top
+under the new plugin version. Entry shape:
+
+```markdown
+## [X.Y.Z] — YYYY-MM-DD
+
+- **<bump kind>**: <one-line summary of the change>
+- Skills bumped: `<skill-a>` x.y.z → x.y+1.0, `<skill-b>` x.y.z → x.y.z+1
+- (or "Skills bumped: none" for plugin-only changes)
+```
+
 ## Audit Trail
 
 Every piece of work must trace through:
