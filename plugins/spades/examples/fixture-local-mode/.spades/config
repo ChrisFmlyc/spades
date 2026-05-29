@@ -1,0 +1,6 @@
+# SPADES config — fixture-local-mode (v2.0 example fixture).
+# backend: local — artefacts live in this directory tree. No Linear MCP
+# calls are ever made when this config is active.
+
+backend: local
+project: example-service

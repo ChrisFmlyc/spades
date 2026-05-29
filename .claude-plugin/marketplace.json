@@ -1,26 +1,26 @@
 {
-  "name": "spade-framework",
+  "name": "spades-framework",
   "owner": {
-    "name": "M-KOPA Product Security Team",
-    "url": "https://github.com/M-KOPA"
+    "name": "Chris Powell",
+    "url": "https://github.com/ChrisFmlyc"
   },
   "metadata": {
-    "description": "SPADE Framework marketplace — the SPADE plugin for Claude Code and Cowork.",
-    "version": "1.7.0"
+    "description": "SPADES Framework marketplace — the SPADES plugin for Claude Code.",
+    "version": "2.0.0"
   },
   "plugins": [
     {
-      "name": "spade",
-      "source": ".",
-      "description": "Scope, Plan, Approve, Deliver, Evaluate — fourteen skills, five agents (four reviewer personas and a researcher), three helper scripts.",
-      "version": "1.7.0",
+      "name": "spades",
+      "source": "./plugins/spades",
+      "description": "Scope, Plan, Approve, Do, Evaluate, Ship — six-phase loop with a Project layer and pluggable backends (Linear MCP, local filesystem, more). 15 skills and 5 agents (4 reviewer personas + 1 researcher). Pure Markdown, no bash, no external setup.",
+      "version": "2.0.0",
       "author": {
-        "name": "M-KOPA Product Security Team"
+        "name": "Chris Powell"
       },
-      "homepage": "https://github.com/M-KOPA/spade-framework",
+      "homepage": "https://github.com/ChrisFmlyc/spades",
       "license": "MIT",
       "keywords": [
-        "spade",
+        "spades",
         "engineering",
         "review",
         "workflow"

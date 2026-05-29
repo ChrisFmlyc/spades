@@ -1,0 +1,381 @@
+# Changelog
+
+All notable changes to the SPADES Framework are documented here.
+Versions follow [semver](https://semver.org/) at the framework level
+(the consumer-repo marker block in `AGENTS.md` carries its own version
+stamp via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`).
+
+## [2.0.0] — 2026-05-29
+
+**Substantial restructure.** Treat this as a new framework that shares
+the SPADES name with v1 — there is no automatic migration.
+
+### Six-phase loop, with Do and Ship as first-class phases
+
+The loop is now **Scope → Plan → Approve → Do → Evaluate → Ship**. The
+old "Deliver" phase splits into **Do** (execute the work — `code`,
+`artefact`, or `action`) and **Ship** (release the deliverable: open a
+PR + review + merge, or record an artefact reference, or record
+evidence of a completed action). Each phase has its own skill.
+
+### Project layer above Scope
+
+A new top-level record — a Project — groups related Scopes under one
+identity (a repo, a service, a set of repos). Per-repo `.spades/config`
+names exactly one active project. `/spades:newproject` creates new
+Project records.
+
+### Pluggable backends
+
+Storage and audit-trail recording are abstracted behind the contract
+in `docs/FRAMEWORK.md` § Backend Interface. v2.0 ships two drivers:
+**Linear MCP** and **local filesystem**. Adding a backend (Notion,
+Confluence, GitHub Issues, …) means writing a driver per
+`docs/EXTENDING-BACKENDS.md` and per-skill branches — no core
+changes. The auto-probe Mode Resolver from v1 is gone; backend
+selection is explicit at `/spades:setup` time and stored under
+`backend:` in `.spades/config`.
+
+### Semantic IDs
+
+- Projects: `<project-slug>` (lowercase, hyphen-safe).
+- Scopes: `S-<description-slug>`.
+- Plans: `P-<description-slug>-<4-char-suffix>[-<dep-suffix>...]`.
+  The dependency chain is encoded in the filename in dependency order
+  (most recent dep first) and authoritatively in `depends_on:`
+  frontmatter.
+
+Plan dependencies replace v1's delivery bundles — each Plan stands on
+its own and can list earlier Plans it relies on.
+
+### 15 skills
+
+`setup`, `newproject`, `scope`, `plan`, `approve`, `do`, `evaluate`,
+`ship`, `quick`, `review`, `learn`, `research`, `list`, `status`,
+`intent`. `init` was absorbed by `setup`; `do` and `ship` are new;
+the rest were rewritten or trimmed for the new IDs and backend
+contract.
+
+### Routing decision recorded at Approve
+
+`/spades:approve` now asks the routing question — `ai` /
+`human` / `mixed` — and writes the answer to the Plan's `delivery:`
+frontmatter. `/spades:do` reads that field and routes accordingly,
+rather than rediscovering the answer at execution time.
+
+### Embedded templates — no `templates/` or `fragments/` directories
+
+Every template the framework injects into a consumer repo lives
+inline inside the SKILL.md of the producing skill: the AGENTS.md
+marker-block content and the ARCHITECTURE / PATTERNS / ANTI-PATTERNS
+scaffolding live inside `skills/setup/SKILL.md`; the INTENT.md
+template lives inside `skills/intent/SKILL.md`; the Scope and Plan
+body shapes live inside their respective skills. The standalone
+`templates/` and `fragments/` directories are gone.
+
+### `AGENTS.md` only — no `CLAUDE.md`
+
+SPADES now writes only `AGENTS.md` into consumer repos. AGENTS.md is
+the cross-vendor convention (Claude Code, Cursor, Codex, Aider all
+read it), and a single source-of-truth file beats one file per
+vendor. The `CLAUDE.md` fragment, the `CLAUDE-section.md` injection,
+and the framework's own dogfooded `CLAUDE.md` are all removed.
+
+### Lint suite refresh
+
+The lint suite is now five checks (skills, agents, examples,
+learnings, local-mode artefacts). `lint-fragments.sh` and
+`lint-mcp-guard.sh` are gone (their premises no longer apply). The
+local-mode lint covers v2 Project, Scope, and Plan schemas with
+planted-fixture self-tests for both passing and failing cases.
+
+### Renamed config field
+
+`mode:` in `.spades/config` becomes `backend:`. There is no `hybrid`
+backend — that mode was rarely correct in practice; teams now pick
+`linear` or `local` and stay there.
+
+### Migration
+
+No automatic migration tool. v2.0 is a fresh start. Existing v1
+artefacts (M-NNN-plan.md files, sp-XXXXXX scope IDs) won't pass the
+v2 lint. Users should treat v2 as a clean install — run
+`/spades:setup`, `/spades:newproject`, and re-create scopes as needed.
+
+## [Earlier history — v1.x]
+
+## [Previous 2.0.0 marketplace-repackage entry] — 2026-05-24
+
+**Breaking — pure-Markdown plugin. No bash, no `~/.spades`, no setup
+script.** SPADES is now distributed solely as a Claude Code plugin.
+The two-place install (`/plugin install` + `git clone ~/.spades && setup`)
+collapses to one command. All bash helpers are gone; the marker-replace
+contract that maintains the framework block in consumer `AGENTS.md` /
+`CLAUDE.md` now lives in skill prose as a state machine Claude executes
+through `Read` and `Edit`.
+
+Skill renames (breaking):
+
+- All skills lose their `spades-` filename prefix. They are now
+  plugin-namespaced as `/spades:<name>` via the plugin name in
+  `.claude-plugin/plugin.json`.
+- `/spades-onboard` → `/spades:init` — clearer name for the
+  initialise-this-project flow.
+- `/spades-update` — **deleted.** Plugin marketplace handles updates
+  (`/plugin update spades@spades-framework`); re-running `/spades:init`
+  re-stamps the consumer's fragment markers in place.
+- `/spades-handoff` — **deleted.** The macOS-only AppleScript spawner
+  is gone; humans can still launch a fresh agent manually.
+
+Distribution / install:
+
+- Repo restructured to canonical plugin layout: `skills/` and
+  `agents/` at the root (no longer under `.claude/`); fragments,
+  templates, examples, and docs at the plugin root.
+- `setup`, `setup.ps1`, `bin/` directory (4 bash helpers), the
+  `scripts/spades-*` mirrors, `scripts/release-plugin.sh`, and
+  `render/` (HTML CSS) — all deleted.
+- Skill prose references bundled siblings via
+  `${CLAUDE_PLUGIN_ROOT}/<path>` substitution.
+
+Templates:
+
+- New `templates/ARCHITECTURE.md`, `templates/PATTERNS.md`,
+  `templates/ANTI-PATTERNS.md` — proper blank templates with
+  `<!-- Describe ... -->` placeholders for consumer repos. The
+  framework's own root architecture docs no longer double as
+  consumer templates (a pre-existing wart from v1.x).
+
+CI:
+
+- `.github/workflows/lint.yml` drops the `handoff`,
+  `render-css-budget`, and `render-smoke` jobs. Deleted lints:
+  `lint-render-smoke.sh`, `lint-handoff.sh`.
+
+Cross-platform:
+
+- Windows works natively without WSL or Git-Bash. The "External
+  Toolchain Policy" subsection covering `bin/spades-marker-replace`
+  bash dependency is gone.
+
+Scope: M-1024 (collapse to pure plugin).
+
+## [1.8.0] — 2026-05-18
+
+**Local-mode artefact hardening — schema enforcement + stable IDs.**
+The local-mode frontmatter schema is now machine-enforced in CI, and
+every local Scope carries a stable identifier independent of its slug.
+
+- `docs/FRAMEWORK.md` § Local Layout — adds the `id` field: a stable
+  short identifier (`sp-` + six base32 characters) generated once at
+  Scope creation, distinct from the title-derived slug, collision-
+  resistant without a central allocator, and correctness-only — not an
+  authorisation or trust primitive. The `status` / `type` / `priority`
+  value sets are marked the canonical enum lists the schema lint
+  enforces.
+- New `scripts/lint/lint-local-frontmatter.sh` + a `local-frontmatter`
+  CI job. `frontmatter.py` gains a `--schema` mode: Scope files
+  hard-fail on an invalid `status` / `type` / `priority` enum value or
+  a missing core field, and warn (not fail) on an unknown field or a
+  missing `id` (grandfathered on pre-v1.8 files). Plan files get a
+  light warn-only check; learnings stay with `lint-learnings.sh`. A
+  legacy fixture and a bad-enum fixture self-test the check.
+- `/spades:scope` now generates the `id` for new Scopes and aborts on a
+  slug collision rather than silently overwriting an existing Scope.
+
+Scope: M-1023. v1.8.0 also carries the `/spades-handoff` launcher,
+merged unreleased since v1.7.0.
+
+## [1.7.0] — 2026-05-18
+
+**Local mode — read/write parity without Linear.** SPADES skills now
+work end-to-end with no Linear MCP, reading and writing canonical state
+from `.spades/`. A repo declares `mode: local | linear | hybrid` in
+`.spades/config`; the canonical store becomes a per-repo choice rather
+than a framework default. Consumer repos running under a hand-written
+CLAUDE.md override to force local behaviour can drop that override.
+
+Operating modes:
+
+- `docs/FRAMEWORK.md` § Operating Modes — new single-source contract.
+  § Mode Resolver: an explicit `mode:` wins; otherwise a `list_teams`
+  probe with a 5-second timeout, resolving `linear` only when the
+  configured `team_id` is in the returned set. Failure policy is
+  asymmetric — fail-loud when an explicitly-configured tracker is
+  unreachable, degrade-quiet to `local` when the repo was never
+  configured. § Local Layout: canonical `.spades/` paths, slug grammar
+  `[a-z0-9-]{1,64}`, the Scope frontmatter schema, and the
+  `.spades/version` tie with pre-v1.7 grandfathering. § Hybrid Mode:
+  tracker-canonical with a **non-authoritative** local mirror.
+
+Skills:
+
+- All nine skills (`/spades:scope`, `/spades:plan`, `/spades:approve`,
+  `/spades:evaluate`, `/spades:list`, `/spades:status`, `/spades:learn`,
+  `/spades:quick`, `/spades:init`) carry a "Mode Resolution" section
+  and key tracker-vs-local behaviour off the resolved mode.
+- `/spades:list` and `/spades:status` gain genuine `local`-mode code
+  paths — they scan `.spades/scopes/` and parse frontmatter instead of
+  hard-requiring Linear MCP. This was the M-879 origin bug.
+- `/spades:init` scaffolds `.spades/scopes|plans|learnings` and writes
+  a starter `.spades/config` with an explicit `mode:` chosen once at
+  onboard time.
+- `/spades-update` adds the v1.6.1 → v1.7.0 migration: it writes an
+  explicit `mode:` line into `.spades/config` if absent, leaving every
+  `.spades/plans/*` file grandfathered.
+
+Lint:
+
+- New `scripts/lint/lint-mcp-guard.sh` + `mcp-guard` CI job — fails
+  when a skill names a Linear MCP tool without a "## Mode Resolution"
+  section. A planted-violation fixture self-tests the check on every
+  run, closing the manual-verification gap.
+
+Fixtures:
+
+- `examples/fixture-local-mode/` and `examples/fixture-linear-mode/` —
+  minimal consumer repos for the manual happy-path verification.
+
+Scope: M-879 (planned and delivered under the SPADES loop; the Scope's
+stale "v1.4.0" version target was re-pointed to 1.7.0 at planning, the
+framework already being at 1.6.1). v1.7.0 also carries the INTENT.md
+project-intent loop (M-951).
+
+## [1.6.1] — 2026-05-16
+
+**Patch release — renderer fix and polish.** v1.6.0's HTML renderer
+did not work on Pandoc 3.x. This release fixes it, gives the rendered
+output a real visual design, and realigns the render lint with what
+the feature is — a local-only convenience renderer, not a web app.
+
+Renderer:
+
+- `render/template.html`: fixed the `$for(css)$` block. It called
+  non-existent Pandoc partials (`$styles.css()$`, `$css-content()$`)
+  and made `spades-render` fail with exit 3 (`Could not find data file
+  templates/styles.css`) on Pandoc 3.x. The stylesheet is now linked
+  and inlined via `--embed-resources`, with `$highlighting-css$` for
+  syntax highlighting. The `<html>` element carries `data-spades-status`
+  so the stylesheet can theme to the document's phase.
+- `bin/spades-render`: switched the deprecated `--highlight-style` flag
+  to `--syntax-highlighting` (Pandoc 3.9+).
+- `render/spades.css`: editorial redesign — status-coloured top accent
+  bar, restructured document header (kicker pills, prominent title,
+  quiet meta line), refined table of contents with nested indent
+  guides, zebra-striped tables, softer code chips, tightened type
+  scale. Light and dark both verified. 8.9KB, within the 12KB budget.
+
+Lint:
+
+- `scripts/lint/lint-render-security.sh` → `lint-render-smoke.sh`. The
+  XSS / CSP / path-leak scan is replaced by a render smoke test: every
+  fixture must render (exit 0) to a non-empty, standalone HTML document
+  with the stylesheet inlined. `spades-render` turns the user's own
+  Markdown into a local file they open themselves, so there is no
+  web-security threat model to enforce; a functional regression guard
+  (it would have caught the Pandoc 3.x breakage) is the right check.
+  CI job renamed `render-security` → `render-smoke`.
+
+Skills:
+
+- `/spades:scope`: the render-and-link step is now a mandatory closing
+  step, promoted from a trailing section so it is not treated as an
+  optional appendix.
+
+No fragment changes. Consumers on v1.6.0 only need to bump their
+`.spades/version` pin to `1.6.1`.
+
+## [1.6.0] — 2026-05-13
+
+**HTML rendering for scopes and plans (Pandoc).** Every locally-stored
+SPADES Scope and Plan now gets a sibling `.html` rendering produced by
+the new `bin/spades-render` POSIX-shell wrapper around `pandoc`.
+`/spades:scope` and `/spades:plan` append a clickable
+`View in browser: file://...` link on every local write — modern
+terminals (iTerm2, Warp, VS Code, Terminal.app) auto-linkify the URL
+for cmd-click. Markdown remains canonical; HTML is a read-only
+rendered view.
+
+Released artefacts:
+
+- `bin/spades-render` — POSIX-shell wrapper around `pandoc`, ≤100 lines.
+- `render/template.html` — Pandoc HTML5 template (status header from
+  frontmatter, TOC, restrictive CSP meta).
+- `render/spades.css` — ≤12KB inlined stylesheet (system-font
+  typography, six status pill colours, syntax highlighting via
+  Pandoc's Skylighting, `prefers-color-scheme: dark`, `@media print`).
+- `scripts/lint/lint-render-security.sh` + new `render-css-budget` and
+  `render-security` CI jobs — fixture-driven XSS / path-leak / CSP
+  assertions enforced on every PR.
+- `tests/fixtures/render/{xss-attempts,minimal-scope}.md` — security
+  and smoke fixtures.
+- `docs/FRAMEWORK.md` §HTML Rendering — single source of truth for the
+  Pandoc install matrix, renderer interface, status pill palette
+  (hex values), security stance, recommended `.gitignore` line,
+  `file://` linkification rule, and determinism contract.
+- `ARCHITECTURE.md` §External Toolchain Policy — Pandoc named as a
+  recommended consumer binary (same category as `git`/`jq`).
+
+Skill changes:
+
+- `/spades:scope` and `/spades:plan` gained a "Rendering and terminal
+  link (v1.6+)" closing section. The render + link step is purely
+  additive; existing skill behaviour is unchanged. Render failure
+  never aborts the skill — the `.md` is always written.
+- `/spades-update` documents the v1.3.x → v1.6.0 upgrade recipe with
+  an informational pandoc presence check. No bulk render of historical
+  `.md` files (lazy on next write only).
+
+Architectural posture preserved:
+
+- No vendored third-party code. No Node, no npm, no compiled
+  artefacts. Pandoc is a recommended consumer dep, not a library.
+- `PATTERNS.md` unchanged — "Markdown + YAML frontmatter is the only
+  data format" still holds; HTML is a rendered view, not data.
+- Graceful degradation: when pandoc is absent, `spades-render` exits 2
+  and the calling skill surfaces an install hint on every write
+  (not one-time-per-session) until pandoc is installed.
+
+Deferred to v1.7+ (out of scope here):
+
+- Mermaid pre-rendering (would pull in headless Chromium via `mmdc`).
+- Terminal links on read skills (`/spades:status`, `/spades:list`,
+  `/spades:approve`, `/spades:evaluate`, `/spades:review`).
+- Bulk render on `/spades-update`.
+- Auto-injection into the consumer's `.gitignore` (documented for
+  opt-in only).
+- AC checkbox state persistence, sticky TOC, dark-mode toggle button.
+- Panel-report and learnings HTML rendering.
+
+Scope: M-901. Two `/spades:review` panel rounds on the pre-shipped
+drafts (33 + 41 findings, 4 blocking on the original Node-bundle
+architecture) drove the switch to Pandoc and the minimum-viable
+shape.
+
+## [1.3.0] — 2026-04-28
+
+- New skill `/spades:research` — landscape research via an isolated
+  Opus 4.7 read-only subagent.
+- New framework convention "Asking the Human" (`AskUserQuestion` for
+  fixed-option decisions).
+- Several skills retrofitted to the new convention.
+
+## [1.2.0] — earlier
+
+- M-420: Linear-canonical Plan storage. `.spades/plans/` becomes a
+  fallback for Linear-less environments rather than a default
+  dual-write.
+
+## [1.1.x] — earlier
+
+- Multi-persona `/spades:review` panel (5 subagents).
+- `/spades:learn` skill.
+- Execution posture field in Plan templates.
+- CI lint suite.
+
+## [1.0.0] — earlier
+
+- Initial release: `/spades:scope`, `/spades:plan`, `/spades:approve`,
+  `/spades:evaluate`, `/spades:quick`, `/spades:init`,
+  `/spades:status`, `/spades:list`, `/spades-update`.
+- Fragment-marker-based onboarding via `bin/spades-marker-replace`.

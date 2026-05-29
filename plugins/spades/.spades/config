@@ -1,0 +1,16 @@
+# SPADES per-repo configuration (v2.0).
+# Read by SPADES skills to identify the backend and active project.
+
+# Backend: linear | local. Explicit choice — no auto-probe.
+# See docs/FRAMEWORK.md § Backend Interface.
+backend: local
+
+# Active project for this repository.
+project: spades-framework
+
+# Notes:
+# - This repo is the SPADES framework itself. The loop governs its own work.
+# - Project record lives at .spades/projects/spades-framework.md.
+# - Scopes use S-<description-slug> IDs; plans use P-<slug>-<suffix>[-<dep>...].
+# - To switch to the Linear backend, add `backend: linear` and a `linear:`
+#   block with `team_id:` and `project_id:`, then re-run /spades:setup.
