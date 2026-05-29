@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # /spades:ship
@@ -38,6 +38,28 @@ and § Target Resolution before running.
    - `evaluating` + FAIL → abort; not shippable
    - any other status → abort with a clear message
 
+## Step 0 — Detect fresh run vs resume (code deliverables)
+
+For `deliverable_type: code`, this skill is two-phase:
+
+- **Phase 1 (fresh)** — Push the branch, open the PR, exit. Plan
+  goes to `status: shipping`.
+- **Phase 2 (resume)** — After CodeRabbit feedback is addressed and
+  the PR is squash-merged, re-invoke `/spades:ship`. The skill
+  detects the resume via audit-trail markers, verifies the merge,
+  records the merge SHA, marks the Plan `shipped`.
+
+Read the audit trail before doing anything else.
+
+- **No `PR opened:` line** → fresh run. Continue to Step 1.
+- **`PR opened: <URL>` present but no `Shipped:` line** → resume.
+  Jump to Step 6 (Resume).
+- **`Shipped:` present** → already complete. Ask via
+  `AskUserQuestion` whether to re-record or exit.
+
+For `deliverable_type: artefact` or `action`: always single-phase.
+Continue to Step 1.
+
 ## Step 1 — Update Status
 
 Move the Plan to `status: shipping` and `updated: <today>`.
@@ -50,36 +72,54 @@ Append to the audit trail:
 
 ## Step 2 — Branch on Deliverable Type
 
-### Branch A: `deliverable_type: code`
+### Branch A: `deliverable_type: code` (Phase 1)
 
-You're shipping code via a PR. Inline checklist (no dependency on
-external review tooling — if the human has `coderabbit` or similar
-installed, that's their own augmentation):
+You're publishing code. `/spades:do` already created a feature
+branch and committed work onto it; this branch publishes that work.
+No auto-merge — squash-merge happens in GitHub after CodeRabbit
+review.
 
-#### A.1 — Verify Local State
+#### A.1 — Verify on the right branch
 
-- Has every task's code been committed?
-- Are there uncommitted changes that shouldn't go in the PR? Surface
-  them; ask before discarding.
-- Is the branch you're shipping from named sensibly? Suggest
-  `spades/<plan-id>` (e.g. `spades/P-rag-pipeline-lookup-3HyD`).
-- Does the branch include any commits that don't belong to this Plan?
-  If so, ask the human whether to rebase or split.
+- `git rev-parse --abbrev-ref HEAD` — current branch
+- If on `main` / `master`: error. `/spades:do` should have created a
+  feature branch. Abort and suggest the human verifies what
+  happened.
+- Read the Plan's audit trail. Find the `Do phase started — branch:`
+  line. If the current branch doesn't match, warn via
+  `AskUserQuestion`:
+  - *Push the current branch anyway (overrides the audit-trail
+    branch)*
+  - *Switch to the recorded branch and continue*
+  - *Abort*
 
-#### A.2 — Push
+#### A.2 — Pre-push checks
 
-Push the branch to the remote. Show the push output.
+- Are there uncommitted changes? Surface them; ask via
+  `AskUserQuestion` whether to commit (with a follow-up free-form
+  message), stash, or discard before pushing.
+- Does the branch include commits that don't belong to this Plan?
+  If so, surface them; ask whether to rebase / split or proceed.
 
-#### A.3 — Open the PR
+#### A.3 — Push
 
-Open a PR via `gh pr create` (or whatever the project's convention is —
-inspect `.github/` or recent PRs to match local style). The title and
-body should be:
+Push the branch to origin:
 
-**Title** — short and descriptive. Suggested form:
-`<verb> <thing>: <plan-id>`. e.g. `Add RAG pipeline lookup (P-rag-pipeline-lookup-3HyD)`.
+```bash
+git push -u origin <branch>
+```
 
-**Body** — generate from the Plan:
+Capture the output.
+
+#### A.4 — Open the PR
+
+Open a PR via `gh pr create`. Title and body derived from the Plan:
+
+**Title** — short, descriptive. Suggested form:
+`<verb> <thing> (<plan-id>)`. e.g.
+`Add RAG pipeline lookup (P-rag-pipeline-lookup-3HyD)`.
+
+**Body** — generated from the Plan:
 
 ```markdown
 ## Summary
@@ -105,47 +145,31 @@ body should be:
 <from the Plan's Testing & Verification section>
 ```
 
-#### A.4 — Review
+Capture the PR URL from `gh pr create`'s output.
 
-Walk the human through the review checklist:
+#### A.5 — Record Phase 1 completion and exit
 
-- [ ] CI is green on the latest commit
-- [ ] All acceptance criteria visible to the reviewer
-- [ ] No unexpected files in the diff
-- [ ] No secrets, tokens, or .env files in the diff
-- [ ] The PR description tells the reviewer everything they need
-
-If the project has automated review tooling (CodeRabbit, etc.)
-installed, the human will invoke it themselves. SPADES doesn't depend
-on any specific reviewer.
-
-#### A.5 — Address Findings
-
-If review surfaces findings:
-
-1. Push fixes as new commits to the same branch.
-2. Re-request review.
-3. Iterate until clean.
-
-#### A.6 — Merge
-
-Once approved and CI green, ask the human (via `AskUserQuestion`):
-
-- **Merge now** (recommended) — runs `gh pr merge` with the project's
-  default strategy (squash / merge / rebase — pick from the project's
-  recent merge history)
-- **Hold** — leave the PR open; the human will merge later
-
-If merging now, do the merge and capture the merge commit SHA.
-
-#### A.7 — Record Shipment
-
-Call the backend's `record_shipment(plan_id, artefact_ref)` with the PR
-URL and merge commit SHA. Append to the audit trail:
+Append to the Plan's audit trail:
 
 ```markdown
-- YYYY-MM-DD: Shipped. PR: <url>. Merge commit: <sha>.
+- YYYY-MM-DD: PR opened: <URL>.
 ```
+
+Plan stays in `status: shipping`. Print the hand-off:
+
+```
+✓ PR opened: <URL>
+○ CodeRabbit will run automatically (if installed on the repo).
+○ Address review feedback by committing to this branch.
+
+Once the PR is squash-merged:
+  /repo:sync                — clean up main + the local branch
+  /spades:ship P-<plan-id>  — record the merge SHA, mark shipped
+
+Plan stays in `shipping` until the resume runs.
+```
+
+**Exit here.** Do NOT proceed to Step 3+ on a Phase 1 run.
 
 ### Branch B: `deliverable_type: artefact`
 
@@ -214,6 +238,38 @@ Append to audit trail:
   - <evidence 1>
   - <evidence 2>
 ```
+
+## Step 6 — Resume (code deliverables, after squash-merge)
+
+You arrive here because Step 0 detected a `PR opened:` line in the
+audit trail with no `Shipped:` line.
+
+1. **Parse the PR URL** from the most recent `PR opened:` line.
+   Extract the PR number (last segment of `/pull/<n>`).
+2. **Verify merge state:**
+
+   ```bash
+   gh pr view <number> --json state,mergeCommit,mergedAt,mergedBy
+   ```
+
+   - `state == "MERGED"` → capture `mergeCommit.oid` and
+     `mergedAt`. Continue.
+   - `state == "OPEN"` → tell the human the PR is still open; show
+     a one-line summary (CI status, reviews). Ask via
+     `AskUserQuestion`:
+     - *Wait — re-run later*
+     - *Abort — record nothing, exit*
+   - `state == "CLOSED"` (not merged) → ask the human how to
+     handle: re-open the PR (manual), mark the Plan rejected, or
+     abort.
+
+3. **Record the shipment.** Append to the audit trail:
+
+   ```markdown
+   - YYYY-MM-DD: Shipped. PR: <URL>. Merge: <sha>. Merged by: <login>.
+   ```
+
+4. **Continue to Step 3** to finalise the Plan status.
 
 ## Step 3 — Update Status
 

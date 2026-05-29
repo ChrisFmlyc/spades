@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # /spades:do
@@ -48,7 +48,93 @@ before running — every task declares a posture (`test-first`,
    - **Wait** — abort, suggest finishing the dependency first
    - **Proceed anyway** — record the override in the audit trail
 
-## Step 1 — Update Status
+## Step 1 — Ensure a feature branch (code deliverables)
+
+For `deliverable_type: code` plans, Do-phase commits land on a
+feature branch named for this Plan. `/spades:ship` later pushes
+that branch and opens the PR. This step creates or confirms the
+branch **before** any code work begins.
+
+For `deliverable_type: artefact` or `action`: skip this step
+entirely — there's no branch lifecycle.
+
+### Pre-check git state
+
+Run:
+
+```bash
+git rev-parse --abbrev-ref HEAD       # current branch
+git status --porcelain                # working-tree state
+```
+
+Then decide:
+
+- **On main / master, clean tree** → derive branch name (below),
+  validate against `/repo:branch`'s regex, then run
+  `git switch -c <name>`. Continue to Step 2.
+- **On main / master, dirty tree** → abort. Tell the human to
+  commit, stash, or discard those unrelated changes first. SPADES
+  does NOT silently carry unrelated work onto a new feature branch.
+- **On a feature branch named for this Plan** — already in place.
+  Record this as a resume in the audit trail; continue to Step 2.
+- **On a feature branch named for a different Plan** — warn the
+  human via `AskUserQuestion`:
+  - *Switch to a new branch off main for this Plan*
+  - *Keep working on the current branch (bundling related work)*
+  - *Abort*
+
+### Branch name derivation
+
+Source is the Plan's `title:` field. Apply the slug rules from
+`/repo:newbranch` § Slug generation:
+
+1. Lowercase.
+2. Replace anything outside `[a-z0-9]` with `-`.
+3. Collapse `-` runs.
+4. Trim leading and trailing `-`.
+5. Truncate at the last `-` ≤ 48 chars so the slug fits the
+   `/repo:branch` length cap.
+
+Prefix the result with the work type:
+
+- `feat/` for additive code (new feature, new endpoint, new behaviour)
+- `fix/` for bug-fix Plans
+- `refactor/` for behaviour-preserving restructuring
+- Default to `feat/` if unclear, surfacing the assumption to the
+  human.
+
+Final branch name must satisfy `/repo:branch`'s regex:
+`^(feat|fix|chore|docs|refactor|rnd|hotfix)/[a-z0-9]([a-z0-9-]{0,48}[a-z0-9])?$`
+
+If validation fails (slug ends up empty or invalid), abort and ask
+the human to rename the Plan.
+
+Worked example:
+- Plan title: `"RAG Pipeline Lookup"` → branch `feat/rag-pipeline-lookup`
+
+### Why `git switch -c`, not `/repo:newbranch`
+
+`/repo:newbranch` creates a *worktree* (separate directory) off a
+clean main. For Do-phase use, in-place branch creation is what we
+want — Do, Evaluate, and Ship all operate against the same Plan
+file's `## Audit Trail` heading and need to share a working tree.
+
+The name-validation rule from `/repo:branch` still applies — same
+prefix regex, same slug rules. Only the git primitive differs.
+
+### Record the branch
+
+After `git switch -c <name>` succeeds, append to the Plan's
+`## Audit Trail`:
+
+```markdown
+- YYYY-MM-DD: Do phase started — branch: <prefix>/<slug>.
+```
+
+`/spades:ship` reads this line later to verify it's pushing the
+right branch.
+
+## Step 2 — Update Status
 
 Move the Plan to `status: delivering` and `updated: <today>`.
 
@@ -64,7 +150,7 @@ already.
 When `backend: linear`, mirror the status changes (sub-issue → "Delivering",
 parent Issue → "Delivering").
 
-## Step 2 — Route
+## Step 3 — Route
 
 ### Branch A: `delivery: ai`
 
@@ -137,7 +223,7 @@ is which (the approve step asked for this mapping).
    do Task 1, then stand down. The human must run `/spades:do` again
    when their portion is complete to resume any remaining AI tasks.
 
-## Step 3 — Resume Path
+## Step 4 — Resume Path
 
 If `/spades:do` is re-invoked on a plan already `status: delivering`:
 
@@ -150,7 +236,7 @@ If `/spades:do` is re-invoked on a plan already `status: delivering`:
 Never restart a Plan from scratch. The audit trail is the source of
 truth for what's already happened.
 
-## Step 4 — Move to Evaluate
+## Step 5 — Move to Evaluate
 
 When every task is complete (AI portion done, human portion confirmed
 done):
