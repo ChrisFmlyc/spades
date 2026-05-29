@@ -1,0 +1,9 @@
+# SPADES config — fixture-linear-mode (v2.0 example fixture).
+# backend: linear — artefacts mirror to a Linear Project. The local
+# files under .spades/ are kept in sync best-effort.
+
+backend: linear
+project: example-service
+linear:
+  team_id: 55069140-fef8-4f1a-8d04-726227e0292b
+  project_id: 576ca5be-0c4a-4a88-b10b-8fd1501a6f82

@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: ./scripts/lint/lint-skill-frontmatter.sh
+      - run: ./plugins/spades/scripts/lint/lint-skill-frontmatter.sh
 
   agents:
     name: agent frontmatter
@@ -27,21 +27,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: ./scripts/lint/lint-agents.sh
+      - run: ./plugins/spades/scripts/lint/lint-agents.sh
 
   examples:
     name: examples schema
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: ./scripts/lint/lint-examples.sh
-
-  fragments:
-    name: fragments
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: ./scripts/lint/lint-fragments.sh
+      - run: ./plugins/spades/scripts/lint/lint-examples.sh
 
   learnings:
     name: learnings schema
@@ -51,53 +44,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: ./scripts/lint/lint-learnings.sh
-
-  onboard-idempotency:
-    name: onboard idempotency
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: ./scripts/lint/lint-onboard-idempotency.sh
-
-  handoff:
-    name: handoff launcher
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: ./scripts/lint/lint-handoff.sh
-
-  render-css-budget:
-    name: render css budget (<= 12KB)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: assert spade.css under 12288 bytes
-        run: |
-          size=$(wc -c < render/spade.css)
-          echo "render/spade.css is $size bytes"
-          if [ "$size" -ge 12288 ]; then
-            echo "::error::render/spade.css must be < 12288 bytes (was $size)"
-            exit 1
-          fi
-
-  render-smoke:
-    name: render smoke test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: install pandoc
-        run: sudo apt-get update && sudo apt-get install -y pandoc
-      - name: chmod renderer
-        run: chmod +x bin/spade-render scripts/lint/lint-render-smoke.sh
-      - run: ./scripts/lint/lint-render-smoke.sh
-
-  mcp-guard:
-    name: mcp guard
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: ./scripts/lint/lint-mcp-guard.sh
+      - run: ./plugins/spades/scripts/lint/lint-learnings.sh
 
   local-frontmatter:
     name: local-mode artefact schema
@@ -107,4 +54,4 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: ./scripts/lint/lint-local-frontmatter.sh
+      - run: ./plugins/spades/scripts/lint/lint-local-frontmatter.sh

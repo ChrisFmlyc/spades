@@ -1,0 +1,274 @@
+# SPADES Framework — Agent Operating Rules
+
+This file defines mandatory behaviour for all AI agents operating in this project.
+These rules are non-negotiable. If you are an AI agent reading this file, you must
+follow every instruction below. Violations of the SPADES loop undermine the audit
+trail and the trust model that makes human-AI collaboration safe.
+
+`AGENTS.md` is the canonical operating-rules file for any agent that
+reads project context — Claude Code, Cursor, Codex, Aider, and the
+rest. SPADES deliberately does **not** ship a `CLAUDE.md`,
+`CURSOR.md`, or any other per-vendor variant.
+
+## SPADES Skills (v2.0)
+
+This repo ships SPADES itself, so the plugin's 15 skills are available
+when working in it. Invoke them by their namespaced names:
+
+| Skill | What it does |
+|-------|-------------|
+| `/spades:setup` | Configure backend + scaffold this repo (re-runnable) |
+| `/spades:newproject` | Create a new Project record |
+| `/spades:scope` | Create or edit a Scope (`S-<description-slug>`) |
+| `/spades:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope |
+| `/spades:approve` | Present a Plan for review; record routing (AI / human / mixed) |
+| `/spades:do` | Execute an approved Plan, routed per the approval decision |
+| `/spades:evaluate` | Check delivered output against acceptance criteria |
+| `/spades:ship` | Open PR + review + merge (code) or record deliverable (artefact / action) |
+| `/spades:quick` | Fast-track for trivial work — PR description is the audit trail |
+| `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
+| `/spades:learn` | Capture a learning under `.spades/learnings/` |
+| `/spades:research` | Read-only research via an isolated Opus subagent |
+| `/spades:list` | List active scopes, filterable by phase or project |
+| `/spades:status` | Show current SPADES phase + dependency graph |
+| `/spades:intent` | Maintain `INTENT.md` — the durable project statement |
+
+The active backend is **linear** (see `.spades/config`); the active
+project is `spades-framework` — the framework dogfooding itself.
+
+## The SPADES Loop
+
+Every unit of work in this project follows six phases:
+
+    SCOPE → PLAN → APPROVE → DO → EVALUATE → SHIP
+
+Humans own Scope and the Approve / Evaluate gates. AI owns Plan; Do is
+routed at Approve time (`ai` / `human` / `mixed`). Ship branches on
+`deliverable_type` (`code` / `artefact` / `action`). You must never
+skip a phase or combine phases without explicit human instruction.
+
+**Exception — the fast-track path.** Trivial work (a typo, a one-line
+tweak, a config nudge) can use `/spades:quick` instead of the full
+loop. See "Fast-Track Path (Small Work)" below for the gate criteria.
+When in doubt, use the full loop.
+
+## Hierarchy
+
+```
+Project (a repo, a service, a set of repos)
+└── Scope (S-<description-slug>) — one outcome
+    └── Plan (P-<description-slug>-<suffix>[-<dep>...]) — one unit of executable work
+```
+
+Plans can depend on prior plans within the same Scope. The dependency
+chain is encoded in the filename (each prior plan's 4-char suffix
+appended) and authoritatively in the `depends_on:` frontmatter field.
+
+## Phase Rules
+
+### 1. Scope (Human-Owned)
+
+- You must NEVER begin planning or writing code without a written Scope.
+- A Scope has an ID of the form `S-<description-slug>` and lives at
+  `.spades/scopes/S-<slug>.md` (with a backend mirror when `backend:
+  linear`).
+- A Scope must include: statement of intent, acceptance criteria,
+  architectural constraints, dependencies, context, out-of-scope, risk,
+  delivery preference, priority.
+- If a human asks you to "just do X" without a Scope, ask them to
+  define one first. Help them write it if needed via `/spades:scope`,
+  but do not proceed to Plan without a documented Scope.
+- **Before writing a Scope, check the fast-track gate.** If every
+  criterion in "Fast-Track Path" below passes, invoke `/spades:quick`
+  instead of `/spades:scope`.
+
+### 2. Plan (AI-Owned)
+
+- When a Scope exists, you produce one or more structured Plans before
+  writing any code.
+- Each Plan has an ID of the form
+  `P-<description-slug>-<4-char-suffix>[-<dep-suffix>...]`. The 4-char
+  suffix is randomly minted at creation; dependency suffixes encode
+  which prior plans must ship first.
+- Plans declare dependencies via `depends_on:` in frontmatter. A plan
+  is blocked until every plan in its `depends_on:` is `status:
+  shipped`.
+- Each Plan body includes: technical approach, 3–7 tasks, risks &
+  assumptions, testing & verification, delivery sequence.
+- Each task in a Plan declares an execution posture (`test-first`,
+  `characterization-first`, `refactor-first`, `spike`,
+  `straight-through`). No silent defaults.
+- A Plan also declares its `deliverable_type:` (`code`, `artefact`, or
+  `action`) — this drives what Ship does later.
+- You must NOT begin Do-phase work until the Plan is approved.
+
+### 3. Approve (Human Gate)
+
+- After producing a Plan, STOP and wait for human approval via
+  `/spades:approve`.
+- The approve gate walks a 6-point checklist (architecture alignment,
+  completeness, feasibility, risk, granularity, deliverable fit) and
+  asks for a decision: Approve / Approve with notes / Revise / Reject.
+- On approval, the gate ALSO records a **routing decision** on the
+  Plan's frontmatter: `delivery: ai | human | mixed`. This determines
+  who executes Do.
+- If revised or rejected, do not begin delivery. Apply `plan-rejected`
+  (Linear) or note in the local audit trail.
+- **Panel second opinion (optional).** The human may request
+  `/spades:review` before deciding. It spawns four persona subagents —
+  scope-guardian, architecture-strategist, security-lens,
+  adversarial-reviewer — in parallel, merges their findings by
+  convergence, and presents a tiered report. Non-blocking: the panel
+  never gates approval or delivery.
+
+### 4. Do (AI or Human — Routed)
+
+- Execute the approved Plan via `/spades:do`. Routing comes from the
+  Plan's `delivery:` field set at Approve time.
+- For `delivery: ai`: run the work autonomously, honouring each task's
+  execution posture. Commit as you go.
+- For `delivery: human`: record the assignment in the backend and
+  stand down. Do not auto-do.
+- For `delivery: mixed`: split per the Plan's per-task routing.
+- Before starting, verify every plan in this plan's `depends_on:` is
+  `status: shipped`. If any is not, warn the human and require an
+  explicit override.
+- If you discover the Plan is wrong mid-Do, STOP. Surface the
+  discrepancy; do not silently change direction.
+
+### 5. Evaluate (Human-Owned)
+
+- After Do completes, the Plan moves to `status: evaluating`. Run
+  `/spades:evaluate` to check delivered output against the Scope's
+  acceptance criteria.
+- Verdict is one of PASS / PARTIAL / FAIL.
+  - **PASS** → proceed to Ship.
+  - **PARTIAL** → specific gaps, work returns to Do for fixes.
+  - **FAIL** → fundamental issue, route back to Plan or Scope.
+- AI may assist with evaluation but a human signs off the verdict.
+
+### 6. Ship (Mixed)
+
+- After a PASS verdict, run `/spades:ship`. Behaviour branches on
+  `deliverable_type:`:
+  - **`code`** — push the branch, open a PR, walk the inline review
+    checklist, merge. Record PR URL + merge SHA.
+  - **`artefact`** — record the artefact reference (URL, doc ID, file
+    path) on the Plan.
+  - **`action`** — record evidence of completion (photo, email
+    reference, receipt, signed doc).
+- A Plan reaches `status: shipped` only when its deliverable is real
+  to the outside world. A Scope reaches `status: done` only when every
+  Plan under it is `shipped`.
+
+## Architecture Constraints
+
+Before generating any Plan, you must read these files if they exist:
+
+- `ARCHITECTURE.md` — system architecture, infrastructure, and data flow
+- `PATTERNS.md` — approved patterns, libraries, and conventions
+- `ANTI-PATTERNS.md` — things you must not do, with rationale
+
+If a proposed solution conflicts with these documents, flag the
+conflict in the Plan and get explicit human approval before
+proceeding.
+
+## Backend
+
+The backend is configured in `.spades/config` under `backend:`. SPADES
+v2.0 ships two drivers:
+
+- **`backend: linear`** — Project ↔ Linear Project; Scope ↔ parent
+  Issue; Plan ↔ sub-issue. Audit records (approval, evaluation,
+  shipment) post as comments on the parent issue.
+- **`backend: local`** — every artefact lives under `.spades/`. Audit
+  records append to an `## Audit Trail` heading on the scope/plan
+  file.
+
+There is no auto-probe: the human chose the backend explicitly during
+`/spades:setup`. See `docs/FRAMEWORK.md` § Backend Interface for the
+full contract drivers must satisfy.
+
+## Audit Trail
+
+Every piece of work must trace through:
+
+1. A Project record
+2. A signed-off Scope
+3. One or more approved Plans (with dependency relationships)
+4. An approval decision with routing
+5. A do-phase record of who/what executed each task
+6. An evaluation verdict
+7. A shipment record
+
+Work that cannot be traced through this chain must not ship. The audit
+trail is the mechanism by which AI-delivered work remains trustworthy.
+
+## Fast-Track Path (Small Work)
+
+Not every change deserves a Scope. The fast-track path handles trivial
+work — typo fixes, one-line tweaks, small config nudges, docs changes
+— through `/spades:quick`. On this path the **PR description is the
+audit artefact**: no separate Scope or Plan record is created.
+
+**When a human describes a small fix, check the fast-track gate
+BEFORE invoking `/spades:scope`.** If every criterion below passes,
+run `/spades:quick`. Otherwise fall back to the full loop.
+
+### The Gate — ALL must be true
+
+1. Single concern (one bug, one tweak, one touch-up)
+2. ≤ 50 lines of code changed total; hard stop above ~100
+3. One file, or a tight cluster in one module
+4. No new dependencies (package manifests untouched)
+5. No schema, migration, or data-layer changes
+6. No architectural changes, no new patterns, no new abstractions
+7. No security-sensitive code (auth, crypto, secrets, permissions)
+8. No public API or interface breaking changes
+9. Revertable as one commit
+10. Existing tests cover the area (trivial extension is fine; new
+    test scaffolding is not)
+
+If *any* criterion fails, stop and invoke `/spades:scope` for the full
+loop. The gate is all-or-nothing.
+
+### Incident response
+
+Incidents and larger reactive work do NOT use the fast-track path.
+Ceremony is cheap during an incident — use the full loop so the audit
+trail is complete.
+
+### Evaluating quick-path work
+
+`/spades:evaluate` on a quick-path item validates the PR directly
+(merged, CI green, checklist complete) instead of iterating per-plan
+tasks. Sub-records are forbidden on the quick path regardless of
+verdict.
+
+## What You Must Never Do
+
+- Begin writing code without a documented Scope (or a valid fast-track
+  gate pass)
+- Begin Do without an approved Plan (on the full loop)
+- Mark work shipped without verifying the deliverable is real (PR
+  merged, artefact reachable, action evidenced)
+- Skip the Plan documentation step — Plans are first-class artefacts
+- Misuse `/spades:quick` for work that fails any gate criterion
+- Create sub-records on the fast-track path
+- Introduce technologies or patterns that conflict with
+  `ARCHITECTURE.md` without flagging the conflict and getting explicit
+  approval
+- Assume organisational context you do not have (ask the human)
+- Combine multiple Scopes into one delivery without human agreement
+- Write a `CLAUDE.md` (or any other per-vendor agent file) — AGENTS.md
+  is the only file SPADES maintains in consumer repos
+
+<!--
+  Framework-repo note: this file is the canonical SPADES agent
+  operating rules. Consumer repos carry a compressed,
+  marker-wrapped subset of the rules above, delimited by
+  `SPADES-FRAMEWORK-START vX.Y.Z` and `SPADES-FRAMEWORK-END` markers.
+  We deliberately do NOT carry that block here — this repo is the
+  source of truth. The /spades:setup skill refuses to run inside this
+  repository for the same reason.
+-->
