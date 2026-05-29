@@ -1,13 +1,13 @@
 ---
 name: approve
-description: Present a SPADES Plan for human review against the approval checklist, then record the routing decision (AI / human / mixed) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`. The biggest risk in SPADES is a weak Approval gate.
+description: Present a SPADES Plan for human review against the approval checklist, then record the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`. The biggest risk in SPADES is a weak Approval gate.
 ---
 
 # /spades:approve
 
 You are running the Approve gate on a drafted Plan. Approval is a gate,
 not a rubber stamp. You walk the human through a fixed checklist, ask
-for the routing decision (who does the work — AI, human, or mixed),
+for the routing decision (who does the work — AI, human, or hybrid),
 and write the result back to the Plan record.
 
 Read `docs/FRAMEWORK.md` § .spades/ Local Layout, § Target
@@ -119,26 +119,30 @@ free-form prompt for the notes.
 ## Routing Decision (Only When Approved)
 
 If the decision was Approve or Approve-with-notes, ask via
-`AskUserQuestion`:
+`AskUserQuestion`. The three options use the same wording as
+`/spades:evaluate`'s evaluation-routing question, so the human gets
+a consistent vocabulary across the loop:
 
-1. **AI auto-delivery** — `/spades:do` will execute autonomously
-2. **Human delivery** — record assignment; a human picks this up
-3. **Mixed** — some tasks AI, some human (you'll specify which)
+1. **AI** — `/spades:do` will execute autonomously, committing as it
+   goes.
+2. **Human** — `/spades:do` records the assignment in the backend;
+   a human picks this up and does the work.
+3. **Hybrid** — split per task. AI does its tasks, then hands off to
+   a human for theirs. Follow up with a free-form prompt mapping
+   task numbers to AI / human.
 
 Notes:
-- For `deliverable_type: action` (server install, vendor call), Human
-  is the typical choice.
-- For `deliverable_type: code` on standard feature work, AI auto is
-  the typical choice.
-- For Mixed, follow up with a free-form prompt mapping task numbers to
-  AI/human.
+- For `deliverable_type: action` (server install, vendor call),
+  Human is the typical choice.
+- For `deliverable_type: code` on standard feature work, AI is the
+  typical choice.
 
 ## Write the Decision
 
 Update the Plan file's frontmatter:
 
 - `status: approved` (or `rejected` / keep `draft` for revise)
-- `delivery: ai | human | mixed | undecided`
+- `delivery: ai | human | hybrid | undecided`
 - `updated: <today>`
 
 Append to the Plan's `## Audit Trail`:
@@ -163,7 +167,7 @@ The Linear driver:
 2. Updates the sub-issue status to "Approval" (or "Delivering" if
    immediately handing off to AI).
 3. Applies labels for the routing (`ai-delivered`, `human-delivery`,
-   `mixed-delivery`).
+   `hybrid-delivery`).
 
 If the Linear write fails, the local file is canonical; surface and
 offer retry.

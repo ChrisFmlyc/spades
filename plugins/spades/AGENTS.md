@@ -21,7 +21,7 @@ when working in it. Invoke them by their namespaced names:
 | `/spades:newproject` | Create a new Project record |
 | `/spades:scope` | Create or edit a Scope (`S-<description-slug>`) |
 | `/spades:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope |
-| `/spades:approve` | Present a Plan for review; record routing (AI / human / mixed) |
+| `/spades:approve` | Present a Plan for review; record routing (AI / human / hybrid) |
 | `/spades:do` | Execute an approved Plan, routed per the approval decision |
 | `/spades:evaluate` | Check delivered output against acceptance criteria |
 | `/spades:ship` | Open PR + review + merge (code) or record deliverable (artefact / action) |
@@ -43,7 +43,7 @@ Every unit of work in this project follows six phases:
     SCOPE → PLAN → APPROVE → DO → EVALUATE → SHIP
 
 Humans own Scope and the Approve / Evaluate gates. AI owns Plan; Do is
-routed at Approve time (`ai` / `human` / `mixed`). Ship branches on
+routed at Approve time (`ai` / `human` / `hybrid`). Ship branches on
 `deliverable_type` (`code` / `artefact` / `action`). You must never
 skip a phase or combine phases without explicit human instruction.
 
@@ -110,7 +110,7 @@ appended) and authoritatively in the `depends_on:` frontmatter field.
   completeness, feasibility, risk, granularity, deliverable fit) and
   asks for a decision: Approve / Approve with notes / Revise / Reject.
 - On approval, the gate ALSO records a **routing decision** on the
-  Plan's frontmatter: `delivery: ai | human | mixed`. This determines
+  Plan's frontmatter: `delivery: ai | human | hybrid`. This determines
   who executes Do.
 - If revised or rejected, do not begin delivery. Apply `plan-rejected`
   (Linear) or note in the local audit trail.
@@ -129,7 +129,7 @@ appended) and authoritatively in the `depends_on:` frontmatter field.
   execution posture. Commit as you go.
 - For `delivery: human`: record the assignment in the backend and
   stand down. Do not auto-do.
-- For `delivery: mixed`: split per the Plan's per-task routing.
+- For `delivery: hybrid`: split per the Plan's per-task routing.
 - Before starting, verify every plan in this plan's `depends_on:` is
   `status: shipped`. If any is not, warn the human and require an
   explicit override.

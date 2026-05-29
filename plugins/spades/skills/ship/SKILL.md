@@ -90,7 +90,7 @@ body should be:
 - Project: `<project-slug>`
 - Scope:   `S-<scope-slug>`
 - Plan:    `P-<plan-slug>-<suffix>`
-- Approved: <YYYY-MM-DD> — routing: ai|human|mixed
+- Approved: <YYYY-MM-DD> — routing: ai|human|hybrid
 - Evaluation verdict: PASS
 
 ## Tasks completed

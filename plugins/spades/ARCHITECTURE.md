@@ -94,7 +94,7 @@ no helper binary on PATH owned by this framework.
    learnings, produces a structured Plan, writes
    `.spades/plans/P-<slug>-<suffix>[-<dep>…].md`.
 5. `/spades:approve` gates the Plan; a human approves or rejects, and
-   records the routing decision (`ai` / `human` / `mixed`) on the
+   records the routing decision (`ai` / `human` / `hybrid`) on the
    Plan.
 6. `/spades:do` executes per the routing.
 7. `/spades:evaluate` checks delivered output against the Scope's
@@ -185,7 +185,7 @@ and no `${CLAUDE_PLUGIN_ROOT}` substitution needed.
   and the agent runtime. All skills carry at minimum `name` and
   `description`.
 - **Backend labels** (Linear): full-loop labels are `ai-planned`,
-  `ai-delivered`, `human-delivery`, `mixed-delivery`, `plan-rejected`,
+  `ai-delivered`, `human-delivery`, `hybrid-delivery`, `plan-rejected`,
   `needs-arch-review`, `deliverable_type:<value>`; fast-track labels
   are `spades:quick`, `type:bug|tweak|chore|docs|refactor`.
 - **Marker block** (`<!-- SPADES-FRAMEWORK-START vX.Y.Z -->` …

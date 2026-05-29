@@ -116,7 +116,8 @@ PLAN_ENUMS = {
     "status": (
         "draft", "approved", "delivering", "evaluating", "shipped", "rejected",
     ),
-    "delivery": ("ai", "human", "mixed", "undecided"),
+    "delivery": ("ai", "human", "hybrid", "undecided"),
+    "evaluation": ("ai", "human", "hybrid", "undecided"),
     "deliverable_type": ("code", "artefact", "action"),
 }
 PLAN_KNOWN_FIELDS = frozenset(

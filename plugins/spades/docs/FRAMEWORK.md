@@ -189,7 +189,8 @@ scope: S-add-ai-helper-bot
 title: "RAG Pipeline Lookup"
 depends_on: [28sD]                  # list of prior plans' id_suffix values
 status: draft | approved | delivering | evaluating | shipped | rejected
-delivery: ai | human | mixed        # set by /spades:approve
+delivery: ai | human | hybrid       # set by /spades:approve
+evaluation: ai | human | hybrid     # set by /spades:evaluate
 deliverable_type: code | artefact | action  # what Ship needs to do
 created: 2026-05-29
 updated: 2026-05-29

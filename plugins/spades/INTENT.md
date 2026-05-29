@@ -34,7 +34,7 @@ SPADES is a convention-plus-skills framework. It defines a six-phase loop —
 Scope → Plan → Approve → Do → Evaluate → Ship — with explicit ownership:
 humans own the edges (intent at Scope, verification at Evaluate, gating at
 Approve), AI owns the middle (planning and execution), and Do is routed at
-Approve time (AI / human / mixed). A Project layer above Scopes groups
+Approve time (AI / human / hybrid). A Project layer above Scopes groups
 related work; pluggable backends (Linear MCP, local filesystem,
 extensible) keep the framework agnostic about where artefacts live.
 It ships as Claude Code skills (`/spades:*`), with templates embedded

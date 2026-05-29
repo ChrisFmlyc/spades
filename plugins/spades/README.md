@@ -162,7 +162,7 @@ The typical first run, end to end:
 4. `/spades:plan S-add-the-thing` — break it down into 3–7 tasks, with
    dependencies among plans if needed.
 5. `/spades:approve P-add-the-thing-…` — human gate; pick the routing
-   (AI auto / human / mixed).
+   (AI auto / human / hybrid).
 6. `/spades:do P-add-the-thing-…` — execute, routed per the approval.
 7. `/spades:evaluate P-add-the-thing-…` — verify against the Scope's
    acceptance criteria (PASS / PARTIAL / FAIL).
@@ -188,8 +188,8 @@ SPADES ships 15 skills, grouped by *when you reach for them*:
 |-------|---------|
 | `/spades:scope` | Create or edit a Scope (`S-<description-slug>`). The outcome record — intent, acceptance criteria, constraints. Fuzzy-matches existing scopes so you don't accidentally double up. |
 | `/spades:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope. Plans can depend on prior plans within the same Scope; the dependency chain is encoded in the filename. |
-| `/spades:approve` | Human gate. Walks the 6-point approval checklist, then asks the routing question (AI / human / mixed) and records it on the Plan. |
-| `/spades:do` | Execute the Plan, routed per the approval. AI runs autonomously; human is assigned and acknowledged; mixed splits per task. |
+| `/spades:approve` | Human gate. Walks the 6-point approval checklist, then asks the routing question (AI / human / hybrid) and records it on the Plan. |
+| `/spades:do` | Execute the Plan, routed per the approval. AI runs autonomously; human is assigned and acknowledged; hybrid splits per task. |
 | `/spades:evaluate` | Check delivered output against the Scope's acceptance criteria. PASS → Ship. PARTIAL → back to Do. FAIL → back to Plan or Scope. |
 | `/spades:ship` | Release the deliverable. For `deliverable_type: code` it runs the inline PR + review + merge checklist; for `artefact` it records a reference (URL / doc ID / file path); for `action` it records evidence of completion. |
 
@@ -261,7 +261,7 @@ Rejected plans go back with specific feedback.
 ### Do (AI or Human — routed)
 
 Tasks get executed. `/spades:approve` records a routing decision on
-each Plan (`ai`, `human`, or `mixed`); `/spades:do` reads that and
+each Plan (`ai`, `human`, or `hybrid`); `/spades:do` reads that and
 either runs the work autonomously, records a human assignment, or
 splits the work per the Plan's per-task routing. AI handles code,
 pipelines, configuration, documentation. Humans handle stakeholder
