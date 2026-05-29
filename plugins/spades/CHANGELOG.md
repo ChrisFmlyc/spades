@@ -8,6 +8,34 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [2.3.0] — 2026-05-29
+
+**Minor** — SCM (source-code-management) abstraction.
+
+- **`/spades:setup` now asks for an SCM choice** alongside the
+  backend question. Two options ship: `local-git` (default — work
+  commits stay local, optional push to a remote) and `github` (work
+  flows through GitHub PRs via the `gh` CLI). The choice is stored
+  as `scm:` in `.spades/config`. Re-runnable.
+- **GitHub install guidance** — if the human picks GitHub and `gh
+  auth status` fails, the skill walks them through installing the
+  `gh` CLI (brew / apt / winget) and authenticating, mirroring the
+  Linear-MCP install guide added in 2.1.0.
+- **`/spades:ship`'s code branch is routed by `scm:`**:
+  - `scm: github` — original two-phase flow (push + `gh pr create`,
+    resume after squash-merge).
+  - `scm: local-git` — new single-phase flow: push to the configured
+    remote if any, record the commit SHA, mark the Plan `shipped`.
+    No PR loop.
+- **Other SCMs** (GitLab, Bitbucket) are documented as extension
+  points in `docs/EXTENDING-SCM.md` (new file).
+- **AGENTS.md + the consumer-facing setup fragment** updated Phase
+  6 (Ship) to describe the SCM routing.
+- **`.spades/config` schema in `docs/FRAMEWORK.md`** updated with
+  the new `scm:`, `github:`, and `local_git:` blocks.
+- **Skills bumped**: `setup` 2.2.0 → 2.3.0, `ship` 2.1.0 → 2.2.0.
+  Other skills unchanged.
+
 ## [2.2.0] — 2026-05-29
 
 **Minor** — code-deliverable branch lifecycle is now first-class.

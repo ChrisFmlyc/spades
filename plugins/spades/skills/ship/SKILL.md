@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 2.1.0
+version: 2.2.0
 ---
 
 # /spades:ship
@@ -72,12 +72,29 @@ Append to the audit trail:
 
 ## Step 2 — Branch on Deliverable Type
 
-### Branch A: `deliverable_type: code` (Phase 1)
+### Branch A: `deliverable_type: code`
 
 You're publishing code. `/spades:do` already created a feature
 branch and committed work onto it; this branch publishes that work.
-No auto-merge — squash-merge happens in GitHub after CodeRabbit
-review.
+
+**Branch A is routed by SCM** (read `scm:` from `.spades/config`):
+
+- **`scm: github`** — two-phase: Phase 1 pushes and opens a PR via
+  `gh pr create`; Phase 2 (resume after squash-merge) records the
+  merge SHA. See A.github below.
+- **`scm: local-git`** — single-phase: push to the configured remote
+  if one exists, record the commit SHA, mark the Plan shipped. No
+  PR, no CodeRabbit loop. See A.local-git below.
+- **(other SCMs)** — see `docs/EXTENDING-SCM.md` for the contract.
+  If `.spades/config` has an `scm:` value this skill doesn't know
+  about, abort and tell the human to install the corresponding
+  driver or fall back to `scm: local-git`.
+
+### Branch A.github — `scm: github` (two-phase)
+
+This is the original flow. `/spades:do` created the branch and
+committed; this phase publishes via PR. No auto-merge —
+squash-merge happens in GitHub after CodeRabbit review.
 
 #### A.1 — Verify on the right branch
 
@@ -171,6 +188,61 @@ Plan stays in `shipping` until the resume runs.
 
 **Exit here.** Do NOT proceed to Step 3+ on a Phase 1 run.
 
+### Branch A.local-git — `scm: local-git` (single-phase)
+
+There's no PR system in front of `local-git`. Ship's job is just to
+push (if a remote exists) and record the latest commit on the
+branch as the shipment reference.
+
+#### A.local-git.1 — Verify on the right branch
+
+Same as A.github (above) — `git rev-parse --abbrev-ref HEAD`, check
+against the audit trail's `Do phase started — branch:` line, warn
+on mismatch via `AskUserQuestion`.
+
+#### A.local-git.2 — Pre-push checks
+
+Same as A.github — surface uncommitted changes, offer commit / stash
+/ discard. Make sure the branch only carries this Plan's work.
+
+#### A.local-git.3 — Push (if a remote is configured)
+
+```bash
+git remote -v
+```
+
+- If a remote is configured (read the configured one from
+  `.spades/config`'s `local_git.remote:` field, default `origin`):
+
+  ```bash
+  git push -u <remote> <branch>
+  ```
+
+  Record the push in the audit trail (with remote name + branch).
+- If no remote is configured: skip the push, surface
+  *"No remote configured — recording the local commit as the
+  shipment reference."* in the report.
+
+#### A.local-git.4 — Capture the shipment reference
+
+```bash
+git rev-parse HEAD          # current commit SHA on the branch
+git log -1 --format='%h %s' # short SHA + subject for the audit trail
+```
+
+#### A.local-git.5 — Record and exit (single-phase)
+
+Append to the Plan's audit trail:
+
+```markdown
+- YYYY-MM-DD: Shipped (local-git). Branch: <branch>. Commit: <sha>.
+  Pushed to: <remote>/<branch>.    # omit this line if no remote
+```
+
+Plan → `status: shipped` directly (no second phase needed).
+
+Continue to Step 3.
+
 ### Branch B: `deliverable_type: artefact`
 
 The deliverable is a tangible thing that isn't merged code — a
@@ -239,10 +311,12 @@ Append to audit trail:
   - <evidence 2>
 ```
 
-## Step 6 — Resume (code deliverables, after squash-merge)
+## Step 6 — Resume (code deliverables on `scm: github`, after squash-merge)
 
 You arrive here because Step 0 detected a `PR opened:` line in the
-audit trail with no `Shipped:` line.
+audit trail with no `Shipped:` line. This step only runs for
+`scm: github`; `scm: local-git` is single-phase and skips
+straight to Step 3.
 
 1. **Parse the PR URL** from the most recent `PR opened:` line.
    Extract the PR number (last segment of `/pull/<n>`).
