@@ -1,6 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
+version: 2.1.0
 ---
 
 # /spades:setup
@@ -188,11 +189,14 @@ file, preserve it. Never blank fields the human still depends on.
 
 ## Step 4 — Write `.spades/version`
 
+Write the current plugin version (read from
+`${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` `"version"`) as:
+
 ```
-spades_version=2.0.0
+spades_version=<plugin-version>
 ```
 
-Idempotent — overwrite is fine.
+(e.g. `spades_version=2.1.0`.) Idempotent — overwrite is fine.
 
 ## Step 5 — Scaffold the .spades/ subdirectories
 
@@ -213,7 +217,7 @@ with a one-line header: `# AGENTS.md` and a blank line.
 Insert or replace the SPADES section between these markers:
 
 ```markdown
-<!-- SPADES-FRAMEWORK-START v2.0.0 -->
+<!-- SPADES-FRAMEWORK-START v<plugin-version> -->
 …the content below…
 <!-- SPADES-FRAMEWORK-END -->
 ```
@@ -349,6 +353,17 @@ Before generating any Plan, read these files if they exist:
 - `ANTI-PATTERNS.md` — things you must not do
 
 Flag any conflicts between proposed solutions and these documents.
+
+## Versioning
+
+Every PR to the SPADES plugin must bump the plugin version. Per-skill
+versions in the plugin's own SKILL.md frontmatter bump only when that
+skill's body changes. Consumer repos don't carry their own version —
+the plugin version in the marker block above (`vX.Y.Z`) tells you
+which framework version your AGENTS.md was last stamped against;
+re-running `/spades:setup` after a plugin upgrade re-stamps it.
+
+Choose major / minor / patch by semver. When in doubt, lean higher.
 
 ## Audit Trail
 

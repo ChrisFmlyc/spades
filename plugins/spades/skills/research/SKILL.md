@@ -1,6 +1,7 @@
 ---
 name: research
 description: Landscape research on a topic via an isolated Opus 4.7 subagent. Use when the human says "properly research this", "look into X", "check the prior art", "second opinion on the landscape", "what does the SOTA look like for X", or asks any open question that needs external fact-finding (libraries, frameworks, benchmarks, postmortems, comparisons). Returns a structured findings report; optionally posts to a Linear parent issue with explicit human consent. Callable any time — not tied to a SPADES phase. Also matches the explicit slash-command form `/spades:research`.
+version: 2.0.0
 ---
 
 ## Pre-Flight

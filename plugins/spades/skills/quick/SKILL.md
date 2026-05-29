@@ -1,6 +1,7 @@
 ---
 name: quick
 description: Fast-track path for trivial work — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when someone says "just fix this small thing", "quick tweak", "one-line change", "typo fix", "rename this variable", or when you would otherwise invoke /spades:scope for a change that clearly meets every gate criterion below. Do NOT use for anything touching architecture, auth, schemas, public APIs, or requiring more than one focused commit.
+version: 2.0.0
 ---
 
 ## Pre-Flight
