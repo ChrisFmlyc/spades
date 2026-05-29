@@ -137,7 +137,7 @@ something that ignores them. State *"None identified"* if so.
 ### 8. Delivery Preference
 - **Mostly AI-delivered** — standard code/config/docs work
 - **Mostly human-delivered** — needs org context, vendor access, etc.
-- **Mixed** — specify which tasks AI vs human
+- **Hybrid** — specify which tasks AI vs human
 
 Ask this via `AskUserQuestion` (fixed-option).
 
@@ -243,7 +243,7 @@ linear_issue_id: <id>          # only when backend: linear AND synced
 
 ## Delivery Preference
 
-<mostly AI / mostly human / mixed, with notes on which tasks>
+<mostly AI / mostly human / hybrid, with notes on which tasks>
 
 ## Audit Trail
 

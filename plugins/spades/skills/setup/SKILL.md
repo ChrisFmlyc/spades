@@ -246,7 +246,7 @@ The SPADES plugin (`spades`) provides these 15 skills:
 | `/spades:scope` | Create or edit a Scope (`S-<description-slug>`) |
 | `/spades:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope |
 | `/spades:approve` | Present a Plan for human review and record routing |
-| `/spades:do` | Execute an approved Plan (routed AI / human / mixed) |
+| `/spades:do` | Execute an approved Plan (routed AI / human / hybrid) |
 | `/spades:evaluate` | Check delivered output against the Plan |
 | `/spades:ship` | Open PR + review + merge (code) or record deliverable (artefact / action) |
 | `/spades:quick` | Fast-track for trivial work — PR description is the audit trail |
@@ -266,7 +266,7 @@ Every unit of work follows six phases:
 - Humans own Scope, Approve gate, and Evaluate gate.
 - AI owns Plan, Do (when routed AI-auto), and Ship (when the deliverable
   is code).
-- Approve records a routing decision (`ai` / `human` / `mixed`) that
+- Approve records a routing decision (`ai` / `human` / `hybrid`) that
   determines who executes Do.
 
 Never skip a phase or combine phases without explicit human
@@ -297,7 +297,7 @@ instruction.
 ### 3. Approve (Human gate)
 - After producing a Plan, STOP and wait for human approval.
 - Approval records a `delivery:` routing on the Plan (`ai`, `human`,
-  `mixed`) and a `deliverable_type:` (`code`, `artefact`, `action`).
+  `hybrid`) and a `deliverable_type:` (`code`, `artefact`, `action`).
 - If revised or rejected, do not begin delivery.
 
 ### 4. Do (AI or Human — routed)
@@ -305,7 +305,7 @@ instruction.
   field set at Approve time.
 - For `ai`: run the work autonomously, committing as you go.
 - For `human`: record the assignment in the backend; do not auto-do.
-- For `mixed`: split per the Plan's task-level routing.
+- For `hybrid`: split per the Plan's task-level routing.
 - Run tests and verify before moving the Plan to Evaluate.
 
 ### 5. Evaluate (Human-owned, AI assists)

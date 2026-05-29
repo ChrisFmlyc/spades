@@ -1,6 +1,6 @@
 ---
 name: do
-description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or mixed based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
+description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
 ---
 
 # /spades:do
@@ -10,7 +10,7 @@ You are executing an approved Plan. The Plan's `delivery:` field
 
 - **`ai`** — you run the work autonomously, committing as you go.
 - **`human`** — you record the assignment and stand down.
-- **`mixed`** — some tasks AI, some human; per the Plan's per-task
+- **`hybrid`** — some tasks AI, some human; per the Plan's per-task
   routing.
 
 You do NOT make the routing decision here. That happened at Approve.
@@ -54,7 +54,7 @@ Move the Plan to `status: delivering` and `updated: <today>`.
 Append to the Plan's `## Audit Trail`:
 
 ```markdown
-- YYYY-MM-DD: Do phase started — routing: <ai|human|mixed>.
+- YYYY-MM-DD: Do phase started — routing: <ai|human|hybrid>.
 ```
 
 Also update the parent Scope's status to `delivering` if it isn't
@@ -123,7 +123,7 @@ You record the assignment and stand down. You do NOT start building.
    reports done.
    ```
 
-### Branch C: `delivery: mixed`
+### Branch C: `delivery: hybrid`
 
 Some tasks are AI; some are human. The Plan's body should record which
 is which (the approve step asked for this mapping).
