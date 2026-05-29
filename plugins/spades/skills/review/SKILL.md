@@ -495,10 +495,21 @@ PANEL SECOND OPINION
 
 Summary from each persona (their own words, verbatim):
 
-  scope-guardian:           <prose summary>
-  architecture-strategist:  <prose summary>
-  security-lens:            <prose summary>
-  adversarial-reviewer:     <prose summary>
+─── scope-guardian ─────────────────────────────────────────
+
+  <prose summary>
+
+─── architecture-strategist ────────────────────────────────
+
+  <prose summary>
+
+─── security-lens ──────────────────────────────────────────
+
+  <prose summary>
+
+─── adversarial-reviewer ───────────────────────────────────
+
+  <prose summary>
 
 Convergence — independent personas on the same concern:
 
@@ -540,8 +551,21 @@ findings as lower-confidence than the headline severity suggests.
 
 Summary from each persona-prompted run (verbatim):
 
-  scope-guardian:           <prose summary>
-  ...
+─── scope-guardian ─────────────────────────────────────────
+
+  <prose summary>
+
+─── architecture-strategist ────────────────────────────────
+
+  <prose summary>
+
+─── security-lens ──────────────────────────────────────────
+
+  <prose summary>
+
+─── adversarial-reviewer ───────────────────────────────────
+
+  <prose summary>
 
 Convergence — runs that landed on the same concern:
 
