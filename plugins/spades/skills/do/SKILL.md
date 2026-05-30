@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 2.2.0
+version: 2.3.0
 ---
 
 # /spades:do
@@ -186,13 +186,16 @@ You execute the Plan autonomously. The order:
    with a documented deviation noted in the Plan's audit trail.
 6. **Do not push, open PRs, or merge.** That is `/spades:ship`'s job.
 
-When all tasks complete:
-- Update Plan to `status: evaluating`.
-- Append to audit trail:
-  ```markdown
-  - YYYY-MM-DD: Do phase complete (ai-delivered).
-    Tasks completed: 4. Commits: <list of SHAs>.
-  ```
+When all tasks complete, record completion in the audit trail —
+**do not transition the Plan status here**. Step 5 owns the single
+canonical transition to `evaluating`. Append:
+
+```markdown
+- YYYY-MM-DD: Do phase complete (ai-delivered).
+  Tasks completed: 4. Commits: <list of SHAs>.
+```
+
+Then fall through to Step 5.
 
 ### Branch B: `delivery: human`
 

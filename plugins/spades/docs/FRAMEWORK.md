@@ -471,7 +471,7 @@ no separate Scope or Plan record is created.
 6. No architectural changes
 7. No security-sensitive code
 8. No public API or interface breaking changes
-9. Revertable as one commit
+9. Revertible as one commit
 10. Existing tests cover the area
 
 If *any* criterion fails, fall back to the full loop. The gate is

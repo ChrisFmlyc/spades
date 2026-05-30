@@ -421,7 +421,7 @@ run `/spades:quick`. Otherwise fall back to the full loop.
 6. No architectural changes, no new patterns, no new abstractions
 7. No security-sensitive code (auth, crypto, secrets, permissions)
 8. No public API or interface breaking changes
-9. Revertable as one commit
+9. Revertible as one commit
 10. Existing tests cover the area (trivial extension is fine; new
     test scaffolding is not)
 

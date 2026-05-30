@@ -8,6 +8,34 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [2.10.0] — 2026-05-31
+
+**Minor** — two small fixes from external review feedback.
+
+- **Spelling fix: `Revertable` → `Revertible`.** CodeRabbit flagged
+  this on a downstream consumer repo's stamped AGENTS.md, which
+  traced back to the embedded marker block in
+  `skills/setup/SKILL.md`. Five occurrences fixed across the
+  framework — `docs/FRAMEWORK.md` § Fast-Track Path, the
+  consumer-facing setup marker block, `skills/quick/SKILL.md`
+  (gate criterion + retrospective checklist), and the dogfood
+  `AGENTS.md`. Consumer repos pick up the fix on next
+  `/spades:setup` re-stamp.
+
+- **`/spades:do` Step 3.A / Step 5 redundancy removed.** Branch A
+  (the AI-delivery path) previously transitioned the Plan status
+  to `evaluating` *and* appended an audit-trail line, then Step 5
+  did effectively the same thing — duplicated status-transition
+  logic in two places. Tightened: Step 3.A now records completion
+  in the audit trail only (no status change) and falls through to
+  Step 5, which owns the single canonical transition to
+  `evaluating`. Same outcome, single source of truth for the
+  status change.
+
+- **Skills bumped:** `do` 2.2.0 → 2.3.0 (Step 3.A body change),
+  `setup` 2.7.0 → 2.7.1 (typo fix in marker block), `quick`
+  2.0.0 → 2.0.1 (typo fix). Other skills unchanged.
+
 ## [2.9.0] — 2026-05-30
 
 **Minor** — AGENTS.md now codifies "defer to the `repo` plugin for

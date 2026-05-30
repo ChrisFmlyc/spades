@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 2.7.0
+version: 2.7.1
 ---
 
 # /spades:setup
@@ -510,7 +510,7 @@ or Plan is created.
 6. No architectural changes
 7. No security-sensitive code
 8. No public API or interface breaking changes
-9. Revertable as one commit
+9. Revertible as one commit
 10. Existing tests cover the area
 
 If any criterion fails, fall back to the full loop.
