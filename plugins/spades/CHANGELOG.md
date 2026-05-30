@@ -8,6 +8,38 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [2.9.0] — 2026-05-30
+
+**Minor** — AGENTS.md now codifies "defer to the `repo` plugin for
+all git operations" as an explicit operating rule.
+
+A SPADES skill that tries to roll its own `git init` / branch
+creation / post-merge cleanup risks drifting out of agreement with
+the `repo` plugin's discipline (branch-name regex,
+no-commits-on-main rule, refuse-on-dirty pulls). The principle was
+already followed in practice (`/spades:close` invokes `/repo:sync`;
+`/spades:do` and `/spades:close` create branches under
+`/repo:branch`'s validation) but wasn't written down.
+
+This PR writes it down. Documentation-only — no skill body changes.
+
+- **New §** `plugins/spades/AGENTS.md` § Defer to the `repo` Plugin
+  for Git Operations — operating rule listing the four common
+  cases (init, new branch, post-merge sync, no-commits-on-main)
+  and the matching `repo` slash command for each. Plus a
+  *"If you don't have a git repo yet, run `/repo:init` first"*
+  subsection covering the brand-new-repo case.
+- **Mirrored into the consumer-facing marker block** in
+  `skills/setup/SKILL.md` so every SPADES-configured consumer repo
+  gets the rule stamped into its own `AGENTS.md` on next
+  `/spades:setup`.
+- **The dependency is one-directional**: SPADES → `repo`. The
+  `repo` plugin never calls SPADES. This is consistent with the
+  freshness convention (PR #12) where `/spades:close` invokes
+  `/repo:sync` but `/repo:sync` never calls `/spades:close`.
+- **Skills bumped:** `setup` 2.5.0 → 2.6.0 (marker block content
+  changed). No other skill bodies touched.
+
 ## [2.8.0] — 2026-05-30
 
 **Minor** — `/spades:scope` hard-gates on `INTENT.md`; framework docs
