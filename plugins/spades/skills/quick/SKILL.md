@@ -1,7 +1,7 @@
 ---
 name: quick
 description: Fast-track path for trivial work — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when someone says "just fix this small thing", "quick tweak", "one-line change", "typo fix", "rename this variable", or when you would otherwise invoke /spades:scope for a change that clearly meets every gate criterion below. Do NOT use for anything touching architecture, auth, schemas, public APIs, or requiring more than one focused commit.
-version: 2.0.0
+version: 2.0.1
 ---
 
 ## Pre-Flight
@@ -61,7 +61,7 @@ stop and invoke `/spades:scope` instead.
    trust boundary.
 8. **No public API or interface changes.** Nothing that breaks a caller
    elsewhere in the codebase or downstream.
-9. **Revertable as one commit.** A single `git revert` should undo the
+9. **Revertible as one commit.** A single `git revert` should undo the
    entire change cleanly.
 10. **Existing tests cover the area.** Or a trivial extension of an
     existing test is enough. If you'd need to build new test scaffolding,
@@ -166,7 +166,7 @@ enough" judgement that the human needs to call, prompt via
 - [x] No architectural changes
 - [x] No security-sensitive code touched
 - [x] No public API changes
-- [x] Revertable as one commit
+- [x] Revertible as one commit
 - [x] Existing tests cover the area
 
 ---
