@@ -12,7 +12,7 @@ rest. SPADES deliberately does **not** ship a `CLAUDE.md`,
 
 ## SPADES Skills (v2.0)
 
-This repo ships SPADES itself, so the plugin's 15 skills are available
+This repo ships SPADES itself, so the plugin's 16 skills are available
 when working in it. Invoke them by their namespaced names:
 
 | Skill | What it does |
@@ -25,6 +25,7 @@ when working in it. Invoke them by their namespaced names:
 | `/spades:do` | Execute an approved Plan, routed per the approval decision |
 | `/spades:evaluate` | Check delivered output against acceptance criteria |
 | `/spades:ship` | Open PR + review + merge (code) or record deliverable (artefact / action) |
+| `/spades:close` | Post-merge close-out: open bookkeeping PR, mirror to Linear (run `/repo:sync` first) |
 | `/spades:quick` | Fast-track for trivial work — PR description is the audit trail |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |
