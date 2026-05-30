@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 2.2.0
+version: 2.3.0
 ---
 
 # /spades:ship
@@ -40,21 +40,26 @@ and § Target Resolution before running.
 
 ## Step 0 — Detect fresh run vs resume (code deliverables)
 
-For `deliverable_type: code`, this skill is two-phase:
+For `deliverable_type: code`, ship may be two-phase or single-phase
+depending on the configured SCM driver:
 
-- **Phase 1 (fresh)** — Push the branch, open the PR, exit. Plan
-  goes to `status: shipping`.
-- **Phase 2 (resume)** — After CodeRabbit feedback is addressed and
-  the PR is squash-merged, re-invoke `/spades:ship`. The skill
-  detects the resume via audit-trail markers, verifies the merge,
-  records the merge SHA, marks the Plan `shipped`.
+- **Two-phase drivers** (e.g. `scm: github`, `scm: gitlab`) — Phase 1
+  pushes and opens a PR/MR; Phase 2 resumes after merge to record
+  the merge SHA and mark the Plan `shipped`.
+- **Single-phase drivers** (e.g. `scm: local-git`) — push (if a
+  remote is set), record the commit SHA, mark `shipped` immediately.
+  No resume.
+
+Resume detection is contract-level — the markers come from
+`docs/EXTENDING-SCM.md` § 4 and don't depend on the driver loaded:
 
 Read the audit trail before doing anything else.
 
-- **No `PR opened:` line** → fresh run. Continue to Step 1.
-- **`PR opened: <URL>` present but no `Shipped:` line** → resume.
-  Jump to Step 6 (Resume).
-- **`Shipped:` present** → already complete. Ask via
+- **No `PR opened:` / `MR opened:` line** → fresh run. Continue to
+  Step 1.
+- **`PR opened:` or `MR opened:` line present, no later `Shipped`
+  line** → resume. Jump to Step 6 (Resume).
+- **`Shipped` line present** → already complete. Ask via
   `AskUserQuestion` whether to re-record or exit.
 
 For `deliverable_type: artefact` or `action`: always single-phase.
@@ -77,171 +82,31 @@ Append to the audit trail:
 You're publishing code. `/spades:do` already created a feature
 branch and committed work onto it; this branch publishes that work.
 
-**Branch A is routed by SCM** (read `scm:` from `.spades/config`):
+**Branch A is routed by SCM** — the per-SCM ship flow lives in a
+sibling driver file, not in this skill. SKILL.md's only job here is to
+read the configured SCM and load the matching driver.
 
-- **`scm: github`** — two-phase: Phase 1 pushes and opens a PR via
-  `gh pr create`; Phase 2 (resume after squash-merge) records the
-  merge SHA. See A.github below.
-- **`scm: local-git`** — single-phase: push to the configured remote
-  if one exists, record the commit SHA, mark the Plan shipped. No
-  PR, no CodeRabbit loop. See A.local-git below.
-- **(other SCMs)** — see `docs/EXTENDING-SCM.md` for the contract.
-  If `.spades/config` has an `scm:` value this skill doesn't know
-  about, abort and tell the human to install the corresponding
-  driver or fall back to `scm: local-git`.
+1. Read `scm:` from `.spades/config`. Expect one of: `github`,
+   `local-git`.
+2. **Read `${CLAUDE_PLUGIN_ROOT}/skills/ship/scm-<value>.md` and
+   follow it.** That file owns Branch A from this point: branch
+   verification, pre-push checks, push, PR-open (where applicable),
+   and the audit-trail markers.
+3. The driver returns control here after recording its shipment
+   marker. Single-phase drivers (e.g. `local-git`) come back ready
+   for Step 3. Two-phase drivers (e.g. `github`) come back from
+   Phase 1 with an exit instruction — **honour it and stop**; the
+   resume is a later invocation that re-enters at Step 0 → Step 6.
 
-### Branch A.github — `scm: github` (two-phase)
+If `.spades/config`'s `scm:` value has no matching driver file in
+`skills/ship/`, abort with:
 
-This is the original flow. `/spades:do` created the branch and
-committed; this phase publishes via PR. No auto-merge —
-squash-merge happens in GitHub after CodeRabbit review.
+> *No ship driver for `scm: <value>`. See `docs/EXTENDING-SCM.md` for
+> the contract, or fall back to `scm: local-git` in `.spades/config`.*
 
-#### A.1 — Verify on the right branch
-
-- `git rev-parse --abbrev-ref HEAD` — current branch
-- If on `main` / `master`: error. `/spades:do` should have created a
-  feature branch. Abort and suggest the human verifies what
-  happened.
-- Read the Plan's audit trail. Find the `Do phase started — branch:`
-  line. If the current branch doesn't match, warn via
-  `AskUserQuestion`:
-  - *Push the current branch anyway (overrides the audit-trail
-    branch)*
-  - *Switch to the recorded branch and continue*
-  - *Abort*
-
-#### A.2 — Pre-push checks
-
-- Are there uncommitted changes? Surface them; ask via
-  `AskUserQuestion` whether to commit (with a follow-up free-form
-  message), stash, or discard before pushing.
-- Does the branch include commits that don't belong to this Plan?
-  If so, surface them; ask whether to rebase / split or proceed.
-
-#### A.3 — Push
-
-Push the branch to origin:
-
-```bash
-git push -u origin <branch>
-```
-
-Capture the output.
-
-#### A.4 — Open the PR
-
-Open a PR via `gh pr create`. Title and body derived from the Plan:
-
-**Title** — short, descriptive. Suggested form:
-`<verb> <thing> (<plan-id>)`. e.g.
-`Add RAG pipeline lookup (P-rag-pipeline-lookup-3HyD)`.
-
-**Body** — generated from the Plan:
-
-```markdown
-## Summary
-
-<2-3 sentences from the Plan's Technical Approach>
-
-## SPADES audit trail
-
-- Project: `<project-slug>`
-- Scope:   `S-<scope-slug>`
-- Plan:    `P-<plan-slug>-<suffix>`
-- Approved: <YYYY-MM-DD> — routing: ai|human|hybrid
-- Evaluation verdict: PASS
-
-## Tasks completed
-
-- [x] Task 1: <title>
-- [x] Task 2: <title>
-- [x] Task 3: <title>
-
-## Test plan
-
-<from the Plan's Testing & Verification section>
-```
-
-Capture the PR URL from `gh pr create`'s output.
-
-#### A.5 — Record Phase 1 completion and exit
-
-Append to the Plan's audit trail:
-
-```markdown
-- YYYY-MM-DD: PR opened: <URL>.
-```
-
-Plan stays in `status: shipping`. Print the hand-off:
-
-```
-✓ PR opened: <URL>
-○ CodeRabbit will run automatically (if installed on the repo).
-○ Address review feedback by committing to this branch.
-
-Once the PR is squash-merged:
-  /repo:sync                — clean up main + the local branch
-  /spades:ship P-<plan-id>  — record the merge SHA, mark shipped
-
-Plan stays in `shipping` until the resume runs.
-```
-
-**Exit here.** Do NOT proceed to Step 3+ on a Phase 1 run.
-
-### Branch A.local-git — `scm: local-git` (single-phase)
-
-There's no PR system in front of `local-git`. Ship's job is just to
-push (if a remote exists) and record the latest commit on the
-branch as the shipment reference.
-
-#### A.local-git.1 — Verify on the right branch
-
-Same as A.github (above) — `git rev-parse --abbrev-ref HEAD`, check
-against the audit trail's `Do phase started — branch:` line, warn
-on mismatch via `AskUserQuestion`.
-
-#### A.local-git.2 — Pre-push checks
-
-Same as A.github — surface uncommitted changes, offer commit / stash
-/ discard. Make sure the branch only carries this Plan's work.
-
-#### A.local-git.3 — Push (if a remote is configured)
-
-```bash
-git remote -v
-```
-
-- If a remote is configured (read the configured one from
-  `.spades/config`'s `local_git.remote:` field, default `origin`):
-
-  ```bash
-  git push -u <remote> <branch>
-  ```
-
-  Record the push in the audit trail (with remote name + branch).
-- If no remote is configured: skip the push, surface
-  *"No remote configured — recording the local commit as the
-  shipment reference."* in the report.
-
-#### A.local-git.4 — Capture the shipment reference
-
-```bash
-git rev-parse HEAD          # current commit SHA on the branch
-git log -1 --format='%h %s' # short SHA + subject for the audit trail
-```
-
-#### A.local-git.5 — Record and exit (single-phase)
-
-Append to the Plan's audit trail:
-
-```markdown
-- YYYY-MM-DD: Shipped (local-git). Branch: <branch>. Commit: <sha>.
-  Pushed to: <remote>/<branch>.    # omit this line if no remote
-```
-
-Plan → `status: shipped` directly (no second phase needed).
-
-Continue to Step 3.
+This is the same failure mode that applied to the previous inline
+dispatch — unsupported SCMs are a setup-time concern, not a ship-time
+papering-over.
 
 ### Branch B: `deliverable_type: artefact`
 
@@ -311,39 +176,26 @@ Append to audit trail:
   - <evidence 2>
 ```
 
-## Step 6 — Resume (code deliverables on `scm: github`, after squash-merge)
+## Step 6 — Resume (two-phase drivers, after merge)
 
-You arrive here because Step 0 detected a `PR opened:` line in the
-audit trail with no `Shipped:` line. This step only runs for
-`scm: github`; `scm: local-git` is single-phase and skips
-straight to Step 3.
+You arrive here because Step 0 detected a two-phase resume marker
+(`PR opened:`, `MR opened:`, etc.) in the audit trail with no later
+`Shipped:` line. Single-phase drivers (e.g. `scm: local-git`) never
+land here; they emit `Shipped` directly in Step 2 and continue to
+Step 3.
 
-1. **Parse the PR URL** from the most recent `PR opened:` line.
-   Extract the PR number (last segment of `/pull/<n>`).
-2. **Verify merge state:**
+Resume is per-SCM — the merge-state query, the parser, the credentials
+all live in the driver:
 
-   ```bash
-   gh pr view <number> --json state,mergeCommit,mergedAt,mergedBy
-   ```
-
-   - `state == "MERGED"` → capture `mergeCommit.oid` and
-     `mergedAt`. Continue.
-   - `state == "OPEN"` → tell the human the PR is still open; show
-     a one-line summary (CI status, reviews). Ask via
-     `AskUserQuestion`:
-     - *Wait — re-run later*
-     - *Abort — record nothing, exit*
-   - `state == "CLOSED"` (not merged) → ask the human how to
-     handle: re-open the PR (manual), mark the Plan rejected, or
-     abort.
-
-3. **Record the shipment.** Append to the audit trail:
-
-   ```markdown
-   - YYYY-MM-DD: Shipped. PR: <URL>. Merge: <sha>. Merged by: <login>.
-   ```
-
-4. **Continue to Step 3** to finalise the Plan status.
+1. Read `scm:` from `.spades/config`.
+2. **Read `${CLAUDE_PLUGIN_ROOT}/skills/ship/scm-<value>.md` and
+   follow its "Phase 2 — Resume after merge" section.** The driver
+   verifies the merge, captures the merge SHA, and appends
+   `Shipped. …` to the audit trail.
+3. The driver returns here ready for Step 3 to finalise the Plan
+   status. If the driver couldn't confirm a merge (PR still open,
+   PR closed-without-merge), it has already exited or asked the
+   human how to proceed — there is nothing further to do in Step 6.
 
 ## Step 3 — Update Status
 
@@ -385,14 +237,13 @@ Next:
 
 ## Edge Cases
 
-- **The PR fails to open.** Common causes: branch not pushed, no remote
-  set, `gh` not authenticated. Surface the exact error and offer
-  remediation. Do NOT mark the Plan shipped.
-- **Merge conflicts.** The Plan author resolves these as fix commits.
-  `/spades:ship` resumes when the branch is clean again.
-- **The deliverable lives in a system the human can't show you.** Accept
-  a free-form evidence string. The audit trail records what the human
-  attested to; SPADES doesn't enforce verifiability.
-- **No PR convention in the project.** If `gh` isn't installed or no
-  remote is set, show the human exactly what command they'd run to
-  open the PR manually, then capture the resulting URL.
+SCM-specific edge cases (push failures, merge conflicts, missing CLI
+auth) live in the driver files (`skills/ship/scm-<name>.md`). Edge
+cases that apply across all deliverable types:
+
+- **The deliverable lives in a system the human can't show you.**
+  Accept a free-form evidence string. The audit trail records what
+  the human attested to; SPADES doesn't enforce verifiability.
+- **No matching driver for the configured `scm:`.** Branch A aborts
+  with a pointer to `docs/EXTENDING-SCM.md`. The fix is upstream of
+  ship — either add a driver or change `scm:` in `.spades/config`.
