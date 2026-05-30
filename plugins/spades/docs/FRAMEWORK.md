@@ -467,3 +467,58 @@ Every piece of work must be traceable through:
 7. A shipment record
 
 Work that cannot be traced through this chain must not ship.
+
+## Freshness
+
+Every SPADES skill reads files from the **local filesystem** — not
+from `origin`. If the local checkout is behind the remote (a PR
+merged on GitHub but `git pull` hasn't run locally), every read is
+against stale code. Audits, plan-drafting, do-phase branch creation,
+and review subagents all silently operate on the wrong source of
+truth.
+
+### The rule
+
+Before any skill that performs cross-cutting reads or branches off
+`main`, the local checkout MUST be in sync with `origin/main`.
+
+How to verify, in one command:
+
+```bash
+git fetch origin --quiet && git rev-list --count main..origin/main
+```
+
+- Returns `0` → local is fresh. Proceed.
+- Returns non-zero → local is behind by N commits. Stop. Run
+  `/repo:sync` (from the `repo` plugin), then re-run the skill.
+
+Skills that read repo state outside their own deliverable
+(`/spades:plan`, `/spades:do`, `/spades:review`, `/spades:research`,
+`/spades:scope`, `/spades:approve`, `/spades:status`,
+`/spades:list`) implicitly depend on this check. Skills that already
+own the sync responsibility (`/spades:close` calls `/repo:sync`
+twice; `/repo:sync` is the sync itself) satisfy it directly.
+
+### Two-layer enforcement
+
+**Layer 1 — Behavioural.** When `/repo:sync`'s "Ready." handoff
+fires (i.e. a feature branch was cleaned up after merge), the
+operator MUST sync before context-switching to a new SPADES skill.
+This is captured as an operating rule in `AGENTS.md § Freshness
+Before Read-Across`.
+
+**Layer 2 — Subagent prompts.** Skills that spawn read-across
+subagents (`/spades:review`'s panel, `/spades:research`'s
+researcher) include a freshness pre-flight directly in the
+subagent's prompt: *"Before reading any files, run `git rev-list
+--count main..origin/main` — if non-zero, stop and report that local
+main is behind origin; the user must `/repo:sync` first."* The
+subagent halts before it produces stale findings.
+
+### Why this lives in FRAMEWORK.md
+
+Freshness is not skill-specific — it's a contract every skill
+participates in. Defining it once here means individual skills don't
+repeat the rule; they reference it. Adding a new skill that does
+cross-cutting reads? The skill author reads this section, references
+it in their skill's prose, and the convention propagates.

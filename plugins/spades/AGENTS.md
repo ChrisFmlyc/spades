@@ -187,6 +187,62 @@ If a proposed solution conflicts with these documents, flag the
 conflict in the Plan and get explicit human approval before
 proceeding.
 
+## Freshness Before Read-Across
+
+SPADES skills read files from the **local filesystem**, not from
+`origin`. A stale local `main` produces stale findings — audits flag
+issues already shipped, plans reference removed code, do-phase work
+branches off the wrong base. The fix is mechanical.
+
+### The rule
+
+Before any SPADES skill that reads cross-cutting state or branches
+off `main`, the local checkout MUST be in sync with `origin/main`.
+
+Verify with one command:
+
+```bash
+git fetch origin --quiet && git rev-list --count main..origin/main
+```
+
+- Returns `0` → fresh, proceed.
+- Non-zero → stop. Run `/repo:sync` (from the `repo` plugin), then
+  re-invoke the SPADES skill.
+
+### When the rule applies
+
+To every SPADES skill that:
+
+- Reads files outside `.spades/` to inform a decision (`scope`,
+  `plan`, `approve`, `review`, `research`).
+- Creates a branch off `main` (`do`, `close`).
+- Reports cross-cutting state (`status`, `list`).
+
+Skills that already own the sync responsibility — `/spades:close`
+invokes `/repo:sync` directly at Steps 2 and 7 — satisfy the rule
+by construction.
+
+### The behavioural reflex
+
+After any PR merge on this repo (yours or someone else's), the
+operator runs `/repo:sync` immediately, before context-switching to
+a new SPADES skill. `/repo:sync`'s `"Ready."` handoff is the cue
+that the next prompt is fresh work; pre-empt the staleness instead
+of catching it mid-audit.
+
+### Subagent prompts
+
+Skills that spawn read-across subagents (`/spades:review`'s panel of
+four personas, `/spades:research`'s researcher) include the
+freshness check directly in the subagent's prompt. The subagent
+runs the check before reading any files and halts if local is
+behind — surfaces the staleness to the operator rather than
+producing findings against a stale snapshot.
+
+The canonical definition lives in `docs/FRAMEWORK.md § Freshness`.
+This section is the operating-rules-level statement; that section is
+the contract.
+
 ## Backend
 
 The backend is configured in `.spades/config` under `backend:`. SPADES
