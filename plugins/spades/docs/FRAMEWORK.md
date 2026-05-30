@@ -1,4 +1,4 @@
-# SPADES Framework v2.0
+# SPADES Framework v2.11.0
 
 SPADES is a human–AI operating model for engineering teams. It is
 backend-agnostic: artefacts can live in Linear (via the Linear MCP), on
@@ -109,6 +109,47 @@ until `/spades:intent` has been run (or the human explicitly
 overrides, which records a marker in the Scope's audit trail). This
 prevents the most common drift pattern: weeks of scoping with no
 north star to measure against.
+
+### Scope status rollup (from child Plans)
+
+A Scope's `status:` field is the **highest phase** any of its child
+Plans has reached. Plans drive Scope status, not the other way around:
+
+```
+Plan A status   Plan B status   Plan C status   →   Scope status
+─────────────   ─────────────   ─────────────       ─────────────
+shipped         shipped         shipped             done
+shipped         shipping        draft               shipping
+delivering      approved        draft               delivering
+approved        approved        draft               approval
+draft           draft           draft               planning
+(none yet)                                          scoped
+```
+
+Skill responsibilities:
+
+- `/spades:plan` bumps the Scope from `scoped` → `planning` on the
+  first Plan created.
+- `/spades:approve` bumps `planning` → `approval` on the first
+  Plan approved.
+- `/spades:do` bumps `approval` → `delivering` on the first Plan
+  entering Do.
+- `/spades:evaluate` bumps to `evaluating` on the first PASS verdict.
+- `/spades:ship` bumps to `shipping` on the first PR opened.
+- `/spades:close` is the **only** skill that transitions Scope →
+  `done`, and only when **every** child Plan has `status: shipped`.
+
+**One-way transitions only.** A Scope never moves backward. If Plan
+B is rejected after Plan A has shipped, the Scope stays at `shipping`
+(or `done` if A was the last); the rejected Plan is a leaf state on
+its own track. The Scope's audit trail records both transitions.
+
+**Rejected Plans do not block rollup.** They're terminal but don't
+hold the Scope back from `done` — Scope `done` requires every Plan
+to be either `shipped` or `rejected` (with the rejection explicitly
+acknowledged). Today the implementation only counts `shipped`;
+mixed-terminal Scopes (some shipped, some rejected) require a human
+decision via the rollup audit entry.
 
 ---
 

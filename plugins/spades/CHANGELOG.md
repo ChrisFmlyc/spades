@@ -8,6 +8,57 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [2.11.0] — 2026-05-31
+
+**Minor** — audit follow-up batch 3: Scope rollup semantics
+canonicalised, hybrid per-task routing format spec'd, README +
+FRAMEWORK header version drift refreshed.
+
+- **Scope status rollup — now canonical.** Previously each skill
+  (do, ship, close) mentioned Scope rollup informally with
+  slightly different wording, and the rule was nowhere documented
+  at framework level. New § `docs/FRAMEWORK.md § Hierarchy →
+  Scope status rollup (from child Plans)` documents:
+  - Scope status = the **highest phase** any child Plan has
+    reached (`scoped` → `planning` → `approval` → `delivering`
+    → `evaluating` → `shipping` → `done`).
+  - Plans drive Scope status, not the reverse.
+  - Per-skill ownership of each transition is listed explicitly.
+  - One-way transitions only — Scopes never move backward.
+  - Rejected Plans are terminal but don't block rollup; mixed
+    terminal Scopes (some shipped, some rejected) require a
+    human decision before the Scope can move to `done`.
+
+- **Hybrid per-task routing — now spec'd.** Previously
+  `/spades:do` Branch C read "which task is AI vs human" from
+  the Plan body, but neither `/spades:plan` nor `/spades:approve`
+  documented the format. First-time consumers had to invent it.
+
+  The canonical format is a `- **Routing:** ai | human` bullet
+  under each task in the Plan body. Required when
+  `delivery: hybrid`; omitted (inherits Plan-level routing) when
+  `delivery: ai` or `delivery: human`. Documented at:
+  - `skills/plan/SKILL.md` — task template now lists Routing as
+    a per-task field with usage rules.
+  - `skills/approve/SKILL.md` — when Hybrid is chosen, walk each
+    task asking AI vs human; refuse to save approval if any
+    task is missing its Routing field.
+  - `skills/do/SKILL.md` Branch C — explicit "parse each task's
+    Routing field; abort if missing" prose, replacing the
+    earlier "should record which is which" hand-wave.
+
+- **README + FRAMEWORK.md header version refreshed.** The README
+  badge said `version-2.0.0` (stale since v2.1.0); the
+  FRAMEWORK.md H1 header said `v2.0`. Both refreshed to
+  `v2.11.0` to match the actual current version. Drift caught
+  by the original audit — cosmetic but embarrassing on a README
+  that's the first thing new users see.
+
+- **Skills bumped:** `plan` 2.0.0 → 2.1.0 (Routing field added
+  to task template), `approve` 2.0.0 → 2.1.0 (Hybrid walks per
+  task), `do` 2.3.0 → 2.4.0 (Branch C reads canonical Routing
+  format). Other skills unchanged.
+
 ## [2.10.0] — 2026-05-31
 
 **Minor** — two small fixes from external review feedback.
