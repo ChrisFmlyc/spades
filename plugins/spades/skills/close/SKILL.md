@@ -18,17 +18,17 @@ legacy fallback; `/spades:close` is the recommended path.
 
 Read `docs/FRAMEWORK.md` § Target Resolution before running.
 
-## Prerequisite: post-merge git state
+## Dependency on `/repo:sync`
 
-`/spades:close` does NOT do the post-merge git cleanup itself —
-that's `/repo:sync`'s job (in the `repo` plugin from the `ai-skills`
-marketplace). Before running `/spades:close`, the human should have
-already run `/repo:sync` so the local checkout is on a clean,
-fast-forwarded `main` with the merged feature branch deleted.
+`/spades:close` does not duplicate `/repo:sync`'s logic — it **calls
+it**. Twice. Once at the start to bring the local checkout into
+post-merge state (clean `main`, merged feature branch deleted) and
+once at the end to clean up the merged bookkeeping branch.
 
-If the precondition checks below fail, the skill exits with a pointer
-to run `/repo:sync` first. It will not auto-sync the local state —
-that boundary lives elsewhere by design.
+`/repo:sync` lives in the `repo` plugin from the `ai-skills`
+marketplace. It's a hard prerequisite, surfaced by `/spades:setup`'s
+Step 0 probe. The dependency is **one-directional**: close calls
+sync; sync never calls close.
 
 ## Pre-Flight
 
@@ -54,45 +54,7 @@ that boundary lives elsewhere by design.
    > `/spades:setup` — it walks through installing the prerequisite
    > plugins.*
 
-4. **Precondition checks — local state is post-merge-clean.**
-
-   - Current branch:
-
-     ```bash
-     git rev-parse --abbrev-ref HEAD
-     ```
-
-     Must be `main` (or whatever the default branch is). If not,
-     abort with: *"Run `/repo:sync` first — `/spades:close` expects
-     to start on `main` after the merged feature branch has been
-     cleaned up."*
-
-   - Working tree clean:
-
-     ```bash
-     git status --porcelain
-     ```
-
-     Must return empty. If not, abort with: *"Working tree isn't
-     clean. Commit, stash, or discard before running
-     `/spades:close`."*
-
-   - Local `main` is fast-forwarded to origin:
-
-     ```bash
-     git fetch origin --quiet
-     git rev-list --count main..origin/main
-     ```
-
-     Must return `0`. If not, abort with: *"Local `main` is behind
-     `origin/main`. Run `/repo:sync` first."*
-
-   These checks are minimal on purpose. `/spades:close` doesn't
-   duplicate `/repo:sync`; it just refuses to run if the
-   preconditions `/repo:sync` would have satisfied aren't already
-   met.
-
-5. **Resolve the target Plan** per `docs/FRAMEWORK.md` § Target
+4. **Resolve the target Plan** per `docs/FRAMEWORK.md` § Target
    Resolution. This skill's parameters:
    - **Artefact type:** Plan (no type-question needed).
    - **Status filter:** `status: shipping` AND audit trail contains a
@@ -103,13 +65,16 @@ that boundary lives elsewhere by design.
    If exactly one candidate matches and the human passed no Plan ID,
    pick it silently and announce. Otherwise, run the interactive
    picker.
-6. **Read the Plan and parent Scope.** Capture:
+5. **Read the Plan and parent Scope.** Capture:
    - `plan_id`, `plan_id_lower` (lowercased), `plan_slug`,
      `scope_id`, `project_slug`.
    - The PR URL from the most recent `PR opened:` line in the Plan's
      audit trail.
 
 ## Step 1 — Verify the ship PR is merged
+
+Fail fast before touching local state. `gh pr view` is a remote
+query; it doesn't depend on the local checkout.
 
 1. Parse the PR number from the captured URL (last `/pull/<n>`
    segment).
@@ -133,12 +98,41 @@ that boundary lives elsewhere by design.
 
    On any non-MERGED state, exit before Step 2 — nothing has changed.
 
-## Step 2 — Create the bookkeeping branch
+## Step 2 — Run `/repo:sync` (initial)
+
+The ship PR is confirmed merged. Bring the local checkout into
+post-merge state by invoking the `repo` plugin's sync skill.
+
+**Invoke `/repo:sync` now via the Skill tool.** The sync skill will:
+
+- Detect the default branch.
+- Refuse if the working tree is dirty (the human commits / stashes /
+  discards then re-runs `/spades:close`).
+- Fetch with `--prune` to surface the post-squash-merge `[gone]`
+  upstream signal on the original feature branch.
+- Check out `main`, fast-forward-pull, force-delete the merged
+  feature branch.
+- Print *"Ready."* on success.
+
+If sync refuses (dirty tree, detached HEAD, indeterminate default
+branch), surface its refusal message verbatim and exit. The human
+fixes the underlying issue and re-runs `/spades:close`. Do not try
+to bypass sync's guardrails.
+
+On success, you are on `main`, clean, fast-forwarded to
+`origin/main`, with the merged feature branch gone.
+
+## Step 3 — Create the bookkeeping branch
 
 You are on a clean `main`. Branch off it for the bookkeeping commit —
 commits on `main` are forbidden (`/repo:branch` enforces this).
 
-### 2.1 Choose the branch name
+The bookkeeping branch is created in-place with `git switch -c` (not
+`/repo:newbranch`, which creates a worktree). The bookkeeping edits
+are small and need to land in the current checkout, not a separate
+working tree.
+
+### 3.1 Choose the branch name
 
 The branch name MUST match the `/repo:branch` regex:
 
@@ -160,15 +154,15 @@ Strategy:
    > run. Either merge its PR on GitHub then re-run `/spades:close`,
    > or delete it (`git branch -D <name>`) and re-run.*
 
-### 2.2 Create the branch
+### 3.2 Create the branch
 
 ```bash
 git switch -c <bookkeeping-branch>
 ```
 
-## Step 3 — Apply the close-out edits
+## Step 4 — Apply the close-out edits
 
-### 3.1 Edit the Plan file
+### 4.1 Edit the Plan file
 
 Locate `.spades/plans/<plan_id>.md` (local mode) — or, for Linear
 backend, edit the local mirror under `.spades/plans/` that the other
@@ -182,7 +176,7 @@ skills maintain. Update:
   - YYYY-MM-DD: Shipped. PR: <URL>. Merge: <merge-sha>. Merged by: <login>.
   ```
 
-### 3.2 Edit the Scope file (if rolling up)
+### 4.2 Edit the Scope file (if rolling up)
 
 Read all sibling Plans under `scope_id`. If every one is now
 `status: shipped` (counting this one as already updated):
@@ -197,7 +191,7 @@ Read all sibling Plans under `scope_id`. If every one is now
 
 Otherwise, leave the Scope unchanged — sibling Plans still in flight.
 
-### 3.3 Stage + commit
+### 4.3 Stage + commit
 
 ```bash
 git add .spades/plans/<plan_id>.md
@@ -214,7 +208,7 @@ EOF
 )"
 ```
 
-## Step 4 — Open the bookkeeping PR
+## Step 5 — Open the bookkeeping PR
 
 ```bash
 git push -u origin <bookkeeping-branch>
@@ -252,7 +246,7 @@ Capture the bookkeeping PR URL. Print it prominently:
 ○ Merge it on GitHub — squash recommended — then return here.
 ```
 
-## Step 5 — Wait for the human to confirm the merge
+## Step 6 — Wait for the human to confirm the merge
 
 Ask via `AskUserQuestion`:
 
@@ -262,32 +256,39 @@ Ask via `AskUserQuestion`:
 > - **Not yet — exit, I'll merge it and re-run `/spades:close`.**
 
 If **Not yet** → exit cleanly. The bookkeeping PR stays open. After
-the human merges it on GitHub, the recovery path is to run
-`/repo:sync` (cleans up the merged bookkeeping branch) — at that
-point the close-out is fully complete; no need to re-run
-`/spades:close` unless the human still wants Linear mirroring or a
-learning prompt.
+the human merges it on GitHub, the recovery path is to re-run
+`/spades:close` against the same Plan ID — but the target resolver
+will now find zero candidates (the Plan on `main` already has
+`Shipped`). The skill exits saying *"Plan already shipped on
+main."* Nothing left to do; if the human wants Linear mirroring or a
+learning prompt, they can run `/spades:learn` manually.
 
-## Step 6 — Post-bookkeeping cleanup
+## Step 7 — Run `/repo:sync` (final)
 
-After the human confirms the bookkeeping PR is merged:
+The human has confirmed the bookkeeping PR is merged. Bring the
+local checkout up to date one more time.
 
-```bash
-git checkout main
-git pull --ff-only
-git branch -D <bookkeeping-branch>
-```
+**Invoke `/repo:sync` now via the Skill tool.** Same skill as Step
+2; this pass:
 
-Assert clean:
+- Fetches with `--prune` to surface `[gone]` on the local
+  bookkeeping branch (GitHub deleted the branch on squash-merge,
+  per the bookkeeping PR's `--delete-branch` setting if used, or
+  the repo's auto-delete-branches setting).
+- Checks out `main`, fast-forward-pulls the squash-merge commit.
+- Force-deletes the local bookkeeping branch.
+- Prints *"Ready."*.
 
-```bash
-git status --porcelain
-```
+After this pass, the working tree is clean, on `main`, fast-forwarded
+to `origin/main`, with no leftover branches. The audit trail for this
+Plan now lives on `main` in the bookkeeping squash-merge commit.
 
-If anything shows, surface it but don't abort — we've done the work,
-the human can clean residue.
+If sync prints a warning instead of *"Ready."* (e.g. upstream still
+exists because the human didn't delete the remote bookkeeping
+branch), surface it but continue — the SPADES close-out is complete;
+remaining git residue is harmless and the human can clean it up.
 
-## Step 7 — Linear mirror (when `backend: linear`)
+## Step 8 — Linear mirror (when `backend: linear`)
 
 This step runs only after the bookkeeping commit is on `main` —
 Linear is the live source of truth and should never lead the audit
@@ -304,10 +305,10 @@ When `backend: linear`:
   > Bookkeeping audit: `<bookkeeping-pr-url>`.*
 
 When `backend: local`: nothing to mirror. Local mode's source of
-truth is the file on `main`, already updated by Step 4's bookkeeping
-merge.
+truth is the file on `main`, already updated by the bookkeeping
+PR's merge (confirmed in Step 6).
 
-## Step 8 — Suggest a Learning
+## Step 9 — Suggest a Learning
 
 Same hand-off as `/spades:ship` Step 4. Ask via `AskUserQuestion`:
 
@@ -317,7 +318,7 @@ Same hand-off as `/spades:ship` Step 4. Ask via `AskUserQuestion`:
 If yes, hand off to `/spades:learn` with the plan ID as context. The
 learning will be tagged and stored under `.spades/learnings/`.
 
-## Step 9 — Confirm
+## Step 10 — Confirm
 
 One-block summary:
 
@@ -337,31 +338,35 @@ Next:
 
 ## Workflow integration with `/repo:sync`
 
-The intended flow after a `/spades:ship` PR is squash-merged on
-GitHub is:
+After a `/spades:ship` PR is squash-merged on GitHub, the human runs
+**one** command:
 
-1. `/repo:sync` — cleans up the local checkout (clean `main`,
-   delete the merged feature branch).
-2. `/spades:close P-<id>` — opens the bookkeeping PR, waits for
-   merge confirmation, mirrors to Linear, suggests a learning.
+    /spades:close P-<id>
 
-A future enhancement to the `repo` plugin would have `/repo:sync`
-auto-detect Plans in `status: shipping` with a `PR opened:` marker
-on the just-merged branch and offer to chain into `/spades:close`
-automatically. Until that lands, run the two skills in sequence.
+That command internally invokes `/repo:sync` twice — once at the
+start to bring the local checkout into post-merge state, once at the
+end to clean up the merged bookkeeping branch — with the bookkeeping
+PR open + merge-confirmation in between. The human never runs
+`/repo:sync` directly in the SPADES close-out flow.
+
+The dependency is **one-directional**: `/spades:close` calls
+`/repo:sync`. `/repo:sync` never calls `/spades:close` — sync is a
+general-purpose git-cleanup primitive and must not know about SPADES
+artefacts.
 
 ## Edge Cases
 
-- **Local state isn't post-merge-clean.** Pre-Flight refuses and
-  points at `/repo:sync`. The boundary is deliberate — `/spades:close`
-  doesn't duplicate sync logic.
+- **Working tree dirty when close is invoked.** Step 2's
+  `/repo:sync` call refuses on dirty trees; close surfaces sync's
+  refusal verbatim and exits. The human commits / stashes / discards
+  then re-runs `/spades:close`.
 - **Ship PR isn't merged.** Step 1 catches this; the skill exits
   before touching git or files. Re-run after merging.
-- **Bookkeeping branch already exists.** Step 2.1 catches this;
+- **Bookkeeping branch already exists.** Step 3.1 catches this;
   the human picks recovery (merge the PR or delete the branch).
 - **Bookkeeping PR can't be merged (branch protection, required
   reviews).** The human merges by hand on GitHub, then selects
-  *Yes* on Step 5's prompt. Or selects *Not yet*, fixes the
+  *Yes* on Step 6's prompt. Or selects *Not yet*, fixes the
   protection issue, comes back later.
 - **Plan was already shipped on `main`** (e.g. legacy
   `/spades:ship` Step 6 finalised it without the bookkeeping PR).

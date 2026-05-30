@@ -380,7 +380,7 @@ The SPADES plugin (`spades`) provides these 16 skills:
 | `/spades:do` | Execute an approved Plan (routed AI / human / hybrid) |
 | `/spades:evaluate` | Check delivered output against the Plan |
 | `/spades:ship` | Open PR + review + merge (code) or record deliverable (artefact / action) |
-| `/spades:close` | Post-merge close-out: open bookkeeping PR, mirror to Linear (run `/repo:sync` first) |
+| `/spades:close` | Post-merge close-out: invokes `/repo:sync`, opens bookkeeping PR, mirrors to Linear |
 | `/spades:quick` | Fast-track for trivial work — PR description is the audit trail |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |

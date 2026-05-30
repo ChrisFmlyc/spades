@@ -13,14 +13,17 @@ skill's SKILL.md changes). The consumer-repo marker block in
 **Minor** — new `/spades:close` skill (post-merge close-out) + setup
 now probes for the prerequisite `repo` plugin.
 
-- **New skill `/spades:close`** — the SPADES-specific half of the
-  post-`/spades:ship` workflow. After the human runs `/repo:sync`
-  (which cleans up the local checkout), `/spades:close P-<id>`:
-  1. Verifies the ship PR merged (`gh pr view`).
-  2. Checks preconditions — must be on a clean `main` that's
-     fast-forwarded to origin. If not, refuses and points at
-     `/repo:sync`. **Does not duplicate sync logic.**
-  3. Creates a `chore/close-<plan-id>` bookkeeping branch off main.
+- **New skill `/spades:close`** — one command for the full
+  post-`/spades:ship` close-out. `/spades:close P-<id>`:
+  1. Verifies the ship PR merged (`gh pr view`) — fail-fast before
+     touching local state.
+  2. **Invokes `/repo:sync`** to bring the local checkout into
+     post-merge state (clean `main`, merged feature branch
+     deleted). Does not duplicate sync logic — calls the canonical
+     `repo`-plugin skill directly.
+  3. Creates a `chore/close-<plan-id>` bookkeeping branch off main
+     (`git switch -c`, not `/repo:newbranch` — close-out edits
+     belong in the current checkout, not a separate worktree).
   4. Applies the close-out edits there: Plan → `status: shipped` +
      `Shipped` audit-trail marker, Scope → `done` if every sibling
      Plan is shipped.
@@ -28,11 +31,16 @@ now probes for the prerequisite `repo` plugin.
   6. **Waits** via `AskUserQuestion` for the human to merge the
      bookkeeping PR on GitHub (no auto-merge — branch protection /
      required reviews are respected).
-  7. Cleans up after confirmation: ff-pull main, delete the local
-     bookkeeping branch.
+  7. **Invokes `/repo:sync` again** to clean up the merged
+     bookkeeping branch and fast-forward `main` to the squash-merge
+     commit.
   8. Mirrors completion to Linear when `backend: linear` (sub-issue
      → Done, parent Issue → Done if rolled up).
   9. Suggests `/spades:learn` and prints the summary.
+- **Dependency direction is one-way.** `/spades:close` calls
+  `/repo:sync`; `/repo:sync` never calls `/spades:close`. Sync is a
+  general-purpose git-cleanup primitive and must not know about
+  SPADES artefacts.
 - **Why a bookkeeping PR?** The `Shipped` audit-trail marker is part
   of the source-of-truth on `main` — it MUST land via a regular PR,
   not as an unversioned local file edit. The bookkeeping PR is
@@ -51,17 +59,11 @@ now probes for the prerequisite `repo` plugin.
   re-probes before continuing. The human can skip the probe if they
   prefer to install later — but `/spades:close`, `/spades:do`, and
   `/spades:ship` will refuse to run without it.
-- **Workflow integration with `/repo:sync`** — `/repo:sync` stays in
-  the `repo` plugin as the canonical post-merge git-cleanup command.
-  `/spades:close` runs after it as the SPADES-specific bookkeeping
-  step. A future enhancement to the `repo` plugin would have
-  `/repo:sync` auto-detect Plans in `status: shipping` and offer to
-  chain into `/spades:close`; until then, the two commands run in
-  sequence.
 - **`skills/ship/scm-github.md`** Phase 1 handoff updated: now reads
-  *"Once squash-merged: `/repo:sync` then `/spades:close P-<id>`"*.
-  `/spades:ship` Step 6 stays in place as a legacy fallback for any
-  in-flight Plans from 2.4.0.
+  *"Once squash-merged: `/spades:close P-<id>`"* — single command
+  for the full close-out (close internally invokes `/repo:sync`
+  twice). `/spades:ship` Step 6 stays in place as a legacy fallback
+  for any in-flight Plans from 2.4.0.
 - **AGENTS.md skill tables** (both `skills/setup/SKILL.md`'s
   consumer-facing marker block and `plugins/spades/AGENTS.md`'s
   dogfood mirror) updated to 16 rows including `/spades:close`.
