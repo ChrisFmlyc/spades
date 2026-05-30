@@ -8,6 +8,35 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [2.4.0] — 2026-05-30
+
+**Minor** — `/spades:ship` progressive disclosure by SCM.
+
+- **The per-SCM ship flow moves out of `skills/ship/SKILL.md` into
+  sibling driver files.** SKILL.md now reads `scm:` from
+  `.spades/config` and Reads only the matching `scm-<value>.md`
+  driver — never both at once. As more SCMs are added (GitLab,
+  Bitbucket), SKILL.md's context cost stays flat instead of growing
+  linearly with options the human never uses on a given run.
+- **New files:** `plugins/spades/skills/ship/scm-github.md`
+  (two-phase: fresh ship + resume after merge) and
+  `plugins/spades/skills/ship/scm-local-git.md` (single-phase push +
+  record). Both have no frontmatter — they are instruction fragments
+  consumed by SKILL.md, not skills on their own. The lint walker
+  (`skills/*/SKILL.md`) ignores them, by design.
+- **SKILL.md** keeps the SCM-agnostic skeleton: Pre-Flight, Step 0
+  fresh-vs-resume detection (now general — recognises `PR opened:`
+  and `MR opened:` per `docs/EXTENDING-SCM.md` § 4), Step 1 status
+  transition, Step 2 dispatch on `deliverable_type`, Steps 3–5
+  finalise / learning / confirm. Step 2 Branch A and Step 6 are
+  thin "Read the driver and follow it" hand-offs.
+- **No behaviour change for end users.** The GitHub two-phase flow
+  and the local-git single-phase flow are byte-for-byte the same
+  procedure as 2.3.0 — only the file they live in changed. Resume
+  marker contract (`PR opened:` / `MR opened:` / `Shipped`) is
+  unchanged.
+- **Skills bumped**: `ship` 2.2.0 → 2.3.0. Other skills unchanged.
+
 ## [2.3.0] — 2026-05-29
 
 **Minor** — SCM (source-code-management) abstraction.
