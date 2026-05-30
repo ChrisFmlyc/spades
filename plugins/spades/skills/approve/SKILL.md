@@ -1,7 +1,7 @@
 ---
 name: approve
 description: Present a SPADES Plan for human review against the approval checklist, then record the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`. The biggest risk in SPADES is a weak Approval gate.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # /spades:approve
@@ -129,8 +129,23 @@ a consistent vocabulary across the loop:
 2. **Human** — `/spades:do` records the assignment in the backend;
    a human picks this up and does the work.
 3. **Hybrid** — split per task. AI does its tasks, then hands off to
-   a human for theirs. Follow up with a free-form prompt mapping
-   task numbers to AI / human.
+   a human for theirs. Per-task routing is recorded as a
+   `- **Routing:** ai | human` bullet under each task in the Plan
+   body (the Plan template already provisions this field; see
+   `/spades:plan` § Tasks).
+
+   When the human picks Hybrid, walk each task and ask:
+
+   > *Task <N> — "<title>". Who does this one — ai or human?*
+
+   Update the Plan body's Routing field for each task accordingly.
+   If the Plan was drafted with Routing guesses by `/spades:plan`,
+   show those guesses as the recommended option in the per-task
+   AskUserQuestion; the human can accept or revise.
+
+   Plans MUST have a Routing field on every task before approval
+   completes when `delivery: hybrid`. If any task is missing it,
+   refuse to save the approval and re-prompt.
 
 Notes:
 - For `deliverable_type: action` (server install, vendor call),

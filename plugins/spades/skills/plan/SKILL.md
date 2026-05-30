@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generate a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # /spades:plan
@@ -137,6 +137,12 @@ For each task, declare:
   justify it on the task line.
 - **Effort**: brief (<1h) | moderate (1–4h) | significant (4+h)
 - **Depends on**: task numbers within this Plan, or "none"
+- **Routing**: `ai` | `human`. **Required when the Plan's
+  `delivery:` field will be `hybrid`; omit otherwise** — single-mode
+  Plans (`ai`-only or `human`-only) inherit Plan-level routing. At
+  Plan-draft time the routing decision usually isn't fixed yet, so
+  draft the field with the planner's best guess and let
+  `/spades:approve` confirm or revise per task before approval.
 
 ### Testing & Verification
 - What tests pass to consider this complete? (for code)
@@ -202,6 +208,7 @@ linear_issue_id: <id>                            # only when backend: linear
 - **Posture:** test-first
 - **Effort:** moderate
 - **Depends on:** none
+- **Routing:** ai            # only required when Plan `delivery: hybrid` (see below). For Plans with a single Plan-level routing (`ai` or `human`), omit this field — every task inherits.
 - **Description:** <what needs doing>
 - **Approach:** <how it'll be done>
 - **Tests:** <what tests cover this>

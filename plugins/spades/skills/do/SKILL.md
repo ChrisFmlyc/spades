@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 2.3.0
+version: 2.4.0
 ---
 
 # /spades:do
@@ -223,16 +223,23 @@ You record the assignment and stand down. You do NOT start building.
 
 ### Branch C: `delivery: hybrid`
 
-Some tasks are AI; some are human. The Plan's body should record which
-is which (the approve step asked for this mapping).
+Some tasks are AI; some are human. The Plan's body records per-task
+routing as a `- **Routing:** ai | human` bullet under each task (the
+canonical format — set by `/spades:plan`'s task template and
+confirmed by `/spades:approve` when Hybrid is picked).
 
-1. **List each task** with its routing — read it from the Plan body or
-   from any per-task notes.
-2. **Walk each AI task** as in Branch A.
-3. **Record each human task** as in Branch B (with assignee).
-4. **Wait between phases** — if Task 2 (human) depends on Task 1 (AI),
-   do Task 1, then stand down. The human must run `/spades:do` again
-   when their portion is complete to resume any remaining AI tasks.
+1. **Parse each task's Routing field** from the Plan body. If any
+   task is missing its Routing field on a `delivery: hybrid` Plan,
+   abort and route back to `/spades:approve` — Hybrid Plans MUST
+   have a Routing field per task.
+2. **Walk each `Routing: ai` task** as in Branch A. Honour the
+   Delivery Sequence order and per-task dependencies.
+3. **Record each `Routing: human` task** as in Branch B (ask the
+   assignee, write the audit trail line, do not start building).
+4. **Wait between phases** — if Task 2 (`human`) depends on Task 1
+   (`ai`), do Task 1, then stand down. The human must run
+   `/spades:do` again when their portion is complete to resume any
+   remaining AI tasks.
 
 ## Step 4 — Resume Path
 
