@@ -37,8 +37,27 @@ This PR writes it down. Documentation-only — no skill body changes.
   `repo` plugin never calls SPADES. This is consistent with the
   freshness convention (PR #12) where `/spades:close` invokes
   `/repo:sync` but `/repo:sync` never calls `/spades:close`.
-- **Skills bumped:** `setup` 2.5.0 → 2.6.0 (marker block content
-  changed). No other skill bodies touched.
+- **Belt-and-braces — new Step 0.5 in `/spades:setup`: git-repo
+  probe.** Complements the AGENTS.md rule above with a mechanical
+  enforcement at setup time:
+
+  ```bash
+  git rev-parse --git-dir >/dev/null 2>&1
+  ```
+
+  If the cwd isn't a git repository, setup aborts cleanly with a
+  pointer to `/repo:init`. No auto-init — the human runs
+  `/repo:init` explicitly so they can confirm origin URL and branch
+  preferences. SPADES setup resumes once `/repo:init` has
+  completed.
+
+  Layered defense: the AGENTS.md rule tells *agents* what to do;
+  the Step 0.5 probe enforces it *mechanically* at setup time so a
+  brand-new-repo flow can't accidentally produce SPADES files
+  outside version control.
+
+- **Skills bumped:** `setup` 2.5.0 → 2.7.0 (marker block content
+  changed + new Step 0.5 probe). No other skill bodies touched.
 
 ## [2.8.0] — 2026-05-30
 

@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 2.6.0
+version: 2.7.0
 ---
 
 # /spades:setup
@@ -73,6 +73,41 @@ If the human picks "I've installed it", re-run the probe before
 continuing. If it still reports `missing`, re-show the install guide
 and ask again — do not advance with the prerequisite unsatisfied
 unless the human explicitly chose "Skip for now".
+
+## Step 0.5 — Git repo check
+
+SPADES expects the working directory to already be a git repository.
+Scaffolded files (`AGENTS.md`, `ARCHITECTURE.md`, `.spades/config`,
+etc.) are intended to be committed; the AGENTS.md marker block
+carries a version stamp; the dogfood AGENTS.md rule explicitly tells
+agents to defer to the `repo` plugin for git operations. None of
+that works against a directory that hasn't been `git init`'d.
+
+Probe:
+
+```bash
+git rev-parse --git-dir >/dev/null 2>&1 && echo found || echo missing
+```
+
+- **`found`** → proceed to Step 1.
+- **`missing`** → abort with:
+
+  > *This directory isn't a git repository yet. Run `/repo:init`
+  > first — it initialises git, commits a placeholder README, wires
+  > origin, and pushes to `main`. Once that's done, re-invoke
+  > `/spades:setup` to configure SPADES on top.*
+
+  Do not auto-run `/repo:init`. The human invokes it explicitly so
+  they can confirm origin URL, branch name preferences, and any
+  pre-init filesystem state. SPADES setup resumes only after
+  `/repo:init` has completed and the human re-runs the slash
+  command.
+
+This belt-and-braces check complements the AGENTS.md operating rule
+("defer to the `repo` plugin for git operations") below: the rule
+tells *agents* what to do; this probe is the *mechanical* enforcement
+at setup time so a brand-new-repo flow can't accidentally produce
+SPADES files outside version control.
 
 ## Step 1 — Backend Selection
 
