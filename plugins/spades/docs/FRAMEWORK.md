@@ -86,6 +86,30 @@ requests. In that case `strategy_link:` is omitted, and the existing
 The field is optional throughout; SPADES never requires a roadmap
 link to create a Scope.
 
+### Two layers of "intent"
+
+SPADES tracks intent at two levels, with one file per project and one
+section per Scope:
+
+| Layer | Lives as | Scope of *why* |
+|-------|----------|----------------|
+| **Project** | `INTENT.md` at the repo root | Why this whole initiative exists |
+| **Scope** | The `## Statement of Intent` section in each `S-…md` | Why this specific outcome, now |
+
+The Scope's Statement of Intent IS the scope-level intent doc. There
+is no separate per-scope INTENT file; the section is the intent. Each
+Scope's intent should be **measured against** the project-level
+`INTENT.md`. A Scope whose intent contradicts INTENT is a drift
+signal — refresh INTENT before scoping (or revise the Scope so it
+fits).
+
+**`/spades:scope` hard-gates on INTENT.md existence.** If `INTENT.md`
+is missing at the repo root, the skill refuses to create a Scope
+until `/spades:intent` has been run (or the human explicitly
+overrides, which records a marker in the Scope's audit trail). This
+prevents the most common drift pattern: weeks of scoping with no
+north star to measure against.
+
 ---
 
 ## ID Format

@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 2.1.0
+version: 2.2.0
 ---
 
 # /spades:scope
@@ -19,7 +19,34 @@ running. Schemas below mirror that contract.
    `/spades:setup` first.
 2. **Confirm active project.** Read `project:` from `.spades/config`.
    If missing, abort and suggest `/spades:newproject` to create one.
-3. **Read the backend.** Branches below act according to `.spades/config`'s
+3. **INTENT.md gate.** A Scope is measured against the project's
+   `INTENT.md` (the durable statement of *why* this project exists).
+   Scoping without INTENT means scope drift is silent — there is no
+   north star to measure against.
+
+   Probe:
+
+   ```bash
+   [ -f INTENT.md ] && echo present || echo missing
+   ```
+
+   - **`present`** → proceed.
+   - **`missing`** → **hard gate**. Ask via `AskUserQuestion`:
+     - **Run `/spades:intent` now** *(Recommended)* — compose INTENT
+       before scoping. Invoke the intent skill inline; once it
+       completes, resume here at Step 1.
+     - **Override and proceed without INTENT** — only for
+       throwaway / sandbox / prototype repos. Record the override
+       in the new Scope's audit trail (see Step 7) with the line:
+       `- YYYY-MM-DD: Scope created without INTENT.md (override).`
+       Drift risk accepted by the human.
+     - **Abort** — exit, handle manually.
+
+   Do not silently proceed if INTENT is missing. The cost of
+   running `/spades:intent` is minutes; the cost of months of
+   silent scope drift is much higher. Friction is the feature.
+
+4. **Read the backend.** Branches below act according to `.spades/config`'s
    `backend:` field.
 
 ## Step 1 — Fast-Track Check First
