@@ -243,6 +243,42 @@ The canonical definition lives in `docs/FRAMEWORK.md § Freshness`.
 This section is the operating-rules-level statement; that section is
 the contract.
 
+## Defer to the `repo` Plugin for Git Operations
+
+SPADES does not own git-level operations. The `repo` plugin (from
+the `ai-skills` marketplace) does. For any git operation, use the
+appropriate `repo` slash command — never reinvent the equivalent
+logic inside a SPADES skill.
+
+| When you need to… | Use |
+|-------------------|-----|
+| Initialise a new git repo | `/repo:init` — `git init`, placeholder README, wires origin, pushes to main. |
+| Create a new branch off main | `/repo:branch` (validates the name and enforces the no-commits-on-main rule) plus `git switch -c <name>` to create in place, or `/repo:newbranch` for create-with-worktree. |
+| Sync local main after a PR merge | `/repo:sync` — fetches, ff-pulls main, force-deletes the merged feature branch. |
+| Refuse to commit on `main` / `master` | `/repo:branch` enforces this absolutely — no overrides. |
+
+SPADES skills that branch off main (`/spades:do`, `/spades:close`)
+MUST go through `/repo:branch`'s regex validation. SPADES skills
+that need to verify post-merge state (`/spades:close`) invoke
+`/repo:sync` directly. The dependency is **one-directional**:
+SPADES → `repo`, never the reverse.
+
+### If you don't have a git repo yet
+
+Running SPADES in a directory that isn't a git repo? Run
+`/repo:init` first, then re-invoke `/spades:setup`. SPADES expects
+an initialised repo — it scaffolds files under git's expectation
+that they will be committed (`AGENTS.md`, `ARCHITECTURE.md`,
+`.spades/config`, etc.).
+
+### Why this rule
+
+SPADES is the **implementation framework**; the `repo` plugin is the
+**git-discipline framework**. Each owns its concern. Mixing them —
+e.g. a SPADES skill that runs `git init` inline, or one that
+hand-rolls a post-merge cleanup — splits ownership and risks the two
+plugins drifting out of agreement. Always defer.
+
 ## Backend
 
 The backend is configured in `.spades/config` under `backend:`. SPADES

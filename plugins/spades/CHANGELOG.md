@@ -8,6 +8,57 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [2.9.0] — 2026-05-30
+
+**Minor** — AGENTS.md now codifies "defer to the `repo` plugin for
+all git operations" as an explicit operating rule.
+
+A SPADES skill that tries to roll its own `git init` / branch
+creation / post-merge cleanup risks drifting out of agreement with
+the `repo` plugin's discipline (branch-name regex,
+no-commits-on-main rule, refuse-on-dirty pulls). The principle was
+already followed in practice (`/spades:close` invokes `/repo:sync`;
+`/spades:do` and `/spades:close` create branches under
+`/repo:branch`'s validation) but wasn't written down.
+
+This PR writes it down. Documentation-only — no skill body changes.
+
+- **New §** `plugins/spades/AGENTS.md` § Defer to the `repo` Plugin
+  for Git Operations — operating rule listing the four common
+  cases (init, new branch, post-merge sync, no-commits-on-main)
+  and the matching `repo` slash command for each. Plus a
+  *"If you don't have a git repo yet, run `/repo:init` first"*
+  subsection covering the brand-new-repo case.
+- **Mirrored into the consumer-facing marker block** in
+  `skills/setup/SKILL.md` so every SPADES-configured consumer repo
+  gets the rule stamped into its own `AGENTS.md` on next
+  `/spades:setup`.
+- **The dependency is one-directional**: SPADES → `repo`. The
+  `repo` plugin never calls SPADES. This is consistent with the
+  freshness convention (PR #12) where `/spades:close` invokes
+  `/repo:sync` but `/repo:sync` never calls `/spades:close`.
+- **Belt-and-braces — new Step 0.5 in `/spades:setup`: git-repo
+  probe.** Complements the AGENTS.md rule above with a mechanical
+  enforcement at setup time:
+
+  ```bash
+  git rev-parse --git-dir >/dev/null 2>&1
+  ```
+
+  If the cwd isn't a git repository, setup aborts cleanly with a
+  pointer to `/repo:init`. No auto-init — the human runs
+  `/repo:init` explicitly so they can confirm origin URL and branch
+  preferences. SPADES setup resumes once `/repo:init` has
+  completed.
+
+  Layered defense: the AGENTS.md rule tells *agents* what to do;
+  the Step 0.5 probe enforces it *mechanically* at setup time so a
+  brand-new-repo flow can't accidentally produce SPADES files
+  outside version control.
+
+- **Skills bumped:** `setup` 2.5.0 → 2.7.0 (marker block content
+  changed + new Step 0.5 probe). No other skill bodies touched.
+
 ## [2.8.0] — 2026-05-30
 
 **Minor** — `/spades:scope` hard-gates on `INTENT.md`; framework docs
