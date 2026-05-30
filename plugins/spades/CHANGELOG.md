@@ -8,6 +8,47 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [2.8.0] — 2026-05-30
+
+**Minor** — `/spades:scope` hard-gates on `INTENT.md`; framework docs
+the two-layer intent model.
+
+A Scope is meaningless without a north star to measure against. The
+previous flow allowed `/spades:scope` to run even when `INTENT.md`
+was missing — silent scope-drift waiting to happen. This PR closes
+that gap.
+
+- **`skills/scope/SKILL.md` Pre-Flight Step 3 (new) — INTENT.md
+  gate.** Probes for `INTENT.md` at the project root. If missing,
+  asks the human (via `AskUserQuestion`):
+  - **Run `/spades:intent` now** *(Recommended)* — composes
+    project intent before scoping, then resumes.
+  - **Override and proceed without INTENT** — for throwaway /
+    sandbox repos. Records `- YYYY-MM-DD: Scope created without
+    INTENT.md (override).` in the new Scope's audit trail. Drift
+    risk accepted by the human.
+  - **Abort** — exit, handle manually.
+
+  Friction is the feature. `/spades:intent` is six probing
+  questions; the cost of running it is minutes, the cost of months
+  of silent scope drift is much higher.
+
+- **`docs/FRAMEWORK.md` § Hierarchy → Two layers of "intent"
+  (new).** Documents the project-vs-scope intent split:
+  - **Project-level** = `INTENT.md` at the repo root.
+  - **Scope-level** = the `## Statement of Intent` section in each
+    `S-…md`. There is no separate per-scope INTENT file; the
+    section is the intent.
+
+  Each Scope's intent should be measured against the project-level
+  INTENT.md. A Scope whose intent contradicts INTENT is a drift
+  signal — refresh INTENT before scoping (or revise the Scope so
+  it fits). The doc also states the hard-gate explicitly so a
+  reader knows the contract before invoking `/spades:scope`.
+
+- **Skills bumped:** `scope` 2.1.0 → 2.2.0 (new Pre-Flight Step 3).
+  Other skills unchanged.
+
 ## [2.7.0] — 2026-05-30
 
 **Minor** — audit follow-up trio: Strategy/Roadmap hook, canonical
