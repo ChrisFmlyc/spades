@@ -6,6 +6,7 @@ status: scoped
 type: feature
 priority: this-cycle
 origin: ad-hoc
+# strategy_link: https://linear.app/example/issue/ROAD-142   # optional; only when seeded from a roadmap / OKR / epic
 created: 2026-05-29
 updated: 2026-05-29
 ---

@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 2.1.0
+version: 2.2.0
 ---
 
 # /spades:do
@@ -38,15 +38,23 @@ before running — every task declares a posture (`test-first`,
    `draft`, abort and suggest `/spades:approve` first. If it's
    `delivering` already, resume rather than restart.
 5. **Verify dependencies.** Read every plan listed in the Plan's
-   `depends_on:` field. If any of them is not `status: shipped`,
-   warn the human:
+   `depends_on:` field.
 
-   > Plan `P-foo-3HyD` depends on `P-bar-28sD`, which is still
-   > `delivering`. Do you want to proceed anyway, or wait?
+   - If any dependency has `status: rejected`, **abort** with a
+     pointer to `/spades:plan` for the rejected ancestor.
+     Rejections do not cascade silently — the human must explicitly
+     replan the rejected ancestor (or mark its dependants
+     rejected too) before Do can proceed. See `docs/FRAMEWORK.md §
+     Plan Rejection` for the contract.
+   - If any dependency is not yet `status: shipped` (still
+     `delivering`, `evaluating`, etc.), warn the human:
 
-   Offer (via `AskUserQuestion`):
-   - **Wait** — abort, suggest finishing the dependency first
-   - **Proceed anyway** — record the override in the audit trail
+     > Plan `P-foo-3HyD` depends on `P-bar-28sD`, which is still
+     > `delivering`. Do you want to proceed anyway, or wait?
+
+     Offer (via `AskUserQuestion`):
+     - **Wait** — abort, suggest finishing the dependency first
+     - **Proceed anyway** — record the override in the audit trail
 
 ## Step 1 — Ensure a feature branch (code deliverables)
 

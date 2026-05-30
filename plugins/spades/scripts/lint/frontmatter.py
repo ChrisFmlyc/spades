@@ -57,6 +57,13 @@ def parse_frontmatter(text: str) -> Dict[str, str]:
         if raw.strip() == "":
             current_key = None
             continue
+        # YAML-style line comments — skip whole-line `#` comments inside frontmatter.
+        # Lets authors annotate optional fields (e.g. "# strategy_link: ...") without
+        # uncommenting; the linter ignores them. Inline trailing comments after a
+        # key:value pair stay part of the value (single-line stdlib parser; that's fine).
+        if raw.lstrip().startswith("#"):
+            current_key = None
+            continue
         if raw.lstrip().startswith("- ") and current_key is not None:
             fields[current_key] += "\n" + raw.lstrip()
             continue
@@ -103,7 +110,7 @@ SCOPE_ENUMS = {
 SCOPE_KNOWN_FIELDS = frozenset(
     SCOPE_CORE_REQUIRED
     + tuple(SCOPE_ENUMS)
-    + ("linear_issue_id",)
+    + ("linear_issue_id", "strategy_link")
 )
 SCOPE_ID_RE = re.compile(r"^S-[a-z0-9](?:[a-z0-9-]{0,63})$")
 
