@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 2.3.0
+version: 2.4.0
 ---
 
 # /spades:setup
@@ -28,6 +28,51 @@ or the `plugins/spades/` directory exists at the root), abort with:
 The framework dogfoods itself by running setup against its own
 `plugins/spades/` directory — but you only do that when explicitly told
 "set up the dogfood project".
+
+## Step 0 — Prerequisite plugin check (`ai-skills/repo`)
+
+SPADES depends on the `repo` plugin from the **`ai-skills`** Claude
+Code marketplace for two slash commands:
+
+- `/repo:sync` — post-merge git cleanup, called before `/spades:close`.
+- `/repo:branch` — branch-naming guardrail, enforces the prefix list
+  and the no-commits-on-main rule that `/spades:do`, `/spades:ship`,
+  and `/spades:close` all rely on.
+
+Probe whether the plugin is already installed:
+
+```bash
+[ -d "$HOME/.claude/plugins/cache/ai-skills/repo" ] && echo found || echo missing
+```
+
+- **`found`** — proceed to Step 1. (The plugin's commands are
+  available; no further action.)
+- **`missing`** — print the install guide below and ask via
+  `AskUserQuestion`:
+  - *I've installed it — re-probe and continue.*
+  - *Skip this for now — I'll install later. (Setup continues, but
+    `/spades:close`, `/spades:do`, and `/spades:ship` will refuse to
+    run until the `repo` plugin is installed.)*
+
+### Install guide — `ai-skills` marketplace + `repo` plugin
+
+The marketplace lives at
+[`github.com/ChrisFmlyc/ai-skills`](https://github.com/ChrisFmlyc/ai-skills).
+Install both the marketplace and the `repo` plugin from inside
+Claude Code:
+
+```
+/plugin marketplace add ChrisFmlyc/ai-skills
+/plugin install repo@ai-skills
+```
+
+After install, verify by running `/repo:sync` or
+`/repo:branch` — Claude Code should recognise the slash commands.
+
+If the human picks "I've installed it", re-run the probe before
+continuing. If it still reports `missing`, re-show the install guide
+and ask again — do not advance with the prerequisite unsatisfied
+unless the human explicitly chose "Skip for now".
 
 ## Step 1 — Backend Selection
 
@@ -323,7 +368,7 @@ Claude Code, Cursor, Codex, Aider, or anything else that honours
 
 ## SPADES Skills (v2.0)
 
-The SPADES plugin (`spades`) provides these 15 skills:
+The SPADES plugin (`spades`) provides these 16 skills:
 
 | Skill | What it does |
 |-------|-------------|
@@ -335,6 +380,7 @@ The SPADES plugin (`spades`) provides these 15 skills:
 | `/spades:do` | Execute an approved Plan (routed AI / human / hybrid) |
 | `/spades:evaluate` | Check delivered output against the Plan |
 | `/spades:ship` | Open PR + review + merge (code) or record deliverable (artefact / action) |
+| `/spades:close` | Post-merge close-out: open bookkeeping PR, mirror to Linear (run `/repo:sync` first) |
 | `/spades:quick` | Fast-track for trivial work — PR description is the audit trail |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |

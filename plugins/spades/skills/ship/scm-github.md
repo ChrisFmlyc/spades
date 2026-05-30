@@ -109,10 +109,20 @@ Plan stays in `status: shipping`. Print the hand-off:
 ○ Address review feedback by committing to this branch.
 
 Once the PR is squash-merged:
-  /repo:sync                — clean up main + the local branch
-  /spades:ship P-<plan-id>  — record the merge SHA, mark shipped
+  /repo:sync                 — clean up main + delete the merged
+                               feature branch (from the `repo` plugin).
+  /spades:close P-<plan-id>  — open a small bookkeeping PR that
+                               records the `Shipped` marker on main,
+                               wait for you to merge it, then mirror
+                               to Linear if applicable.
 
-Plan stays in `shipping` until the resume runs.
+Plan stays in `shipping` until `/spades:close` finishes.
+
+(Legacy fallback: `/spades:ship P-<plan-id>` still works via this
+skill's Step 6 and does the merge-verification half inline, but the
+`/repo:sync` + `/spades:close` pair is the recommended path — it
+splits the SCM-agnostic git cleanup (sync) from the SPADES-specific
+close-out (close), and adds a bookkeeping audit commit on main.)
 ```
 
 **Exit here.** Do NOT continue past Phase 1 — return to SKILL.md, which
