@@ -8,6 +8,64 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [2.7.0] — 2026-05-30
+
+**Minor** — audit follow-up trio: Strategy/Roadmap hook, canonical
+`Shipped` marker contract, rejection-cascade rule.
+
+These three additions came out of the 2026-05-30 consistency audit
+(captured in memory). Bundled into one PR because each is small and
+they touch overlapping files (`FRAMEWORK.md`, scope + do skills,
+example fixture, frontmatter linter).
+
+- **Strategy/Roadmap hook on Scopes.** SPADES is the implementation
+  layer; Strategy / Roadmap / OKR planning lives above it in
+  whatever tool an org uses. A Scope is the moment a roadmap item
+  becomes concrete — but the framework had no documented link
+  upward. Fixed by:
+  - **New §** `docs/FRAMEWORK.md` § Hierarchy → *What sits above a
+    Scope* — paragraph + ASCII diagram of the audit chain from
+    Roadmap item → Scope → Plan → shipped.
+  - **New optional Scope frontmatter field:** `strategy_link:` —
+    free-form string (URL, Linear ID, OKR code, Notion ref).
+    Omitted when a Scope arises reactively; `origin:` carries that
+    rationale.
+  - `skills/scope/SKILL.md` adds Step 4 / Question 11 — *"Does this
+    scope trace to a roadmap item or OKR?"* — recorded verbatim if
+    supplied.
+  - `examples/example-scope.md` shows the field as a commented row
+    so the shape is visible.
+  - `scripts/lint/frontmatter.py` allow-list extended to accept
+    `strategy_link` as a known optional Scope field.
+- **Canonical `Shipped` marker contract.** SCM drivers emit
+  `Shipped` markers with varying suffixes (`Shipped. PR: ...`,
+  `Shipped (local-git). Branch: ...`). The audit found this drift
+  was un-documented at the framework level — `/spades:ship` Step 0
+  and `/spades:close` Step 1 both grep these markers but the
+  contract was scattered. Fixed by:
+  - **New §** `docs/FRAMEWORK.md` § Audit Trail → *The `Shipped`
+    marker (contract)* — table mapping each SCM driver to its
+    marker shape, plus the universal rule: every Plan reaching
+    `status: shipped` MUST have a line beginning with `Shipped`.
+  - Driver fragments unchanged — they already emit conforming
+    markers; this just makes the contract canonical.
+- **Plan rejection — no cascade rule.** A Plan with `status:
+  rejected` no longer leaves dependants in undefined state. Fixed
+  by:
+  - **New §** `docs/FRAMEWORK.md` § Audit Trail → *Plan rejection —
+    no cascade* — explicit contract: dependants stay in their
+    current state, but `/spades:do` refuses to start any Plan
+    whose `depends_on:` chain contains a `rejected` ancestor.
+    Human decides whether to replan the ancestor or mark
+    dependants rejected too.
+  - `skills/do/SKILL.md` dependency-check (Pre-Flight Step 5)
+    extended: aborts with a pointer to `/spades:plan` when any
+    `depends_on:` ancestor is `rejected`. Prevents silent stuck
+    work.
+- **Skills bumped:** `scope` 2.0.0 → 2.1.0 (strategy_link prompt),
+  `do` 2.1.0 → 2.2.0 (rejected-dependency abort). Other skills
+  unchanged — the Shipped-marker contract is FRAMEWORK-only.
+
 ## [2.6.0] — 2026-05-30
 
 **Minor** — Freshness convention (`docs/FRAMEWORK.md` § Freshness +

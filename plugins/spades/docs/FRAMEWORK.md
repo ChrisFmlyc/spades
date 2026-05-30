@@ -63,6 +63,29 @@ Project (project-slug)             e.g. "closed-door-security-website"
   on earlier plans within the same scope. Each plan is independently
   approvable, doable, evaluable, and shippable.
 
+### What sits above a Scope
+
+SPADES is the implementation layer. It does not own Strategy, the
+Roadmap, OKRs, or Epics — those live in whatever planning tool your
+org uses (Linear, Jira, Productboard, a spreadsheet, etc.). A Scope
+is the moment a Roadmap item becomes concrete work.
+
+When a Scope is seeded from a Roadmap / OKR / Epic, record the
+upstream reference in the Scope's optional `strategy_link:`
+frontmatter field. The audit chain then runs unbroken from strategy
+through ship:
+
+```
+<Roadmap item / OKR / Epic>  →  Scope (strategy_link: <ref>)
+                                    →  Plan(s)  →  shipped
+```
+
+Scopes can also arise **reactively** — incidents, tech debt, ad-hoc
+requests. In that case `strategy_link:` is omitted, and the existing
+`origin:` field carries the rationale (`reactive`, `ad-hoc`, `okr`).
+The field is optional throughout; SPADES never requires a roadmap
+link to create a Scope.
+
 ---
 
 ## ID Format
@@ -179,6 +202,7 @@ created: 2026-05-29
 updated: 2026-05-29
 priority: urgent | high | this-cycle | medium | low | backlog | exploratory
 origin: okr | reactive | ad-hoc
+strategy_link: <URL | ID | ref>     # optional; where this scope came from (roadmap item, OKR, epic). Free-form string.
 linear_issue_id: <id>               # only if backend: linear and synced
 ---
 ```
@@ -467,6 +491,47 @@ Every piece of work must be traceable through:
 7. A shipment record
 
 Work that cannot be traced through this chain must not ship.
+
+### Plan rejection — no cascade
+
+A Plan with `status: rejected` does **not** automatically invalidate
+Plans that depend on it via `depends_on:`. Dependants stay in
+whatever state they were in (`draft`, `approved`) — but they are
+**blocked**:
+
+- `/spades:do` refuses to start a Plan whose `depends_on:` chain
+  contains a `rejected` ancestor. It aborts with a pointer to
+  `/spades:plan` for the rejected ancestor.
+- The human decides what to do — either:
+  - Replan the rejected ancestor (most common: refine and re-approve),
+    after which dependants can proceed; or
+  - Mark the dependants `rejected` too, with a one-line rationale in
+    each Plan's audit trail.
+
+The framework never makes this decision automatically. Cascading a
+rejection silently would risk auto-cancelling work that the human
+might have wanted to salvage independently; refusing to start
+silently would risk wasted Do-phase cycles on stale dependencies.
+The middle ground is explicit refusal + human choice.
+
+### The `Shipped` marker (contract)
+
+Every Plan that reaches `status: shipped` MUST have a line beginning
+with `Shipped` as the most recent entry in its `## Audit Trail`
+section. The prefix is universal; SCM drivers vary the suffix to
+reflect what was shipped and where:
+
+| SCM driver | Marker shape |
+|------------|--------------|
+| `scm: github` (two-phase) | `Shipped. PR: <URL>. Merge: <sha>. Merged by: <login>.` |
+| `scm: local-git` (single-phase) | `Shipped (local-git). Branch: <branch>. Commit: <sha>.` |
+| Future drivers (GitLab, Bitbucket, etc.) | `Shipped (<scm-name>). …` or `Shipped. MR: <URL>. Merge: <sha>.` — see `docs/EXTENDING-SCM.md` § 4. |
+
+`/spades:ship` Step 0 and `/spades:close` Step 1 both grep for the
+`Shipped` prefix to detect resume state and finalisation state. New
+SCM drivers MUST emit the prefix; the suffix is free-form within the
+contract. Plans NEVER transition to `status: shipped` without a
+matching audit line.
 
 ## Freshness
 

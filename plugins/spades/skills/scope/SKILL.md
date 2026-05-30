@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # /spades:scope
@@ -156,6 +156,22 @@ Ask this via `AskUserQuestion` (fixed-option).
 - **feature** | **bug** | **chore** | **docs** | **refactor** | **investigation**
 
 Often inferable from the description; confirm via `AskUserQuestion`.
+
+### 11. Strategy / Roadmap link (optional)
+
+Ask once, plainly: *"Does this scope trace to a roadmap item, OKR,
+or epic tracked elsewhere? If yes, paste the link or ID — I'll
+record it as `strategy_link:`. If reactive / ad-hoc, just say so
+and we'll skip it."*
+
+If the human supplies a link or ID, record it verbatim as the
+`strategy_link:` frontmatter field — free-form string, no shape
+validation (URLs, Linear IDs, Notion page refs, OKR codes all
+acceptable). If they say "reactive" or "ad-hoc", omit the field;
+the existing `origin:` field already captures the rationale.
+
+This bridges the gap from the Strategy / Roadmap layer above SPADES
+into the audit chain. Optional; SPADES never requires it.
 
 ## Step 5 — Quality Checks
 
