@@ -8,6 +8,54 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [2.6.0] — 2026-05-30
+
+**Minor** — Freshness convention (`docs/FRAMEWORK.md` § Freshness +
+`AGENTS.md` operating rule) and Layer-2 subagent freshness
+pre-flights in `/spades:review` and `/spades:research`.
+
+- **The problem.** SPADES skills read files from the local
+  filesystem. If a recently merged PR isn't pulled locally,
+  audits, plan-drafting, do-phase branch creation, and review
+  subagents all silently operate against the wrong source of
+  truth. We hit this on 2026-05-30 — an audit produced findings
+  ("`/spades:close` doesn't exist") that were already false on
+  `origin/main` because the local checkout hadn't been pulled
+  after PR #10 merged. Two of eleven audit findings were stale.
+- **Layer 1 — Behavioural rule.** Operators run `/repo:sync`
+  immediately after any PR merge, before context-switching to a
+  new SPADES skill. Captured as the rule in:
+  - **New §** `docs/FRAMEWORK.md` § Freshness — canonical
+    definition + when-it-applies block.
+  - **New §** `plugins/spades/AGENTS.md` § Freshness Before
+    Read-Across — operating-rule restatement; same rule appears
+    in the consumer-facing marker block inside
+    `skills/setup/SKILL.md` so consumer repos get it stamped into
+    their AGENTS.md on next `/spades:setup`.
+- **Layer 2 — Subagent prompt pre-flights.** Skills that spawn
+  read-across subagents now run the freshness check before
+  spawning, so the subagents never produce findings against stale
+  state:
+  - `skills/review/SKILL.md` — Pre-Flight Step 1 (mandatory)
+    runs `git rev-list --count main..origin/main`. If non-zero,
+    abort with a pointer to `/repo:sync`; the four-persona panel
+    is never spawned against stale code.
+  - `skills/research/SKILL.md` — same Pre-Flight check before
+    spawning the researcher. The researcher's Scope-context reads
+    stay fresh.
+- **Why the rule lives in FRAMEWORK + AGENTS, not in every
+  skill.** A single canonical definition (FRAMEWORK) +
+  operating-rule restatement (AGENTS) covers every SPADES skill
+  without repeating the check in each Pre-Flight. Skills that
+  spawn subagents codify the check explicitly (Layer 2); other
+  skills inherit the rule via AGENTS. Adding a new skill that
+  reads cross-cutting state? The skill author reads FRAMEWORK §
+  Freshness and references it; the convention propagates.
+- **Skills bumped:** `setup` 2.4.0 → 2.5.0 (new § in marker
+  block), `review` 2.0.0 → 2.1.0 (new Pre-Flight Step 1),
+  `research` 2.0.0 → 2.1.0 (new Pre-Flight Step 1). Other skills
+  unchanged.
+
 ## [2.5.0] — 2026-05-30
 
 **Minor** — new `/spades:close` skill (post-merge close-out) + setup

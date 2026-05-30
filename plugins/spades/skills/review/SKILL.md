@@ -1,10 +1,35 @@
 ---
 name: review
 description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
-version: 2.0.0
+version: 2.1.0
 ---
 
 ## Pre-Flight
+
+### Step 1 — Freshness check (mandatory)
+
+Per `docs/FRAMEWORK.md` § Freshness and `AGENTS.md` § Freshness
+Before Read-Across, this skill spawns four read-across subagents
+that read the local filesystem. A stale local `main` will produce
+stale findings — every persona will flag issues that have already
+shipped.
+
+Verify before spawning the panel:
+
+```bash
+git fetch origin --quiet && git rev-list --count main..origin/main
+```
+
+- Returns `0` → fresh. Continue.
+- Non-zero → abort with the message: *"Local `main` is N commits
+  behind `origin/main`. Run `/repo:sync` then re-invoke
+  `/spades:review`. Spawning a panel against stale code wastes
+  reviewer cycles and produces false findings."* Do not proceed.
+
+This is the Layer 2 enforcement of the freshness rule — the panel
+never runs against stale state.
+
+### Step 2 — Config + backend
 
 Read `.spades/config` for the active project. If the file is missing,
 suggest `/spades:setup` and abort — review needs Scope/Plan context to

@@ -1,10 +1,38 @@
 ---
 name: research
 description: Landscape research on a topic via an isolated Opus 4.7 subagent. Use when the human says "properly research this", "look into X", "check the prior art", "second opinion on the landscape", "what does the SOTA look like for X", or asks any open question that needs external fact-finding (libraries, frameworks, benchmarks, postmortems, comparisons). Returns a structured findings report; optionally posts to a Linear parent issue with explicit human consent. Callable any time — not tied to a SPADES phase. Also matches the explicit slash-command form `/spades:research`.
-version: 2.0.0
+version: 2.1.0
 ---
 
 ## Pre-Flight
+
+### Step 1 — Freshness check (mandatory)
+
+Per `docs/FRAMEWORK.md` § Freshness and `AGENTS.md` § Freshness
+Before Read-Across, this skill spawns a read-across researcher
+subagent. When research is scoped to an existing Scope (via
+`--scope <S-…>` or implicit Scope context), the researcher reads
+the local Scope file for context — a stale local `main` would feed
+stale context into the research dispatch.
+
+Verify before spawning the researcher:
+
+```bash
+git fetch origin --quiet && git rev-list --count main..origin/main
+```
+
+- Returns `0` → fresh. Continue.
+- Non-zero → abort with: *"Local `main` is N commits behind
+  `origin/main`. Run `/repo:sync` then re-invoke `/spades:research`.
+  The researcher grounds its work against the current Scope; stale
+  context produces stale research."* Do not proceed.
+
+For purely standalone research (no Scope context, no repo reads),
+this check is technically over-cautious — but enforcing it uniformly
+keeps the rule easy to teach. The cost of one `git fetch` is
+negligible.
+
+### Step 2 — Backend
 
 `/spades:research` works with or without a configured backend.
 `.spades/config` is only read if the human chooses to post the

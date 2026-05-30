@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 2.4.0
+version: 2.5.0
 ---
 
 # /spades:setup
@@ -488,6 +488,35 @@ Before generating any Plan, read these files if they exist:
 - `ANTI-PATTERNS.md` — things you must not do
 
 Flag any conflicts between proposed solutions and these documents.
+
+## Freshness Before Read-Across
+
+SPADES skills read files from the local filesystem, not from
+`origin`. A stale local `main` produces stale findings — audits flag
+issues already shipped, plans reference removed code, do-phase work
+branches off the wrong base.
+
+**The rule:** before any SPADES skill that reads cross-cutting state
+or branches off `main`, verify the local checkout is in sync with
+`origin/main`:
+
+```bash
+git fetch origin --quiet && git rev-list --count main..origin/main
+```
+
+Returns `0` → proceed. Non-zero → run `/repo:sync` first, then
+re-invoke the SPADES skill.
+
+**The behavioural reflex:** after any PR merge on this repo (yours
+or someone else's), run `/repo:sync` immediately, before
+context-switching to a new SPADES skill.
+
+**Subagent prompts:** skills that spawn read-across subagents
+(`/spades:review`, `/spades:research`) include the freshness check
+in the subagent's own prompt — the subagent halts on stale-main
+rather than producing findings against a stale snapshot.
+
+The full contract lives in `docs/FRAMEWORK.md § Freshness`.
 
 ## Versioning
 
