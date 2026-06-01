@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:do` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.0.2
+version: 3.1.0
 ---
 
 # /spades:evaluate
@@ -307,25 +307,35 @@ Ask the human via `AskUserQuestion`:
 The human owns the final verdict in every routing mode — even AI
 mode where AI proposed it.
 
-## Write the Verdict
+## Write the Verdict (fan-out dispatch)
 
-Update the Plan frontmatter:
-- For PASS: keep `status: evaluating`, record verdict in audit trail.
-  The human will run `/spades:ship` next.
-- For PARTIAL: keep `status: evaluating`, record the gaps. The work
-  routes back to `/spades:do` for the fixes; this skill stays open.
-- For FAIL: `status: rejected`. Route back to `/spades:plan` or
-  `/spades:scope`.
+Apply the fan-out pattern from
+`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`. Spawn the
+following sub-agents **in parallel in a single assistant message
+with multiple `Agent` tool calls** (`subagent_type:
+general-purpose`):
 
-Append to the Plan's `## Audit Trail`:
+| Sub-agent | Resource owned | Returns |
+|-----------|---------------|---------|
+| `worker-file-plan-evaluate` | `.spades/plans/P-<…>.<ext>` — update Plan frontmatter (PASS: keep `status: evaluating`; PARTIAL: keep `status: evaluating`, record gaps; FAIL: `status: rejected`) and append to audit trail: `- YYYY-MM-DD: Evaluation — verdict: <PASS\|PARTIAL\|FAIL>. Notes: <…>.` | `{ status: ok }` |
+| `worker-file-scope-evaluate` *(only when this evaluation triggers a Scope rollup)* | `.spades/scopes/S-<scope-slug>.<ext>` — update rollup per `docs/FRAMEWORK.md § Hierarchy → Scope status rollup` and append audit-trail entry. Skip this sub-agent when no rollup change is required. | `{ status: ok }` |
+| `worker-linear-evaluate` *(only when `backend: linear`)* | Linear — call `record_evaluation(plan_id, verdict, notes)`: the driver posts the report as a comment on the sub-issue and updates sub-issue status. Includes the Layer-2 freshness probe. | `{ status: ok }` |
 
-```markdown
-- YYYY-MM-DD: Evaluation — verdict: PASS. Notes: <…>.
-```
+No back-write. After sub-agents return, the coordinator collects
+results per the failure semantics in
+`FRAMEWORK.md § Sub-agent Dispatch`:
 
-Call the backend's `record_evaluation(plan_id, verdict, notes)`. When
-`backend: linear`, the driver posts the report as a comment on the
-sub-issue.
+- **All ok** → record dispatch mode and proceed to After Verdict.
+- **`worker-file-plan-evaluate` failed** → abort with the error.
+- **`worker-file-scope-evaluate` failed** → surface; the plan
+  file's verdict is recorded but Scope rollup needs manual patch.
+- **`worker-linear-evaluate` failed** → keep local files
+  (canonical), surface the Linear failure, offer retry. Do NOT
+  block.
+
+### When `backend: local`
+
+Only the file sub-agent(s) are dispatched (no Linear).
 
 ## After Verdict
 

@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 3.0.2
+version: 3.1.0
 ---
 
 # /spades:scope
@@ -338,24 +338,39 @@ linear_issue_id: <id>          # only when backend: linear AND synced
    your browser". Never crash.
 5. Do NOT also write a `.md`. The HTML is canonical in HTML mode.
 
-## Step 8 — Backend Mirror
+## Step 8 — Backend Mirror (fan-out dispatch)
 
 ### When `backend: linear`
 
-After the local file is written, also create a Linear Issue:
+Apply the fan-out pattern from
+`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`. **Step 7's file
+write and this step's Linear create are dispatched together in a
+single fan-out wave** — Step 7 is the file sub-agent, this step is
+the Linear sub-agent. Spawn both **in parallel in a single assistant
+message with multiple `Agent` tool calls** (`subagent_type:
+general-purpose`):
 
-1. Create a parent Issue on the active Linear Project with title and
-   description matching the Scope.
-2. Set status to "Scoped".
-3. Capture the Linear issue ID and write it back to the local file's
-   `linear_issue_id:` frontmatter field.
+| Sub-agent | Resource owned | Returns |
+|-----------|---------------|---------|
+| `worker-file-scope` | `.spades/scopes/S-<slug>.<ext>` — the scope file rendered per Step 7.A (CLI) or 7.B (HTML). Written **without** `linear_issue_id:` — the coordinator injects it post-dispatch. | `{ status: ok }` |
+| `worker-linear-scope` | Linear — create a parent Issue on the active Linear Project with title + description matching the Scope, status "Scoped". Includes the Layer-2 freshness probe. | `{ status: ok, linear_issue_id: "<id>" }` |
 
-If the Linear write fails, the local file is canonical — the human can
-re-run later to retry the sync. Do not block on Linear failure.
+After both return, the coordinator:
+
+- **Both ok** → targeted edit on the scope file to inject
+  `linear_issue_id: <id>` into the frontmatter (and the embedded
+  `<script type="application/yaml" id="spades-frontmatter">` block
+  in HTML mode). Record dispatch mode.
+- **File sub-agent failed** → abort with the error; the Linear
+  Issue may exist but is orphaned. Surface clearly.
+- **Linear sub-agent failed** → keep the local file (canonical),
+  surface the failure, recommend a manual re-run later. Do NOT
+  block on Linear failure.
 
 ### When `backend: local`
 
-The local file IS canonical. Nothing else to mirror.
+No fan-out — Step 7 writes the file synchronously and exits. The
+local file IS canonical. Nothing else to mirror.
 
 ## Step 9 — Confirm
 

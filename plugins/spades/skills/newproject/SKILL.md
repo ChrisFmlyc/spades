@@ -1,7 +1,7 @@
 ---
 name: newproject
 description: Create a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.0.2
+version: 3.1.0
 ---
 
 # /spades:newproject
@@ -141,16 +141,36 @@ updated: YYYY-MM-DD
    path with "open this in your browser" if `OPEN_CMD` is empty.
 5. Do NOT also write a `.md`.
 
-### When `backend: linear`
+### When `backend: linear` — fan-out dispatch
 
-1. Create a Linear Project with the given title and description, on
-   the team recorded in `.spades/config`'s `linear.team_id`.
-2. Capture the new Linear Project ID.
-3. Write the local project file using the format chosen in Step 3.A
-   or 3.B above (CLI → `.md`, HTML → `.html` rendered from the
-   sibling template + auto-open), with an extra
-   `linear_project_id: <uuid>` field in the frontmatter (and in the
-   embedded `<script type="application/yaml">` block for HTML mode).
+Apply the fan-out pattern from
+`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`. Spawn the two
+sub-agents below **in parallel in a single assistant message with
+multiple `Agent` tool calls** (`subagent_type: general-purpose`):
+
+| Sub-agent | Resource owned | Returns |
+|-----------|---------------|---------|
+| `worker-file-project` | `.spades/projects/<slug>.<ext>` — the local project file in the format chosen by Step 3.A/3.B (CLI → `.md`, HTML → render from sibling `template.html` + auto-open). The file is written **without** `linear_project_id` — the coordinator injects it post-dispatch. | `{ status: ok }` (or `fail` + `error`) |
+| `worker-linear-project` | Linear — create a Project with the given title and description on the team recorded in `.spades/config`'s `linear.team_id`. | `{ status: ok, linear_project_id: <uuid> }` (or `fail`) |
+
+The Linear sub-agent's prompt includes the Layer-2 freshness probe
+(per `FRAMEWORK.md § Sub-agent Dispatch`). Each sub-agent's prompt
+is self-contained and includes its scope, inputs, and return schema.
+
+After both sub-agents return, the coordinator (this skill body)
+collects results per the failure semantics in
+`FRAMEWORK.md § Sub-agent Dispatch`:
+
+- **Both ok** → targeted edit on the local project file to inject
+  `linear_project_id: <uuid>` into the frontmatter (and into the
+  embedded `<script type="application/yaml" id="spades-frontmatter">`
+  block in HTML mode). Record the dispatch mode used.
+- **File sub-agent failed** → abort; the Linear project may have
+  been created but is orphaned. Surface clearly so the human can
+  delete it from Linear or re-run.
+- **Linear sub-agent failed** → keep the local file (canonical),
+  surface the failure with the offer to retry the Linear mirror
+  later.
 
 The local file is the canonical SPADES record; the Linear Project is
 the tracker mirror. Both should always exist when `backend: linear`.

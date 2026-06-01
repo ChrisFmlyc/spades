@@ -243,6 +243,23 @@ The canonical definition lives in `docs/FRAMEWORK.md § Freshness`.
 This section is the operating-rules-level statement; that section is
 the contract.
 
+## Sub-agent Fan-Out
+
+Producing skills (`/spades:newproject`, `/spades:scope`,
+`/spades:plan`) and writeback-heavy consumer skills (`/spades:approve`,
+`/spades:evaluate`) parallelize their Linear + local file work via
+sub-agent fan-out: one sub-agent per resource (one file, one Linear
+operation), dispatched in a single tool-call wave, with the
+coordinator (the skill body) stitching results post-dispatch — e.g.
+injecting a captured `linear_issue_id` into a file the file
+sub-agent already wrote.
+
+The canonical contract — including the one-sub-agent-per-resource
+rule, dispatch modes (`subagent-dispatch` / `sequential-inproc` /
+`degraded`), and failure semantics — lives in
+`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`. This is the
+operating-rules-level statement; that section is the contract.
+
 ## Defer to the `repo` Plugin for Git Operations
 
 SPADES does not own git-level operations. The `repo` plugin (from

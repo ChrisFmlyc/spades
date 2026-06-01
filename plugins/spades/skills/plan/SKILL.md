@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generate a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 3.0.2
+version: 3.1.0
 ---
 
 # /spades:plan
@@ -283,36 +283,44 @@ linear_issue_id: <id>                            # only when backend: linear
    "open this in your browser" message. Never crash.
 5. Do NOT also write a `.md`. The HTML is canonical in HTML mode.
 
-## Step 6 — Update Scope Status
+## Step 6 — Fan-out: scope-audit update + backend mirror
 
-Update the parent Scope's frontmatter:
-- `status: planning` (if it was `scoped`)
-- `updated: <today>`
+Apply the fan-out pattern from
+`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`. **Step 5's plan
+file write joins this step's scope-audit append and Linear sub-issue
+create as a single fan-out wave.** Three sub-agents, each owning a
+distinct resource, dispatched in parallel in a single assistant
+message with multiple `Agent` tool calls
+(`subagent_type: general-purpose`):
 
-Append to the Scope's `## Audit Trail`:
+| Sub-agent | Resource owned | Returns |
+|-----------|---------------|---------|
+| `worker-file-plan` | `.spades/plans/P-<…>.<ext>` — the plan file rendered per Step 5.A (CLI) or 5.B (HTML). Written **without** `linear_issue_id:` — coordinator injects post-dispatch. | `{ status: ok }` |
+| `worker-file-scope-audit` | `.spades/scopes/S-<scope-slug>.<ext>` — update parent Scope frontmatter (`status: planning` if was `scoped`, `updated: <today>`) and append to the audit trail: `- YYYY-MM-DD: Plan drafted — P-<slug>-<suffix>`. | `{ status: ok }` |
+| `worker-linear-plan` *(only when `backend: linear`)* | Linear — create a sub-issue under the parent Scope Issue with title + description matching the Plan; apply labels `ai-planned` + `deliverable_type:<value>`. Includes the Layer-2 freshness probe. | `{ status: ok, linear_issue_id: "<id>" }` |
 
-```markdown
-- YYYY-MM-DD: Plan drafted — P-<slug>-<suffix>
-```
+After all sub-agents return, the coordinator:
 
-## Step 7 — Backend Mirror
-
-### When `backend: linear`
-
-After the local file is written:
-
-1. Create a sub-issue under the parent Scope Issue with title and
-   description matching the Plan.
-2. Apply labels: `ai-planned`, plus the `deliverable_type:<value>` label.
-3. Capture the new sub-issue ID and write it back to the local file's
-   `linear_issue_id:` frontmatter.
-
-If the Linear write fails, the local file is canonical; surface the
-failure to the human and offer a retry.
+- **All ok** *(Linear backend)* → targeted edit on the plan file
+  to inject `linear_issue_id: <id>` into the frontmatter (and the
+  embedded `<script type="application/yaml" id="spades-frontmatter">`
+  block in HTML mode). Record dispatch mode.
+- **All ok** *(local backend, only two sub-agents)* → no
+  back-write needed.
+- **`worker-file-plan` failed** → abort. The Linear sub-issue may
+  exist but the plan file doesn't; surface clearly so the human can
+  delete the orphan or re-run.
+- **`worker-file-scope-audit` failed** → abort. The plan file
+  exists but the parent scope's audit trail is missing the entry;
+  surface so the human can patch manually or re-run.
+- **`worker-linear-plan` failed** → keep both local files
+  (canonical), surface the Linear failure, offer a retry. Do NOT
+  block on Linear failure.
 
 ### When `backend: local`
 
-The local file IS canonical. Nothing else to mirror.
+Only the two file sub-agents are dispatched (no Linear). Local files
+are canonical. Nothing else to mirror.
 
 ## Step 8 — Confirm and Hand Off
 

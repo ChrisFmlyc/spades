@@ -8,6 +8,59 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.1.0] — 2026-06-01
+
+**MINOR** — Sub-agent fan-out for Linear + local artefact work.
+Producing skills (and writeback-heavy consumer skills) now dispatch
+parallel sub-agents — one per resource (one local file, one Linear
+operation) — instead of running their file writes and Linear MCP
+calls serially. The pattern that already powered `/spades:review`
+(four persona sub-agents) and `/spades:research` (one isolated
+researcher) is extended to every-invocation worker work.
+
+The rule: **one sub-agent owns one resource.** Two sub-agents in the
+same dispatch wave must not write to the same resource. The
+coordinator (the skill body itself) is not a sub-agent — after the
+fan-out wave it does small integration writes (e.g. injecting a
+captured `linear_issue_id` into a file the file sub-agent already
+wrote).
+
+Skills updated (5 skills, all 3.0.2 → 3.1.0):
+
+- `plugins/spades/skills/newproject/SKILL.md` — Step 3 Linear branch:
+  parallel file sub-agent + Linear sub-agent; coordinator back-writes
+  `linear_project_id`.
+- `plugins/spades/skills/scope/SKILL.md` — Step 7 file write + Step 8
+  Backend Mirror collapsed into one fan-out wave; coordinator
+  back-writes `linear_issue_id`.
+- `plugins/spades/skills/plan/SKILL.md` — Step 5 plan write + Step 6
+  scope-audit append + Step 7 Linear create dispatched as three
+  parallel sub-agents; coordinator back-writes `linear_issue_id`.
+- `plugins/spades/skills/approve/SKILL.md` — Write the Decision is now
+  three parallel sub-agents (plan file, scope file, Linear). No
+  back-write.
+- `plugins/spades/skills/evaluate/SKILL.md` — Write the Verdict is now
+  two or three parallel sub-agents (plan file, optional scope rollup,
+  Linear). No back-write.
+
+Framework docs:
+
+- `plugins/spades/docs/FRAMEWORK.md` — new canonical
+  § "Sub-agent Dispatch (Fan-Out)" covering the contract, dispatch
+  modes (`subagent-dispatch` / `sequential-inproc` / `degraded`),
+  freshness probe, and failure semantics.
+- `plugins/spades/AGENTS.md` — new § "Sub-agent Fan-Out" pointing at
+  the framework section.
+
+Deliberately out of scope (deferred to a later PR): `/spades:do`,
+`/spades:ship`, `/spades:close` mix Linear + local files with git
+side effects where ordering matters (push → open PR → record
+marker). Parallelizing those would introduce partial-success states
+that are harder to recover from. Validate the simpler-flow pattern
+first.
+
+Plugin / marketplace / `.spades/version` 3.0.3 → 3.1.0.
+
 ## [3.0.3] — 2026-06-01
 
 **PATCH** — HTML templates: main column auto-sizes to page width.

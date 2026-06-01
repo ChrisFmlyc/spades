@@ -1,7 +1,7 @@
 ---
 name: approve
 description: Present a SPADES Plan for human review against the approval checklist, then record the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`. The biggest risk in SPADES is a weak Approval gate.
-version: 3.0.2
+version: 3.1.0
 ---
 
 # /spades:approve
@@ -172,44 +172,38 @@ Notes:
 - For `deliverable_type: code` on standard feature work, AI is the
   typical choice.
 
-## Write the Decision
+## Write the Decision (fan-out dispatch)
 
-Update the Plan file's frontmatter:
+Apply the fan-out pattern from
+`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`. Spawn the
+following sub-agents **in parallel in a single assistant message
+with multiple `Agent` tool calls** (`subagent_type:
+general-purpose`):
 
-- `status: approved` (or `rejected` / keep `draft` for revise)
-- `delivery: ai | human | hybrid | undecided`
-- `updated: <today>`
+| Sub-agent | Resource owned | Returns |
+|-----------|---------------|---------|
+| `worker-file-plan-approve` | `.spades/plans/P-<…>.<ext>` — update frontmatter (`status: approved` \| `rejected` \| keep `draft`; `delivery: ai \| human \| hybrid \| undecided`; `updated: <today>`) and append to audit trail: `- YYYY-MM-DD: Approved by <human> — routing: <routing>. Notes: <any notes>.` For `delivery: hybrid` also write the per-task Routing fields under each task. | `{ status: ok }` |
+| `worker-file-scope-approve` | `.spades/scopes/S-<scope-slug>.<ext>` — update Scope frontmatter (`status: approval` if was `planning`; `updated: <today>`) and append a short audit-trail entry referencing the plan ID. | `{ status: ok }` |
+| `worker-linear-approve` *(only when `backend: linear`)* | Linear — call `record_approval(plan_id, decision, routing, notes)`: (1) post a comment on the Plan's sub-issue with decision + routing, (2) update sub-issue status to "Approval" (or "Delivering" for immediate AI hand-off), (3) apply routing label (`ai-delivered`, `human-delivery`, `hybrid-delivery`). Includes the Layer-2 freshness probe. | `{ status: ok }` |
 
-Append to the Plan's `## Audit Trail`:
+No back-write — `linear_issue_id` is already in the Plan file from
+`/spades:plan`. After sub-agents return, the coordinator collects
+results per the failure semantics in
+`FRAMEWORK.md § Sub-agent Dispatch`:
 
-```markdown
-- YYYY-MM-DD: Approved by <human> — routing: ai. Notes: <any notes>.
-```
-
-Update the parent Scope:
-- `status: approval` (if it was `planning`)
-- `updated: <today>`
-
-## Backend Mirror
-
-### When `backend: linear`
-
-Call the backend's `record_approval(plan_id, decision, routing, notes)`.
-The Linear driver:
-
-1. Posts a comment on the Plan's sub-issue with the approval decision
-   and routing.
-2. Updates the sub-issue status to "Approval" (or "Delivering" if
-   immediately handing off to AI).
-3. Applies labels for the routing (`ai-delivered`, `human-delivery`,
-   `hybrid-delivery`).
-
-If the Linear write fails, the local file is canonical; surface and
-offer retry.
+- **All ok** → record dispatch mode and proceed to Confirm.
+- **`worker-file-plan-approve` failed** → abort with the error;
+  surface partial state to the human.
+- **`worker-file-scope-approve` failed** → surface the failure;
+  the plan file is correct, scope rollup needs manual patch.
+- **`worker-linear-approve` failed** → keep local files
+  (canonical), surface the Linear failure, offer retry. Do NOT
+  block.
 
 ### When `backend: local`
 
-The local file IS canonical. Nothing else.
+Only the two file sub-agents are dispatched (no Linear). Local
+files are canonical.
 
 ## Confirm and Hand Off
 
