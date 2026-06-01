@@ -1,16 +1,26 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 2.7.1
+version: 2.8.0
 ---
 
 # /spades:setup
 
 You are configuring SPADES in the current repository. This is the entry
 point: every other skill assumes setup has been run and that
-`.spades/config` exists. Setup is **idempotent and re-runnable** — a
-second run never destroys human-written content; it only fills gaps or
-updates the backend choice when the human explicitly asks.
+`.spades/config` exists.
+
+**Setup re-runs the full interview every time** — same questions on a
+fresh install and on a re-run, no short-cuts based on existing state.
+Current values are surfaced as context above each question
+(*"Currently configured: …"*) but never bias the recommended option;
+the human re-engages with every choice. Before writing any changes,
+Step 2.5 presents a diff and requires explicit confirmation. When the
+human switches backend, Step 2.6 offers AI-assisted migration of
+existing artefacts (local → Linear or Linear → local). Setup never
+destroys human-written content — scope/plan/learning files on disk
+stay where they are; the AGENTS.md marker block is replaced in
+place, content outside the markers is untouched.
 
 Read `docs/FRAMEWORK.md` § Hierarchy and § .spades/ Local Layout before
 running. The schemas below are mirrors of that contract; FRAMEWORK.md
@@ -109,7 +119,45 @@ tells *agents* what to do; this probe is the *mechanical* enforcement
 at setup time so a brand-new-repo flow can't accidentally produce
 SPADES files outside version control.
 
+## Step 0.7 — Capture existing config (re-run context)
+
+Before asking any questions, capture the current state of
+`.spades/config` (if it exists) into context variables. The captured
+values are surfaced **as context** in each subsequent question — they
+do NOT route the flow or bias the recommended option. The whole point
+of re-running setup is to re-engage with each choice, not to
+short-circuit on previous answers.
+
+Probe:
+
+```bash
+[ -f .spades/config ] && echo present || echo missing
+```
+
+- **`missing`** (fresh install) — all context variables stay unset.
+  Steps 1, 1.5, 2 ask their questions without pre-fill context.
+  Step 2.5's diff display is skipped (no pre-existing state to
+  diff against). Step 2.6 migration is skipped (nothing to migrate).
+- **`present`** — read the file and capture:
+  - `current_backend` — `linear` or `local`.
+  - `current_scm` — `github` or `local-git`.
+  - `current_project` — active project slug.
+  - `current_linear_team` — UUID if `current_backend == linear`.
+  - `current_linear_project` — UUID if `current_backend == linear`.
+  - `current_github_remote` — remote name if `current_scm == github`.
+
+These variables flow into Steps 1, 1.5, 2 as a *"Currently
+configured: X"* context line above each `AskUserQuestion`. They also
+feed Step 2.5's diff and Step 2.6's migration walk.
+
 ## Step 1 — Backend Selection
+
+If `current_backend` is set (re-run case), print a context line
+above the question — never recommend "Keep current":
+
+> *Currently configured: `backend: <current_backend>`. The choice
+> below replaces it. Re-pick the same value if nothing's changed,
+> or switch — your call, but please make it explicitly.*
 
 Ask the human which backend they want, via `AskUserQuestion`:
 
@@ -119,9 +167,9 @@ Ask the human which backend they want, via `AskUserQuestion`:
 - **`Local`** — artefacts live as Markdown files under `.spades/`. No
   external tracker needed. Easiest to start; full audit trail in-repo.
 
-If the human has already run setup and is re-running it, fetch the
-current `backend:` from `.spades/config` and offer **Keep current** as
-the recommended option.
+Whichever the human picks is what gets written. Re-runs use the
+same two options — no "keep current" shortcut — so the human always
+re-engages with the choice.
 
 ### If Linear was chosen
 
@@ -240,13 +288,19 @@ Nothing to verify externally. Continue.
 
 ## Step 1.5 — Source Code Management (SCM) selection
 
+If `current_scm` is set (re-run case), print a context line above
+the question:
+
+> *Currently configured: `scm: <current_scm>`. The choice below
+> replaces it. Re-pick the same value if unchanged, or switch.*
+
 Ask the human which SCM their code lives in via `AskUserQuestion`.
 This drives `/spades:ship`'s code-deliverable flow.
 
-- **`Local git`** (recommended default) — work commits go to local
-  git only. If a remote is configured, `/spades:ship` pushes to it
-  but does NOT open PRs. No external tool dependency. Single-phase
-  ship: push, record commit SHA, mark shipped.
+- **`Local git`** — work commits go to local git only. If a remote
+  is configured, `/spades:ship` pushes to it but does NOT open PRs.
+  No external tool dependency. Single-phase ship: push, record
+  commit SHA, mark shipped.
 - **`GitHub`** — work flows through GitHub PRs. `/spades:ship` runs
   the two-phase publish (push + `gh pr create`, then resume after
   squash-merge to record the merge SHA). Requires the `gh` CLI
@@ -254,9 +308,8 @@ This drives `/spades:ship`'s code-deliverable flow.
 - (future: GitLab, Bitbucket — extension points; see
   `docs/EXTENDING-SCM.md` for the contract drivers must satisfy.)
 
-If the human has already run setup and is re-running it, fetch the
-current `scm:` from `.spades/config` and offer **Keep current** as
-the recommended option.
+No "keep current" shortcut on re-run — same as Step 1, the human
+always picks one of the two options afresh.
 
 ### If GitHub was chosen
 
@@ -319,6 +372,11 @@ Nothing to verify externally. Continue.
 
 ## Step 2 — Active Project
 
+If `current_project` is set (re-run case), print a context line:
+
+> *Currently active project: `<current_project>`. The choice below
+> replaces it. Re-pick the same one to keep it, or switch.*
+
 Ask which project this repo belongs to.
 
 - If `.spades/projects/` already contains records, offer them as
@@ -329,7 +387,198 @@ Ask which project this repo belongs to.
 If the human picks **Create a new project**, invoke `/spades:newproject`
 inline and resume here once it returns with the new project's slug.
 
-Record the project slug in `.spades/config` under `project:`.
+Record the project slug into a `new_project` variable for Step 2.5's
+diff (do **not** write `.spades/config` yet — that's Step 3's job
+and only after the human confirms the diff).
+
+## Step 2.5 — Diff & Confirm
+
+Compute the diff between the captured `current_*` values (Step 0.7)
+and the human's new answers (Steps 1 / 1.5 / 2). Three cases:
+
+### Case A — No `.spades/config` existed (fresh install)
+
+Skip the diff display entirely. The human's choices ARE the config.
+Go straight to Step 3.
+
+### Case B — Config existed and nothing changed
+
+Every new value matches its `current_*` counterpart. Print:
+
+> *Nothing changed — backend, SCM, and active project all match the
+> existing config. Continue to refresh scaffolding (AGENTS.md
+> marker block re-stamp, INTENT.md scaffold prompt, etc.)?*
+
+Ask via `AskUserQuestion`:
+
+- **Yes, refresh** — proceeds to Step 3+ (which writes the unchanged
+  config back, idempotent, and re-stamps the AGENTS.md marker
+  block to the current plugin version).
+- **Cancel — exit without writes** — exits cleanly.
+
+### Case C — Config existed and something changed
+
+Show the diff block with each field's transition. Format:
+
+```
+Detected pre-existing SPADES config. Confirm these changes
+before any writes happen:
+
+  Backend:        <current_backend>  →  <new_backend>
+  SCM:            <current_scm>      →  <new_scm>
+  Active project: <current_project>  (unchanged)
+  Linear team:    (unset)            →  <new_linear_team>      # only if backend changing or linear chosen
+  Linear project: (unset)            →  <new_linear_project>   # same
+  GitHub remote:  origin             (unchanged)               # only if scm: github
+
+The local `.spades/config` and AGENTS.md marker block will be
+updated. Existing scopes / plans / learnings on disk are NEVER
+deleted by this skill.
+```
+
+Mark `(unchanged)` against any field where new value matches
+current. The diff only lists fields that exist in either the
+current or new config (no junk rows).
+
+Ask via `AskUserQuestion`:
+
+- **Apply changes** — if `backend` is changing, proceed to Step 2.6
+  (migration). Otherwise straight to Step 3.
+- **Cancel — exit without writes** — exits cleanly; `.spades/config`
+  unchanged.
+
+## Step 2.6 — Backend-switch migration (AI-assisted)
+
+This step fires **only** when Step 2.5 detected a backend change
+(`current_backend != new_backend`). For SCM / project / Linear team
+or project changes alone (with backend the same), skip to Step 3 —
+the existing artefacts already live under the right backend.
+
+### Direction A — `local → linear`
+
+The human had local files; they're switching to Linear. Without
+migration, old scopes/plans stay as local-only files and Linear
+starts empty — split-brain state. Setup offers to migrate.
+
+Ask via `AskUserQuestion`:
+
+- **Walk the local artefacts and mirror them to Linear**
+  *(Recommended)* — performs the migration walk described below.
+- **Skip migration — start fresh in Linear** — local files stay
+  on disk untouched; Linear starts empty. Useful when the local
+  artefacts are historical and the human is genuinely starting a
+  fresh chapter.
+- **Cancel the backend switch** — return to Step 1; backend stays
+  `local`.
+
+#### Migration walk (when "Walk … and mirror" is chosen)
+
+Perform these operations in order, surfacing progress inline:
+
+```
+Migrating local → linear …
+```
+
+1. **Projects.** For each file in `.spades/projects/<slug>.md`:
+   - Search the chosen Linear team for a Project with a matching
+     name. Search via the Linear MCP (`mcp__linear-server__list_projects`
+     filtered by team).
+   - If exactly one match → link: write `linear_project_id: <uuid>`
+     into the local file's frontmatter. Print:
+     `✓ Project '<name>' → matched existing (proj-<id>).`
+   - If multiple matches → disambiguate via `AskUserQuestion`,
+     listing candidates with their Linear IDs.
+   - If no match → create the Linear Project (`mcp__linear-server__save_project`)
+     with the local file's body as the description. Write the
+     returned ID back. Print: `✓ Project '<name>' → created (proj-<id>).`
+
+2. **Scopes.** For each `.spades/scopes/S-<slug>.md` belonging to the
+   active project:
+   - Search Linear for an Issue under the bound Project with a
+     matching title (`mcp__linear-server__list_issues` filtered).
+   - Match → link via `linear_issue_id:` frontmatter; report.
+   - No match → create the parent Issue
+     (`mcp__linear-server__save_issue`) with body = the Scope's
+     markdown body (Statement of Intent, Acceptance Criteria,
+     Architectural Constraints, Out of Scope, Risk / Unknowns,
+     Delivery Preference, current Audit Trail). Status mapped from
+     SPADES → Linear (`scoped` → "Triage" or team default,
+     `planning` → "Planning", `delivering` → "In Progress",
+     `done` → "Done", etc.). Write `linear_issue_id` back.
+
+3. **Plans.** For each `.spades/plans/P-<…>.md` belonging to one of
+   the migrated Scopes:
+   - Search under the Scope's parent Issue (via Linear MCP's
+     sub-issue listing) for a matching title.
+   - Match → link via `linear_issue_id:`.
+   - No match → create a sub-Issue under the Scope's parent Issue.
+     Body = the Plan's markdown body (Technical Approach, Tasks,
+     Risks & Assumptions, Testing & Verification, Delivery
+     Sequence, Audit Trail). SPADES `status:` → Linear status
+     (`draft` → "Backlog" or team default, `approved` → "Approval",
+     `delivering` → "Delivering" or "In Progress", `evaluating` →
+     "Evaluating", `shipping` → "Shipping", `shipped` → "Done",
+     `rejected` → "Cancelled"). Write `linear_issue_id` back.
+
+4. **Audit-trail entry** on each migrated artefact (Project, Scope,
+   Plan):
+
+   ```markdown
+   - YYYY-MM-DD: Migrated to Linear (backend switch). Linear: <id>.
+   ```
+
+5. **Learnings.** Not migrated. They live as local-only commentary
+   under `.spades/learnings/` and are not tracker artefacts. Print
+   a single summary line:
+   `○ Learnings: kept local-only (4 files preserved, not migrated to Linear).`
+
+6. **Migration summary** at the end of the walk:
+
+```
+✓ Migration complete. local → linear:
+    Projects:  1 (1 created, 0 linked to existing)
+    Scopes:    3 (2 created, 1 linked to existing)
+    Plans:    11 (8 created, 3 linked to existing)
+    Learnings: skipped (4 files stay local).
+```
+
+### Direction B — `linear → local`
+
+The human had Linear; they're switching to local files. Without
+migration, Linear remains the source of truth but new work goes to
+local-only files. Setup offers reverse migration.
+
+Ask via `AskUserQuestion`:
+
+- **Pull Linear artefacts down to local files**
+  *(Recommended for full repatriation)* — walks the bound Linear
+  Project, fetches each Issue + sub-Issue, writes a corresponding
+  `.spades/scopes/` or `.spades/plans/` file with frontmatter that
+  preserves `linear_issue_id` (so the link survives in case the
+  human later switches back).
+- **Skip — start fresh locally** — local files stay as-is; new
+  artefacts will be local-only.
+- **Cancel the backend switch** — return to Step 1.
+
+The pull walk shape mirrors Direction A's walk: Projects first
+(probably just one — the bound Linear Project), then top-level
+Issues (Scopes), then their sub-Issues (Plans), each written as
+a local file. Skip Linear comments that aren't sub-Issues — they're
+not SPADES artefacts.
+
+### Migration error handling (both directions)
+
+- **Linear MCP unreachable mid-walk** — abort gracefully. Items
+  already linked have their `linear_*_id` frontmatter persisted.
+  On retry (`/spades:setup` re-run with backend now matching the
+  target), Step 2.6 detects partial state (some files linked, some
+  not) and offers **Resume migration** / **Skip resume** /
+  **Cancel**.
+- **Linear-side duplicate title** — disambiguate via
+  `AskUserQuestion` listing candidate Linear IDs. Don't blind-pick.
+- **Network / rate-limit failures** — surface the error verbatim;
+  offer **Retry** / **Skip this item** / **Abort migration**. Don't
+  paper over.
 
 ## Step 3 — Write `.spades/config`
 
@@ -683,37 +932,42 @@ from `ARCHITECTURE.md`, which is *how*; INTENT is *why*.
 
 ## Step 9 — Confirm and summarise
 
-Print a concise summary:
+Print a concise summary that reflects actual transitions where
+applicable. For re-runs that changed something, show the `→`
+transition; for unchanged fields, append `(unchanged)`:
 
 ```
-✓ Backend: linear (team: <your-team>, project: <your-project>)
-✓ Active project: spades-framework
-✓ Config:   plugins/spades/.spades/config
-✓ Version:  2.0.0
-✓ Updated:  AGENTS.md  (SPADES marker block replaced in place)
-✓ Created:  ARCHITECTURE.md, PATTERNS.md, ANTI-PATTERNS.md  (templates)
-○ Skipped:  INTENT.md (re-run /spades:intent to scaffold)
+✓ Backend:        local → linear   (team: <name>, project: <name>)
+✓ SCM:            local-git        (unchanged)
+✓ Active project: spades-framework (unchanged)
+✓ Migrated:       1 project, 3 scopes, 11 plans → Linear
+                  (4 learnings stayed local by design)
+✓ Config:         .spades/config
+✓ Version:        <plugin-version>
+✓ Updated:        AGENTS.md (marker block re-stamped from v2.0.0 → v<plugin-version>)
+✓ Created:        ARCHITECTURE.md, PATTERNS.md, ANTI-PATTERNS.md  (templates)
+○ Skipped:        INTENT.md (re-run /spades:intent to scaffold)
 
 Next steps:
   /spades:newproject       — if you haven't created one yet
   /spades:scope <title>    — start a new Scope
 ```
 
+The **Migrated** line only appears when Step 2.6 actually ran (a
+backend switch + the human picked Walk-and-mirror or
+Pull-to-local). On Skip-migration it becomes:
+
+```
+○ Migration:      skipped — local artefacts stay on disk; new
+                  Linear-side work starts empty.
+```
+
+For fresh installs (no prior config), the `(unchanged)` annotations
+don't apply — the summary just shows the chosen values without
+transitions.
+
 Use `○` for skipped items, `✓` for done, `✗` for failed. Be brief —
 the human should be able to confirm correctness in 10 seconds.
-
-## Re-Run Behaviour
-
-When setup runs against a repo that already has `.spades/config`:
-
-1. Confirm via `AskUserQuestion` what the human wants to change:
-   - **Keep current backend, refresh scaffolding** — re-runs Steps 5–8.
-   - **Switch backend** — re-runs Steps 1–4. Warn that switching backends
-     does NOT migrate existing scopes/plans; explain the human is
-     responsible for that.
-   - **Change active project** — re-runs Step 2.
-2. Never destroy human-written content. The AGENTS.md marker block is
-   replaced in-place; template files are only created if missing.
 
 ## Why AGENTS.md, not CLAUDE.md
 

@@ -8,6 +8,73 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [2.12.0] — 2026-06-01
+
+**Minor** — `/spades:setup` always re-runs the full interview; new
+AI-assisted backend migration.
+
+Previously setup short-circuited on re-runs: a meta-question at the
+top asked *"what do you want to change?"* and each per-step
+question recommended "Keep current". Humans drifted through
+re-configurations without re-engaging with the choices, and config
+grew stale.
+
+This release flips that UX. Same questions every time. Current
+state surfaced as context, never as bias. Diff shown before any
+writes. Backend switch triggers AI-assisted migration.
+
+- **New Step 0.7 — Existing config probe.** Captures
+  `current_backend / current_scm / current_project / current_linear_*`
+  / `current_github_remote` from `.spades/config` if it exists. These
+  feed downstream as *context lines* on each question, not as
+  routing inputs.
+- **Steps 1, 1.5, 2 re-ask every time.** "Keep current" recommended
+  option language removed throughout. Each question carries a
+  *"Currently configured: X — pick whatever you actually want now"*
+  context line on re-runs. Fresh installs see no context line.
+- **New Step 2.5 — Diff & Confirm.** Before writing anything,
+  setup shows the diff between captured current values and the
+  human's new answers:
+  - **No-change re-runs** get a "Nothing changed — refresh
+    scaffolding?" prompt with Yes / Cancel options.
+  - **Changed re-runs** get a full diff block (`field: old → new`
+    or `(unchanged)`) with **Apply changes** / **Cancel** options.
+  - **First-runs** skip the diff display (nothing to diff against).
+- **New Step 2.6 — Backend-switch migration (AI-assisted).** Fires
+  only when backend changed. Walks the existing artefacts and
+  mirrors them to the new backend:
+  - **`local → linear`** — for each `.spades/projects/`,
+    `.spades/scopes/`, `.spades/plans/` file: search Linear for a
+    matching artefact via the Linear MCP; link if matched, create
+    if not. Writes `linear_*_id` back into the local file's
+    frontmatter and appends an audit-trail entry. Status mapped
+    SPADES → Linear (`scoped` → "Triage", `delivering` → "In
+    Progress", `shipped` → "Done", etc.). Surfaces inline progress.
+    Learnings stay local-only by design.
+  - **`linear → local`** — reverse: pulls bound Linear Project's
+    Issues + sub-Issues down to local files with `linear_issue_id`
+    preserved.
+  - **Skip migration** — write the new config but leave the old
+    artefacts untouched. For genuinely-starting-fresh cases.
+  - **Cancel the backend switch** — backs out the switch; backend
+    stays as-is.
+- **Error handling.** MCP unreachable mid-walk → graceful abort;
+  already-linked items keep their `linear_*_id` so re-runs can
+  resume. Duplicate-title disambiguation via `AskUserQuestion`.
+  Rate-limit / network errors surfaced verbatim with retry /
+  skip-this-item / abort options.
+- **Step 9 summary** now shows actual transitions (`backend: local
+  → linear`) where applicable and a `Migrated: N projects, M
+  scopes, K plans → Linear` line when Step 2.6 ran.
+- **Re-Run Behaviour section deleted.** The old meta-question is
+  gone; its logic is fully absorbed into Step 0.7 (state capture)
+  + Step 2.5 (diff/confirm) + Step 2.6 (migration).
+- **Skills bumped:** `setup` 2.7.1 → 2.8.0 (Pre-Flight + per-step
+  + new Steps 2.5/2.6 + Step 9 + intro rewrite + Re-Run section
+  removal). No other skill bodies touched — the migration uses
+  the existing Linear MCP surface area already documented in
+  `docs/EXTENDING-BACKENDS.md`.
+
 ## [2.11.0] — 2026-05-31
 
 **Minor** — audit follow-up batch 3: Scope rollup semantics
