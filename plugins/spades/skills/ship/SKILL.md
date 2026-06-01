@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.0.0
+version: 3.0.2
 ---
 
 # /spades:ship
@@ -46,6 +46,13 @@ driver dispatch all stay identical between modes.
      route back to `/spades:do`
    - `evaluating` + FAIL → abort; not shippable
    - any other status → abort with a clear message
+5. **Open the artefacts (HTML mode only).** Read `review_format:`
+   from `.spades/config`. When `review_format: html`, run the
+   OPEN_CMD prelude (`docs/FRAMEWORK.md § OPEN_CMD detection
+   prelude`) and open both the Plan's `.html` and the parent Scope's
+   `.html`. In CLI mode, summarise inline as today. The PR-opening,
+   audit-trail markers, and SCM driver dispatch all stay identical
+   between modes.
 
 ## Step 0 — Detect fresh run vs resume (code deliverables)
 

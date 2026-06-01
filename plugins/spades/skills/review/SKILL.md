@@ -1,7 +1,7 @@
 ---
 name: review
 description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
-version: 3.0.0
+version: 3.0.2
 ---
 
 ## Pre-Flight
@@ -624,7 +624,11 @@ Full report: .spades/reviews/s-add-ai-helper-bot-2026-05-17.md
 ### The persisted full report
 
 On **every** panel run — `degraded` runs included — write the full
-report to a file under `.spades/reviews/`:
+report to a file under `.spades/reviews/`. **Read `review_format:`
+from `.spades/config` and branch on the format.** The review MUST
+write a file before the inline digest is printed.
+
+#### CLI mode (`review_format: cli`)
 
 - **Path:** `.spades/reviews/<slug>-<date>.md`. `<slug>` is the reviewed
   Scope or Plan's tracker identifier lower-cased (e.g. `s-add-ai-helper-bot`), or a
@@ -634,6 +638,23 @@ report to a file under `.spades/reviews/`:
   same slug on the same date — append a numeric suffix:
   `<slug>-<date>-2.md`, then `-3`, and so on. Never overwrite an
   existing review file; each run is its own audit record.
+
+#### HTML mode (`review_format: html`)
+
+- Read the template at
+  `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html`.
+- Substitute placeholders per `docs/FRAMEWORK.md § Output Format`
+  (verdict, target, date, persona-grid block, severity-tab findings
+  block, synthesis section). Embed envelope metadata in the
+  `<script type="application/yaml" id="spades-frontmatter">` tag.
+- **Path:** `.spades/reviews/<slug>-<date>.html` with the same slug
+  rules. Collision rule applies identically: `<slug>-<date>-2.html`,
+  `-3`, etc.
+- Auto-open via the OPEN_CMD prelude
+  (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). The inline CLI
+  digest still prints regardless — HTML mode adds the open, it does
+  not suppress the digest.
+- Do NOT also write a `.md`.
 - **Contents:** the banner, the envelope, the section title, every
   persona's prose summary verbatim, **every** merged finding at every
   severity shown in full (the file is not tiered — it is the complete

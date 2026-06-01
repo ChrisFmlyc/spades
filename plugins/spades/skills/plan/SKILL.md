@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generate a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 3.0.0
+version: 3.0.2
 ---
 
 # /spades:plan
@@ -172,6 +172,12 @@ This drives what `/spades:ship` does later.
 
 ## Step 5 — Write the Plan File
 
+**Read `review_format:` from `.spades/config` and branch.** This step
+MUST write a file — never exit Step 5 with the Plan content only
+pasted to the CLI.
+
+### Step 5.A — CLI mode (`review_format: cli`)
+
 Write `.spades/plans/<filename>.md` with this exact frontmatter:
 
 ```yaml
@@ -240,6 +246,42 @@ linear_issue_id: <id>                            # only when backend: linear
 <!-- Auto-appended by /spades:approve, /spades:do, /spades:evaluate,
      /spades:ship. Do not edit by hand. -->
 ```
+
+### Step 5.B — HTML mode (`review_format: html`)
+
+1. **Read the template** at
+   `${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html`.
+2. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
+   Format`:
+   - Frontmatter values fill `{{spades.id}}`, `{{spades.title}}`,
+     `{{spades.status}}`, `{{spades.scope}}`, `{{spades.deliverable_type}}`,
+     `{{spades.delivery}}`, `{{spades.depends_on}}`, `{{spades.created}}`,
+     `{{spades.updated}}`, and any others present in the template.
+   - The frontmatter YAML block also goes verbatim into the
+     `<script type="application/yaml" id="spades-frontmatter">` tag.
+   - The `## Tasks` section fills the `<!-- SPADES-BLOCK:tasks -->`
+     section (one card per task, with each task's Posture, Effort,
+     Depends on, Routing, Description, Approach, Tests rendered).
+   - The `## Delivery Sequence` and `## Testing & Verification`
+     prose fills their respective `<!-- SPADES-BLOCK:… -->` blocks.
+   - The (initially empty) `## Audit Trail` becomes a
+     `<script type="application/yaml" id="spades-audit-trail">` tag
+     plus a placeholder rendered list.
+3. **Write the rendered HTML** to `.spades/plans/<filename>.html`
+   (same `<filename>` slug as CLI mode, only the extension changes).
+4. **Auto-open** the file:
+   ```bash
+   case "$(uname -s)" in
+     Darwin)  OPEN_CMD="open" ;;
+     Linux)   OPEN_CMD="xdg-open" ;;
+     MINGW*|MSYS*|CYGWIN*) OPEN_CMD="start" ;;
+     *)       OPEN_CMD="" ;;
+   esac
+   [ -n "$OPEN_CMD" ] && "$OPEN_CMD" ".spades/plans/<filename>.html"
+   ```
+   If `OPEN_CMD` is empty (unknown OS), print the file path with a
+   "open this in your browser" message. Never crash.
+5. Do NOT also write a `.md`. The HTML is canonical in HTML mode.
 
 ## Step 6 — Update Scope Status
 

@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 3.0.0
+version: 3.0.2
 ---
 
 # /spades:scope
@@ -235,6 +235,12 @@ resume here and ask whether the human wants to adjust the Scope.
 
 ## Step 7 — Write the Scope
 
+**Read `review_format:` from `.spades/config` and branch.** This step
+MUST write a file — never exit Step 7 with the Scope content only
+pasted to the CLI.
+
+### Step 7.A — CLI mode (`review_format: cli`)
+
 ### Filename
 
 `.spades/scopes/S-<description-slug>.md`
@@ -303,6 +309,34 @@ linear_issue_id: <id>          # only when backend: linear AND synced
 <!-- Auto-appended by /spades:plan, /spades:approve, /spades:evaluate,
      /spades:ship. Do not edit by hand. -->
 ```
+
+### Step 7.B — HTML mode (`review_format: html`)
+
+1. **Read the template** at
+   `${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html`.
+2. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
+   Format`:
+   - Frontmatter values fill `{{spades.id}}`, `{{spades.title}}`,
+     `{{spades.status}}`, `{{spades.project}}`, `{{spades.type}}`,
+     `{{spades.priority}}`, `{{spades.origin}}`,
+     `{{spades.created}}`, `{{spades.updated}}`.
+   - The frontmatter YAML block also goes verbatim into the
+     `<script type="application/yaml" id="spades-frontmatter">` tag.
+   - The body sections (`Statement of Intent`, `Acceptance Criteria`,
+     `Architectural Constraints`, `Dependencies`, `Context`,
+     `Out of Scope`, `Risk / Unknowns`, `Delivery Preference`) fill
+     their respective `<!-- SPADES-BLOCK:… -->` blocks in the
+     template.
+   - The (initially empty) `## Audit Trail` becomes a
+     `<script type="application/yaml" id="spades-audit-trail">` tag
+     plus a placeholder rendered list.
+3. **Write the rendered HTML** to
+   `.spades/scopes/S-<description-slug>.html`.
+4. **Auto-open** the file via the OPEN_CMD prelude from
+   `docs/FRAMEWORK.md § OPEN_CMD detection prelude`. If the OS
+   detection returns empty, print the file path with "open this in
+   your browser". Never crash.
+5. Do NOT also write a `.md`. The HTML is canonical in HTML mode.
 
 ## Step 8 — Backend Mirror
 

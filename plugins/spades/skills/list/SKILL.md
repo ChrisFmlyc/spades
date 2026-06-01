@@ -1,7 +1,7 @@
 ---
 name: list
 description: List active SPADES Scopes, optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades/config`.
-version: 3.0.0
+version: 3.0.2
 ---
 
 # /spades:list
@@ -129,3 +129,30 @@ After the table, suggest next actions:
 - Scopes in Shipping → `Run /spades:ship P-… to release`
 
 Keep this section brief — one line per actionable suggestion.
+
+## Step 6 — Output (branch on `review_format`)
+
+**Read `review_format:` from `.spades/config` and branch.**
+
+### CLI mode (`review_format: cli`)
+
+Print Steps 2–5 to the terminal as described above. Today's
+behaviour.
+
+### HTML mode (`review_format: html`)
+
+1. Read the template at
+   `${CLAUDE_PLUGIN_ROOT}/skills/list/template.html`.
+2. Substitute placeholders per
+   `docs/FRAMEWORK.md § Output Format`:
+   - `{{spades.project}}`, `{{spades.filter}}`, generated_at.
+   - `<!-- SPADES-BLOCK:rows -->` — one row per Scope from Step 2
+     (with the Step 3 quality flags applied inline).
+   - `<!-- SPADES-BLOCK:empty -->` — Step 4 output when no rows.
+   - `<!-- SPADES-BLOCK:suggestions -->` — Step 5 output.
+3. Write to `.spades/.tmp/list.html` (creating `.spades/.tmp/` if
+   missing — already auto-gitignored by `/spades:setup` Step 5.5).
+4. Auto-open via the OPEN_CMD prelude
+   (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the
+   file path with "open this in your browser" if `OPEN_CMD` is
+   empty. Do NOT also print the table to the terminal in HTML mode.
