@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SPADES template: plan v1.0.0 (matches plugin v3.0.0) -->
+<!-- SPADES template: plan v1.1.0 (matches plugin v3.0.3) -->
 <!--
   Parametric template for SPADES Plan artefacts (P-<…>.html).
 
@@ -52,7 +52,7 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--page); color: var(--ink); font-size: 17.5px; line-height: 1.6; }
-  .layout { display: grid; grid-template-columns: 375px 1fr; min-height: 100vh; }
+  .layout { display: grid; grid-template-columns: 375px minmax(0, 1fr); min-height: 100vh; }
   aside.sidebar { background: var(--panel); border-right: 1px solid var(--border); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
   .sidebar-header { background: var(--gold); padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--ink); }
   .sidebar-header .brand { font-size: 0.72rem; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; }
@@ -75,7 +75,7 @@
   .anchor-nav h3 { padding: 0 1.4rem; margin-bottom: 0.4rem; font-size: 0.7rem; color: var(--gray-text); font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; }
   .anchor-nav a { display: block; padding: 0.55rem 1.4rem; color: var(--ink); text-decoration: none; font-size: 0.92rem; border-left: 3px solid transparent; }
   .anchor-nav a:hover { background: var(--gold-light); border-left-color: var(--gold); }
-  main { padding: 3rem 4rem; max-width: 1000px; }
+  main { padding: 3rem 4rem; min-width: 0; }
   main h1 { font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 0.5rem; }
   .crumbs { font-family: ui-monospace, monospace; font-size: 0.85rem; color: var(--gray-text); margin-bottom: 0.5rem; }
   .crumbs .sep { margin: 0 0.5rem; color: var(--border); }
@@ -122,6 +122,10 @@
   .audit-timeline .event .date { font-family: ui-monospace, monospace; font-size: 0.85rem; color: var(--gray-text); }
   .audit-timeline .event .desc { font-size: 0.95rem; margin-top: 0.18rem; }
   footer { padding: 1.2rem 4rem; color: var(--gray-text); font-size: 0.8rem; border-top: 1px solid var(--border); }
+  /* Wide-screen: bump padding so prose doesn't run edge to edge while main column still flexes. */
+  @media (min-width: 1600px) { main { padding: 3rem 6rem; } }
+  @media (min-width: 2200px) { main { padding: 3.5rem 8rem; } }
+
   @media (max-width: 900px) {
     .layout { grid-template-columns: 1fr; }
     aside.sidebar { position: static; height: auto; border-right: none; border-bottom: 2px solid var(--gold); }

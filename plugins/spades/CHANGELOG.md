@@ -8,6 +8,35 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.0.3] — 2026-06-01
+
+**PATCH** — HTML templates: main column auto-sizes to page width.
+The shipped 3.0.0 templates capped `main` at a fixed `max-width:`
+(820–1100px depending on template), so on a wide monitor content
+sat in a narrow column with empty space to the right. Now the main
+column fills the available width, with generous right-side padding
+that scales at wide-screen breakpoints.
+
+Per-template change (all 8 templates):
+
+- `.layout { grid-template-columns: 375px 1fr; }` →
+  `.layout { grid-template-columns: 375px minmax(0, 1fr); }` so the
+  track can shrink correctly when content has wide non-wrapping
+  elements (long inline `<code>` strings, code blocks).
+- `main { padding: 3rem 4rem; max-width: <820–1100>px; }` →
+  `main { padding: 3rem 4rem; min-width: 0; }` (cap removed; main
+  fills the 1fr track).
+- New media queries bump padding generously on wide monitors so
+  prose doesn't run edge to edge:
+  - `@media (min-width: 1600px)` → `padding: 3rem 6rem`
+  - `@media (min-width: 2200px)` → `padding: 3.5rem 8rem`
+- Mobile breakpoint (`@media (max-width: 900px)`) unchanged.
+
+Template version stamps bumped to `v1.1.0 (matches plugin v3.0.3)`
+in all 8 template files. No SKILL.md changes — pure template-CSS
+fix — so no per-skill `version:` field bumps. Plugin / marketplace /
+`.spades/version` bumped 3.0.2 → 3.0.3.
+
 ## [3.0.2] — 2026-06-01
 
 **PATCH** — HTML mode is now actually enforced where it was only
