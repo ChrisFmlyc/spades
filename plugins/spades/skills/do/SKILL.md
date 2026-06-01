@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 3.0.0
+version: 3.0.2
 ---
 
 # /spades:do
@@ -65,6 +65,12 @@ execution are identical between modes.
      Offer (via `AskUserQuestion`):
      - **Wait** — abort, suggest finishing the dependency first
      - **Proceed anyway** — record the override in the audit trail
+6. **Open the artefact (HTML mode only).** Read `review_format:` from
+   `.spades/config`. When `review_format: html`, run the OPEN_CMD
+   prelude (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`) and
+   open the Plan's `.html` so the human can see what's being executed.
+   In CLI mode, summarise the Plan inline as today. Delivery-routing
+   (ai / human / hybrid) is identical between modes.
 
 ## Step 1 — Ensure a feature branch (code deliverables)
 

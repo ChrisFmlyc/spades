@@ -1,7 +1,7 @@
 ---
 name: status
 description: Show the current SPADES phase, progress, and dependency graph for active work. Use when someone asks "where are we", "what's the status", "show progress", or any question about current state. Renders the Plan dependency graph so the human can see which plans are unblocked vs waiting.
-version: 3.0.0
+version: 3.0.2
 ---
 
 # /spades:status
@@ -132,6 +132,36 @@ No active SPADES work for project "<slug>".
   /spades:scope <title>    — start a new Scope
   /spades:list all         — see Done/rejected work
 ```
+
+## Step 6 — Output (branch on `review_format`)
+
+**Read `review_format:` from `.spades/config` and branch.**
+
+### CLI mode (`review_format: cli`)
+
+Print everything from Steps 2–5 to the terminal as described above.
+This is today's behaviour.
+
+### HTML mode (`review_format: html`)
+
+1. Read the template at
+   `${CLAUDE_PLUGIN_ROOT}/skills/status/template.html`.
+2. Substitute placeholders per
+   `docs/FRAMEWORK.md § Output Format`:
+   - `{{spades.project}}`, generated_at timestamp.
+   - `<!-- SPADES-BLOCK:summary -->` — the Step 3 summary table.
+   - `<!-- SPADES-BLOCK:scopes -->` — repeat one block per Scope
+     from Step 2 (per-scope detail + plan lane + blocked edges).
+   - `<!-- SPADES-BLOCK:recommendations -->` — Step 4 output.
+   - `<!-- SPADES-BLOCK:empty -->` — Step 5 output when applicable.
+3. Write the rendered HTML to `.spades/.tmp/status.html` (creating
+   `.spades/.tmp/` if missing — it is auto-gitignored by
+   `/spades:setup` Step 5.5).
+4. Auto-open via the OPEN_CMD prelude
+   (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the
+   file path with "open this in your browser" if `OPEN_CMD` is
+   empty. Do NOT also print the markdown view to the terminal in
+   HTML mode — the browser is the surface.
 
 ## Performance
 

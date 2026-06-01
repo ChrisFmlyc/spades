@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 3.0.0
+version: 3.0.2
 ---
 
 ## Pre-Flight
@@ -103,11 +103,37 @@ When invoked in the default mode:
    Private learnings name internal systems, customers, credentials
    paths, security details, or anything else that should not leak. When
    in doubt, route to `private/` — downgrading later is cheap.
-4. **Confirm and write.** After the human approves the draft:
-   - If `public_safe: true` → write to `.spades/learnings/YYYY-MM-DD-<slug>.md`.
-   - If `public_safe: false` → write to `.spades/learnings/private/YYYY-MM-DD-<slug>.md`.
-   - Choose a short, hyphenated slug that reads well (e.g.
-     `onboarding-must-be-idempotent`, not `learn-1`).
+4. **Confirm and write.** After the human approves the draft, **read
+   `review_format:` from `.spades/config` and branch.** Step 4 MUST
+   write a file before exiting — never finish with the draft pasted to
+   the CLI only.
+
+   Choose a short, hyphenated slug that reads well (e.g.
+   `onboarding-must-be-idempotent`, not `learn-1`). The slug is the
+   same across both formats; only the extension and rendering differ.
+
+   ##### CLI mode (`review_format: cli`)
+
+   - If `public_safe: true` → write `.spades/learnings/YYYY-MM-DD-<slug>.md`.
+   - If `public_safe: false` → write `.spades/learnings/private/YYYY-MM-DD-<slug>.md`.
+
+   ##### HTML mode (`review_format: html`)
+
+   - Read the template at
+     `${CLAUDE_PLUGIN_ROOT}/skills/learn/template.html`.
+   - Substitute placeholders per `docs/FRAMEWORK.md § Output Format`
+     (`{{spades.title}}`, `{{spades.area}}`, `{{spades.tags}}`,
+     `{{spades.status}}`, `{{spades.created}}`, plus
+     `<!-- SPADES-BLOCK:body -->` for the body markdown rendered to
+     HTML). Embed the frontmatter in a
+     `<script type="application/yaml" id="spades-frontmatter">` block.
+   - If `public_safe: true` → write `.spades/learnings/YYYY-MM-DD-<slug>.html`.
+   - If `public_safe: false` → write `.spades/learnings/private/YYYY-MM-DD-<slug>.html`.
+   - Auto-open via OPEN_CMD
+     (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the
+     file path with "open this in your browser" if `OPEN_CMD` is
+     empty.
+   - Do NOT also write a `.md`.
 5. **Suggest a commit.** For public learnings, commit alongside the
    work that produced the learning where possible. For private
    learnings, remind the human that `private/` is gitignored — no

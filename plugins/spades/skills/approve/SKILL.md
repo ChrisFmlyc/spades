@@ -1,7 +1,7 @@
 ---
 name: approve
 description: Present a SPADES Plan for human review against the approval checklist, then record the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`. The biggest risk in SPADES is a weak Approval gate.
-version: 3.0.0
+version: 3.0.2
 ---
 
 # /spades:approve
@@ -36,10 +36,19 @@ prompts and audit-trail writes stay identical between modes.
 
    If the human passed a Plan ID, resolve directly; otherwise run the
    interactive picker.
-3. **Read the Plan file** at `.spades/plans/<filename>.md` plus its
-   parent Scope at `.spades/scopes/S-<scope-slug>.md`.
+3. **Read the Plan file.** Locate `.spades/plans/<filename>.<ext>`
+   where `<ext>` is `md` in CLI mode and `html` in HTML mode (read
+   `review_format:` from `.spades/config` first). Same for the parent
+   Scope at `.spades/scopes/S-<scope-slug>.<ext>`.
 4. **Read `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`** so you
    can assess alignment.
+5. **Open the artefact (HTML mode only).** When `review_format: html`,
+   run the OPEN_CMD prelude from
+   `docs/FRAMEWORK.md § OPEN_CMD detection prelude` and open
+   `.spades/plans/<filename>.html` so the human can review it in the
+   browser. Do NOT also paste the plan body to the CLI in this mode —
+   the browser view is the review surface. In CLI mode, present the
+   Plan body in the terminal as the existing checklist describes.
 
 ## The Approval Checklist
 

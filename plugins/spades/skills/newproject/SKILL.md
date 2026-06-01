@@ -1,7 +1,7 @@
 ---
 name: newproject
 description: Create a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.0.0
+version: 3.0.2
 ---
 
 # /spades:newproject
@@ -78,7 +78,13 @@ Before writing anything:
 
 ## Step 3 — Create the Project
 
+**Read `review_format:` from `.spades/config` and branch on the file
+format.** Step 3 MUST write a Project file before exiting — never
+print the project record to the CLI only.
+
 ### When `backend: local`
+
+#### Step 3.A — CLI mode (`review_format: cli`)
 
 Write `.spades/projects/<slug>.md` with this exact shape:
 
@@ -116,13 +122,35 @@ updated: YYYY-MM-DD
 <!-- /spades:list will populate this on demand; do not maintain by hand -->
 ```
 
+#### Step 3.B — HTML mode (`review_format: html`)
+
+1. **Read the template** at
+   `${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html`.
+2. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
+   Format`:
+   - `{{spades.id}}`, `{{spades.title}}`, `{{spades.description}}`,
+     `{{spades.created}}`, `{{spades.updated}}`, and any additional
+     fields the template requires.
+   - The frontmatter YAML block also goes verbatim into the
+     `<script type="application/yaml" id="spades-frontmatter">` tag.
+   - Repos and Owners fill their `<!-- SPADES-BLOCK:repos -->` /
+     `<!-- SPADES-BLOCK:owners -->` blocks.
+3. **Write the rendered HTML** to `.spades/projects/<slug>.html`.
+4. **Auto-open** via the OPEN_CMD prelude
+   (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the file
+   path with "open this in your browser" if `OPEN_CMD` is empty.
+5. Do NOT also write a `.md`.
+
 ### When `backend: linear`
 
 1. Create a Linear Project with the given title and description, on
    the team recorded in `.spades/config`'s `linear.team_id`.
 2. Capture the new Linear Project ID.
-3. Write the local `.spades/projects/<slug>.md` file as above, with an
-   extra `linear_project_id: <uuid>` frontmatter field.
+3. Write the local project file using the format chosen in Step 3.A
+   or 3.B above (CLI → `.md`, HTML → `.html` rendered from the
+   sibling template + auto-open), with an extra
+   `linear_project_id: <uuid>` field in the frontmatter (and in the
+   embedded `<script type="application/yaml">` block for HTML mode).
 
 The local file is the canonical SPADES record; the Linear Project is
 the tracker mirror. Both should always exist when `backend: linear`.

@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:do` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.0.0
+version: 3.0.2
 ---
 
 # /spades:evaluate
@@ -39,8 +39,14 @@ modes.
        approved plan first.
      - No Scopes in `evaluating` → none yet — keep delivering Plans.
 3. **Read the target.** Plan + parent Scope, OR Scope + every Plan
-   under it.
+   under it. Read `review_format:` from `.spades/config` first — in
+   CLI mode artefacts are `.md`, in HTML mode `.html`.
 4. **Read `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`.**
+5. **Open the artefact (HTML mode only).** When `review_format: html`,
+   run the OPEN_CMD prelude from
+   `docs/FRAMEWORK.md § OPEN_CMD detection prelude` and open the
+   Plan's (or each Plan's) `.html` so the human can see what's being
+   evaluated. In CLI mode, summarise the target inline as today.
 
 ## Quick-Path Branch
 

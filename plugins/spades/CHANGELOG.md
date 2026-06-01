@@ -8,6 +8,57 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.0.2] — 2026-06-01
+
+**PATCH** — HTML mode is now actually enforced where it was only
+nominally promised in 3.0.0. Every producing skill's Write step
+explicitly branches on `review_format:` and writes the right
+extension; every consumer skill has an explicit "open the artefact"
+step rather than a header-only mention.
+
+Before 3.0.2 the skills had an "Output format" paragraph at the top
+mentioning HTML mode, but the actual Write step still said
+`Write `.spades/<dir>/<filename>.md``. Claude followed the explicit
+step instruction and wrote markdown (or, in some cases, just dumped
+the draft to the CLI without writing a file at all). 3.0.2 makes
+HTML mode load-bearing.
+
+Producing skills — Write step now branches CLI/HTML:
+
+- `plugins/spades/skills/plan/SKILL.md` — Step 5 split into 5.A
+  (CLI) and 5.B (HTML render + auto-open). `3.0.0 → 3.0.2`.
+- `plugins/spades/skills/scope/SKILL.md` — Step 7 split similarly.
+  `3.0.0 → 3.0.2`.
+- `plugins/spades/skills/newproject/SKILL.md` — Step 3 split into
+  3.A / 3.B; Linear branch references unified format. `3.0.0 → 3.0.2`.
+- `plugins/spades/skills/learn/SKILL.md` — Step 4 branches on
+  format; public/private path rules apply to both. `3.0.0 → 3.0.2`.
+- `plugins/spades/skills/review/SKILL.md` — persisted-report step
+  branches on format with the same slug + collision rules.
+  `3.0.0 → 3.0.2`.
+
+Consumer skills — explicit "open the artefact" pre-step:
+
+- `plugins/spades/skills/approve/SKILL.md` — Pre-Flight Step 5 opens
+  the Plan's `.html`. `3.0.0 → 3.0.2`.
+- `plugins/spades/skills/evaluate/SKILL.md` — Pre-Flight Step 5
+  opens the target's `.html`. `3.0.0 → 3.0.2`.
+- `plugins/spades/skills/do/SKILL.md` — Pre-Flight Step 6 opens the
+  Plan's `.html` before execution. `3.0.0 → 3.0.2`.
+- `plugins/spades/skills/ship/SKILL.md` — Pre-Flight Step 5 opens
+  Plan + Scope `.html`. `3.0.0 → 3.0.2`.
+- `plugins/spades/skills/close/SKILL.md` — Pre-Flight Step 7 opens
+  the Plan's `.html`. `3.0.0 → 3.0.2`.
+- `plugins/spades/skills/status/SKILL.md` — new Step 6 branches on
+  format: CLI mode prints, HTML mode renders + opens transient
+  `.spades/.tmp/status.html`. `3.0.0 → 3.0.2`.
+- `plugins/spades/skills/list/SKILL.md` — same pattern, new Step 6.
+  `3.0.0 → 3.0.2`.
+- `plugins/spades/skills/intent/SKILL.md` — Writing-the-File step
+  now does the HTML preview render + open; previous "no HTML
+  render" sentence (a 3.0.0 leftover that contradicted the header)
+  removed. `3.0.0 → 3.0.2`.
+
 ## [3.0.1] — 2026-06-01
 
 **PATCH** — `/spades:setup` now appends `.spades/.tmp/` to the
