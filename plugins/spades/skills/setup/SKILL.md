@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 3.0.0
+version: 3.0.1
 ---
 
 # /spades:setup
@@ -667,6 +667,28 @@ in them; that's the job of the per-phase skills.
 - `.spades/plans/`
 - `.spades/learnings/`
 - `.spades/reviews/`
+
+## Step 5.5 — Ignore transient HTML scratch
+
+`/spades:status`, `/spades:list`, and `/spades:intent` (HTML mode)
+render to `.spades/.tmp/<view>.html`. Those files are regenerated on
+every invocation and have no archival value — they must not be
+committed.
+
+Ensure `.spades/.tmp/` is gitignored. Idempotent:
+
+1. If `.gitignore` does not exist at the repo root, create it with a
+   single line: `.spades/.tmp/`.
+2. If `.gitignore` exists and already contains a line matching
+   `.spades/.tmp/` (with or without a trailing `/`), do nothing.
+3. Otherwise append a trailing-newline-safe block:
+
+   ```
+   # SPADES transient HTML scratch — regenerated on every status/list/intent run
+   .spades/.tmp/
+   ```
+
+Never rewrite or reorder the rest of `.gitignore`. Append-only.
 
 ## Step 6 — AGENTS.md (idempotent marker block)
 
