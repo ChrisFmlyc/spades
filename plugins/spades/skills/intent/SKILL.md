@@ -1,10 +1,25 @@
 ---
 name: intent
 description: Create or maintain INTENT.md, the project's durable statement of intent — the problem it solves, who it serves, what it does, what success looks like, and its non-goals. Use when someone says "set up INTENT.md", "capture our project intent", "what is this project for", "update the intent doc", "review our non-goals", or when INTENT.md is missing, still an unfilled template, or flagged stale. The human composes the intent; this skill structures and probes but never authors it.
-version: 2.0.0
+version: 3.0.0
 ---
 
 # SPADES Intent
+
+### Output format
+
+This skill honours `review_format:` from `.spades/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. **`INTENT.md`
+itself stays at the repo root as human-authored Markdown — it is
+not auto-converted to HTML in either mode.** In HTML mode, after
+writing/refreshing `INTENT.md` the skill renders a *transient*
+preview via the sibling
+`${CLAUDE_PLUGIN_ROOT}/skills/intent/template.html` to
+`.spades/.tmp/intent.html` and auto-opens it via OPEN_CMD so the
+human can review the refreshed intent in the same B-style format
+they review other artefacts. In CLI mode, no preview is rendered;
+the human reads `INTENT.md` directly. The Socratic facilitate-never-author
+flow is identical between modes.
 
 You are helping a human create or maintain `INTENT.md` — the durable
 statement of why a project exists. `INTENT.md` is a root reference document,

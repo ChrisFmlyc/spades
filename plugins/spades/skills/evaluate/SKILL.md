@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:do` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 2.0.0
+version: 3.0.0
 ---
 
 # /spades:evaluate
@@ -11,6 +11,16 @@ Approve validates the *plan*; Evaluate validates the *output*.
 
 Read `docs/FRAMEWORK.md` § .spades/ Local Layout and § Target
 Resolution before running.
+
+### Output format
+
+This skill honours `review_format:` from `.spades/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. Anywhere this
+skill would today paste the Plan's content to the terminal for the
+human's evaluation review, in HTML mode it auto-opens the Plan's
+existing `.html` file via the OPEN_CMD prelude. The PASS / PARTIAL /
+FAIL verdict prompts and audit-trail writes stay identical between
+modes.
 
 ## Pre-Flight
 

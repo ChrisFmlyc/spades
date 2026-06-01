@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 2.3.0
+version: 3.0.0
 ---
 
 # /spades:ship
@@ -12,6 +12,15 @@ artefact is published, an action's evidence is filed.
 
 Read `docs/FRAMEWORK.md` § Hierarchy (`deliverable_type` semantics)
 and § Target Resolution before running.
+
+### Output format
+
+This skill honours `review_format:` from `.spades/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. Anywhere this
+skill would today summarise the Plan + parent Scope to the terminal
+during ship, in HTML mode auto-open both `.html` files via the
+OPEN_CMD prelude. The PR-opening, audit-trail markers, and SCM
+driver dispatch all stay identical between modes.
 
 ## Pre-Flight
 

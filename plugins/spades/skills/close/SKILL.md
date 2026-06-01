@@ -1,7 +1,7 @@
 ---
 name: close
 description: Close out a Plan whose `/spades:ship` PR has been squash-merged on GitHub. Opens a small bookkeeping PR that records the `Shipped` marker on `main`, waits for the human to merge it, then mirrors completion to Linear (when applicable) and rolls up the parent Scope. Assumes the local repo is already in post-merge sync (run `/repo:sync` first). Use after `/spades:ship` opened a PR and you've merged it on GitHub, when someone says "close this", "close P-…", "the PR is merged, mark it shipped", or when a Plan is in status `shipping` with a `PR opened:` marker.
-version: 2.0.0
+version: 3.0.0
 ---
 
 # /spades:close
@@ -17,6 +17,15 @@ This skill is the consolidated replacement for the old
 legacy fallback; `/spades:close` is the recommended path.
 
 Read `docs/FRAMEWORK.md` § Target Resolution before running.
+
+### Output format
+
+This skill honours `review_format:` from `.spades/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. Anywhere this
+skill would today print the Plan being closed to the terminal, in
+HTML mode auto-open the Plan's existing `.html` file via the
+OPEN_CMD prelude. The bookkeeping-PR workflow, sync invocations,
+and Linear mirror calls are identical between modes.
 
 ## Prerequisite: post-merge git state
 

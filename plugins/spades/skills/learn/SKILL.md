@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 2.0.0
+version: 3.0.0
 ---
 
 ## Pre-Flight
@@ -15,6 +15,16 @@ Learnings live under `.spades/learnings/` regardless of backend. This
 skill makes **no backend MCP calls**.
 
 # SPADES Learn
+
+### Output format
+
+This skill honours `review_format:` from `.spades/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In CLI mode, write
+the learning as `.spades/learnings/YYYY-MM-DD-<slug>.md`. In HTML
+mode, render via the sibling
+`${CLAUDE_PLUGIN_ROOT}/skills/learn/template.html` and write the
+`.html` variant at the equivalent path, then auto-open. Same flow;
+format swap only.
 
 Each pass of the SPADES loop should produce knowledge that strengthens the
 next pass. Without a place to capture it, that knowledge vanishes into PR

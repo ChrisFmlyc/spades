@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 2.4.0
+version: 3.0.0
 ---
 
 # /spades:do
@@ -20,6 +20,16 @@ Read `docs/FRAMEWORK.md` § Target Resolution and § Execution Posture
 before running — every task declares a posture (`test-first`,
 `characterization-first`, `refactor-first`, `spike`,
 `straight-through`) and the posture drives how you build.
+
+### Output format
+
+This skill honours `review_format:` from `.spades/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. At the start of
+Do, in HTML mode auto-open the Plan's existing `.html` file via the
+OPEN_CMD prelude so the human can see what's being executed. In CLI
+mode, summarise the Plan in the terminal as today. The
+delivery-routing (ai / human / hybrid) and all subsequent task
+execution are identical between modes.
 
 ## Pre-Flight
 

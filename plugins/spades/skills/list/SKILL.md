@@ -1,7 +1,7 @@
 ---
 name: list
 description: List active SPADES Scopes, optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades/config`.
-version: 2.0.0
+version: 3.0.0
 ---
 
 # /spades:list
@@ -10,6 +10,17 @@ You are showing the human their active SPADES work.
 
 Read `docs/FRAMEWORK.md` § Hierarchy and § .spades/ Local Layout before
 running.
+
+### Output format
+
+This skill honours `review_format:` from `.spades/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In CLI mode,
+print the scope list table to the terminal. In HTML mode, render
+the transient view via the sibling
+`${CLAUDE_PLUGIN_ROOT}/skills/list/template.html` to
+`.spades/.tmp/list.html`, then auto-open via the OPEN_CMD prelude.
+The filter logic, sort order, and visible columns are identical
+between modes.
 
 ## Pre-Flight
 

@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 2.8.0
+version: 3.0.0
 ---
 
 # /spades:setup
@@ -145,6 +145,8 @@ Probe:
   - `current_linear_team` — UUID if `current_backend == linear`.
   - `current_linear_project` — UUID if `current_backend == linear`.
   - `current_github_remote` — remote name if `current_scm == github`.
+  - `current_review_format` — `cli` or `html` (defaults to `cli` if
+    the field is absent in older configs).
 
 These variables flow into Steps 1, 1.5, 2 as a *"Currently
 configured: X"* context line above each `AskUserQuestion`. They also
@@ -370,6 +372,51 @@ setup will continue.
 
 Nothing to verify externally. Continue.
 
+## Step 1.7 — Review format (CLI or HTML)
+
+If `current_review_format` is set (re-run case), print a context
+line above the question — never recommend "Keep current":
+
+> *Currently configured: `review_format: <current_review_format>`.
+> The choice below replaces it. Re-pick the same value if
+> unchanged, or switch.*
+
+Ask via `AskUserQuestion`:
+
+> *How should SPADES present reviews and produce artefacts?*
+
+Two options:
+
+- **HTML — auto-opens nicely formatted pages in your browser**
+  *(Recommended)* — artefacts (projects, scopes, plans, learnings,
+  reviews) are written as `.html` files under `.spades/` using the
+  templates that ship with each skill. Skills that today paste a
+  large review block to the CLI instead auto-open the relevant
+  `.html` page in the default browser via `open` / `xdg-open` /
+  `start`. Same content, much easier to review.
+- **CLI — pastes plain-text/markdown output to the terminal** —
+  artefacts are written as `.md` files (today's behaviour). Review
+  output pastes to CLI. Quieter, browser-free, all-in-the-terminal.
+
+Whichever the human picks is recorded as `review_format:` in
+`.spades/config` (Step 3 below). The choice affects:
+
+- **Producing skills** (`/spades:newproject`, `/spades:scope`,
+  `/spades:plan`, `/spades:learn`, `/spades:review`) write
+  artefacts in the chosen format.
+- **Consumer skills** (`/spades:approve`, `/spades:evaluate`,
+  `/spades:do`, `/spades:ship`, `/spades:close`, `/spades:status`,
+  `/spades:list`, `/spades:intent`) auto-open the relevant `.html`
+  in HTML mode; print to CLI in CLI mode.
+
+No "keep current" shortcut on re-runs — same as the other Step 1
+questions, the human always picks one of the two options afresh.
+
+The skill flow itself doesn't change between modes — same
+Pre-Flight, same Steps, same questions, same outputs. Only the
+*format* of the artefact written and the *medium* of presentation
+change.
+
 ## Step 2 — Active Project
 
 If `current_project` is set (re-run case), print a context line:
@@ -588,6 +635,7 @@ Write or update `.spades/config` to exactly this shape:
 backend: linear            # or: local
 project: <project-slug>
 scm: github                # or: local-git (more in docs/EXTENDING-SCM.md)
+review_format: html        # or: cli  (introduced in v3.0.0; defaults to cli if absent)
 linear:                    # only when backend: linear
   team_id: <uuid>
   project_id: <uuid>

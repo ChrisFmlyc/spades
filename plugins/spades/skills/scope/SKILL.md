@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 2.2.0
+version: 3.0.0
 ---
 
 # /spades:scope
@@ -12,6 +12,15 @@ weak Scope produces a weak Plan.
 
 Read `docs/FRAMEWORK.md` § ID Format and § .spades/ Local Layout before
 running. Schemas below mirror that contract.
+
+### Output format
+
+This skill honours `review_format:` from `.spades/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In CLI mode, write
+the Scope as `.spades/scopes/S-<slug>.md`. In HTML mode, render via
+the sibling `${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html` and
+write `.spades/scopes/S-<slug>.html`, then auto-open via the
+OPEN_CMD prelude. Same flow; format swap only.
 
 ## Pre-Flight
 
