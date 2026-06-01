@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generate a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 2.1.0
+version: 3.0.0
 ---
 
 # /spades:plan
@@ -15,6 +15,15 @@ filename.
 Read `docs/FRAMEWORK.md` § ID Format, § .spades/ Local Layout,
 § Target Resolution, and § Execution Posture before running. Schemas
 below mirror those contracts.
+
+### Output format
+
+This skill honours `review_format:` from `.spades/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In CLI mode, write
+the Plan as `.spades/plans/P-<…>.md`. In HTML mode, render via the
+sibling `${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html` (includes
+the expandable task-card pattern) and write `.spades/plans/P-<…>.html`,
+then auto-open. Same flow; format swap only.
 
 ## Pre-Flight
 

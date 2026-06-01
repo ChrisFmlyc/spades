@@ -1,7 +1,7 @@
 ---
 name: approve
 description: Present a SPADES Plan for human review against the approval checklist, then record the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`. The biggest risk in SPADES is a weak Approval gate.
-version: 2.1.0
+version: 3.0.0
 ---
 
 # /spades:approve
@@ -13,6 +13,16 @@ and write the result back to the Plan record.
 
 Read `docs/FRAMEWORK.md` § .spades/ Local Layout, § Target
 Resolution, and § Asking the Human before running.
+
+### Output format
+
+This skill honours `review_format:` from `.spades/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. Anywhere this
+skill would today paste the Plan body (and optionally the parent
+Scope) to the terminal for the human's approval review, in HTML
+mode it auto-opens the Plan's existing `.html` file (already written
+by `/spades:plan`) via the OPEN_CMD prelude instead. The approval
+prompts and audit-trail writes stay identical between modes.
 
 ## Pre-Flight
 

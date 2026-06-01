@@ -1,7 +1,7 @@
 ---
 name: review
 description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
-version: 2.1.0
+version: 3.0.0
 ---
 
 ## Pre-Flight
@@ -41,6 +41,19 @@ but the review report itself always lands locally at
 `.spades/reviews/<slug>-<date>.md`.
 
 # SPADES Review — Persona Panel Second Opinion
+
+### Output format
+
+This skill honours `review_format:` from `.spades/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In CLI mode, write
+the tiered report to `.spades/reviews/<target>-<date>.md` and also
+print the inline summary to the terminal (today's behaviour). In
+HTML mode, render via the sibling
+`${CLAUDE_PLUGIN_ROOT}/skills/review/template.html` — sidebar
+verdict roll-up, persona-card grid, and severity-tab findings — and
+write `.spades/reviews/<target>-<date>.html`, then auto-open. The
+four-persona panel dispatch and merge logic are identical between
+modes; only the final report's format changes.
 
 You are coordinating an independent multi-persona review of SPADES work.
 The value of a panel review comes from **genuine independence across

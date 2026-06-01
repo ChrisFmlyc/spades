@@ -57,7 +57,10 @@ run_dir() {
         return
     fi
     shopt -s nullglob
-    local files=("$dir"/*.md)
+    # Walk both .md (CLI-mode artefacts) and .html (HTML-mode artefacts,
+    # introduced in v3.0.0). The validator parses YAML frontmatter from
+    # either source format — see scripts/lint/frontmatter.py.
+    local files=("$dir"/*.md "$dir"/*.html)
     shopt -u nullglob
     if [ "${#files[@]}" -eq 0 ]; then
         note "no ${kind} files under ${dir#"$REPO_ROOT"/}"

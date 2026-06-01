@@ -8,6 +8,112 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.0.0] — 2026-06-01
+
+**MAJOR** — opt-in HTML review mode. `/spades:setup` asks a new
+question (CLI vs HTML); HTML-mode repos get standalone HTML
+artefacts under `.spades/` instead of `.md`, auto-opened in the
+browser when a skill would otherwise paste a large block to the
+CLI. CLI mode is unchanged from v2 — same flow, same files, same
+output. The framework, AGENTS.md, and all other developer docs stay
+Markdown.
+
+### What's new
+
+- **`/spades:setup` Step 1.7 — Review format (CLI or HTML).** New
+  question between SCM and Active Project. Same context-line /
+  no-keep-current pattern as backend, SCM, and project. Recorded as
+  `review_format: html | cli` in `.spades/config`.
+- **Five producing skills carry a sibling `template.html`** —
+  `skills/newproject/template.html`, `skills/scope/template.html`,
+  `skills/plan/template.html`, `skills/learn/template.html`,
+  `skills/review/template.html`. In HTML mode, the skill reads the
+  sibling template, fills `{{spades.field}}` placeholders, expands
+  `<!-- SPADES-BLOCK:name -->` repeating sections, and writes
+  `.spades/<dir>/<id>.html`. In CLI mode, the skill writes `.md` as
+  in v2. Skill flow is identical between modes; only the artefact
+  format changes.
+- **Three consumer skills carry transient `template.html`** —
+  `skills/status/template.html`, `skills/list/template.html`,
+  `skills/intent/template.html`. In HTML mode, render to
+  `.spades/.tmp/<view>.html` and auto-open.
+- **Eight consumer skills auto-open in HTML mode** — `approve`,
+  `evaluate`, `do`, `ship`, `close`, `status`, `list`, `intent`.
+  When a step would today paste a Plan/Scope summary to the CLI,
+  in HTML mode the skill auto-opens the relevant `.html` via the
+  OPEN_CMD prelude (`open` / `xdg-open` / `start`).
+- **Templates are sibling resource files**, not inlined in
+  SKILL.md. Same pattern as `skills/ship/scm-github.md` —
+  installed via the plugin marketplace alongside the skill body.
+  This keeps SKILL.md focused on flow / decisions and templates
+  focused on presentation.
+- **B-style "Operational" visual language** across all eight
+  templates (validated as `/tmp/spades-samples/v2-*.html` during
+  design). 375px sidebar, 17.5px body text, line-height 1.6, gold
+  `#FFC107` accents on white panels, status pills colour-mapped
+  per the SPADES status enum, severity colours for review
+  findings, vanilla-JS interactivity (project scope filter, plan
+  task expand, review severity tabs). No external dependencies —
+  every generated `.html` is `file://`-safe and standalone.
+
+### Architecture
+
+- **Frontmatter symmetry across formats.** `.md` artefacts keep
+  their YAML frontmatter at the top between `---` delimiters
+  (unchanged). `.html` artefacts embed the same frontmatter as a
+  `<script type="application/yaml" id="spades-frontmatter">`
+  block inside `<body>`. The browser ignores the script (non-JS
+  MIME type); the lint script parses either source format with the
+  same schema. New helpers in `scripts/lint/frontmatter.py`:
+  `_extract_yaml_body(text)` + `_parse_yaml_body(body)`. The
+  local-frontmatter lint walker now globs both `*.md` and `*.html`
+  under `.spades/projects/`, `.spades/scopes/`, `.spades/plans/`.
+- **Audit trail symmetry.** A second `<script type="application/yaml"
+  id="spades-audit-trail">` block carries the chronological audit
+  entries. Same shape across `.md` and `.html`.
+- **OPEN_CMD prelude.** Skills detect OS once per session
+  (`open` / `xdg-open` / `start`); empty fallback prints
+  *"Open this file: <path>"* without crashing.
+- **Backend mirror unchanged.** Linear backend continues to
+  receive artefact content as Issue descriptions (Markdown). HTML
+  mode affects only the local file format and presentation
+  medium.
+
+### Documentation
+
+- **New `docs/FRAMEWORK.md § Output Format (CLI vs HTML)`** —
+  canonical contract documenting the dual-format render rules,
+  template placeholder syntax, OPEN_CMD detection, and template
+  authoring guide. Every skill body that writes or presents an
+  artefact references this section instead of restating the rules
+  inline.
+
+### What's NOT changed (intentional)
+
+- **SKILL.md files stay Markdown.** Skills are framework
+  instructions; Claude reads them. Same for `AGENTS.md`,
+  `README.md`, `INTENT.md`, `ARCHITECTURE.md`, `PATTERNS.md`,
+  `ANTI-PATTERNS.md`, `CHANGELOG.md`, and `docs/FRAMEWORK.md` /
+  `docs/EXTENDING-*.md`. Only the *artefacts the human reads to
+  review their work* flip to HTML in HTML mode.
+- **No migration of existing artefacts.** A v2 repo that
+  upgrades and picks HTML mode keeps its old `.md` files on
+  disk — they're not auto-converted. Mode-switching on re-setup
+  writes new artefacts in the new format only.
+- **Existing CLI-mode behaviour is unchanged.** A v2 repo that
+  upgrades but stays in CLI mode behaves exactly as v2 — same
+  files, same prompts, same paste-to-terminal output.
+
+### Versions
+
+- Plugin **2.12.0 → 3.0.0** (MAJOR — new artefact format).
+- Marketplace **3.0.0**, `.spades/version` **3.0.0**.
+- All 14 skills bumped to 3.0.0:
+  - Producing: `setup`, `newproject`, `scope`, `plan`, `learn`,
+    `review` (templates added + render branch).
+  - Consumer: `approve`, `evaluate`, `do`, `ship`, `close`,
+    `status`, `list`, `intent` (auto-open branch).
+
 ## [2.12.0] — 2026-06-01
 
 **Minor** — `/spades:setup` always re-runs the full interview; new

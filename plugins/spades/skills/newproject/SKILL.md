@@ -1,7 +1,7 @@
 ---
 name: newproject
 description: Create a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 2.0.0
+version: 3.0.0
 ---
 
 # /spades:newproject
@@ -12,6 +12,17 @@ identity (a service, a product surface, a marketing site).
 
 Read `docs/FRAMEWORK.md` § Hierarchy and § .spades/ Local Layout before
 running. The Project frontmatter schema below mirrors that contract.
+
+### Output format
+
+This skill honours `review_format:` from `.spades/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In CLI mode, write
+the Project record as `.spades/projects/<slug>.md` (today's
+behaviour). In HTML mode, render via the sibling
+`${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html` and write
+`.spades/projects/<slug>.html`, then auto-open via the OPEN_CMD
+prelude. The skill flow itself is identical between modes; only the
+artefact format and the post-write presentation change.
 
 ## Pre-Flight
 

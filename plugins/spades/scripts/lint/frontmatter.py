@@ -34,21 +34,65 @@ from pathlib import Path
 from typing import Dict, List
 
 
-def parse_frontmatter(text: str) -> Dict[str, str]:
-    """Extract the YAML frontmatter block as a flat dict of string values."""
-    lines = text.splitlines()
-    if not lines or lines[0].strip() != "---":
-        raise ValueError("no opening frontmatter delimiter")
+_HTML_FRONTMATTER_OPEN_RE = re.compile(
+    r'<script\s+type=["\']application/yaml["\']\s+id=["\']spades-frontmatter["\']\s*>',
+    re.IGNORECASE,
+)
+_HTML_FRONTMATTER_CLOSE_RE = re.compile(r"</script>", re.IGNORECASE)
 
-    body: List[str] = []
-    closed = False
-    for line in lines[1:]:
-        if line.strip() == "---":
-            closed = True
-            break
-        body.append(line)
-    if not closed:
-        raise ValueError("frontmatter not terminated by '---'")
+
+def parse_frontmatter(text: str) -> Dict[str, str]:
+    """Extract the YAML frontmatter block as a flat dict of string values.
+
+    Supports two source formats:
+      - Markdown `.md` artefacts with traditional `---` delimited frontmatter
+        at the top of the file.
+      - HTML `.html` artefacts (introduced in v3.0.0) that embed their
+        frontmatter inside a `<script type="application/yaml"
+        id="spades-frontmatter">…</script>` tag near the top of `<body>`.
+
+    The dual format keeps the lint contract symmetric across CLI mode
+    (`.md` artefacts) and HTML mode (`.html` artefacts) — same schema,
+    same enums, same field allow-lists, only the source location
+    changes.
+    """
+    body = _extract_yaml_body(text)
+    return _parse_yaml_body(body)
+
+
+def _extract_yaml_body(text: str) -> List[str]:
+    """Return the YAML body lines from either a `.md` or `.html` artefact."""
+    lines = text.splitlines()
+
+    # Markdown frontmatter — opens with `---` on line 1.
+    if lines and lines[0].strip() == "---":
+        body: List[str] = []
+        closed = False
+        for line in lines[1:]:
+            if line.strip() == "---":
+                closed = True
+                break
+            body.append(line)
+        if not closed:
+            raise ValueError("frontmatter not terminated by '---'")
+        return body
+
+    # HTML <script type="application/yaml" id="spades-frontmatter"> block.
+    m_open = _HTML_FRONTMATTER_OPEN_RE.search(text)
+    if m_open:
+        after = text[m_open.end():]
+        m_close = _HTML_FRONTMATTER_CLOSE_RE.search(after)
+        if not m_close:
+            raise ValueError(
+                'spades-frontmatter <script> tag not closed by </script>'
+            )
+        return after[: m_close.start()].splitlines()
+
+    raise ValueError("no opening frontmatter delimiter")
+
+
+def _parse_yaml_body(body: List[str]) -> Dict[str, str]:
+    """Parse the YAML body lines (same logic for both source formats)."""
 
     fields: Dict[str, str] = {}
     key_re = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*)$")

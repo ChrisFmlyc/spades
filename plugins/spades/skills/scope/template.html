@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<!-- SPADES template: scope v1.0.0 (matches plugin v3.0.0) -->
+<!--
+  Parametric template for SPADES Scope artefacts (S-<slug>.html).
+
+  Placeholder syntax used by /spades:scope at render time:
+    {{spades.field}}                        single value from frontmatter or body
+    {{spades.field|—}}                      optional with default
+    <!-- SPADES-BLOCK:name --> … <!-- SPADES-ENDBLOCK -->
+                                            repeating section; inside use {{block.field}}
+    class="status-pill st-{{spades.status}}" — CSS class hooks into the status enum
+
+  Section blocks defined here:
+    audit-events       — one per audit trail entry, ordered chronologically
+    acceptance-items   — one per acceptance criterion (markdown rendered to HTML inline)
+    dependencies-items — one per dependency bullet
+    out-of-scope-items — one per out-of-scope bullet
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{spades.id}} — {{spades.title}}</title>
+<style>
+  :root {
+    --gold: #FFC107;
+    --gold-light: #FFDE59;
+    --gold-soft: #fff4cc;
+    --ink: #1a1a1a;
+    --panel: #ffffff;
+    --page: #fafafa;
+    --gray: #e8e8e8;
+    --gray-text: #5a5a5a;
+    --border: #d4d4d4;
+    --st-scoped:    #6b7280;
+    --st-planning:  #f59e0b;
+    --st-approval:  #f97316;
+    --st-delivering:#3b82f6;
+    --st-evaluating:#8b5cf6;
+    --st-shipping:  #06b6d4;
+    --st-shipped:   #10b981;
+    --st-done:      #047857;
+    --st-rejected:  #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--page); color: var(--ink); font-size: 17.5px; line-height: 1.6; }
+  .layout { display: grid; grid-template-columns: 375px 1fr; min-height: 100vh; }
+  aside.sidebar { background: var(--panel); border-right: 1px solid var(--border); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .sidebar-header { background: var(--gold); padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--ink); }
+  .sidebar-header .brand { font-size: 0.72rem; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; }
+  .sidebar-header .id { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.92rem; margin-top: 0.4rem; word-break: break-all; }
+  .sidebar-section { padding: 1.25rem 1.4rem; border-bottom: 1px solid var(--gray); }
+  .sidebar-section h3 { font-size: 0.7rem; color: var(--gray-text); font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 0.85rem; }
+  .meta-row { display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; font-size: 0.92rem; gap: 0.5rem; }
+  .meta-row .key { color: var(--gray-text); }
+  .meta-row .val { font-weight: 500; text-align: right; }
+  .status-pill { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.75rem; border-radius: 4px; color: white; font-size: 0.85rem; font-weight: 600; }
+  .status-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: white; display: inline-block; opacity: 0.85; }
+  .status-pill.st-scoped     { background: var(--st-scoped); }
+  .status-pill.st-planning   { background: var(--st-planning); }
+  .status-pill.st-approval   { background: var(--st-approval); }
+  .status-pill.st-delivering { background: var(--st-delivering); }
+  .status-pill.st-evaluating { background: var(--st-evaluating); }
+  .status-pill.st-shipping   { background: var(--st-shipping); }
+  .status-pill.st-shipped    { background: var(--st-shipped); }
+  .status-pill.st-done       { background: var(--st-done); }
+  .status-pill.st-rejected   { background: var(--st-rejected); }
+  .anchor-nav { padding: 0.5rem 0; }
+  .anchor-nav h3 { padding: 0 1.4rem; margin-bottom: 0.4rem; font-size: 0.7rem; color: var(--gray-text); font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; }
+  .anchor-nav a { display: block; padding: 0.55rem 1.4rem; color: var(--ink); text-decoration: none; font-size: 0.92rem; border-left: 3px solid transparent; }
+  .anchor-nav a:hover { background: var(--gold-light); border-left-color: var(--gold); }
+  main { padding: 3rem 4rem; max-width: 900px; }
+  main h1 { font-size: 2.1rem; font-weight: 700; line-height: 1.2; margin-bottom: 0.5rem; }
+  .crumbs { font-family: ui-monospace, monospace; font-size: 0.85rem; color: var(--gray-text); margin-bottom: 0.5rem; }
+  .crumbs .sep { margin: 0 0.5rem; color: var(--border); }
+  .badges-row { margin: 1rem 0 2.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .tag { padding: 0.25rem 0.6rem; background: var(--gray); border-radius: 3px; font-size: 0.82rem; font-family: ui-monospace, monospace; }
+  section { margin-bottom: 2.5rem; scroll-margin-top: 1rem; }
+  section h2 { font-size: 0.88rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.85rem; color: var(--gray-text); border-bottom: 1px solid var(--border); padding-bottom: 0.55rem; }
+  section h2::before { content: ""; display: inline-block; width: 4px; height: 14px; background: var(--gold); margin-right: 0.5rem; vertical-align: middle; }
+  section p { margin-bottom: 0.8rem; }
+  section ul { padding-left: 1.5rem; }
+  section li { margin-bottom: 0.4rem; }
+  code { font-family: ui-monospace, monospace; background: var(--gray); padding: 0.12rem 0.42rem; border-radius: 3px; font-size: 0.92em; }
+  .ac-list { list-style: none; padding: 0; }
+  .ac-list li { background: var(--panel); border: 1px solid var(--border); border-radius: 5px; padding: 0.8rem 1rem; margin-bottom: 0.55rem; padding-left: 2.4rem; position: relative; }
+  .ac-list li::before { content: "○"; position: absolute; left: 0.85rem; top: 0.55rem; font-size: 1.2rem; color: var(--gray-text); }
+  .audit-timeline { background: var(--panel); border: 1px solid var(--border); border-radius: 5px; padding: 1rem 1.5rem; }
+  .audit-timeline .event { padding: 0.6rem 0; padding-left: 1.5rem; border-left: 2px solid var(--gold); margin-left: 0.5rem; position: relative; }
+  .audit-timeline .event::before { content: ""; position: absolute; left: -6px; top: 0.85rem; width: 10px; height: 10px; border-radius: 50%; background: var(--gold); border: 2px solid white; box-shadow: 0 0 0 1px var(--ink); }
+  .audit-timeline .event .date { font-family: ui-monospace, monospace; font-size: 0.85rem; color: var(--gray-text); }
+  .audit-timeline .event .desc { font-size: 0.95rem; margin-top: 0.18rem; }
+  footer { padding: 1.2rem 4rem; color: var(--gray-text); font-size: 0.8rem; border-top: 1px solid var(--border); }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.sidebar { position: static; height: auto; border-right: none; border-bottom: 2px solid var(--gold); }
+    main { padding: 2rem 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<script type="application/yaml" id="spades-frontmatter">
+id: {{spades.id}}
+title: "{{spades.title}}"
+project: {{spades.project}}
+status: {{spades.status}}
+type: {{spades.type}}
+priority: {{spades.priority}}
+origin: {{spades.origin}}
+strategy_link: {{spades.strategy_link|}}
+created: {{spades.created}}
+updated: {{spades.updated}}
+</script>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">SPADES · Scope</div>
+        <div class="id">{{spades.id}}</div>
+      </div>
+      <div class="sidebar-section">
+        <h3>Status</h3>
+        <span class="status-pill st-{{spades.status}}">{{spades.status}}</span>
+      </div>
+      <div class="sidebar-section">
+        <h3>Properties</h3>
+        <div class="meta-row"><span class="key">Project</span><span class="val">{{spades.project}}</span></div>
+        <div class="meta-row"><span class="key">Type</span><span class="val">{{spades.type}}</span></div>
+        <div class="meta-row"><span class="key">Priority</span><span class="val">{{spades.priority}}</span></div>
+        <div class="meta-row"><span class="key">Origin</span><span class="val">{{spades.origin}}</span></div>
+        <div class="meta-row"><span class="key">Strategy link</span><span class="val">{{spades.strategy_link|—}}</span></div>
+        <div class="meta-row"><span class="key">Created</span><span class="val">{{spades.created}}</span></div>
+        <div class="meta-row"><span class="key">Updated</span><span class="val">{{spades.updated}}</span></div>
+      </div>
+      <nav class="anchor-nav">
+        <h3>Sections</h3>
+        <a href="#intent">Statement of Intent</a>
+        <a href="#acceptance">Acceptance Criteria</a>
+        <a href="#arch">Architectural Constraints</a>
+        <a href="#deps">Dependencies</a>
+        <a href="#out-of-scope">Out of Scope</a>
+        <a href="#risk">Risk / Unknowns</a>
+        <a href="#delivery">Delivery Preference</a>
+        <a href="#audit">Audit Trail</a>
+      </nav>
+    </aside>
+    <main>
+      <div class="crumbs">{{spades.project}}<span class="sep">›</span>{{spades.id}}</div>
+      <h1>{{spades.title}}</h1>
+      <div class="badges-row">
+        <span class="tag">{{spades.type}}</span>
+        <span class="tag">{{spades.priority}}</span>
+        <span class="tag">{{spades.origin}}</span>
+      </div>
+
+      <section id="intent">
+        <h2>Statement of Intent</h2>
+        {{spades.statement_of_intent_html}}
+      </section>
+
+      <section id="acceptance">
+        <h2>Acceptance Criteria</h2>
+        <ul class="ac-list">
+          <!-- SPADES-BLOCK:acceptance-items -->
+          <li>{{block.html}}</li>
+          <!-- SPADES-ENDBLOCK -->
+        </ul>
+      </section>
+
+      <section id="arch">
+        <h2>Architectural Constraints</h2>
+        {{spades.architectural_constraints_html}}
+      </section>
+
+      <section id="deps">
+        <h2>Dependencies</h2>
+        <ul>
+          <!-- SPADES-BLOCK:dependencies-items -->
+          <li>{{block.html}}</li>
+          <!-- SPADES-ENDBLOCK -->
+        </ul>
+      </section>
+
+      <section id="out-of-scope">
+        <h2>Out of Scope</h2>
+        <ul>
+          <!-- SPADES-BLOCK:out-of-scope-items -->
+          <li>{{block.html}}</li>
+          <!-- SPADES-ENDBLOCK -->
+        </ul>
+      </section>
+
+      <section id="risk">
+        <h2>Risk / Unknowns</h2>
+        {{spades.risk_html}}
+      </section>
+
+      <section id="delivery">
+        <h2>Delivery Preference</h2>
+        {{spades.delivery_preference_html}}
+      </section>
+
+      <section id="audit">
+        <h2>Audit Trail</h2>
+        <div class="audit-timeline">
+          <!-- SPADES-BLOCK:audit-events -->
+          <div class="event">
+            <div class="date">{{block.date}}</div>
+            <div class="desc">{{block.desc}}</div>
+          </div>
+          <!-- SPADES-ENDBLOCK -->
+        </div>
+      </section>
+      <footer>SPADES · v{{spades.plugin_version}} · template: Scope · rendered {{spades.rendered_at}}</footer>
+    </main>
+  </div>
+<script type="application/yaml" id="spades-audit-trail">
+<!-- SPADES-BLOCK:audit-events -->
+- date: {{block.date}}
+  desc: "{{block.desc}}"
+<!-- SPADES-ENDBLOCK -->
+</script>
+</body>
+</html>

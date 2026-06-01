@@ -1,7 +1,7 @@
 ---
 name: status
 description: Show the current SPADES phase, progress, and dependency graph for active work. Use when someone asks "where are we", "what's the status", "show progress", or any question about current state. Renders the Plan dependency graph so the human can see which plans are unblocked vs waiting.
-version: 2.0.0
+version: 3.0.0
 ---
 
 # /spades:status
@@ -11,6 +11,17 @@ the Scope level *and* at the Plan level, with dependency relationships
 visible.
 
 Read `docs/FRAMEWORK.md` § Hierarchy before running.
+
+### Output format
+
+This skill honours `review_format:` from `.spades/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In CLI mode,
+print the status overview + dependency graph to the terminal
+(today's behaviour). In HTML mode, render the transient view via
+the sibling `${CLAUDE_PLUGIN_ROOT}/skills/status/template.html` to
+`.spades/.tmp/status.html`, then auto-open via the OPEN_CMD
+prelude. The graph data and roll-up counts are identical between
+modes — only the presentation changes.
 
 ## Pre-Flight
 

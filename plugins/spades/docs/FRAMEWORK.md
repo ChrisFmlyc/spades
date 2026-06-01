@@ -652,3 +652,130 @@ participates in. Defining it once here means individual skills don't
 repeat the rule; they reference it. Adding a new skill that does
 cross-cutting reads? The skill author reads this section, references
 it in their skill's prose, and the convention propagates.
+
+## Output Format (CLI vs HTML)
+
+`/spades:setup` Step 1.7 records `review_format:` in
+`.spades/config` — one of `cli` (default) or `html`. The value
+controls the *format* of artefacts written to `.spades/` and the
+*medium* of presentation when a skill would otherwise paste a large
+block to the CLI. The skill flows, prompts, and decisions don't
+change between modes; only the format and presentation do.
+
+### Producing skills — `cli` vs `html` write
+
+Producing skills are `/spades:newproject`, `/spades:scope`,
+`/spades:plan`, `/spades:learn`, `/spades:review`. Each writes an
+artefact at the end of its flow.
+
+- **`review_format: cli`** — write a Markdown `.md` file under
+  `.spades/<dir>/<id>.md` exactly as in v2 (today's behaviour).
+  Paste a summary to the terminal where the skill body already
+  does that.
+- **`review_format: html`** — write an HTML `.html` file under
+  `.spades/<dir>/<id>.html` using the producing skill's sibling
+  `template.html` resource (located at
+  `${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/template.html`).
+  Render by:
+  1. Reading the sibling template file end-to-end.
+  2. Replacing every `{{spades.field}}` placeholder with the
+     artefact's field value (HTML-escape user-supplied strings;
+     pre-rendered Markdown→HTML bodies pass through as-is).
+  3. Expanding `<!-- SPADES-BLOCK:name --> … <!-- SPADES-ENDBLOCK -->`
+     sections by repeating the block content once per item, with
+     `{{block.field}}` substituted per item.
+  4. Filling the `<script type="application/yaml"
+     id="spades-frontmatter">` block with the artefact's
+     frontmatter (same fields the `.md` version would have).
+  5. Filling the `<script type="application/yaml"
+     id="spades-audit-trail">` block (if present) with the audit
+     trail entries in chronological order.
+  6. Writing the result to `.spades/<dir>/<id>.html`.
+  7. Auto-opening via the OPEN_CMD prelude (see below).
+
+The Markdown-to-HTML conversion for body sections (Statement of
+Intent, Technical Approach, etc.) follows standard CommonMark; the
+skill renders the converted HTML into the `{{spades.X_html}}`
+placeholders.
+
+### Consumer skills — `cli` vs `html` presentation
+
+Consumer skills are `/spades:approve`, `/spades:evaluate`,
+`/spades:do`, `/spades:ship`, `/spades:close`, `/spades:status`,
+`/spades:list`, `/spades:intent`. Each, at some point in its flow,
+presents an artefact for the human to review.
+
+- **`review_format: cli`** — paste the artefact's content (or a
+  summary) to the terminal as today.
+- **`review_format: html`** — auto-open the relevant `.html`
+  artefact in the default browser via the OPEN_CMD prelude.
+  - For artefact-bound reviews (approve / evaluate / do / ship /
+    close): the `.html` already exists at
+    `.spades/<dir>/<id>.html` because the producing skill wrote
+    it. Just open it.
+  - For transient cross-cutting views (status / list / intent):
+    render to `.spades/.tmp/<view>.html` using the consumer
+    skill's sibling `template.html`, then open. Transient files
+    are regenerated on every invocation; the `.spades/.tmp/`
+    directory may be `.gitignore`d by the consumer repo.
+
+In CLI mode, every consumer skill behaves exactly as in v2 — no
+HTML written, no browser opens.
+
+### OPEN_CMD detection prelude
+
+When a skill needs to open an `.html` file, it runs (once per
+session) this detection:
+
+```bash
+case "$(uname -s)" in
+  Darwin)  OPEN_CMD="open" ;;
+  Linux)   OPEN_CMD="xdg-open" ;;
+  MINGW*|MSYS*|CYGWIN*) OPEN_CMD="start" ;;
+  *)       OPEN_CMD="" ;;
+esac
+```
+
+Then to open: `$OPEN_CMD "<absolute-path-to.html>"` (run in the
+background, don't wait). If `OPEN_CMD` is empty (unknown OS),
+print *"Open in your browser: file://<absolute-path>"* and
+continue — don't crash.
+
+### Template authoring contract
+
+Templates live as sibling files in their owning skill's directory:
+
+```
+plugins/spades/skills/<skill-name>/
+├── SKILL.md
+└── template.html
+```
+
+This is the same shape as `skills/ship/scm-github.md` and
+`skills/ship/scm-local-git.md` — sibling resource files travel with
+the skill in the plugin install. Every consumer repo that installs
+the plugin has the template available verbatim.
+
+Placeholder syntax used by skills at render time:
+
+| Syntax | Meaning |
+|--------|---------|
+| `{{spades.field}}` | Single-value substitution from the artefact's frontmatter or computed values |
+| `{{spades.field\|fallback}}` | Same, with a default when the value is unset |
+| `<!-- SPADES-BLOCK:name --> … <!-- SPADES-ENDBLOCK -->` | Repeating section; the block is duplicated once per item, with `{{block.field}}` substituting per-item values |
+
+Templates are fully self-contained — inline CSS, inline JS, no
+external assets. They render correctly on `file://`. Each
+template's top comment carries a version stamp:
+`<!-- SPADES template: <name> vX.Y.Z (matches plugin v3.0.0) -->`.
+
+### Why this lives in FRAMEWORK.md
+
+Same logic as Freshness: the dual-format contract is something
+every producing and consumer skill participates in. Defining it
+once here means individual skills don't repeat the rendering
+instructions; they reference this section and inherit the
+contract. Adding a new artefact type later? The skill author
+authors a new `template.html` sibling, fills it with the right
+placeholders, and references this section's render contract from
+the skill body.
