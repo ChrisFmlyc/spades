@@ -780,3 +780,111 @@ contract. Adding a new artefact type later? The skill author
 authors a new `template.html` sibling, fills it with the right
 placeholders, and references this section's render contract from
 the skill body.
+
+## Sub-agent Dispatch (Fan-Out)
+
+Producing and writeback-heavy consumer skills do work that's
+naturally independent — render a local file, talk to Linear, append
+to a parent artefact — but historically run those operations
+serially. SPADES 3.1.0 introduces a parallel **fan-out** dispatch:
+the skill spawns one sub-agent per resource in a single tool-call
+wave, then stitches the results.
+
+### The rule
+
+> **One sub-agent owns one resource.** Two sub-agents in the same
+> dispatch wave MUST NOT write to the same resource.
+
+A *resource* is one of:
+
+- A single local file path (e.g. `.spades/plans/P-foo-3HyD.html`).
+- The Linear API surface for one logical operation (create issue
+  + capture ID; record comment + status update).
+- One bounded analysis / computation whose result the coordinator
+  needs (rarely used by today's skills, reserved for future).
+
+### The coordinator is not a sub-agent
+
+The skill body itself remains the orchestrator. It reads, decides,
+dispatches, collects, stitches, prints. It is free to read and
+write any file. After a fan-out wave it does any small integration
+writes — for example, injecting a captured `linear_issue_id` into
+the frontmatter of a file the file sub-agent already wrote.
+That's two writes to the same file but **sequential** (sub-agent
+first, coordinator second) — the no-contention rule only forbids
+two sub-agents racing on one file.
+
+### Spawning
+
+Spawn all sub-agents in a single assistant message with multiple
+`Agent` tool calls. The Claude Code runtime honours these as
+concurrent invocations.
+
+Use `subagent_type: general-purpose` (or `claude` as catch-all)
+with inline prompts. The work is parametric — file path + content,
+or Linear payload — so it does not need bundled persona files
+under `agents/`.
+
+Each sub-agent's prompt should be self-contained and include:
+
+- **Scope** — exactly what file or external resource it owns.
+- **Inputs** — the full content to write or the Linear payload.
+- **Return schema** — what the coordinator expects back
+  (`{ ok: true }` for file writes, `{ linear_issue_id: "<uuid>" }`
+  for Linear creates, plus an `error` field on failure).
+- **Freshness probe** (Linear-touching sub-agents only) — the same
+  Layer-2 pre-flight required by `/spades:review` and
+  `/spades:research`: run `git rev-list --count main..origin/main`
+  and abort if local is behind.
+
+### Dispatch modes
+
+The same three-mode model from `/spades:review`:
+
+- **`subagent-dispatch`** *(preferred)* — true parallel via
+  multiple `Agent` tool calls in one assistant message.
+- **`sequential-inproc`** *(fallback)* — runtime only supports one
+  sub-agent at a time. Run them sequentially, still in isolated
+  contexts. Lose parallelism, preserve isolation.
+- **`degraded`** *(last resort)* — no sub-agent dispatch
+  available. Coordinator does everything itself, serially. Same
+  result, no isolation.
+
+The skill records which mode it used in its confirmation output.
+
+### Failure semantics
+
+Each sub-agent returns:
+
+```
+{ status: ok | fail, payload?: <return data>, error?: <message> }
+```
+
+The coordinator collects **every** sub-agent's result before
+acting on any of them. Then:
+
+- **All ok** → coordinator does its integration writes (e.g.
+  `linear_issue_id` back-write), prints confirmation with the
+  dispatch mode used.
+- **File sub-agent failed, Linear ok** → abort with a clear
+  error. The local file is canonical; without it, the Linear
+  record has nothing to mirror. The human re-runs.
+- **Linear sub-agent failed, file ok** → keep the local file
+  (it IS canonical), surface the Linear failure, offer a retry.
+  Same contract as today's "Backend Mirror" section in each
+  skill — only the dispatch mechanism changes.
+- **Multiple file sub-agents failed** → abort, surface all
+  failures, recommend manual recovery (the failed files may be
+  partial-written; the human inspects and reverts as needed).
+
+### Why this lives in FRAMEWORK.md
+
+The fan-out contract is something multiple skills participate in
+(today: `newproject`, `scope`, `plan`, `approve`, `evaluate`;
+later: `do`, `ship`, `close`). Defining it once here means
+individual skill bodies can reference this section instead of
+repeating dispatch-mode bookkeeping and failure-semantics prose.
+Adding a new skill that mirrors to Linear later? Author a per-skill
+fan-out table (one sub-agent per resource) and reference this
+section's contract. The dispatch-mode reporting, freshness probe,
+and failure semantics are inherited.
