@@ -716,8 +716,9 @@ presents an artefact for the human to review.
   - For transient cross-cutting views (status / list / intent):
     render to `.spades/.tmp/<view>.html` using the consumer
     skill's sibling `template.html`, then open. Transient files
-    are regenerated on every invocation; the `.spades/.tmp/`
-    directory may be `.gitignore`d by the consumer repo.
+    are regenerated on every invocation; `/spades:setup` appends
+    `.spades/.tmp/` to the consumer repo's `.gitignore` at install
+    time, so these files are never committed.
 
 In CLI mode, every consumer skill behaves exactly as in v2 — no
 HTML written, no browser opens.

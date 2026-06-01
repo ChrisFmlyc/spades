@@ -8,6 +8,21 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.0.1] — 2026-06-01
+
+**PATCH** — `/spades:setup` now appends `.spades/.tmp/` to the
+consumer repo's `.gitignore` (idempotent, append-only). The transient
+HTML scratch directory written by `/spades:status`, `/spades:list`,
+and `/spades:intent` in HTML mode is regenerated on every invocation
+and has no archival value, so it must not be committed. Previously
+FRAMEWORK.md only suggested the consumer *may* gitignore it; this
+makes it automatic at install/re-run time.
+
+- `plugins/spades/skills/setup/SKILL.md` — new Step 5.5
+  ("Ignore transient HTML scratch"); `version: 3.0.0 → 3.0.1`.
+- `plugins/spades/docs/FRAMEWORK.md` § Output Format — updated to
+  state setup writes the entry, not the consumer.
+
 ## [3.0.0] — 2026-06-01
 
 **MAJOR** — opt-in HTML review mode. `/spades:setup` asks a new
