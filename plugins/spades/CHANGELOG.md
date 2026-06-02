@@ -8,6 +8,46 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.1.1] — 2026-06-02
+
+**PATCH** — Producing skills in HTML mode were still pasting full
+draft bodies to the CLI for human approval before writing the file
+(observed in `/spades:scope` and `/spades:plan`). The skills' write
+steps correctly branched on `review_format:` and wrote the right
+extension, but nothing forbade Claude from inserting a "show full
+draft for approval" CLI paste step *before* the write. In HTML mode
+that defeats the whole point: the file IS the review surface.
+
+This patch makes the rule explicit and enforceable.
+
+Per-skill change (4 producing skills, all 3.1.0 → 3.1.1; `learn` was
+at 3.0.2):
+
+- `plugins/spades/skills/scope/SKILL.md` — § Output format and Step 7
+  forbid pre-write CLI paste in HTML mode; pin the review-via-file
+  iteration workflow.
+- `plugins/spades/skills/plan/SKILL.md` — same pattern at § Output
+  format and Step 5.
+- `plugins/spades/skills/newproject/SKILL.md` — same at § Output
+  format and Step 3.
+- `plugins/spades/skills/learn/SKILL.md` — same at § Output format
+  and Step 4; Step 2 ("Propose a draft") now branches: CLI mode
+  presents inline, HTML mode skips straight to Step 3 + 4.
+
+Framework docs:
+
+- `plugins/spades/docs/FRAMEWORK.md` § Output Format → Producing
+  skills — new sub-section "HTML mode is review-via-file, not
+  review-via-CLI" documenting the canonical rule and the
+  review-via-file iteration loop.
+
+Iteration in HTML mode: write the file as a working draft → auto-open
+→ human reviews in browser → coordinator applies *targeted edits*
+to the file (human reloads to see changes). Never re-paste a full
+draft to the CLI.
+
+Plugin / marketplace / `.spades/version` 3.1.0 → 3.1.1.
+
 ## [3.1.0] — 2026-06-01
 
 **MINOR** — Sub-agent fan-out for Linear + local artefact work.

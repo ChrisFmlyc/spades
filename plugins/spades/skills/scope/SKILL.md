@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 3.1.0
+version: 3.1.1
 ---
 
 # /spades:scope
@@ -21,6 +21,15 @@ the Scope as `.spades/scopes/S-<slug>.md`. In HTML mode, render via
 the sibling `${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html` and
 write `.spades/scopes/S-<slug>.html`, then auto-open via the
 OPEN_CMD prelude. Same flow; format swap only.
+
+**HTML mode is review-via-file, not review-via-CLI.** Do NOT paste
+the Scope body (or any substantive excerpt of it) to the CLI for
+the human's approval before Step 7 writes the file. The file IS the
+review surface. Step 7 writes a working draft and auto-opens it; the
+human reviews in the browser. To iterate, apply targeted edits to
+the file (the human reloads to see changes) — never re-paste a new
+full draft to the CLI. In CLI mode the existing draft-then-paste
+workflow is fine.
 
 ## Pre-Flight
 
@@ -237,7 +246,9 @@ resume here and ask whether the human wants to adjust the Scope.
 
 **Read `review_format:` from `.spades/config` and branch.** This step
 MUST write a file — never exit Step 7 with the Scope content only
-pasted to the CLI.
+pasted to the CLI, **and never paste the Scope body to the CLI for
+human approval before this step writes the file in HTML mode**. The
+file IS the review surface in HTML mode (see § Output format above).
 
 ### Step 7.A — CLI mode (`review_format: cli`)
 

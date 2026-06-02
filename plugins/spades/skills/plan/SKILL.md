@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generate a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 3.1.0
+version: 3.1.1
 ---
 
 # /spades:plan
@@ -24,6 +24,15 @@ the Plan as `.spades/plans/P-<…>.md`. In HTML mode, render via the
 sibling `${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html` (includes
 the expandable task-card pattern) and write `.spades/plans/P-<…>.html`,
 then auto-open. Same flow; format swap only.
+
+**HTML mode is review-via-file, not review-via-CLI.** Do NOT paste
+the Plan body (tasks, technical approach, risks, etc.) to the CLI
+for the human's approval before Step 5 writes the file. The file IS
+the review surface. Step 5 writes a working draft and auto-opens it;
+the human reviews in the browser. To iterate, apply targeted edits
+to the file (the human reloads to see changes) — never re-paste a
+new full draft to the CLI. In CLI mode the existing draft-then-paste
+workflow is fine.
 
 ## Pre-Flight
 
@@ -174,7 +183,10 @@ This drives what `/spades:ship` does later.
 
 **Read `review_format:` from `.spades/config` and branch.** This step
 MUST write a file — never exit Step 5 with the Plan content only
-pasted to the CLI.
+pasted to the CLI, **and never paste the Plan body (tasks, approach,
+risks, etc.) to the CLI for human approval before this step writes
+the file in HTML mode**. The file IS the review surface in HTML mode
+(see § Output format above).
 
 ### Step 5.A — CLI mode (`review_format: cli`)
 

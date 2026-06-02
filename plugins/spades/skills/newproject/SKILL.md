@@ -1,7 +1,7 @@
 ---
 name: newproject
 description: Create a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.1.0
+version: 3.1.1
 ---
 
 # /spades:newproject
@@ -23,6 +23,14 @@ behaviour). In HTML mode, render via the sibling
 `.spades/projects/<slug>.html`, then auto-open via the OPEN_CMD
 prelude. The skill flow itself is identical between modes; only the
 artefact format and the post-write presentation change.
+
+**HTML mode is review-via-file, not review-via-CLI.** Do NOT paste
+the Project record body to the CLI for the human's approval before
+Step 3 writes the file. The file IS the review surface. Step 3
+writes a working draft and auto-opens it; the human reviews in the
+browser. To iterate, apply targeted edits to the file (the human
+reloads to see changes) — never re-paste a new full draft to the
+CLI. In CLI mode the existing draft-then-paste workflow is fine.
 
 ## Pre-Flight
 
@@ -80,7 +88,10 @@ Before writing anything:
 
 **Read `review_format:` from `.spades/config` and branch on the file
 format.** Step 3 MUST write a Project file before exiting — never
-print the project record to the CLI only.
+print the project record to the CLI only, **and never paste the
+project body to the CLI for human approval before this step writes
+the file in HTML mode**. The file IS the review surface in HTML
+mode (see § Output format above).
 
 ### When `backend: local`
 
