@@ -698,6 +698,32 @@ Intent, Technical Approach, etc.) follows standard CommonMark; the
 skill renders the converted HTML into the `{{spades.X_html}}`
 placeholders.
 
+#### HTML mode is review-via-file, not review-via-CLI
+
+In HTML mode the artefact file itself IS the review surface. The
+producing skill MUST NOT paste the artefact body (or any substantive
+excerpt of it) to the CLI for the human's approval before the write
+step runs. Instead:
+
+1. The skill gathers inputs through its existing field-by-field
+   conversation step.
+2. The write step renders and writes the file as a working draft,
+   auto-opens it in the browser, and stands down.
+3. The human reviews in the browser.
+4. To iterate, the coordinator applies **targeted edits** to the
+   file (the human reloads to see changes). Never re-paste a new
+   full draft to the CLI.
+
+In CLI mode the existing "draft → paste to terminal → human
+approves → write" pattern is preserved unchanged. The
+no-pre-write-paste rule applies only to HTML mode.
+
+This rule exists because the value of HTML mode is *not* a fancier
+final artefact — it's that the human's review happens against a
+rendered page rather than a wall of terminal markdown. A pre-write
+CLI paste defeats that and turns HTML mode into "CLI mode plus an
+extra file at the end".
+
 ### Consumer skills — `cli` vs `html` presentation
 
 Consumer skills are `/spades:approve`, `/spades:evaluate`,

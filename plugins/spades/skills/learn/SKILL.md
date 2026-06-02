@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 3.0.2
+version: 3.1.1
 ---
 
 ## Pre-Flight
@@ -25,6 +25,15 @@ mode, render via the sibling
 `${CLAUDE_PLUGIN_ROOT}/skills/learn/template.html` and write the
 `.html` variant at the equivalent path, then auto-open. Same flow;
 format swap only.
+
+**HTML mode is review-via-file, not review-via-CLI.** Do NOT paste
+the learning body to the CLI for the human's approval before Step 4
+writes the file. The file IS the review surface. Step 4 writes a
+working draft and auto-opens it; the human reviews in the browser.
+To iterate, apply targeted edits to the file (the human reloads to
+see changes) — never re-paste a new full draft to the CLI. In CLI
+mode the existing draft-then-paste workflow (Step 2: "Propose a
+draft") is fine.
 
 Each pass of the SPADES loop should produce knowledge that strengthens the
 next pass. Without a place to capture it, that knowledge vanishes into PR
@@ -92,8 +101,12 @@ When invoked in the default mode:
    If the user referenced a specific file path or area of the codebase,
    use that to pre-fill the `area` field.
 2. **Propose a draft.** Don't ask eight questions in a row — draft a
-   complete learning based on the conversation so far and present it for
-   the human to correct. Use the frontmatter + body format above.
+   complete learning based on the conversation so far. In **CLI mode**
+   present the draft inline to the terminal for the human to correct.
+   In **HTML mode** skip the CLI paste — proceed directly to Step 4,
+   which writes the file as a working draft and auto-opens it; the
+   human reviews in the browser. Use the frontmatter + body format
+   above.
 3. **Classify public-safe.** Ask via **`AskUserQuestion`** (per
    `docs/FRAMEWORK.md` § "Asking the Human") with three options:
    - *Public-safe — commit to .spades/learnings/*
@@ -103,10 +116,14 @@ When invoked in the default mode:
    Private learnings name internal systems, customers, credentials
    paths, security details, or anything else that should not leak. When
    in doubt, route to `private/` — downgrading later is cheap.
-4. **Confirm and write.** After the human approves the draft, **read
-   `review_format:` from `.spades/config` and branch.** Step 4 MUST
-   write a file before exiting — never finish with the draft pasted to
-   the CLI only.
+4. **Confirm and write.** After the human approves the draft (in CLI
+   mode) or after Step 3 classification completes (in HTML mode —
+   there is no pre-write CLI draft to approve), **read `review_format:`
+   from `.spades/config` and branch.** Step 4 MUST write a file before
+   exiting — never finish with the draft pasted to the CLI only, **and
+   in HTML mode never paste the learning body to the CLI for human
+   approval before this step writes the file**. The file IS the review
+   surface in HTML mode (see § Output format above).
 
    Choose a short, hyphenated slug that reads well (e.g.
    `onboarding-must-be-idempotent`, not `learn-1`). The slug is the
