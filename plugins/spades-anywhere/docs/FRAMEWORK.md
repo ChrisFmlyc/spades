@@ -1,0 +1,914 @@
+# spades-anywhere Framework v0.1.0
+
+`spades-anywhere` is a human–AI operating model for **real-world,
+non-coding work**. It is the sister plugin to `spades` (which targets
+code work in coding harnesses). The two share a framework — the
+six-phase loop, artefact shape, backend interface (Linear / local),
+HTML mode, sub-agent fan-out — but `spades-anywhere` runs in
+non-coding contexts (Claude Desktop, ChatGPT, web/mobile) where the
+human does the actual work and there is no PR.
+
+This file is the **single source of truth** for `spades-anywhere`'s
+contracts. Skills reference it; they do not re-state it.
+
+The cross-plugin parity rule between `spades` and `spades-anywhere`
+lives in the repo-root maintainer `AGENTS.md`. Most cross-cutting
+framework changes apply to both plugins; this file mirrors
+`plugins/spades/docs/FRAMEWORK.md` everywhere it can, and adapts only
+where the code-versus-human distinction forces a difference.
+
+---
+
+## The Six Phases
+
+Every unit of work moves through six phases:
+
+```
+SCOPE → PLAN → APPROVE → DO → EVALUATE → SHIP
+```
+
+| Phase     | Who owns it          | Output                                              |
+|-----------|----------------------|-----------------------------------------------------|
+| Scope     | Human (AI assists)   | A signed-off Scope record                           |
+| Plan      | AI (human reviews)   | One or more Plan records, with deps                 |
+| Approve   | Human gate           | `delivery:` routing recorded on the Plan (`human` or `hybrid`) |
+| Do        | Human (AI marker only) | Human goes off and does the work; the AI restated the acceptance criteria back |
+| Evaluate  | Human verdict        | PASS / PARTIAL / FAIL against the Scope's acceptance criteria |
+| Ship      | Confirmation walk    | Per-criterion evidence captured against the project's `INTENT.md` success criteria |
+
+The phases are mandatory and ordered. There is no fast-track path in
+`spades-anywhere` (the `spades`-side `/spades:quick` 50-LoC shortcut
+has no clean equivalent for human work).
+
+### Why six (not five)
+
+The split between **Do** (the human acts) and **Ship** (the human
+confirms outcomes against project success criteria) keeps "did I do
+the task?" separate from "did doing the task move the project's
+intent forward?". For human work that distinction matters even more
+than for code — a wedding is "done" when the day ends, but only
+"shipped" when the photos are filed and the thank-yous sent.
+
+### The Do → Evaluate loop
+
+For human work, Evaluate often produces PARTIAL or FAIL on the first
+pass — the human did some of the work but not all. The intended flow
+is **Do → Evaluate → Do → Evaluate** until PASS. Evaluate routes back
+to Do when it isn't a PASS, and the human keeps going.
+
+---
+
+## Hierarchy: Project → Scope → Plan
+
+```
+Project (project-slug)             e.g. "closed-door-security-website"
+└── Scope (S-<description>)        e.g. "S-add-ai-helper-bot"
+    └── Plan (P-<description>-<id>) e.g. "P-create-initial-mastra-bot-28sD"
+        ├── (no dependencies)
+        └── Plan
+            └── "P-rag-pipeline-lookup-3HyD-28sD"
+                (depends on the 28sD plan above)
+```
+
+- **Project** — a repo, a set of repos, a service, or any other
+  long-lived container for work. One project per `.spades-anywhere/config`.
+- **Scope** — an outcome under a project. Scopes hold acceptance
+  criteria and constraints; everything downstream is measured against
+  them.
+- **Plan** — a unit of executable work under a scope. Plans can depend
+  on earlier plans within the same scope. Each plan is independently
+  approvable, doable, evaluable, and shippable.
+
+### What sits above a Scope
+
+SPADES is the implementation layer. It does not own Strategy, the
+Roadmap, OKRs, or Epics — those live in whatever planning tool your
+org uses (Linear, Jira, Productboard, a spreadsheet, etc.). A Scope
+is the moment a Roadmap item becomes concrete work.
+
+When a Scope is seeded from a Roadmap / OKR / Epic, record the
+upstream reference in the Scope's optional `strategy_link:`
+frontmatter field. The audit chain then runs unbroken from strategy
+through ship:
+
+```
+<Roadmap item / OKR / Epic>  →  Scope (strategy_link: <ref>)
+                                    →  Plan(s)  →  shipped
+```
+
+Scopes can also arise **reactively** — incidents, tech debt, ad-hoc
+requests. In that case `strategy_link:` is omitted, and the existing
+`origin:` field carries the rationale (`reactive`, `ad-hoc`, `okr`).
+The field is optional throughout; SPADES never requires a roadmap
+link to create a Scope.
+
+### Two layers of "intent"
+
+SPADES tracks intent at two levels, with one file per project and one
+section per Scope:
+
+| Layer | Lives as | Scope of *why* |
+|-------|----------|----------------|
+| **Project** | `INTENT.md` at the repo root | Why this whole initiative exists |
+| **Scope** | The `## Statement of Intent` section in each `S-…md` | Why this specific outcome, now |
+
+The Scope's Statement of Intent IS the scope-level intent doc. There
+is no separate per-scope INTENT file; the section is the intent. Each
+Scope's intent should be **measured against** the project-level
+`INTENT.md`. A Scope whose intent contradicts INTENT is a drift
+signal — refresh INTENT before scoping (or revise the Scope so it
+fits).
+
+**`/spades-anywhere:scope` hard-gates on INTENT.md existence.** If `INTENT.md`
+is missing at the repo root, the skill refuses to create a Scope
+until `/spades-anywhere:intent` has been run (or the human explicitly
+overrides, which records a marker in the Scope's audit trail). This
+prevents the most common drift pattern: weeks of scoping with no
+north star to measure against.
+
+### Scope status rollup (from child Plans)
+
+A Scope's `status:` field is the **highest phase** any of its child
+Plans has reached. Plans drive Scope status, not the other way around:
+
+```
+Plan A status   Plan B status   Plan C status   →   Scope status
+─────────────   ─────────────   ─────────────       ─────────────
+shipped         shipped         shipped             done
+shipped         shipping        draft               shipping
+delivering      approved        draft               delivering
+approved        approved        draft               approval
+draft           draft           draft               planning
+(none yet)                                          scoped
+```
+
+Skill responsibilities:
+
+- `/spades-anywhere:plan` bumps the Scope from `scoped` → `planning` on the
+  first Plan created.
+- `/spades-anywhere:approve` bumps `planning` → `approval` on the first
+  Plan approved.
+- `/spades-anywhere:do` bumps `approval` → `delivering` on the first Plan
+  entering Do.
+- `/spades-anywhere:evaluate` bumps to `evaluating` on the first PASS verdict.
+- `/spades-anywhere:ship` bumps to `shipping` on the first PR opened.
+- `/spades-anywhere:close` is the **only** skill that transitions Scope →
+  `done`, and only when **every** child Plan has `status: shipped`.
+
+**One-way transitions only.** A Scope never moves backward. If Plan
+B is rejected after Plan A has shipped, the Scope stays at `shipping`
+(or `done` if A was the last); the rejected Plan is a leaf state on
+its own track. The Scope's audit trail records both transitions.
+
+**Rejected Plans do not block rollup.** They're terminal but don't
+hold the Scope back from `done` — Scope `done` requires every Plan
+to be either `shipped` or `rejected` (with the rejection explicitly
+acknowledged). Today the implementation only counts `shipped`;
+mixed-terminal Scopes (some shipped, some rejected) require a human
+decision via the rollup audit entry.
+
+---
+
+## ID Format
+
+IDs are intended to be human-scannable (you can guess what something is
+from its filename), filesystem-safe, and stable.
+
+### Project ID
+- Form: `<project-slug>` — lowercase `[a-z0-9-]{1,64}`, no leading
+  hyphen, no `..`.
+- Stored at: `.spades-anywhere/projects/<project-slug>.md`.
+- The slug doubles as the project's ID.
+
+### Scope ID
+- Form: `S-<description-slug>` — `S-` prefix plus the same slug grammar.
+- Stored at: `.spades-anywhere/scopes/S-<description-slug>.md`.
+- The frontmatter `title` preserves the human-readable name.
+
+### Plan ID
+- Form: `P-<description-slug>-<own-suffix>[-<dep-suffix>...]`.
+- `own-suffix` — 4-character base62 (`[A-Za-z0-9]{4}`), randomly minted
+  at creation, never reused.
+- `dep-suffix` — each prior plan this one depends on appends its
+  `own-suffix` to the filename in dependency order (most recent
+  dependency first).
+- Stored at: `.spades-anywhere/plans/<filename>.md`.
+
+Worked examples:
+
+```
+P-create-initial-mastra-bot-28sD.md       # standalone plan
+P-rag-pipeline-lookup-3HyD-28sD.md        # depends on 28sD
+P-deploy-bot-9XaZ-3HyD-28sD.md            # depends on 3HyD and 28sD
+```
+
+The dependency chain is encoded in the filename so a human (or `ls`)
+can read the graph at a glance. The authoritative graph still lives in
+the `depends_on:` frontmatter field; the filename is a convenience
+mirror.
+
+### Why slugs and not random IDs everywhere
+
+Pure random IDs are robust but unreadable. Pure slugs collide. The
+chosen compromise — `S-<readable-slug>` for scopes, and slug + 4-char
+suffix for plans — gives readability where collisions are rare (scopes,
+which name big outcomes) and gives collision resistance where the
+volume is high (plans, where the same description may recur).
+
+---
+
+## .spades-anywhere/ Local Layout
+
+```
+.spades-anywhere/
+├── config                                    # backend + active project
+├── version                                   # framework version (2.0.0)
+├── projects/<project-slug>.md                # project records
+├── scopes/S-<description-slug>.md            # scope records
+├── plans/P-<desc-slug>-<suffix>[-<dep>...].md # plan records
+├── learnings/YYYY-MM-DD-<slug>.md            # learning records
+└── reviews/<slug>-<date>.md                  # panel-review reports
+```
+
+### `.spades-anywhere/config` schema
+
+```yaml
+backend: linear | local
+project: <project-slug>             # active project
+review_format: cli | html           # output format for review surfaces
+linear:                             # only when backend: linear
+  team_id: <uuid>
+  project_id: <uuid>                # Linear's own Project ID for this project
+```
+
+`spades-anywhere` deliberately has **no `scm:` field** — there is no
+SCM layer in this plugin. The sister `spades` plugin documents how
+SCM drivers work; `spades-anywhere` is not concerned with code
+publishing.
+
+There is **no auto-probe**. The `setup` skill writes this file
+explicitly when the human chooses a backend. Skills that read it
+trust the value verbatim.
+
+### `.spades-anywhere/projects/<slug>.md` frontmatter
+
+```yaml
+---
+id: <project-slug>
+title: "Closed Door Security Website"
+description: "The marketing site and customer portal at cdsec.co.uk."
+repos:
+  - https://github.com/cdsec/cdsec-site
+  - https://github.com/cdsec/cdsec-portal
+owners:
+  - chris@cdsec.co.uk
+created: 2026-05-29
+updated: 2026-05-29
+linear_project_id: <uuid>           # only if backend: linear
+---
+```
+
+### `.spades-anywhere/scopes/S-<slug>.md` frontmatter
+
+```yaml
+---
+id: S-add-ai-helper-bot
+title: "Add AI Helper Bot"
+project: closed-door-security-website
+status: scoped | planning | approval | delivering | evaluating | shipping | done
+type: feature | bug | chore | docs | refactor | investigation
+created: 2026-05-29
+updated: 2026-05-29
+priority: urgent | high | this-cycle | medium | low | backlog | exploratory
+origin: okr | reactive | ad-hoc
+strategy_link: <URL | ID | ref>     # optional; where this scope came from (roadmap item, OKR, epic). Free-form string.
+linear_issue_id: <id>               # only if backend: linear and synced
+---
+```
+
+The body holds: Statement of Intent, Acceptance Criteria, Architectural
+Constraints, Dependencies, Context, Out of Scope, Risk / Unknowns,
+Delivery Preference.
+
+### `.spades-anywhere/plans/P-<…>.md` frontmatter
+
+```yaml
+---
+id: P-rag-pipeline-lookup-3HyD
+id_suffix: 3HyD                     # 4-char base62, randomly minted
+scope: S-add-ai-helper-bot
+title: "RAG Pipeline Lookup"
+depends_on: [28sD]                  # list of prior plans' id_suffix values
+status: draft | approved | delivering | evaluating | shipped | rejected
+delivery: ai | human | hybrid       # set by /spades-anywhere:approve
+evaluation: ai | human | hybrid     # set by /spades-anywhere:evaluate
+deliverable_type: code | artefact | action  # what Ship needs to do
+created: 2026-05-29
+updated: 2026-05-29
+linear_issue_id: <id>               # only if backend: linear and synced
+---
+```
+
+`deliverable_type` values:
+- **`code`** — the plan produces code that lands via a PR. Ship runs
+  the PR + review + merge flow.
+- **`artefact`** — the plan produces a tangible thing (document, video,
+  config, dataset). Ship records the artefact reference (URL, path,
+  doc ID).
+- **`action`** — the plan is a one-off human action (a server install,
+  a vendor call, an email). Ship records the evidence of completion.
+
+The body holds: Technical Approach, Tasks (3–7), Risks & Assumptions,
+Testing & Verification, Delivery Sequence.
+
+### `.spades-anywhere/learnings/YYYY-MM-DD-<slug>.md` frontmatter
+
+```yaml
+---
+title: "One-line summary of the learning"
+area: scope | plan | approve | do | evaluate | ship | other
+tags: [tag1, tag2]
+created: 2026-05-29
+status: active | archived
+public_safe: true | false
+scope_ref: S-add-ai-helper-bot      # optional
+---
+```
+
+---
+
+## Backend Interface
+
+Skills never call MCP tools directly. They call the backend contract
+below; the active backend driver (Linear, local FS, or a third-party
+driver) implements the contract.
+
+The contract is intentionally narrow. Drivers map the operations onto
+their storage; skills don't need to know how.
+
+### Operations
+
+| Operation | Purpose |
+|-----------|---------|
+| `create_project(record)` | Create a project. Returns the project ID. |
+| `get_project(id)` | Fetch a project record. |
+| `list_projects()` | List all known projects. |
+| `create_scope(record)` | Create a scope. Returns the scope ID. |
+| `get_scope(id)` | Fetch a scope record. |
+| `list_scopes(filter)` | List scopes for the active project, filterable by status/type. |
+| `find_scope_fuzzy(query)` | Return scopes whose slug or title fuzzy-matches the query. Used by `/spades-anywhere:scope` for "are you updating an existing scope?" lookups. |
+| `update_scope(id, fields)` | Update specified fields on a scope. |
+| `create_plan(record)` | Create a plan. Returns the plan ID. |
+| `get_plan(id)` | Fetch a plan record. |
+| `list_plans(scope_id)` | List plans under a scope. |
+| `update_plan(id, fields)` | Update specified fields on a plan. |
+| `record_approval(plan_id, decision, routing, notes)` | Record the approve gate's decision and routing on the plan. |
+| `record_evaluation(plan_id, verdict, notes)` | Record an evaluate gate's verdict on the plan. |
+| `record_shipment(plan_id, artefact_ref)` | Record the ship phase's deliverable reference (PR URL, doc URL, evidence text). |
+| `create_learning(record)` | Append a learning. |
+| `list_learnings()` | List active learnings. |
+
+### The two shipped drivers
+
+**Linear driver** (`backend: linear`):
+- Project → Linear Project
+- Scope → parent Issue
+- Plan → sub-issue under the parent
+- `record_*` operations → comments on the parent issue
+- Statuses → Linear workflow states
+
+**Local driver** (`backend: local`):
+- Reads and writes the files described under § .spades-anywhere/ Local Layout
+- `record_*` operations append to the body of the relevant scope/plan
+  under an `## Audit Trail` heading
+
+A driver MUST implement every operation; on a no-op platform a driver
+may return a documented stub error rather than silently succeeding.
+
+### Adding a backend
+
+The sister `spades` plugin documents an `EXTENDING-BACKENDS.md`
+contract for adding new backend drivers (Notion, Confluence, etc.).
+The same contract applies here — `spades-anywhere` and `spades`
+share the backend interface — but each plugin ships its own driver
+implementations. A new backend added in one should be ported to the
+other per the parity rule (see the repo-root maintainer `AGENTS.md`).
+
+`spades-anywhere` deliberately has **no SCM layer** — there is no
+`scm:` config field, no two-phase ship resume, no PR opening. Ship
+in this plugin is a confirmation walk against the project's
+`INTENT.md` success criteria, not a code merge.
+
+---
+
+## Asking the Human
+
+When a skill needs a fixed-option decision (priority, routing, verdict,
+yes/no), it MUST use the `AskUserQuestion` tool with structured options.
+Free-form prose (intent text, acceptance criteria wording, plan task
+descriptions) stays as conversation.
+
+The pattern: **decisions are structured; composition is free-form.**
+
+---
+
+## Target Resolution
+
+Several skills act on an existing Scope or Plan: `review`, `plan`,
+`approve`, `do`, `evaluate`, `ship`. If the human invokes one without
+naming a target (no ID, no slug, no description), the skill must
+walk the human through finding the right one — not abort. This
+section is the canonical contract; skills reference it rather than
+restating it.
+
+### The flow
+
+1. **Determine the artefact type.**
+   - For skills that work on exactly one type (e.g. `/spades-anywhere:approve`
+     always operates on a Plan), skip this step.
+   - For type-flexible skills (today, only `/spades-anywhere:review` qualifies
+     — Scope review, Plan review, or Full Review of both), ask via
+     `AskUserQuestion`:
+     - *Scope review* — target is a Scope
+     - *Plan review* — target is a Plan
+     - *Full review* — target is a Plan together with its parent Scope
+
+2. **List candidates from the backend**, filtered to:
+   - The **active project** from `.spades-anywhere/config`'s `project:` field
+   - The **status set** appropriate for this skill (see the per-skill
+     table below)
+
+   Use the backend interface (`list_scopes(filter)` /
+   `list_plans(scope_id)`) — do NOT hand-roll a filesystem glob in
+   `linear` mode or a Linear MCP call in `local` mode.
+
+3. **Present a picker via `AskUserQuestion`.** `AskUserQuestion`
+   caps at 4 options, so:
+   - If there are ≤ 3 candidates: each candidate is one option,
+     plus a *Describe a different one* free-form fallback as the
+     fourth option (or omit the fallback if the human almost
+     certainly wants one of those three).
+   - If there are > 3 candidates: show the top 3 by relevance
+     (most-recently-updated first, then alphabetical by ID), plus
+     *Describe a different one — list more / search* as the fourth
+     option.
+   - If there are 0 candidates: do NOT call `AskUserQuestion`. Tell
+     the human what's missing and suggest the upstream skill (see
+     the per-skill table). Don't pretend to offer choices.
+
+   Each option's label is the artefact's **ID + short title** (e.g.
+   `S-add-ai-helper-bot — Add AI Helper Bot`). The description
+   field carries status and (for Plans) `delivery:` /
+   `deliverable_type:`.
+
+4. **If the human picked *Describe a different one*,** prompt
+   free-form for a search term. Fuzzy-match the term against the
+   full candidate set (slug substring, title token overlap,
+   id_suffix prefix). Then:
+   - One strong match → confirm via `AskUserQuestion` (*Use this
+     one* / *No, search again*).
+   - Multiple matches → present up to 3 via `AskUserQuestion` plus
+     a re-search option.
+   - No matches → tell the human, offer to re-search or abort.
+
+5. **Resolve and continue.** The resolved ID is what the rest of
+   the skill operates on. Echo it back briefly (*Reviewing
+   S-add-ai-helper-bot — Add AI Helper Bot*) so the human can
+   correct early if it's wrong.
+
+### Per-skill status filter
+
+| Skill | Artefact type | Status filter for the picker |
+|-------|---------------|------------------------------|
+| `/spades-anywhere:review` | Scope OR Plan (asked at step 1) | Scopes: any active phase; Plans: `draft`, `approved`, `delivering`, `evaluating` |
+| `/spades-anywhere:plan` | Scope | `scoped`, `planning` |
+| `/spades-anywhere:approve` | Plan | `draft` |
+| `/spades-anywhere:do` | Plan | `approved`, `delivering` (so resume works) |
+| `/spades-anywhere:evaluate` | Plan (or Scope for whole-scope eval) | Plans: `delivering`, `evaluating`. Scopes: `evaluating` |
+| `/spades-anywhere:ship` | Plan | `evaluating` with a PASS verdict recorded in the audit trail |
+
+### Zero-candidate suggestion table
+
+When the filter returns nothing, suggest the upstream skill:
+
+| Skill returning zero | Suggest |
+|----------------------|---------|
+| `/spades-anywhere:plan` (no scoped Scopes) | `/spades-anywhere:scope <title>` to create one |
+| `/spades-anywhere:approve` (no draft Plans) | `/spades-anywhere:plan S-…` to draft one |
+| `/spades-anywhere:do` (no approved Plans) | `/spades-anywhere:approve P-…` on a draft plan |
+| `/spades-anywhere:evaluate` (no delivering / evaluating Plans) | `/spades-anywhere:do P-…` on an approved plan |
+| `/spades-anywhere:ship` (no evaluating + PASS Plans) | `/spades-anywhere:evaluate P-…` to verify a delivered plan |
+| `/spades-anywhere:review` (no active artefacts) | `/spades-anywhere:scope <title>` to create one |
+
+### When the human DID name a target
+
+If the invocation passed an argument — an ID, a slug, or a phrase —
+skip steps 1–3 and go straight to fuzzy resolution against the
+candidate set. If the argument exactly matches an ID, no
+confirmation prompt is needed; if it's a slug or phrase, surface
+the resolution back via `AskUserQuestion` for one-step confirmation
+before continuing.
+
+### Why this lives in FRAMEWORK.md
+
+Restating the same picker logic in six skills means six places to
+fix when it changes. Skills reference this section by name (*"see
+docs/FRAMEWORK.md § Target Resolution"*) and only state their own
+artefact type + status filter.
+
+---
+
+## Execution Posture
+
+When a plan declares tasks, each task picks one execution posture. The
+posture declares *how* to approach the work, not what to do.
+
+The `spades` plugin defines a code-flavoured posture set (`test-first`,
+`characterization-first`, `refactor-first`, `spike`,
+`straight-through`). `spades-anywhere` uses a domain-agnostic set
+suited to real-world human tasks:
+
+- **`discover-first`** — the outcome is clear but the path isn't.
+  Spend the first portion of effort gathering information (talk to
+  stakeholders, read source material, scope vendors) before
+  committing to an approach.
+- **`outline-first`** — the work has internal structure. Draft the
+  skeleton (party run-sheet, chapter outline, hiring stages) before
+  filling in details. Make the structure reviewable on its own.
+- **`decide-first`** — a key choice gates the rest of the work
+  (venue, candidate, tool, date). Make that choice before
+  scheduling downstream tasks against it.
+- **`iterate`** — the deliverable is something you improve in
+  passes (a draft, a recipe, a routine). Plan multiple short
+  cycles, each producing a reviewable version.
+- **`straight-through`** — the task is mechanical enough that extra
+  ceremony adds no value. Not a silent default — state the
+  justification.
+
+A task may declare mixed posture (e.g. `discover-first on the venue
+options; decide-first on the date`).
+
+---
+
+## Audit Trail
+
+Every piece of work must be traceable through:
+
+1. A project record
+2. A signed-off scope
+3. One or more approved plans
+4. An approval decision with routing
+5. A do-phase marker (the human acknowledged starting the work)
+6. An evaluation verdict
+7. A shipment record
+
+Work that cannot be traced through this chain must not ship.
+
+### Plan rejection — no cascade
+
+A Plan with `status: rejected` does **not** automatically invalidate
+Plans that depend on it via `depends_on:`. Dependants stay in
+whatever state they were in (`draft`, `approved`) — but they are
+**blocked**:
+
+- `/spades-anywhere:do` refuses to start a Plan whose `depends_on:` chain
+  contains a `rejected` ancestor. It aborts with a pointer to
+  `/spades-anywhere:plan` for the rejected ancestor.
+- The human decides what to do — either:
+  - Replan the rejected ancestor (most common: refine and re-approve),
+    after which dependants can proceed; or
+  - Mark the dependants `rejected` too, with a one-line rationale in
+    each Plan's audit trail.
+
+The framework never makes this decision automatically. Cascading a
+rejection silently would risk auto-cancelling work that the human
+might have wanted to salvage independently; refusing to start
+silently would risk wasted Do-phase cycles on stale dependencies.
+The middle ground is explicit refusal + human choice.
+
+### The `Shipped` marker (contract)
+
+Every Plan that reaches `status: shipped` MUST have a line beginning
+with `Shipped` as the most recent entry in its `## Audit Trail`
+section. The prefix is universal; the suffix records what was
+delivered:
+
+| `deliverable_type` | Marker shape |
+|--------------------|--------------|
+| `artefact` (URL, file path, doc ID) | `Shipped. Artefact: <ref>. Type: artefact.` |
+| `action` (real-world action with evidence) | `Shipped. Action: <description>. Evidence: <list>.` |
+
+`spades-anywhere` does NOT have a `deliverable_type: code` branch —
+there is no PR, no merge SHA, no SCM driver in this plugin (see the
+sister `plugins/spades/docs/FRAMEWORK.md` for that case).
+
+The `Shipped` line is appended by `/spades-anywhere:ship` after the
+confirmation walk against the project's `INTENT.md` success criteria
+completes. Plans NEVER transition to `status: shipped` without a
+matching audit line.
+
+## Freshness
+
+`spades-anywhere` runs in contexts where there is often no git repo
+at all (Claude Desktop project, ChatGPT conversation, mobile client).
+The freshness contract from the sister `spades` plugin still
+*conceptually* applies — read against the latest source of truth,
+not a stale snapshot — but the enforcement looks different:
+
+- **Linear backend** — Linear is the canonical source. Sub-agents
+  and skills that read state via the Linear MCP always see the
+  current state; there is no "local main is behind" problem.
+- **Local backend, no git** — `.spades-anywhere/` lives on disk in
+  the user's project folder. There is no remote to compare against;
+  freshness is a no-op. The user owns their own files.
+- **Local backend, inside a git repo** — the consumer has chosen to
+  put their `.spades-anywhere/` under version control (e.g. for a
+  shared family project). The same rule as `spades` applies: before
+  cross-cutting reads, run a freshness probe:
+
+  ```bash
+  git fetch origin --quiet && git rev-list --count main..origin/main
+  ```
+
+  If non-zero, the consumer must sync (e.g. `git pull`, or
+  `/repo:sync` if they have the `ai-skills/repo` plugin installed,
+  or any equivalent action in their environment). `spades-anywhere`
+  does NOT require the `/repo` plugin — sync is the consumer's
+  responsibility, and the rule is informational only.
+
+### Subagent prompts
+
+Skills that spawn read-across sub-agents
+(`/spades-anywhere:review`'s panel, `/spades-anywhere:research`'s
+researcher) include a freshness pre-flight directly in the
+sub-agent's prompt only when the consumer is in the local-backend +
+git scenario. In all other scenarios the probe is skipped.
+
+### Why this lives in FRAMEWORK.md
+
+Freshness is not skill-specific — it's a contract every skill
+participates in (in the scenarios where it applies). Defining it
+once here means individual skills don't repeat the rule; they
+reference it.
+
+## Output Format (CLI vs HTML)
+
+`/spades-anywhere:setup` Step 1.7 records `review_format:` in
+`.spades-anywhere/config` — one of `cli` (default) or `html`. The value
+controls the *format* of artefacts written to `.spades-anywhere/` and the
+*medium* of presentation when a skill would otherwise paste a large
+block to the CLI. The skill flows, prompts, and decisions don't
+change between modes; only the format and presentation do.
+
+### Producing skills — `cli` vs `html` write
+
+Producing skills are `/spades-anywhere:newproject`, `/spades-anywhere:scope`,
+`/spades-anywhere:plan`, `/spades-anywhere:learn`, `/spades-anywhere:review`. Each writes an
+artefact at the end of its flow.
+
+- **`review_format: cli`** — write a Markdown `.md` file under
+  `.spades-anywhere/<dir>/<id>.md` exactly as in v2 (today's behaviour).
+  Paste a summary to the terminal where the skill body already
+  does that.
+- **`review_format: html`** — write an HTML `.html` file under
+  `.spades-anywhere/<dir>/<id>.html` using the producing skill's sibling
+  `template.html` resource (located at
+  `${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/template.html`).
+  Render by:
+  1. Reading the sibling template file end-to-end.
+  2. Replacing every `{{spades.field}}` placeholder with the
+     artefact's field value (HTML-escape user-supplied strings;
+     pre-rendered Markdown→HTML bodies pass through as-is).
+  3. Expanding `<!-- SPADES-BLOCK:name --> … <!-- SPADES-ENDBLOCK -->`
+     sections by repeating the block content once per item, with
+     `{{block.field}}` substituted per item.
+  4. Filling the `<script type="application/yaml"
+     id="spades-frontmatter">` block with the artefact's
+     frontmatter (same fields the `.md` version would have).
+  5. Filling the `<script type="application/yaml"
+     id="spades-audit-trail">` block (if present) with the audit
+     trail entries in chronological order.
+  6. Writing the result to `.spades-anywhere/<dir>/<id>.html`.
+  7. Auto-opening via the OPEN_CMD prelude (see below).
+
+The Markdown-to-HTML conversion for body sections (Statement of
+Intent, Technical Approach, etc.) follows standard CommonMark; the
+skill renders the converted HTML into the `{{spades.X_html}}`
+placeholders.
+
+#### HTML mode is review-via-file, not review-via-CLI
+
+In HTML mode the artefact file itself IS the review surface. The
+producing skill MUST NOT paste the artefact body (or any substantive
+excerpt of it) to the CLI for the human's approval before the write
+step runs. Instead:
+
+1. The skill gathers inputs through its existing field-by-field
+   conversation step.
+2. The write step renders and writes the file as a working draft,
+   auto-opens it in the browser, and stands down.
+3. The human reviews in the browser.
+4. To iterate, the coordinator applies **targeted edits** to the
+   file (the human reloads to see changes). Never re-paste a new
+   full draft to the CLI.
+
+In CLI mode the existing "draft → paste to terminal → human
+approves → write" pattern is preserved unchanged. The
+no-pre-write-paste rule applies only to HTML mode.
+
+This rule exists because the value of HTML mode is *not* a fancier
+final artefact — it's that the human's review happens against a
+rendered page rather than a wall of terminal markdown. A pre-write
+CLI paste defeats that and turns HTML mode into "CLI mode plus an
+extra file at the end".
+
+### Consumer skills — `cli` vs `html` presentation
+
+Consumer skills are `/spades-anywhere:approve`, `/spades-anywhere:evaluate`,
+`/spades-anywhere:do`, `/spades-anywhere:ship`, `/spades-anywhere:close`, `/spades-anywhere:status`,
+`/spades-anywhere:list`, `/spades-anywhere:intent`. Each, at some point in its flow,
+presents an artefact for the human to review.
+
+- **`review_format: cli`** — paste the artefact's content (or a
+  summary) to the terminal as today.
+- **`review_format: html`** — auto-open the relevant `.html`
+  artefact in the default browser via the OPEN_CMD prelude.
+  - For artefact-bound reviews (approve / evaluate / do / ship /
+    close): the `.html` already exists at
+    `.spades-anywhere/<dir>/<id>.html` because the producing skill wrote
+    it. Just open it.
+  - For transient cross-cutting views (status / list / intent):
+    render to `.spades-anywhere/.tmp/<view>.html` using the consumer
+    skill's sibling `template.html`, then open. Transient files
+    are regenerated on every invocation; `/spades-anywhere:setup` appends
+    `.spades-anywhere/.tmp/` to the consumer repo's `.gitignore` at install
+    time, so these files are never committed.
+
+In CLI mode, every consumer skill behaves exactly as in v2 — no
+HTML written, no browser opens.
+
+### OPEN_CMD detection prelude
+
+When a skill needs to open an `.html` file, it runs (once per
+session) this detection:
+
+```bash
+case "$(uname -s)" in
+  Darwin)  OPEN_CMD="open" ;;
+  Linux)   OPEN_CMD="xdg-open" ;;
+  MINGW*|MSYS*|CYGWIN*) OPEN_CMD="start" ;;
+  *)       OPEN_CMD="" ;;
+esac
+```
+
+Then to open: `$OPEN_CMD "<absolute-path-to.html>"` (run in the
+background, don't wait). If `OPEN_CMD` is empty (unknown OS),
+print *"Open in your browser: file://<absolute-path>"* and
+continue — don't crash.
+
+### Template authoring contract
+
+Templates live as sibling files in their owning skill's directory:
+
+```
+plugins/spades/skills/<skill-name>/
+├── SKILL.md
+└── template.html
+```
+
+This is the same shape as `skills/ship/scm-github.md` and
+`skills/ship/scm-local-git.md` — sibling resource files travel with
+the skill in the plugin install. Every consumer repo that installs
+the plugin has the template available verbatim.
+
+Placeholder syntax used by skills at render time:
+
+| Syntax | Meaning |
+|--------|---------|
+| `{{spades.field}}` | Single-value substitution from the artefact's frontmatter or computed values |
+| `{{spades.field\|fallback}}` | Same, with a default when the value is unset |
+| `<!-- SPADES-BLOCK:name --> … <!-- SPADES-ENDBLOCK -->` | Repeating section; the block is duplicated once per item, with `{{block.field}}` substituting per-item values |
+
+Templates are fully self-contained — inline CSS, inline JS, no
+external assets. They render correctly on `file://`. Each
+template's top comment carries a version stamp:
+`<!-- SPADES template: <name> vX.Y.Z (matches plugin v3.0.0) -->`.
+
+### Why this lives in FRAMEWORK.md
+
+Same logic as Freshness: the dual-format contract is something
+every producing and consumer skill participates in. Defining it
+once here means individual skills don't repeat the rendering
+instructions; they reference this section and inherit the
+contract. Adding a new artefact type later? The skill author
+authors a new `template.html` sibling, fills it with the right
+placeholders, and references this section's render contract from
+the skill body.
+
+## Sub-agent Dispatch (Fan-Out)
+
+Producing and writeback-heavy consumer skills do work that's
+naturally independent — render a local file, talk to Linear, append
+to a parent artefact — but historically run those operations
+serially. SPADES 3.1.0 introduces a parallel **fan-out** dispatch:
+the skill spawns one sub-agent per resource in a single tool-call
+wave, then stitches the results.
+
+### The rule
+
+> **One sub-agent owns one resource.** Two sub-agents in the same
+> dispatch wave MUST NOT write to the same resource.
+
+A *resource* is one of:
+
+- A single local file path (e.g. `.spades-anywhere/plans/P-foo-3HyD.html`).
+- The Linear API surface for one logical operation (create issue
+  + capture ID; record comment + status update).
+- One bounded analysis / computation whose result the coordinator
+  needs (rarely used by today's skills, reserved for future).
+
+### The coordinator is not a sub-agent
+
+The skill body itself remains the orchestrator. It reads, decides,
+dispatches, collects, stitches, prints. It is free to read and
+write any file. After a fan-out wave it does any small integration
+writes — for example, injecting a captured `linear_issue_id` into
+the frontmatter of a file the file sub-agent already wrote.
+That's two writes to the same file but **sequential** (sub-agent
+first, coordinator second) — the no-contention rule only forbids
+two sub-agents racing on one file.
+
+### Spawning
+
+Spawn all sub-agents in a single assistant message with multiple
+`Agent` tool calls. The Claude Code runtime honours these as
+concurrent invocations.
+
+Use `subagent_type: general-purpose` (or `claude` as catch-all)
+with inline prompts. The work is parametric — file path + content,
+or Linear payload — so it does not need bundled persona files
+under `agents/`.
+
+Each sub-agent's prompt should be self-contained and include:
+
+- **Scope** — exactly what file or external resource it owns.
+- **Inputs** — the full content to write or the Linear payload.
+- **Return schema** — what the coordinator expects back
+  (`{ ok: true }` for file writes, `{ linear_issue_id: "<uuid>" }`
+  for Linear creates, plus an `error` field on failure).
+- **Freshness probe** (Linear-touching sub-agents only) — the same
+  Layer-2 pre-flight required by `/spades-anywhere:review` and
+  `/spades-anywhere:research`: run `git rev-list --count main..origin/main`
+  and abort if local is behind.
+
+### Dispatch modes
+
+The same three-mode model from `/spades-anywhere:review`:
+
+- **`subagent-dispatch`** *(preferred)* — true parallel via
+  multiple `Agent` tool calls in one assistant message.
+- **`sequential-inproc`** *(fallback)* — runtime only supports one
+  sub-agent at a time. Run them sequentially, still in isolated
+  contexts. Lose parallelism, preserve isolation.
+- **`degraded`** *(last resort)* — no sub-agent dispatch
+  available. Coordinator does everything itself, serially. Same
+  result, no isolation.
+
+The skill records which mode it used in its confirmation output.
+
+### Failure semantics
+
+Each sub-agent returns:
+
+```
+{ status: ok | fail, payload?: <return data>, error?: <message> }
+```
+
+The coordinator collects **every** sub-agent's result before
+acting on any of them. Then:
+
+- **All ok** → coordinator does its integration writes (e.g.
+  `linear_issue_id` back-write), prints confirmation with the
+  dispatch mode used.
+- **File sub-agent failed, Linear ok** → abort with a clear
+  error. The local file is canonical; without it, the Linear
+  record has nothing to mirror. The human re-runs.
+- **Linear sub-agent failed, file ok** → keep the local file
+  (it IS canonical), surface the Linear failure, offer a retry.
+  Same contract as today's "Backend Mirror" section in each
+  skill — only the dispatch mechanism changes.
+- **Multiple file sub-agents failed** → abort, surface all
+  failures, recommend manual recovery (the failed files may be
+  partial-written; the human inspects and reverts as needed).
+
+### Why this lives in FRAMEWORK.md
+
+The fan-out contract is something multiple skills participate in
+(today: `newproject`, `scope`, `plan`, `approve`, `evaluate`;
+later: `do`, `ship`, `close`). Defining it once here means
+individual skill bodies can reference this section instead of
+repeating dispatch-mode bookkeeping and failure-semantics prose.
+Adding a new skill that mirrors to Linear later? Author a per-skill
+fan-out table (one sub-agent per resource) and reference this
+section's contract. The dispatch-mode reporting, freshness probe,
+and failure semantics are inherited.

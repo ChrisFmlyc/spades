@@ -5,8 +5,8 @@
     "url": "https://github.com/ChrisFmlyc"
   },
   "metadata": {
-    "description": "SPADES Framework marketplace — the SPADES plugin for Claude Code.",
-    "version": "3.1.1"
+    "description": "SPADES Framework marketplace — two sister plugins: `spades` for coding harnesses (Claude Code, Cursor) and `spades-anywhere` for non-coding agents (Claude Desktop, ChatGPT, web/mobile). Same six-phase loop, same artefact shape, same backends; different runtimes.",
+    "version": "3.2.0"
   },
   "plugins": [
     {
@@ -24,6 +24,24 @@
         "engineering",
         "review",
         "workflow"
+      ]
+    },
+    {
+      "name": "spades-anywhere",
+      "source": "./plugins/spades-anywhere",
+      "description": "SPADES for non-coding agents — same six-phase loop, same Linear/local backends, same HTML mode, but adapted for real-world human tasks rather than code work. Runs in Claude Desktop, ChatGPT, the Claude web app, and mobile clients. No SCM, no PR lifecycle.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Chris Powell"
+      },
+      "homepage": "https://github.com/ChrisFmlyc/spades",
+      "license": "MIT",
+      "keywords": [
+        "spades",
+        "workflow",
+        "personal",
+        "non-coding",
+        "claude-desktop"
       ]
     }
   ]

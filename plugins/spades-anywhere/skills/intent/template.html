@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<!-- SPADES template: intent v1.1.0 (matches plugin v3.0.3) -->
+<!--
+  Transient INTENT summary page (rendered after the human runs
+  /spades:intent in HTML mode). INTENT.md itself stays at the
+  repo root as human-authored Markdown — this page is just the
+  rendered preview / summary for review.
+
+  Section blocks:
+    non-goals-items   — one per non-goal bullet
+    users-items       — one per user persona bullet
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Intent · {{spades.project_slug}}</title>
+<style>
+  :root { --gold: #FFC107; --gold-light: #FFDE59; --gold-soft: #fff4cc; --ink: #1a1a1a; --panel: #ffffff; --page: #fafafa; --gray: #e8e8e8; --gray-text: #5a5a5a; --border: #d4d4d4; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--page); color: var(--ink); font-size: 17.5px; line-height: 1.6; }
+  .layout { display: grid; grid-template-columns: 375px minmax(0, 1fr); min-height: 100vh; }
+  aside.sidebar { background: var(--panel); border-right: 1px solid var(--border); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .sidebar-header { background: var(--gold); padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--ink); }
+  .sidebar-header .brand { font-size: 0.72rem; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; }
+  .sidebar-header .id { font-family: ui-monospace, monospace; font-size: 0.92rem; margin-top: 0.4rem; }
+  .sidebar-section { padding: 1.25rem 1.4rem; border-bottom: 1px solid var(--gray); }
+  .sidebar-section h3 { font-size: 0.7rem; color: var(--gray-text); font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 0.85rem; }
+  .meta-row { display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.92rem; }
+  .meta-row .key { color: var(--gray-text); }
+  .meta-row .val { font-weight: 500; }
+  .anchor-nav { padding: 0.5rem 0; }
+  .anchor-nav h3 { padding: 0 1.4rem; margin-bottom: 0.4rem; font-size: 0.7rem; color: var(--gray-text); font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; }
+  .anchor-nav a { display: block; padding: 0.55rem 1.4rem; color: var(--ink); text-decoration: none; font-size: 0.92rem; border-left: 3px solid transparent; }
+  .anchor-nav a:hover { background: var(--gold-light); border-left-color: var(--gold); }
+  main { padding: 3rem 4rem; min-width: 0; }
+  main h1 { font-size: 2.1rem; font-weight: 700; line-height: 1.2; margin-bottom: 0.5rem; }
+  .crumbs { font-family: ui-monospace, monospace; font-size: 0.85rem; color: var(--gray-text); margin-bottom: 0.5rem; }
+  .tagline { color: var(--gray-text); font-size: 1rem; margin: 0.5rem 0 2.5rem; }
+  section { margin-bottom: 2.5rem; scroll-margin-top: 1rem; }
+  section h2 { font-size: 0.88rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.85rem; color: var(--gray-text); border-bottom: 1px solid var(--border); padding-bottom: 0.55rem; }
+  section h2::before { content: ""; display: inline-block; width: 4px; height: 14px; background: var(--gold); margin-right: 0.5rem; vertical-align: middle; }
+  section p { margin-bottom: 0.8rem; }
+  section ul { padding-left: 1.5rem; }
+  section li { margin-bottom: 0.4rem; }
+  .maturity-card { background: var(--gold-soft); border-left: 4px solid var(--gold); padding: 1rem 1.25rem; border-radius: 5px; margin-bottom: 1rem; }
+  .maturity-card .stage { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--gray-text); font-weight: 700; margin-bottom: 0.4rem; }
+  .maturity-card .body { font-size: 0.98rem; }
+  code { font-family: ui-monospace, monospace; background: var(--gray); padding: 0.12rem 0.42rem; border-radius: 3px; font-size: 0.92em; }
+  footer { padding: 1.2rem 4rem; color: var(--gray-text); font-size: 0.8rem; border-top: 1px solid var(--border); }
+  /* Wide-screen: bump padding so prose doesn't run edge to edge while main column still flexes. */
+  @media (min-width: 1600px) { main { padding: 3rem 6rem; } }
+  @media (min-width: 2200px) { main { padding: 3.5rem 8rem; } }
+
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } aside.sidebar { position: static; height: auto; border-right: none; border-bottom: 2px solid var(--gold); } main { padding: 2rem 1.5rem; } }
+</style>
+</head>
+<body>
+<script type="application/yaml" id="spades-frontmatter">
+project: {{spades.project_slug}}
+last_reviewed: {{spades.last_reviewed}}
+rendered_at: {{spades.rendered_at}}
+source: INTENT.md
+</script>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">SPADES · Intent</div>
+        <div class="id">{{spades.project_slug}}</div>
+      </div>
+      <div class="sidebar-section">
+        <h3>Properties</h3>
+        <div class="meta-row"><span class="key">Last reviewed</span><span class="val">{{spades.last_reviewed}}</span></div>
+        <div class="meta-row"><span class="key">Maturity</span><span class="val">{{spades.maturity_stage}}</span></div>
+        <div class="meta-row"><span class="key">Source</span><span class="val">INTENT.md</span></div>
+      </div>
+      <nav class="anchor-nav">
+        <h3>Sections</h3>
+        <a href="#problem">Problem</a>
+        <a href="#users">Users</a>
+        <a href="#does">What it does</a>
+        <a href="#success">Success</a>
+        <a href="#non-goals">Non-goals</a>
+        <a href="#maturity">Maturity</a>
+      </nav>
+    </aside>
+    <main>
+      <div class="crumbs">intent · {{spades.project_slug}} · preview rendered {{spades.rendered_at}}</div>
+      <h1>Project Intent</h1>
+      <p class="tagline">Source: <code>INTENT.md</code> at repo root. This is a transient HTML preview — INTENT.md itself remains the canonical Markdown source.</p>
+
+      <section id="problem"><h2>Problem</h2>{{spades.problem_html}}</section>
+      <section id="users">
+        <h2>Users</h2>
+        <ul>
+          <!-- SPADES-BLOCK:users-items -->
+          <li>{{block.html}}</li>
+          <!-- SPADES-ENDBLOCK -->
+        </ul>
+      </section>
+      <section id="does"><h2>What it does</h2>{{spades.what_it_does_html}}</section>
+      <section id="success"><h2>Success</h2>{{spades.success_html}}</section>
+      <section id="non-goals">
+        <h2>Non-goals</h2>
+        <ul>
+          <!-- SPADES-BLOCK:non-goals-items -->
+          <li>{{block.html}}</li>
+          <!-- SPADES-ENDBLOCK -->
+        </ul>
+      </section>
+      <section id="maturity">
+        <h2>Maturity</h2>
+        <div class="maturity-card">
+          <div class="stage">{{spades.maturity_stage}}</div>
+          <div class="body">{{spades.maturity_html}}</div>
+        </div>
+      </section>
+      <footer>SPADES · v{{spades.plugin_version}} · template: Intent (transient) · rendered {{spades.rendered_at}}</footer>
+    </main>
+  </div>
+</body>
+</html>
