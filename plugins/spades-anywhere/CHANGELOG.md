@@ -7,6 +7,47 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the plugin
 version via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
+## [0.1.1] — 2026-06-03
+
+**PATCH** — Mode mutual-exclusion at consumer-skill gates. Same
+cross-cutting change as `spades` 3.1.2 (ship in the same PR per the
+repo-root parity rule). In HTML mode, long review-form text never
+duplicates between the open `.html` file and the CLI.
+
+The principle is canonical in
+`docs/FRAMEWORK.md § Output Format → What counts as review-form
+text`. Same line as `spades`:
+
+- **Stays CLI in both modes** — `AskUserQuestion` polls, final
+  confirmation summaries, pre-flight narration, error messages,
+  hand-off pointers, short status acknowledgements.
+- **Routed through the mode-selected surface** — artefact bodies,
+  acceptance/INTENT criteria lists, cumulative verdict tables,
+  ship-time evidence records, "let me show you what we're about
+  to X" previews.
+
+Per-skill change (4 skills, all → 0.1.1):
+
+- `evaluate/SKILL.md` — Pre-Flight Step 4 defensive clause
+- `do/SKILL.md` — Pre-Flight Step 6 defensive clause **plus**
+  Step 2 (Restate the acceptance criteria) now branches on
+  `review_format`: HTML mode prints a one-line pointer only
+  ("the open Scope tab shows what 'done' looks like"); CLI mode
+  restates the AC list inline as before. The AC list IS
+  review-form content — in HTML mode the human reads it in the
+  open Scope tab, not duplicated to the CLI.
+- `ship/SKILL.md` — Pre-Flight Step 5 defensive clause
+- `intent/SKILL.md` — Transient HTML preview defensive clause
+
+Framework doc:
+
+- `docs/FRAMEWORK.md § Output Format → HTML mode is review-via-file`
+  — new sub-section "What counts as review-form text vs
+  conversational text" (same content as the `spades` sister doc).
+
+Plugin / marketplace version: 0.1.0 → 0.1.1 (marketplace 3.2.0 →
+3.2.1).
+
 ## [0.1.0] — 2026-06-03
 
 **INITIAL RELEASE.** Sister plugin to `spades`, in the same

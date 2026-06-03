@@ -1,7 +1,7 @@
 ---
 name: intent
 description: Create or maintain INTENT.md, the project's durable statement of intent — the problem it solves, who it serves, what it does, what success looks like, and its non-goals. Use when someone says "set up INTENT.md", "capture our project intent", "what is this project for", "update the intent doc", "review our non-goals", or when INTENT.md is missing, still an unfilled template, or flagged stale. The human composes the intent; this skill structures and probes but never authors it.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # SPADES Intent
@@ -300,9 +300,20 @@ tracker artefact.
    (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`) so the human
    can review the refreshed intent in the B-style format.
 
+**In HTML mode the open `.html` preview IS the review surface — do
+NOT also paste / summarise the assembled INTENT body to the CLI;
+the human has the browser tab.** The Socratic interview's
+conversational back-and-forth (the per-section probing questions,
+the human's free-form answers, the per-section confirmations) all
+stay CLI as today — those are conversational. What must NOT go to
+the CLI in HTML mode is the *assembled INTENT document* shown for
+review. See `docs/FRAMEWORK.md § Output Format → What counts as
+review-form text` for the canonical line.
+
 `INTENT.md` itself stays Markdown in both modes — only the transient
 preview is HTML, and only in HTML mode. In CLI mode this step is
-skipped entirely.
+skipped entirely; the human reads `INTENT.md` from disk if they
+want to review the final assembled document.
 
 ## Quality Checks
 

@@ -1,7 +1,7 @@
 ---
 name: do
 description: Mark a Plan as delivering and restate its parent Scope's acceptance criteria back to the human, then stand down. In spades-anywhere, "Do" is not autonomous work — it's a marker that says "human is now doing the work" plus a reminder of what 'done' looks like. Use after `/spades-anywhere:approve` has run, when someone says "do this", "start this plan", "I'm going to work on this now", or when a Plan is in status `approved`. There is no AI-autonomous branch — only `delivery: human` (default) and `delivery: hybrid` (AI assists with research / drafts / structure; the human acts).
-version: 0.1.0
+version: 0.1.1
 ---
 
 # /spades-anywhere:do
@@ -73,7 +73,17 @@ identical between modes.
      - **Proceed anyway** — record the override in the audit trail
 6. **Open the artefact (HTML mode only).** When `review_format:
    html`, run the OPEN_CMD prelude and open the Plan's `.html`.
-   In CLI mode, summarise inline.
+   **In HTML mode the open `.html` (and the linked Scope's `.html`)
+   IS the review surface — do NOT also paste / summarise / restate
+   the Plan body or the Scope's acceptance criteria list to the
+   CLI; the human has the browser tabs.** Step 2.B prints only a
+   one-line conversational pointer; all the acceptance-criteria
+   detail lives in the open `.html`. Short conversational text
+   (delivery-routing acknowledgement, "Plan marked delivering"
+   status, error messages) stays CLI as today. In CLI mode,
+   summarise inline as today (Step 2.A restates ACs inline). See
+   `docs/FRAMEWORK.md § Output Format → What counts as review-form
+   text` for the canonical line.
 
 ## Step 1 — Update Status
 
@@ -91,11 +101,19 @@ already.
 When `backend: linear`, mirror the status changes (sub-issue →
 "Delivering", parent Issue → "Delivering").
 
-## Step 2 — Restate the acceptance criteria
+## Step 2 — Restate the acceptance criteria (branch on `review_format`)
 
-This is the value-adding part of the skill. Read the parent
-Scope's `## Acceptance Criteria` section and present each
-criterion back to the human, plainly:
+This is the value-adding part of the skill. The acceptance-criteria
+list is **review-form content** — long, structured, meant to be
+read and absorbed. Per
+`docs/FRAMEWORK.md § Output Format → What counts as review-form
+text`, it goes through the mode-selected surface, not both.
+
+### Step 2.A — CLI mode (`review_format: cli`)
+
+Read the parent Scope's `## Acceptance Criteria` section and
+present each criterion back to the human, plainly, in the
+terminal:
 
 ```
 You're now doing the work. Here's what 'done' looks like:
@@ -110,6 +128,23 @@ When you're ready to check progress, run:
 If you finish without all the criteria met (PARTIAL), this skill
 will route you back here to keep going.
 ```
+
+### Step 2.B — HTML mode (`review_format: html`)
+
+The human already has the Scope's `.html` open from Step 6. **Do
+NOT also paste the acceptance criteria list to the CLI** — that's
+review-form content duplicated. Print a one-line conversational
+pointer only:
+
+```
+You're now doing the work — the open Scope tab shows what 'done'
+looks like. Run /spades-anywhere:evaluate P-<id> when ready.
+```
+
+That single sentence + the hand-off pointer are the only CLI
+output of Step 2 in HTML mode.
+
+### Both modes
 
 Do NOT ask for an assignee, a cadence, a check-in interval, a
 status update plan, or anything else managerial. The human knows

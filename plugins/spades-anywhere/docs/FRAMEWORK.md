@@ -722,6 +722,47 @@ rendered page rather than a wall of terminal markdown. A pre-write
 CLI paste defeats that and turns HTML mode into "CLI mode plus an
 extra file at the end".
 
+#### What counts as "review-form text" (HTML in HTML mode) vs "conversational text" (CLI in both modes)
+
+The rule above forbids pre-write CLI pastes in producing skills. The
+same principle applies to consumer skills (`approve`, `evaluate`,
+`do`, `ship`, `intent`): when in HTML mode and the `.html` file is
+open, do NOT also paste long review-form text to the CLI.
+
+To make the line crisp:
+
+**Stays CLI in both modes — short, conversational, operational:**
+
+- `AskUserQuestion` prompts and option labels
+- Final confirmation summaries (e.g. `✓ Plan shipped: P-…  ✓ Status: shipped`)
+- Pre-flight narration ("Reading the Plan…", "Resolving target…")
+- Error and abort messages
+- "Next:" hand-off pointers between skills
+- One-line status acknowledgements ("Plan marked delivering.")
+
+**Routed through the mode-selected surface — long, structured, meant to be read and judged:**
+
+- Artefact bodies (Plan tasks, Scope criteria, INTENT sections,
+  Project records, learning entries, full review reports)
+- Per-criterion / per-task verdict walks rendered as a *table* of
+  results (the per-criterion `AskUserQuestion` poll itself stays
+  CLI — that's conversational; the *cumulative table* is review-form)
+- The ship-time INTENT success-criteria confirmation record (the
+  evidence list lands in the audit trail, not as a CLI paste)
+- Any "let me show you what we're about to evaluate / approve /
+  ship" preview content
+
+In **HTML mode**, review-form content goes through the open `.html`
+(via `OPEN_CMD` to surface it, plus targeted edits to update it).
+The CLI carries only the conversational layer.
+
+In **CLI mode**, review-form content goes inline to the terminal as
+today. No HTML is written or opened.
+
+The reverse direction is symmetric: **CLI mode never opens an HTML
+file or writes one; HTML mode never pastes review-form text to the
+terminal**.
+
 ### Consumer skills — `cli` vs `html` presentation
 
 Consumer skills are `/spades-anywhere:approve`, `/spades-anywhere:evaluate`,

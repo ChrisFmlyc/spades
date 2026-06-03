@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.0.2
+version: 3.1.2
 ---
 
 # /spades:ship
@@ -50,9 +50,17 @@ driver dispatch all stay identical between modes.
    from `.spades/config`. When `review_format: html`, run the
    OPEN_CMD prelude (`docs/FRAMEWORK.md § OPEN_CMD detection
    prelude`) and open both the Plan's `.html` and the parent Scope's
-   `.html`. In CLI mode, summarise inline as today. The PR-opening,
-   audit-trail markers, and SCM driver dispatch all stay identical
-   between modes.
+   `.html`. **In HTML mode the open `.html` files ARE the review
+   surface — do NOT also paste / summarise the Plan body, Scope
+   content, or any "let me show you what we're about to ship"
+   preview to the CLI; the human has the browser tabs.** Short
+   conversational text (PR-open progress narration, SCM driver
+   handshake messages, the final `✓ Plan shipped …` confirmation,
+   error messages) stays CLI as today. In CLI mode, summarise
+   inline as today. The PR-opening, audit-trail markers, and SCM
+   driver dispatch all stay identical between modes. See
+   `docs/FRAMEWORK.md § Output Format → What counts as review-form
+   text` for the canonical line.
 
 ## Step 0 — Detect fresh run vs resume (code deliverables)
 
