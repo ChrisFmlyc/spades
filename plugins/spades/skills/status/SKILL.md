@@ -1,7 +1,7 @@
 ---
 name: status
 description: Show the current SPADES phase, progress, and dependency graph for active work. Use when someone asks "where are we", "what's the status", "show progress", or any question about current state. Renders the Plan dependency graph so the human can see which plans are unblocked vs waiting.
-version: 3.0.2
+version: 3.1.3
 ---
 
 # /spades:status
@@ -144,20 +144,40 @@ This is today's behaviour.
 
 ### HTML mode (`review_format: html`)
 
+**You MUST render via the bundled `template.html`. Do NOT
+hand-roll the HTML.** Validate the template exists and the named
+blocks below match the markers in the actual file before
+substituting; abort and surface any mismatch. See
+`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
+use the bundled template` for the canonical rule.
+
 1. Read the template at
    `${CLAUDE_PLUGIN_ROOT}/skills/status/template.html`.
-2. Substitute placeholders per
+2. Validate it contains the four block markers listed below; if
+   any are missing, abort.
+3. Substitute placeholders per
    `docs/FRAMEWORK.md § Output Format`:
-   - `{{spades.project}}`, generated_at timestamp.
-   - `<!-- SPADES-BLOCK:summary -->` — the Step 3 summary table.
-   - `<!-- SPADES-BLOCK:scopes -->` — repeat one block per Scope
-     from Step 2 (per-scope detail + plan lane + blocked edges).
-   - `<!-- SPADES-BLOCK:recommendations -->` — Step 4 output.
-   - `<!-- SPADES-BLOCK:empty -->` — Step 5 output when applicable.
-3. Write the rendered HTML to `.spades/.tmp/status.html` (creating
+   - `{{spades.project_slug}}`, `{{spades.rendered_at}}`,
+     `{{spades.plugin_version}}` substituted into the header,
+     footer, and sidebar.
+   - `<!-- SPADES-BLOCK:ready-items -->` — repeated once per Plan
+     in `Ready (unblocked)` state. Per-item fields:
+     `{{block.id}}`, `{{block.title}}`, `{{block.status}}`,
+     `{{block.href}}`.
+   - `<!-- SPADES-BLOCK:in-flight-items -->` — repeated once per
+     Plan currently `delivering` / `evaluating` / `shipping`.
+     Same per-item fields.
+   - `<!-- SPADES-BLOCK:blocked-items -->` — repeated once per
+     Plan blocked by unshipped deps. Adds `{{block.blocked_by}}`.
+   - `<!-- SPADES-BLOCK:plan-nodes -->` — repeated once per Plan
+     in the project's dependency graph (topological order).
+     Per-item: `{{block.indent}}` (tree-prefix string like `└─ `),
+     `{{block.id}}`, `{{block.title}}`, `{{block.status}}`,
+     `{{block.depends_on}}`.
+4. Write the rendered HTML to `.spades/.tmp/status.html` (creating
    `.spades/.tmp/` if missing — it is auto-gitignored by
    `/spades:setup` Step 5.5).
-4. Auto-open via the OPEN_CMD prelude
+5. Auto-open via the OPEN_CMD prelude
    (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the
    file path with "open this in your browser" if `OPEN_CMD` is
    empty. Do NOT also print the markdown view to the terminal in

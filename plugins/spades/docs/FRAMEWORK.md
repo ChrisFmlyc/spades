@@ -765,6 +765,53 @@ The reverse direction is symmetric: **CLI mode never opens an HTML
 file or writes one; HTML mode never pastes review-form text to the
 terminal**.
 
+#### HTML rendering: validate and use the bundled template, never hand-roll
+
+Every skill that produces an HTML artefact ships a sibling
+`template.html` resource at
+`${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/template.html`. The
+bundled template is the **canonical presentation**: it carries
+the sidebar + fluid main grid (375px + `minmax(0, 1fr)`), the
+B-style 17.5px typography, the gold/black/white palette, and the
+declared `SPADES-BLOCK` sections each skill fills.
+
+The rule:
+
+1. **Before rendering, validate the template.** Read the sibling
+   `template.html`. Confirm it exists and is non-empty. If
+   missing or empty, **abort** and surface that — do NOT silently
+   fall back to a hand-rolled rendering.
+2. **Validate the block names you intend to populate exist in
+   the template.** Each skill's SKILL.md HTML-mode step
+   enumerates which `SPADES-BLOCK` sections it fills. Grep the
+   template file for `<!-- SPADES-BLOCK:<name> -->` markers and
+   confirm every block name from SKILL.md matches one. If a
+   declared block name isn't in the template, abort and surface
+   the mismatch — the SKILL.md and template have drifted and a
+   framework PR is needed.
+3. **Render by substitution only.** Replace `{{spades.field}}`
+   placeholders, expand `<!-- SPADES-BLOCK:name --> … <!-- SPADES-ENDBLOCK -->`
+   sections per their per-item fields, fill the
+   `<script type="application/yaml" id="spades-frontmatter">` tag,
+   fill the `<script type="application/yaml" id="spades-audit-trail">`
+   tag (when present), write the result to the declared output
+   path.
+4. **Never invent layout.** No custom `<style>` block, no fresh
+   `<head>`, no alternative grid, no `max-width` cap, no
+   different colour palette. If the bundled template doesn't
+   cover what you want to render, the answer is a framework PR
+   that extends the template — not a one-off hand-roll.
+
+The skills that ship a bundled template: `scope`, `plan`,
+`newproject`, `learn`, `review`, `status`, `list`, `intent`.
+
+This rule exists because the *value* of HTML mode comes from the
+agreed-on presentation — the sidebar, the typography, the colour
+language, the consistency across artefacts. A hand-rolled
+rendering loses all of that even if it looks reasonable on its
+own. The bundled template is the canonical form; everything else
+is improvisation.
+
 ### Consumer skills — `cli` vs `html` presentation
 
 Consumer skills are `/spades:approve`, `/spades:evaluate`,

@@ -7,6 +7,36 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the plugin
 version via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
+## [0.1.2] — 2026-06-03
+
+**PATCH** — Universal template-use enforcement for HTML-rendering
+skills. Same cross-cutting change as `spades` 3.1.3 (ship in the
+same PR per the repo-root parity rule). Audit revealed every
+HTML-rendering skill had a block-name mismatch between its SKILL.md
+HTML-mode step and the bundled `template.html` — likely why Claude
+in consumer contexts kept falling back to hand-rolled HTML instead
+of using the bundled template.
+
+The principle is canonical in
+`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
+use the bundled template`: (1) read sibling `template.html`;
+(2) validate block names match; (3) substitute placeholders;
+(4) never invent layout.
+
+Per-skill changes (8 HTML-rendering skills, all → 0.1.2):
+
+- `scope`, `plan`, `newproject`, `learn`, `review`, `status`,
+  `list`, `intent` — each SKILL.md HTML-mode step now lists the
+  correct `SPADES-BLOCK:*` names (matching the bundled template),
+  declares per-item fields explicitly, and carries a defensive
+  clause forbidding hand-rolled HTML.
+
+**No template changes.** The bundled `template.html` files were
+already correct; the SKILL.mds had drifted away from them.
+
+Plugin / marketplace version: 0.1.1 → 0.1.2 (marketplace 3.2.1 →
+3.2.2).
+
 ## [0.1.1] — 2026-06-03
 
 **PATCH** — Mode mutual-exclusion at consumer-skill gates. Same

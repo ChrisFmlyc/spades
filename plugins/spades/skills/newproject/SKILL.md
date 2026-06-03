@@ -1,7 +1,7 @@
 ---
 name: newproject
 description: Create a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.1.1
+version: 3.1.3
 ---
 
 # /spades:newproject
@@ -135,22 +135,44 @@ updated: YYYY-MM-DD
 
 #### Step 3.B — HTML mode (`review_format: html`)
 
+**You MUST render via the bundled `template.html`. Do NOT
+hand-roll the HTML.** Validate the template exists and the named
+blocks below match the markers in the actual file before
+substituting; abort and surface any mismatch. See
+`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
+use the bundled template` for the canonical rule.
+
 1. **Read the template** at
    `${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html`.
-2. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
+2. **Validate** it contains the block markers listed below; if any
+   are missing, abort.
+3. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
    Format`:
    - `{{spades.id}}`, `{{spades.title}}`, `{{spades.description}}`,
      `{{spades.created}}`, `{{spades.updated}}`, and any additional
      fields the template requires.
    - The frontmatter YAML block also goes verbatim into the
      `<script type="application/yaml" id="spades-frontmatter">` tag.
-   - Repos and Owners fill their `<!-- SPADES-BLOCK:repos -->` /
-     `<!-- SPADES-BLOCK:owners -->` blocks.
-3. **Write the rendered HTML** to `.spades/projects/<slug>.html`.
-4. **Auto-open** via the OPEN_CMD prelude
+   - `<!-- SPADES-BLOCK:repos-items -->` — repeated once per repo.
+     Per-item: `{{block.url}}`, `{{block.label}}`.
+   - `<!-- SPADES-BLOCK:owners-items -->` — repeated once per
+     owner. Per-item: `{{block.name}}`, `{{block.email|—}}`.
+   - `<!-- SPADES-BLOCK:status-filters -->` — repeated once per
+     status filter chip rendered in the Scopes section. Per-item:
+     `{{block.label}}`, `{{block.count}}`.
+   - `<!-- SPADES-BLOCK:scopes-rows -->` — repeated once per Scope
+     row in the embedded Scopes table. Per-item: `{{block.id}}`,
+     `{{block.title}}`, `{{block.status}}`, `{{block.plans}}`,
+     `{{block.updated}}`.
+   - `<!-- SPADES-BLOCK:audit-events -->` — repeated once per audit
+     entry in both the visible timeline and the
+     `<script type="application/yaml" id="spades-audit-trail">`
+     YAML block. Per-item: `{{block.date}}`, `{{block.desc}}`.
+4. **Write the rendered HTML** to `.spades/projects/<slug>.html`.
+5. **Auto-open** via the OPEN_CMD prelude
    (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the file
    path with "open this in your browser" if `OPEN_CMD` is empty.
-5. Do NOT also write a `.md`.
+6. Do NOT also write a `.md`.
 
 ### When `backend: linear` — fan-out dispatch
 

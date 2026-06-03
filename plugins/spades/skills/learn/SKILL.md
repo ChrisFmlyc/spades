@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 3.1.1
+version: 3.1.3
 ---
 
 ## Pre-Flight
@@ -136,14 +136,37 @@ When invoked in the default mode:
 
    ##### HTML mode (`review_format: html`)
 
+   **You MUST render via the bundled `template.html`. Do NOT
+   hand-roll the HTML.** Validate the template exists and the named
+   blocks below match the markers in the actual file before
+   substituting; abort and surface any mismatch. See
+   `docs/FRAMEWORK.md § Output Format → HTML rendering: validate
+   and use the bundled template` for the canonical rule.
+
    - Read the template at
      `${CLAUDE_PLUGIN_ROOT}/skills/learn/template.html`.
-   - Substitute placeholders per `docs/FRAMEWORK.md § Output Format`
-     (`{{spades.title}}`, `{{spades.area}}`, `{{spades.tags}}`,
-     `{{spades.status}}`, `{{spades.created}}`, plus
-     `<!-- SPADES-BLOCK:body -->` for the body markdown rendered to
-     HTML). Embed the frontmatter in a
-     `<script type="application/yaml" id="spades-frontmatter">` block.
+   - Validate it contains the block markers listed below; if any
+     are missing, abort.
+   - Substitute placeholders per `docs/FRAMEWORK.md § Output
+     Format`:
+     - Frontmatter values fill `{{spades.id}}`, `{{spades.title}}`,
+       `{{spades.area}}`, `{{spades.status}}`, `{{spades.created}}`,
+       `{{spades.public_safe}}`.
+     - The frontmatter YAML block also goes verbatim into the
+       `<script type="application/yaml" id="spades-frontmatter">` tag.
+     - `<!-- SPADES-BLOCK:tags-items -->` — repeated once per tag.
+       Per-item: `{{block.tag}}`.
+     - `<!-- SPADES-BLOCK:related-items -->` — repeated once per
+       related-link bullet. Per-item: `{{block.text}}`,
+       `{{block.href|}}`.
+     - `<!-- SPADES-BLOCK:audit-events -->` — repeated once per
+       audit entry in both the visible timeline and the
+       `<script type="application/yaml" id="spades-audit-trail">`
+       YAML block. Per-item: `{{block.date}}`, `{{block.desc}}`.
+     - The prose body sections (`What we learned`, `Why it matters
+       for future work`, etc.) are direct
+       `{{spades.<section>_html}}` substitutions, not repeating
+       blocks.
    - If `public_safe: true` → write `.spades/learnings/YYYY-MM-DD-<slug>.html`.
    - If `public_safe: false` → write `.spades/learnings/private/YYYY-MM-DD-<slug>.html`.
    - Auto-open via OPEN_CMD

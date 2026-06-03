@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generate a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 3.1.1
+version: 3.1.3
 ---
 
 # /spades:plan
@@ -261,9 +261,18 @@ linear_issue_id: <id>                            # only when backend: linear
 
 ### Step 5.B — HTML mode (`review_format: html`)
 
+**You MUST render via the bundled `template.html`. Do NOT
+hand-roll the HTML.** Validate the template exists and the named
+blocks below match the markers in the actual file before
+substituting; abort and surface any mismatch. See
+`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
+use the bundled template` for the canonical rule.
+
 1. **Read the template** at
    `${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html`.
-2. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
+2. **Validate** it contains the block markers listed below; if any
+   are missing, abort.
+3. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
    Format`:
    - Frontmatter values fill `{{spades.id}}`, `{{spades.title}}`,
      `{{spades.status}}`, `{{spades.scope}}`, `{{spades.deliverable_type}}`,
@@ -271,17 +280,29 @@ linear_issue_id: <id>                            # only when backend: linear
      `{{spades.updated}}`, and any others present in the template.
    - The frontmatter YAML block also goes verbatim into the
      `<script type="application/yaml" id="spades-frontmatter">` tag.
-   - The `## Tasks` section fills the `<!-- SPADES-BLOCK:tasks -->`
-     section (one card per task, with each task's Posture, Effort,
-     Depends on, Routing, Description, Approach, Tests rendered).
-   - The `## Delivery Sequence` and `## Testing & Verification`
-     prose fills their respective `<!-- SPADES-BLOCK:… -->` blocks.
-   - The (initially empty) `## Audit Trail` becomes a
-     `<script type="application/yaml" id="spades-audit-trail">` tag
-     plus a placeholder rendered list.
-3. **Write the rendered HTML** to `.spades/plans/<filename>.html`
+   - `<!-- SPADES-BLOCK:tasks -->` — repeated once per task, one
+     card per task. Per-item fields: `{{block.num}}`,
+     `{{block.title_html}}`, `{{block.posture}}`,
+     `{{block.posture_short}}`, `{{block.effort}}`,
+     `{{block.routing}}`, `{{block.depends_on}}`,
+     `{{block.description_html}}`, `{{block.approach_html}}`,
+     `{{block.tests_html}}`.
+   - `<!-- SPADES-BLOCK:risks-items -->` — repeated once per
+     bullet under `## Risks & Assumptions`. Per-item:
+     `{{block.html}}`.
+   - `<!-- SPADES-BLOCK:delivery-sequence -->` — repeated once per
+     step in the `## Delivery Sequence` ordered list. Per-item:
+     `{{block.html}}`.
+   - `<!-- SPADES-BLOCK:audit-events -->` — repeated once per audit
+     trail entry, in both the visible timeline and the
+     `<script type="application/yaml" id="spades-audit-trail">`
+     YAML block. Per-item: `{{block.date}}`, `{{block.desc}}`.
+   - The prose body sections (`Technical Approach`, `Testing &
+     Verification`) are direct `{{spades.<section>_html}}`
+     substitutions, not repeating blocks.
+4. **Write the rendered HTML** to `.spades/plans/<filename>.html`
    (same `<filename>` slug as CLI mode, only the extension changes).
-4. **Auto-open** the file:
+5. **Auto-open** the file:
    ```bash
    case "$(uname -s)" in
      Darwin)  OPEN_CMD="open" ;;
@@ -293,7 +314,7 @@ linear_issue_id: <id>                            # only when backend: linear
    ```
    If `OPEN_CMD` is empty (unknown OS), print the file path with a
    "open this in your browser" message. Never crash.
-5. Do NOT also write a `.md`. The HTML is canonical in HTML mode.
+6. Do NOT also write a `.md`. The HTML is canonical in HTML mode.
 
 ## Step 6 — Fan-out: scope-audit update + backend mirror
 

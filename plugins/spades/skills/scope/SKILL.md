@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 3.1.1
+version: 3.1.3
 ---
 
 # /spades:scope
@@ -323,9 +323,18 @@ linear_issue_id: <id>          # only when backend: linear AND synced
 
 ### Step 7.B — HTML mode (`review_format: html`)
 
+**You MUST render via the bundled `template.html`. Do NOT
+hand-roll the HTML.** Validate the template exists and the named
+blocks below match the markers in the actual file before
+substituting; abort and surface any mismatch. See
+`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
+use the bundled template` for the canonical rule.
+
 1. **Read the template** at
    `${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html`.
-2. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
+2. **Validate** it contains the block markers listed below; if any
+   are missing, abort.
+3. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
    Format`:
    - Frontmatter values fill `{{spades.id}}`, `{{spades.title}}`,
      `{{spades.status}}`, `{{spades.project}}`, `{{spades.type}}`,
@@ -333,21 +342,29 @@ linear_issue_id: <id>          # only when backend: linear AND synced
      `{{spades.created}}`, `{{spades.updated}}`.
    - The frontmatter YAML block also goes verbatim into the
      `<script type="application/yaml" id="spades-frontmatter">` tag.
-   - The body sections (`Statement of Intent`, `Acceptance Criteria`,
-     `Architectural Constraints`, `Dependencies`, `Context`,
-     `Out of Scope`, `Risk / Unknowns`, `Delivery Preference`) fill
-     their respective `<!-- SPADES-BLOCK:… -->` blocks in the
-     template.
-   - The (initially empty) `## Audit Trail` becomes a
-     `<script type="application/yaml" id="spades-audit-trail">` tag
-     plus a placeholder rendered list.
-3. **Write the rendered HTML** to
+   - `<!-- SPADES-BLOCK:acceptance-items -->` — repeated once per
+     bullet under `## Acceptance Criteria`. Per-item:
+     `{{block.text}}` (the criterion text), `{{block.checked}}`
+     (boolean flag).
+   - `<!-- SPADES-BLOCK:dependencies-items -->` — repeated once per
+     bullet under `## Dependencies`. Per-item: `{{block.text}}`.
+   - `<!-- SPADES-BLOCK:out-of-scope-items -->` — repeated once per
+     bullet under `## Out of Scope`. Per-item: `{{block.text}}`.
+   - `<!-- SPADES-BLOCK:audit-events -->` — repeated once per audit
+     trail entry, in both the visible timeline and the
+     `<script type="application/yaml" id="spades-audit-trail">`
+     YAML block. Per-item: `{{block.date}}`, `{{block.desc}}`.
+   - The prose body sections (`Statement of Intent`, `Constraints`,
+     `Context`, `Risk / Unknowns`, `Delivery Preference`) are
+     direct `{{spades.<section>_html}}` substitutions, not
+     repeating blocks.
+4. **Write the rendered HTML** to
    `.spades/scopes/S-<description-slug>.html`.
-4. **Auto-open** the file via the OPEN_CMD prelude from
+5. **Auto-open** the file via the OPEN_CMD prelude from
    `docs/FRAMEWORK.md § OPEN_CMD detection prelude`. If the OS
    detection returns empty, print the file path with "open this in
    your browser". Never crash.
-5. Do NOT also write a `.md`. The HTML is canonical in HTML mode.
+6. Do NOT also write a `.md`. The HTML is canonical in HTML mode.
 
 ## Step 8 — Backend Mirror (fan-out dispatch)
 

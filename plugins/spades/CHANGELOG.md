@@ -8,6 +8,65 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.1.3] — 2026-06-03
+
+**PATCH** — Universal template-use enforcement for HTML-rendering
+skills. User observed `/spades:status` rendering a too-narrow page
+in a consumer repo (`max-width: 1000px` on a hand-rolled HTML
+instead of the bundled fluid template). Audit revealed that
+**every** HTML-rendering skill had a block-name mismatch between
+its SKILL.md HTML-mode step and the actual `template.html` —
+which is likely why Claude in consumer repos kept falling back to
+hand-rolling. Same anti-pattern as PR #21 / #24 / #26.
+
+This patch makes template-use load-bearing:
+
+Framework doc:
+
+- `docs/FRAMEWORK.md § Output Format → HTML mode is
+  review-via-file` — new sub-section "HTML rendering: validate
+  and use the bundled template, never hand-roll" with a four-step
+  canonical rule: (1) read sibling `template.html`; (2) validate
+  block names match; (3) substitute placeholders; (4) never invent
+  layout.
+
+Per-skill enforcement clauses + corrected block-name lists (all 8
+HTML-rendering skills, all → 3.1.3):
+
+- `scope/SKILL.md` Step 7.B — list now matches template
+  (`acceptance-items`, `dependencies-items`, `out-of-scope-items`,
+  `audit-events`); defensive clause added.
+- `plan/SKILL.md` Step 5.B — list now matches template (`tasks`,
+  `risks-items`, `delivery-sequence`, `audit-events`); defensive
+  clause added.
+- `newproject/SKILL.md` Step 3.B — list now matches template
+  (`repos-items`, `owners-items`, `status-filters`, `scopes-rows`,
+  `audit-events`); defensive clause added.
+- `learn/SKILL.md` Step 4 HTML branch — list now matches template
+  (`tags-items`, `related-items`, `audit-events`); defensive
+  clause added.
+- `review/SKILL.md` HTML mode sub-section — list now matches
+  template (`persona-cards`, `convergence-cards`, `findings`);
+  defensive clause added.
+- `status/SKILL.md` Step 6 HTML mode — list now matches template
+  (`ready-items`, `in-flight-items`, `blocked-items`,
+  `plan-nodes`); defensive clause added. **This is the trigger
+  case from the user-reported bug.**
+- `list/SKILL.md` Step 6 HTML mode — list now matches template
+  (`status-filters`, `scopes-rows`); defensive clause added.
+- `intent/SKILL.md` Transient HTML preview — list now matches
+  template (`users-items`, `non-goals-items` + prose
+  substitutions); defensive clause added.
+
+**No template changes.** The bundled `template.html` files were
+already correct; the SKILL.mds had drifted away from them. This
+PR aligns SKILL.mds *to* templates, not the other way around.
+
+Plugin / marketplace version: 3.1.2 → 3.1.3 (marketplace 3.2.1 →
+3.2.2). Cross-cutting framework change — `spades-anywhere` ships
+the same enforcement at 0.1.1 → 0.1.2 in the same PR per the
+repo-root parity rule.
+
 ## [3.1.2] — 2026-06-03
 
 **PATCH** — Mode mutual-exclusion at consumer-skill gates. PR #21
