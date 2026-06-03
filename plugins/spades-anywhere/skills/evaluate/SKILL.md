@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered work against a Plan's parent Scope acceptance criteria. Returns PASS / PARTIAL / FAIL. Human-only verdict — no test execution, no automated checks. Use after `/spades-anywhere:do` has marked a Plan as delivering and the human has done the work, when someone says "evaluate this", "check if this is done", "verify the work", or when a Plan is in status `delivering` or `evaluating`. If not PASS, this skill routes the work back to `/spades-anywhere:do` and the human keeps going.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # /spades-anywhere:evaluate
@@ -50,8 +50,16 @@ verdict-walk and audit-trail writes are identical between modes.
    under it.
 4. **Open the artefact (HTML mode only).** When `review_format:
    html`, run the OPEN_CMD prelude and open the Plan's (or each
-   Plan's) `.html` plus the parent Scope's. In CLI mode,
-   summarise inline.
+   Plan's) `.html` plus the parent Scope's. **In HTML mode the
+   open `.html` IS the review surface — do NOT also paste /
+   summarise / restate the Plan body, the Scope's acceptance
+   criteria list, or the cumulative verdict table to the CLI; the
+   human has the browser tab.** Short conversational text (the
+   per-criterion `AskUserQuestion` polls, the final `✓ Plan
+   evaluated …` confirmation, error messages) stays CLI as today.
+   In CLI mode, summarise inline as today. See
+   `docs/FRAMEWORK.md § Output Format → What counts as review-form
+   text` for the canonical line.
 
 ## Step 1 — Walk the Scope's acceptance criteria
 

@@ -1,7 +1,7 @@
 ---
 name: close
 description: Close out a Plan whose `/spades:ship` PR has been squash-merged on GitHub. Opens a small bookkeeping PR that records the `Shipped` marker on `main`, waits for the human to merge it, then mirrors completion to Linear (when applicable) and rolls up the parent Scope. Assumes the local repo is already in post-merge sync (run `/repo:sync` first). Use after `/spades:ship` opened a PR and you've merged it on GitHub, when someone says "close this", "close P-…", "the PR is merged, mark it shipped", or when a Plan is in status `shipping` with a `PR opened:` marker.
-version: 3.0.2
+version: 3.1.2
 ---
 
 # /spades:close
@@ -120,8 +120,14 @@ that boundary lives elsewhere by design.
 7. **Open the artefact (HTML mode only).** Read `review_format:`
    from `.spades/config`. When `review_format: html`, run the
    OPEN_CMD prelude (`docs/FRAMEWORK.md § OPEN_CMD detection
-   prelude`) and open the Plan's `.html`. In CLI mode, summarise the
-   Plan inline as today.
+   prelude`) and open the Plan's `.html`. **In HTML mode the open
+   `.html` IS the review surface — do NOT also paste / summarise
+   the Plan body or audit trail to the CLI; the human has the
+   browser tab.** Short conversational text (bookkeeping-PR
+   progress, the final `✓ Plan closed …` confirmation, error
+   messages) stays CLI as today. In CLI mode, summarise the Plan
+   inline as today. See `docs/FRAMEWORK.md § Output Format → What
+   counts as review-form text` for the canonical line.
 
 ## Step 1 — Verify the ship PR is merged
 

@@ -8,6 +8,47 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.1.2] — 2026-06-03
+
+**PATCH** — Mode mutual-exclusion at consumer-skill gates. PR #21
+(3.0.2) and #24 (3.1.1) added the explicit "do NOT also paste" rule
+to producing skills and `/spades:approve`. This patch extends the
+same defensive clause to the remaining consumer skills
+(`evaluate`, `do`, `ship`, `close`, `intent`) so that in HTML mode,
+long review-form text never duplicates between the open `.html`
+file and the CLI.
+
+The principle (now canonical in
+`docs/FRAMEWORK.md § Output Format → What counts as review-form
+text`):
+
+- **Stays CLI in both modes** — `AskUserQuestion` polls, final
+  confirmation summaries, pre-flight narration, error messages,
+  hand-off pointers, short status acknowledgements.
+- **Routed through the mode-selected surface** — artefact bodies,
+  acceptance/INTENT criteria lists, cumulative verdict tables,
+  ship-time evidence records, "let me show you what we're about
+  to X" previews.
+
+Per-skill change (5 skills, all → 3.1.2):
+
+- `evaluate/SKILL.md` — Pre-Flight Step 5 defensive clause
+- `do/SKILL.md` — Pre-Flight Step 6 defensive clause
+- `ship/SKILL.md` — Pre-Flight Step 5 defensive clause
+- `close/SKILL.md` — Pre-Flight Step 7 defensive clause
+- `intent/SKILL.md` — Transient HTML preview defensive clause
+
+Framework doc:
+
+- `docs/FRAMEWORK.md § Output Format → HTML mode is review-via-file`
+  — new sub-section "What counts as review-form text vs
+  conversational text" defining the line once.
+
+Plugin / marketplace version: 3.1.1 → 3.1.2 (marketplace 3.2.0 →
+3.2.1). Cross-cutting framework change — `spades-anywhere` ships
+the same clause at 0.1.0 → 0.1.1 in the same PR per the repo-root
+parity rule.
+
 ## [3.1.1] — 2026-06-02
 
 **PATCH** — Producing skills in HTML mode were still pasting full

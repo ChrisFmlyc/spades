@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:do` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.1.0
+version: 3.1.2
 ---
 
 # /spades:evaluate
@@ -46,7 +46,15 @@ modes.
    run the OPEN_CMD prelude from
    `docs/FRAMEWORK.md § OPEN_CMD detection prelude` and open the
    Plan's (or each Plan's) `.html` so the human can see what's being
-   evaluated. In CLI mode, summarise the target inline as today.
+   evaluated. **In HTML mode the open `.html` IS the review surface
+   — do NOT also paste / summarise / restate the Plan body, the
+   acceptance criteria list, or the cumulative verdict table to the
+   CLI; the human has the browser tab.** Short conversational text
+   (the per-criterion `AskUserQuestion` polls, the final `✓ Plan
+   evaluated …` confirmation, error messages) stays in the CLI as
+   today. In CLI mode, summarise the target inline as today. See
+   `docs/FRAMEWORK.md § Output Format → What counts as review-form
+   text` for the canonical line.
 
 ## Quick-Path Branch
 

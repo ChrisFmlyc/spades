@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship a delivered Plan in spades-anywhere — a confirmation walk through the project's INTENT.md success criteria, capturing evidence per criterion. Branches on `deliverable_type:` — `artefact` records a reference (URL, file, doc); `action` records evidence of a real-world action completed. Use after `/spades-anywhere:evaluate` has issued a PASS, when someone says "ship this", "release this", "mark it done", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 0.1.0
+version: 0.1.1
 ---
 
 # /spades-anywhere:ship
@@ -60,7 +60,16 @@ identical between modes.
    - any other status → abort with a clear message
 5. **Open the artefacts (HTML mode only).** When `review_format:
    html`, run the OPEN_CMD prelude and open both the Plan's `.html`
-   and the parent Scope's `.html`. In CLI mode, summarise inline.
+   and the parent Scope's `.html`. **In HTML mode the open `.html`
+   files ARE the review surface — do NOT also paste / summarise
+   the Plan body, Scope content, or the cumulative INTENT-criteria
+   evidence table to the CLI; the human has the browser tabs.**
+   Short conversational text (the per-INTENT-criterion
+   `AskUserQuestion` polls, evidence-capture follow-ups, the final
+   `✓ Plan shipped …` confirmation, error messages) stays CLI as
+   today. In CLI mode, summarise inline as today. See
+   `docs/FRAMEWORK.md § Output Format → What counts as review-form
+   text` for the canonical line.
 
 ## Step 1 — Update Status
 

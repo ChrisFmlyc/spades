@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 3.0.2
+version: 3.1.2
 ---
 
 # /spades:do
@@ -69,8 +69,16 @@ execution are identical between modes.
    `.spades/config`. When `review_format: html`, run the OPEN_CMD
    prelude (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`) and
    open the Plan's `.html` so the human can see what's being executed.
-   In CLI mode, summarise the Plan inline as today. Delivery-routing
-   (ai / human / hybrid) is identical between modes.
+   **In HTML mode the open `.html` IS the review surface — do NOT
+   also paste / summarise / restate the Plan body, task list, or
+   parent Scope content to the CLI; the human has the browser tab.**
+   Short conversational text (delivery-routing acknowledgement,
+   "Plan marked delivering" status, error messages, the final
+   "Run /spades:evaluate when ready" pointer) stays CLI as today.
+   In CLI mode, summarise the Plan inline as today.
+   Delivery-routing (ai / human / hybrid) is identical between
+   modes. See `docs/FRAMEWORK.md § Output Format → What counts as
+   review-form text` for the canonical line.
 
 ## Step 1 — Ensure a feature branch (code deliverables)
 
