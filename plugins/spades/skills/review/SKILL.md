@@ -1,7 +1,7 @@
 ---
 name: review
 description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
-version: 3.0.2
+version: 3.1.3
 ---
 
 ## Pre-Flight
@@ -641,12 +641,38 @@ write a file before the inline digest is printed.
 
 #### HTML mode (`review_format: html`)
 
+**You MUST render via the bundled `template.html`. Do NOT
+hand-roll the HTML.** Validate the template exists and the named
+blocks below match the markers in the actual file before
+substituting; abort and surface any mismatch. See
+`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
+use the bundled template` for the canonical rule.
+
 - Read the template at
   `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html`.
-- Substitute placeholders per `docs/FRAMEWORK.md § Output Format`
-  (verdict, target, date, persona-grid block, severity-tab findings
-  block, synthesis section). Embed envelope metadata in the
-  `<script type="application/yaml" id="spades-frontmatter">` tag.
+- Validate it contains the block markers listed below; if any are
+  missing, abort.
+- Substitute placeholders per `docs/FRAMEWORK.md § Output Format`:
+  - Envelope values fill `{{spades.target_id}}`,
+    `{{spades.target_title}}`, `{{spades.mode}}` (Scope /
+    Plan / Full), `{{spades.verdict}}` (overall),
+    `{{spades.date}}`, `{{spades.dispatch_mode}}`.
+  - The envelope YAML block also goes verbatim into the
+    `<script type="application/yaml" id="spades-frontmatter">` tag.
+  - `<!-- SPADES-BLOCK:persona-cards -->` — repeated once per
+    persona (4 cards). Per-item: `{{block.persona}}`,
+    `{{block.summary_html}}`, `{{block.finding_count}}`.
+  - `<!-- SPADES-BLOCK:findings -->` — repeated once per merged
+    finding (every severity, ungated). Per-item: `{{block.severity}}`,
+    `{{block.confidence}}`, `{{block.category}}`, `{{block.persona}}`,
+    `{{block.message_html}}`, `{{block.refs}}`,
+    `{{block.also_flagged_by}}`.
+  - `<!-- SPADES-BLOCK:convergence-cards -->` — repeated once per
+    convergence cluster (groups where 2+ personas raised the same
+    underlying concern). Per-item: `{{block.label}}`,
+    `{{block.personas}}`, `{{block.severity}}`.
+  - The cross-model synthesis prose is a direct
+    `{{spades.synthesis_html}}` substitution, not a repeating block.
 - **Path:** `.spades/reviews/<slug>-<date>.html` with the same slug
   rules. Collision rule applies identically: `<slug>-<date>-2.html`,
   `-3`, etc.

@@ -1,7 +1,7 @@
 ---
 name: intent
 description: Create or maintain INTENT.md, the project's durable statement of intent — the problem it solves, who it serves, what it does, what success looks like, and its non-goals. Use when someone says "set up INTENT.md", "capture our project intent", "what is this project for", "update the intent doc", "review our non-goals", or when INTENT.md is missing, still an unfilled template, or flagged stale. The human composes the intent; this skill structures and probes but never authors it.
-version: 0.1.1
+version: 0.1.2
 ---
 
 # SPADES Intent
@@ -283,20 +283,33 @@ tracker artefact.
 **Read `review_format:` from `.spades-anywhere/config`.** When
 `review_format: html`, after the `INTENT.md` write succeeds:
 
+**You MUST render via the bundled `template.html`. Do NOT
+hand-roll the HTML.** Validate the template exists and the named
+blocks below match the markers in the actual file before
+substituting; abort and surface any mismatch. See
+`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
+use the bundled template` for the canonical rule.
+
 1. Read the template at
    `${CLAUDE_PLUGIN_ROOT}/skills/intent/template.html`.
-2. Substitute placeholders per
+2. Validate it contains the block markers listed below; if any are
+   missing, abort.
+3. Substitute placeholders per
    `docs/FRAMEWORK.md § Output Format`:
-   - `{{spades.last_reviewed}}`, `{{spades.project_title}}`.
-   - `<!-- SPADES-BLOCK:problem -->`, `<!-- SPADES-BLOCK:users -->`,
-     `<!-- SPADES-BLOCK:what-it-does -->`,
-     `<!-- SPADES-BLOCK:success -->`,
-     `<!-- SPADES-BLOCK:non-goals -->`,
-     `<!-- SPADES-BLOCK:maturity -->` — populated from the just-
-     written sections of `INTENT.md`.
-3. Write to `.spades-anywhere/.tmp/intent.html` (creating `.spades-anywhere/.tmp/` if
-   missing — auto-gitignored by `/spades-anywhere:setup` Step 5.5).
-4. Auto-open via the OPEN_CMD prelude
+   - `{{spades.project_slug}}`, `{{spades.last_reviewed}}`,
+     `{{spades.rendered_at}}`, `{{spades.plugin_version}}`,
+     `{{spades.maturity_stage}}`.
+   - The prose sections render via direct substitutions:
+     `{{spades.problem_html}}`, `{{spades.what_it_does_html}}`,
+     `{{spades.success_html}}`, `{{spades.maturity_html}}`.
+   - `<!-- SPADES-BLOCK:users-items -->` — repeated once per bullet
+     under `## Users`. Per-item: `{{block.html}}`.
+   - `<!-- SPADES-BLOCK:non-goals-items -->` — repeated once per
+     bullet under `## Non-goals`. Per-item: `{{block.html}}`.
+4. Write to `.spades-anywhere/.tmp/intent.html` (creating
+   `.spades-anywhere/.tmp/` if missing — auto-gitignored by
+   `/spades-anywhere:setup` Step 5.5).
+5. Auto-open via the OPEN_CMD prelude
    (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`) so the human
    can review the refreshed intent in the B-style format.
 

@@ -1,7 +1,7 @@
 ---
 name: list
 description: List active SPADES Scopes, optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades-anywhere/config`.
-version: 0.1.0
+version: 0.1.2
 ---
 
 # /spades-anywhere:list
@@ -141,18 +141,32 @@ behaviour.
 
 ### HTML mode (`review_format: html`)
 
+**You MUST render via the bundled `template.html`. Do NOT
+hand-roll the HTML.** Validate the template exists and the named
+blocks below match the markers in the actual file before
+substituting; abort and surface any mismatch. See
+`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
+use the bundled template` for the canonical rule.
+
 1. Read the template at
    `${CLAUDE_PLUGIN_ROOT}/skills/list/template.html`.
-2. Substitute placeholders per
+2. Validate it contains the block markers listed below; if any are
+   missing, abort.
+3. Substitute placeholders per
    `docs/FRAMEWORK.md § Output Format`:
-   - `{{spades.project}}`, `{{spades.filter}}`, generated_at.
-   - `<!-- SPADES-BLOCK:rows -->` — one row per Scope from Step 2
-     (with the Step 3 quality flags applied inline).
-   - `<!-- SPADES-BLOCK:empty -->` — Step 4 output when no rows.
-   - `<!-- SPADES-BLOCK:suggestions -->` — Step 5 output.
-3. Write to `.spades-anywhere/.tmp/list.html` (creating `.spades-anywhere/.tmp/` if
-   missing — already auto-gitignored by `/spades-anywhere:setup` Step 5.5).
-4. Auto-open via the OPEN_CMD prelude
+   - `{{spades.project_slug}}`, `{{spades.filter_label}}`,
+     `{{spades.rendered_at}}`, `{{spades.plugin_version}}`.
+   - `<!-- SPADES-BLOCK:status-filters -->` — repeated once per
+     filter chip (one per status). Per-item: `{{block.label}}`,
+     `{{block.count}}`, `{{block.active}}` (boolean).
+   - `<!-- SPADES-BLOCK:scopes-rows -->` — repeated once per Scope
+     row (post-filter). Per-item: `{{block.id}}`, `{{block.title}}`,
+     `{{block.status}}`, `{{block.plans}}`, `{{block.updated}}`,
+     `{{block.flags}}` (any Step-3 quality flags).
+4. Write to `.spades-anywhere/.tmp/list.html` (creating
+   `.spades-anywhere/.tmp/` if missing — already auto-gitignored by
+   `/spades-anywhere:setup` Step 5.5).
+5. Auto-open via the OPEN_CMD prelude
    (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the
    file path with "open this in your browser" if `OPEN_CMD` is
    empty. Do NOT also print the table to the terminal in HTML mode.
