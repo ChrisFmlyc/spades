@@ -38,6 +38,52 @@ The same rule applies in reverse — changes that originate in
 non-code task templates) should be evaluated for porting back to
 `plugins/spades/`.
 
+### Port the *principle*, not the *mechanics*
+
+Porting is **adapt, not copy**. `plugins/spades/` is built for
+coding agents in a git worktree — `${CLAUDE_PLUGIN_ROOT}` paths,
+SCM, branches, PRs, `gh`, `/repo:sync`, `AskUserQuestion`, the
+`Agent` tool. `plugins/spades-anywhere/` is built for humans
+working in chat surfaces (Claude Projects, ChatGPT Custom GPTs,
+Gemini Gems) — frequently at a coworking desk, on mobile, on the
+road — with **no SCM and no AI harness primitives**.
+
+The right port is therefore almost never line-for-line. The
+mental model is:
+
+1. **Identify the principle the spades change is teaching** —
+   e.g. "in HTML mode, write a persistent human-viewable artefact
+   alongside the AI-readable one"; "don't leave the workspace
+   dirty after a metadata write"; "ask the human to confirm
+   before destructive change".
+2. **Strip the coding-specific mechanics** — git, branches, PRs,
+   `gh`, `${CLAUDE_PLUGIN_ROOT}`, sub-agent fan-out, the harness
+   tool calls that don't exist in chat surfaces.
+3. **Re-express the principle in the chat-surface idiom** —
+   "save this file to your Claude Project knowledge"; "paste
+   this into a Notion page"; "tell me when you've copied it";
+   numbered prompts instead of `AskUserQuestion`; `degraded`
+   dispatch mode instead of `subagent-dispatch`.
+
+If the principle has no equivalent in the non-coding context
+(e.g. the entire change IS the SCM machinery, like the
+auto-ship-metadata PR), mark it **Not applicable** in the PR
+parity section — that is a valid outcome. But it is the
+conclusion you reach after step 1, not a default to skip the
+analysis.
+
+#### Worked example — the auto-ship-metadata change
+
+| Element of the spades change | Port to spades-anywhere? |
+|------------------------------|--------------------------|
+| Auto-branch + commit + push + `gh pr create` + AskUserQuestion("merged?") + cleanup | **Not applicable** — entire flow is SCM machinery. No git, no PR, nothing to port. |
+| "Write a persistent `.spades/intent.html` alongside `INTENT.md` so the human has an HTML view" | **Port (deferred)** — the *principle* (`.md` for the AI, `.html` for the human, both persistent) applies. Equivalent: `spades-anywhere/intent` writes `.spades-anywhere/intent.html` next to `INTENT.md` in the chat-surface knowledge store. |
+| Precondition gate (clean tree before write) | **Not applicable** — no worktree to be dirty. |
+
+This is the shape every spades → spades-anywhere parity analysis
+should take: per-element, per-PR, with explicit reasoning. The
+PR's parity section (see below) records the conclusions.
+
 ## Decision rubric: port the change?
 
 | The change touches… | Port to the sibling? |
