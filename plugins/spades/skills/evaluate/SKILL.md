@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:do` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.2.0
+version: 3.3.0
 ---
 
 # /spades:evaluate
@@ -363,10 +363,28 @@ use the bundled template` for the canonical rule.
      rationale the human confirmed at Step 5).
    - `<!-- SPADES-BLOCK:verification-rows -->` — one row per
      acceptance criterion from the verification plan agreed at
-     Step 1. Per-item: `{{block.criterion}}`, `{{block.method}}`,
-     `{{block.verdict}}` (`PASS` / `FAIL` / `PARTIAL` / `NA`),
-     `{{block.verdict_class}}` (`pass` / `fail` / `partial` /
-     `na`), `{{block.notes}}`.
+     Step 1. Per-item:
+     - `{{block.criterion}}` — criterion text.
+     - `{{block.verifier}}` — display label for who/what checked
+       this row. One of: `AI` (Claude verified autonomously),
+       `Human` (eyes-on / manual check), `Test` (automated test
+       run — unit / integration / e2e), `Lint` (static check —
+       linter / typecheck / formatter), `Manual` (catch-all for
+       human checks that aren't strictly verification, e.g.
+       "tried it in the staging UI"). Pick the most specific
+       value that fits; the rendered chip uses this directly.
+     - `{{block.verifier_class}}` — lowercase CSS hook matching
+       the label: `ai` / `human` / `test` / `lint` / `manual`.
+       Drives the chip colour (AI = blue, Human = gold, Test =
+       green, Lint = purple, Manual = gray).
+     - `{{block.method}}` — the concrete method (test name, file
+       path, "Eyes-on in staging", etc.). For hybrid Plans, this
+       is where the per-row routing surfaces — alongside the
+       `verifier` chip.
+     - `{{block.verdict}}` — `PASS` / `FAIL` / `PARTIAL` / `NA`.
+     - `{{block.verdict_class}}` — `pass` / `fail` / `partial` /
+       `na`.
+     - `{{block.notes}}` — short notes / evidence.
    - `<!-- SPADES-BLOCK:audit-events -->` — one per audit-trail
      entry on the Plan whose `desc` contains `Evaluation`
      (e.g. `Evaluation started`, `Verification plan agreed`,

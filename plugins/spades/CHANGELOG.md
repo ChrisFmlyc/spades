@@ -8,6 +8,43 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.4.0] — 2026-06-04
+
+**MINOR** — Evaluate HTML report's verification table now shows
+**who/what checked each criterion** as a coloured chip in a new
+"By" column. User noted the previous v3.3.0 render didn't make it
+obvious whether a row was verified by AI, a human, a test, etc.
+
+Verifier types and their chip colours:
+
+| Verifier | Chip | When to use |
+|----------|------|-------------|
+| `AI`     | Blue (`#3b82f6`)  | Claude verified autonomously |
+| `Human`  | Gold (`#FFC107`)  | Eyes-on / manual check (org primary) |
+| `Test`   | Green (`#16a34a`) | Automated test (unit / integration / e2e) |
+| `Lint`   | Purple (`#8b5cf6`) | Static check (linter / typecheck / formatter) |
+| `Manual` | Gray (`#6b7280`)  | Catch-all human check (e.g. "tried it in staging") |
+
+The "Method" column still carries the specific detail (test name,
+file path, "Eyes-on in staging") — the chip is the at-a-glance
+signal, the method is the detail.
+
+Files:
+
+- `skills/evaluate/template.html` (template v1.0.0 → v1.1.0) —
+  adds `--verifier-*` palette to `:root`, new `.by-badge.*` styles,
+  new "By" column in the verification-rows table. Responsive rule
+  now hides the Method column (`nth-child(3)`) on narrow screens
+  while keeping the chip visible — chip is more informative than
+  raw method text on mobile.
+- `skills/evaluate/SKILL.md` (→ 3.3.0) — placeholder list adds
+  `{{block.verifier}}` and `{{block.verifier_class}}`. Per-row
+  values enumerated.
+
+Pairs with `spades-anywhere` v0.3.0 in the same PR — same chip
+column rendered with `verifier: Human` for every row (no AI /
+test / lint in a chat-surface context).
+
 ## [3.3.0] — 2026-06-04
 
 **MINOR** — `/spades:evaluate` promoted from consumer to producer

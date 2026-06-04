@@ -7,6 +7,26 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the plugin
 version via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
+## [0.3.0] — 2026-06-04
+
+**MINOR** — Verification table in the evaluate HTML report now
+shows a "By" column with a coloured chip per row. Pairs with
+`spades` 3.4.0 (same template change, same PR). In
+`spades-anywhere` the chip is **always** `Human` (gold), since
+this plugin runs in chat surfaces where there is no AI / test /
+lint verification — but the column is rendered so the report
+shape matches the coding plugin's report, and the gold-on-white
+"Human" chip is itself a clear signal.
+
+Files:
+
+- `skills/evaluate/template.html` (template v1.0.0 → v1.1.0) —
+  identical to the coding plugin's template apart from the
+  version-banner comment.
+- `skills/evaluate/SKILL.md` (→ 0.3.0) — placeholder list adds
+  `{{block.verifier}}` (always `Human`) and
+  `{{block.verifier_class}}` (always `human`).
+
 ## [0.2.0] — 2026-06-04
 
 **MINOR** — Two changes ship together; both follow from the

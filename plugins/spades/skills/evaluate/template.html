@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<!-- SPADES template: evaluate v1.0.0 (matches plugin v3.3.0) -->
+<!-- SPADES template: evaluate v1.1.0 (matches plugin v3.4.0) -->
 <!--
   Section blocks:
     verification-rows — one per acceptance criterion
     audit-events      — every Evaluation* line from the Plan's audit trail
 
   Verification-row fields:
-    {{block.criterion}}        — the acceptance criterion text
-    {{block.method}}            — how it was checked (test name, manual check, etc.)
+    {{block.criterion}}         — the acceptance criterion text
+    {{block.verifier}}          — who/what checked it: AI | Human | Test | Lint | Manual
+    {{block.verifier_class}}    — ai | human | test | lint | manual (CSS hook)
+    {{block.method}}            — how it was checked (test name, file path, "Eyes-on", etc.)
     {{block.verdict}}           — PASS | FAIL | PARTIAL | NA
     {{block.verdict_class}}     — pass | fail | partial | na (CSS hook)
     {{block.notes}}             — short notes / evidence
@@ -36,6 +38,11 @@
     --verdict-partial: #FFDE59;
     --verdict-fail:    #dc2626;
     --verdict-na:      #6b7280;
+    --verifier-ai:     #3b82f6;
+    --verifier-human:  #FFC107;
+    --verifier-test:   #16a34a;
+    --verifier-lint:   #8b5cf6;
+    --verifier-manual: #6b7280;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--page); color: var(--ink); font-size: 17.5px; line-height: 1.6; }
@@ -81,6 +88,14 @@
   .v-badge.partial { background: var(--verdict-partial); color: var(--ink); }
   .v-badge.fail    { background: var(--verdict-fail); color: #fff; }
   .v-badge.na      { background: var(--verdict-na); color: #fff; }
+  .by-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.18rem 0.55rem; border-radius: 3px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .by-badge::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.85; }
+  .by-badge.ai     { background: var(--verifier-ai);     color: #fff; }
+  .by-badge.human  { background: var(--verifier-human);  color: var(--ink); }
+  .by-badge.test   { background: var(--verifier-test);   color: #fff; }
+  .by-badge.lint   { background: var(--verifier-lint);   color: #fff; }
+  .by-badge.manual { background: var(--verifier-manual); color: #fff; }
+  .row-by { white-space: nowrap; }
   ul.timeline { list-style: none; padding: 0; }
   ul.timeline li { padding: 0.5rem 0 0.5rem 1.4rem; border-left: 2px solid var(--border); margin-left: 0.5rem; position: relative; font-size: 0.94rem; }
   ul.timeline li::before { content: ""; position: absolute; left: -6px; top: 0.85rem; width: 10px; height: 10px; background: var(--gold); border-radius: 50%; border: 2px solid var(--panel); }
@@ -93,7 +108,7 @@
     .layout { grid-template-columns: 1fr; }
     aside.sidebar { position: static; height: auto; border-right: none; border-bottom: 2px solid var(--gold); }
     main { padding: 2rem 1.5rem; }
-    table.verification th:nth-child(2), table.verification td:nth-child(2) { display: none; }
+    table.verification th:nth-child(3), table.verification td:nth-child(3) { display: none; }
   }
 </style>
 </head>
@@ -148,12 +163,13 @@ plugin_version: {{spades.plugin_version}}
         <h2>Verification Plan</h2>
         <table class="verification">
           <thead>
-            <tr><th>Criterion</th><th>Method</th><th>Verdict</th><th>Notes</th></tr>
+            <tr><th>Criterion</th><th>By</th><th>Method</th><th>Verdict</th><th>Notes</th></tr>
           </thead>
           <tbody>
             <!-- SPADES-BLOCK:verification-rows -->
             <tr>
               <td class="row-criterion">{{block.criterion}}</td>
+              <td class="row-by"><span class="by-badge {{block.verifier_class}}">{{block.verifier}}</span></td>
               <td class="row-method">{{block.method}}</td>
               <td class="row-verdict"><span class="v-badge {{block.verdict_class}}">{{block.verdict}}</span></td>
               <td class="row-notes">{{block.notes}}</td>
