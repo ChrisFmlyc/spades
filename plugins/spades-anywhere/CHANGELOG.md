@@ -7,6 +7,48 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the plugin
 version via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
+## [0.2.0] — 2026-06-04
+
+**MINOR** — Two changes ship together; both follow from the
+coding-plugin `spades` 3.3.0 cross-cutting framework move plus
+the deferred PR #29 parity port being addressed per the
+repo-root AGENTS.md rule (*"Deferred must be addressed before the
+next cross-cutting framework MINOR bump"*).
+
+### `evaluate` — promoted to a producing skill in HTML mode
+
+- `skills/evaluate/template.html` — **NEW**. Same template as the
+  coding plugin's evaluate template (gold palette, sidebar verdict
+  pill, per-criterion rows, audit timeline) — only the comment
+  banner changes.
+- `skills/evaluate/SKILL.md` (→ 0.2.0) — adds new Step 2.5 to
+  render the verdict + per-criterion table to
+  `.spades-anywhere/evaluations/<plan-id>-<YYYY-MM-DD>.html` and
+  auto-open. `{{spades.evaluator}}` is always `human` in
+  spades-anywhere. No SCM machinery — the human saves the file to
+  their chat-surface knowledge store on their own cadence.
+- `docs/FRAMEWORK.md` — adds `evaluate` to the producing-skills
+  list, calls it dual-role (consumer at Pre-Flight, producer at
+  Step 2.5), and documents that `intent` writes a persistent
+  `.spades-anywhere/intent.html` in HTML mode (see next entry).
+  Also fixed a stale reference to `/spades-anywhere:close` (this
+  plugin never had a close skill — that's coding-plugin-only).
+
+### `intent` — deferred PR #29 parity port
+
+PR #29 (in the coding plugin) added a persistent
+`.spades/intent.html` alongside `INTENT.md` in HTML mode and
+marked the sister-plugin port **Deferred**. Per the AGENTS.md
+rule, deferred work must land in the next cross-cutting framework
+MINOR bump — this is that bump.
+
+- `skills/intent/SKILL.md` (→ 0.2.0) — "Writing the File" now
+  also writes a persistent `.spades-anywhere/intent.html`
+  alongside `INTENT.md` in HTML mode (using the same template the
+  transient `.tmp/intent.html` preview uses). Principle: `.md`
+  for the AI to read, `.html` for the human to view. Removed the
+  stale `git add INTENT.md` suggestion (no git in spades-anywhere).
+
 ## [0.1.2] — 2026-06-03
 
 **PATCH** — Universal template-use enforcement for HTML-rendering

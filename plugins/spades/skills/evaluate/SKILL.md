@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:do` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.1.2
+version: 3.2.0
 ---
 
 # /spades:evaluate
@@ -15,12 +15,27 @@ Resolution before running.
 ### Output format
 
 This skill honours `review_format:` from `.spades/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. Anywhere this
-skill would today paste the Plan's content to the terminal for the
-human's evaluation review, in HTML mode it auto-opens the Plan's
-existing `.html` file via the OPEN_CMD prelude. The PASS / PARTIAL /
-FAIL verdict prompts and audit-trail writes stay identical between
-modes.
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`.
+
+In CLI mode this skill is consumer-only: it summarises the Plan
+and verification plan inline, and the verdict lives as a single
+audit-trail line on the Plan file (`worker-file-plan-evaluate`).
+
+In HTML mode this skill is **also a producer**. Two things happen:
+
+1. The Plan's existing `.html` (written by `/spades:plan`) is
+   auto-opened at the Pre-Flight step so the human can see what
+   is being evaluated — same as today.
+2. After Step 5 picks a verdict, render the verification plan +
+   verdict via `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html`
+   and write `.spades/evaluations/<plan-id>-<YYYY-MM-DD>.html`,
+   then auto-open via OPEN_CMD. The audit-trail line on the Plan
+   is unchanged (still authoritative for the AI reader); the
+   HTML report is the **human's** rich view of the verdict.
+
+The PASS / PARTIAL / FAIL verdict prompts and audit-trail writes
+stay identical between modes. CLI mode does NOT write any
+evaluation file.
 
 ## Pre-Flight
 
@@ -314,6 +329,74 @@ Ask the human via `AskUserQuestion`:
 
 The human owns the final verdict in every routing mode — even AI
 mode where AI proposed it.
+
+### Step 5.5 — Render the evaluation HTML (HTML mode only)
+
+When `review_format: html` (read from `.spades/config`), produce
+a persistent evaluation report after the verdict is picked.
+
+**You MUST render via the bundled `template.html`. Do NOT
+hand-roll the HTML.** Validate the template exists and the named
+blocks below match the markers in the actual file before
+substituting; abort and surface any mismatch. See
+`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
+use the bundled template` for the canonical rule.
+
+1. **Read the template** at
+   `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html`.
+2. **Validate** it contains:
+   - `<!-- SPADES-BLOCK:verification-rows -->`
+   - `<!-- SPADES-BLOCK:audit-events -->`
+
+   Abort if either is missing.
+3. **Substitute placeholders** per
+   `docs/FRAMEWORK.md § Output Format`:
+   - `{{spades.plan_id}}`, `{{spades.plan_title}}`,
+     `{{spades.scope_id}}`, `{{spades.scope_title}}`,
+     `{{spades.evaluated}}` (today's date),
+     `{{spades.evaluator}}` (`ai` / `human` / `hybrid` —
+     from the Plan's `delivery:` routing),
+     `{{spades.plugin_version}}`,
+     `{{spades.verdict}}` (`PASS` / `PARTIAL` / `FAIL`),
+     `{{spades.verdict_class}}` (`pass` / `partial` / `fail`),
+     `{{spades.verdict_summary_html}}` (the one-paragraph
+     rationale the human confirmed at Step 5).
+   - `<!-- SPADES-BLOCK:verification-rows -->` — one row per
+     acceptance criterion from the verification plan agreed at
+     Step 1. Per-item: `{{block.criterion}}`, `{{block.method}}`,
+     `{{block.verdict}}` (`PASS` / `FAIL` / `PARTIAL` / `NA`),
+     `{{block.verdict_class}}` (`pass` / `fail` / `partial` /
+     `na`), `{{block.notes}}`.
+   - `<!-- SPADES-BLOCK:audit-events -->` — one per audit-trail
+     entry on the Plan whose `desc` contains `Evaluation`
+     (e.g. `Evaluation started`, `Verification plan agreed`,
+     `Evaluation — verdict: …`), in chronological order.
+     Per-item: `{{block.date}}`, `{{block.desc}}`. Repeated
+     into both the visible `<ul class="timeline">` and the
+     `<script type="application/yaml" id="spades-audit-trail">`
+     block.
+   - Frontmatter values are also mirrored verbatim into
+     `<script type="application/yaml" id="spades-frontmatter">`.
+4. **Write** to
+   `.spades/evaluations/<plan_id_lower>-<YYYY-MM-DD>.html`
+   (creating `.spades/evaluations/` if missing — same shape as
+   `.spades/reviews/`). The slug is the lowercased Plan ID; the
+   date is the evaluation date so multiple evaluations of the
+   same Plan can coexist on disk.
+5. **Auto-open** via the OPEN_CMD prelude
+   (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the
+   file path with "open this in your browser" if `OPEN_CMD` is
+   empty.
+
+The file lands in the worktree during delivery (we are on a
+feature branch). It will be committed alongside the Do-phase
+changes and ship with the feature's own PR — there is **no
+separate bookkeeping flow**. The audit-trail line on the Plan
+(written by `worker-file-plan-evaluate` below) is still the
+authoritative AI-readable record of the verdict.
+
+In CLI mode this step is skipped entirely; the Plan's
+audit-trail line is the only output as today.
 
 ## Write the Verdict (fan-out dispatch)
 

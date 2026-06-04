@@ -801,7 +801,8 @@ The rule:
    that extends the template — not a one-off hand-roll.
 
 The skills that ship a bundled template: `scope`, `plan`,
-`newproject`, `learn`, `review`, `status`, `list`, `intent`.
+`newproject`, `learn`, `review`, `status`, `list`, `intent`,
+`evaluate`.
 
 This rule exists because the *value* of HTML mode comes from the
 agreed-on presentation — the sidebar, the typography, the colour
@@ -813,16 +814,24 @@ is improvisation.
 ### Consumer skills — `cli` vs `html` presentation
 
 Consumer skills are `/spades-anywhere:approve`, `/spades-anywhere:evaluate`,
-`/spades-anywhere:do`, `/spades-anywhere:ship`, `/spades-anywhere:close`, `/spades-anywhere:status`,
+`/spades-anywhere:do`, `/spades-anywhere:ship`, `/spades-anywhere:status`,
 `/spades-anywhere:list`, `/spades-anywhere:intent`. Each, at some point in its flow,
 presents an artefact for the human to review.
+
+`/spades-anywhere:evaluate` is a **dual-role** skill: it consumes
+the Plan's and Scope's existing `.html` at Pre-Flight (so the
+human sees what's being evaluated), AND in HTML mode it also
+produces a persistent evaluation report at
+`.spades-anywhere/evaluations/<plan-id>-<date>.html` (after
+Step 2 picks an aggregated verdict). Treat it as a consumer for
+the Pre-Flight open and as a producer for the Step 2.5 render.
 
 - **`review_format: cli`** — paste the artefact's content (or a
   summary) to the terminal as today.
 - **`review_format: html`** — auto-open the relevant `.html`
   artefact in the default browser via the OPEN_CMD prelude.
-  - For artefact-bound reviews (approve / evaluate / do / ship /
-    close): the `.html` already exists at
+  - For artefact-bound reviews (approve / evaluate / do / ship):
+    the `.html` already exists at
     `.spades-anywhere/<dir>/<id>.html` because the producing skill wrote
     it. Just open it.
   - For transient cross-cutting views (status / list / intent):
@@ -831,6 +840,17 @@ presents an artefact for the human to review.
     are regenerated on every invocation; `/spades-anywhere:setup` appends
     `.spades-anywhere/.tmp/` to the consumer repo's `.gitignore` at install
     time, so these files are never committed.
+  - For evaluate's *produced* report: persistent at
+    `.spades-anywhere/evaluations/<plan-id>-<date>.html`. There is
+    no SCM in spades-anywhere — the human saves the rendered
+    file to their chat-surface knowledge store on their own
+    cadence.
+  - For intent's *produced* persistent HTML: when
+    `review_format: html`, `/spades-anywhere:intent` writes
+    `.spades-anywhere/intent.html` alongside `INTENT.md` (in
+    addition to the transient `.spades-anywhere/.tmp/intent.html`
+    preview during the edit flow). Same principle: `.md` for the
+    AI to read, `.html` for the human to view.
 
 In CLI mode, every consumer skill behaves exactly as in v2 — no
 HTML written, no browser opens.

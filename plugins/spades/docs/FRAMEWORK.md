@@ -803,7 +803,8 @@ The rule:
    that extends the template — not a one-off hand-roll.
 
 The skills that ship a bundled template: `scope`, `plan`,
-`newproject`, `learn`, `review`, `status`, `list`, `intent`.
+`newproject`, `learn`, `review`, `status`, `list`, `intent`,
+`evaluate`.
 
 This rule exists because the *value* of HTML mode comes from the
 agreed-on presentation — the sidebar, the typography, the colour
@@ -819,6 +820,13 @@ Consumer skills are `/spades:approve`, `/spades:evaluate`,
 `/spades:list`, `/spades:intent`. Each, at some point in its flow,
 presents an artefact for the human to review.
 
+`/spades:evaluate` is a **dual-role** skill: it consumes the
+Plan's existing `.html` at Pre-Flight (so the human sees what's
+being evaluated), AND in HTML mode it also produces a persistent
+evaluation report at `.spades/evaluations/<plan-id>-<date>.html`
+(after Step 5 picks a verdict). Treat it as a consumer for the
+Pre-Flight open and as a producer for the Step 5.5 render.
+
 - **`review_format: cli`** — paste the artefact's content (or a
   summary) to the terminal as today.
 - **`review_format: html`** — auto-open the relevant `.html`
@@ -833,6 +841,10 @@ presents an artefact for the human to review.
     are regenerated on every invocation; `/spades:setup` appends
     `.spades/.tmp/` to the consumer repo's `.gitignore` at install
     time, so these files are never committed.
+  - For evaluate's *produced* report: persistent at
+    `.spades/evaluations/<plan-id>-<date>.html`; ships in the
+    feature branch's own PR (no separate bookkeeping flow because
+    evaluate runs mid-flow, not on `main`).
 
 In CLI mode, every consumer skill behaves exactly as in v2 — no
 HTML written, no browser opens.
