@@ -1,7 +1,7 @@
 ---
 name: intent
 description: Create or maintain INTENT.md, the project's durable statement of intent — the problem it solves, who it serves, what it does, what success looks like, and its non-goals. Use when someone says "set up INTENT.md", "capture our project intent", "what is this project for", "update the intent doc", "review our non-goals", or when INTENT.md is missing, still an unfilled template, or flagged stale. The human composes the intent; this skill structures and probes but never authors it.
-version: 3.1.3
+version: 3.2.0
 ---
 
 # SPADES Intent
@@ -259,6 +259,34 @@ decisions** this skill makes along the way use `AskUserQuestion` (per
 
 ## Writing the File
 
+### Ship preconditions
+
+**`INTENT.md` is always a committed root document — there is no
+private mode.** Before writing anything, validate the worktree is
+in a state that can carry the auto-managed bookkeeping PR (see
+"Ship the intent update" below). If these fail, abort **before**
+writing `INTENT.md`:
+
+1. `git rev-parse --abbrev-ref HEAD` — must be `main` (or the
+   detected default branch). If not, abort:
+
+   > *Refusing to run — you're on `<branch>`. `/spades:intent`
+   > ships its update via its own PR off `main`, like
+   > `/spades:close`. Switch to `main` first
+   > (`git switch main`) then re-run `/spades:intent`.*
+
+2. `git status --porcelain` — must be empty. If not, abort:
+
+   > *Refusing to run — uncommitted changes on `<branch>`:
+   > `<list>`. Commit, stash, or discard them first, then re-run
+   > `/spades:intent`.*
+
+3. When `.spades/config` has `scm: github`: confirm `gh auth
+   status` succeeds and `git remote` returns at least one remote.
+   If not, surface and abort.
+
+### Write the file(s)
+
 Write `./INTENT.md` only after the human has reviewed every section in play:
 
 - **Create mode** — write the full file: the `last_reviewed` frontmatter, a
@@ -267,16 +295,154 @@ Write `./INTENT.md` only after the human has reviewed every section in play:
 - **Edit mode** — apply the confirmed changes and update `last_reviewed`.
   Preserve sections the human did not touch.
 
-Then confirm what changed, remind the human that `INTENT.md` is a living
-document the SPADES loop reads, and suggest they commit it:
+**In HTML mode (`review_format: html`), also write a persistent
+`.spades/intent.html` alongside `INTENT.md`.** Use the same
+template the transient preview uses
+(`${CLAUDE_PLUGIN_ROOT}/skills/intent/template.html`) with the
+same placeholder substitutions described under "Transient HTML
+preview" below — the only difference is the destination path and
+lifecycle:
+
+- `.spades/intent.html` is **persistent** (committed to git
+  alongside `INTENT.md` in the bookkeeping PR). It is the human's
+  steady-state view of the project's intent.
+- `.spades/.tmp/intent.html` (covered below) is **transient**
+  (`.tmp/` is gitignored). It exists only for the in-flight edit
+  review and is recreated each time `/spades:intent` runs.
+
+Both files use the same template content; they just live in
+different places for different jobs. In CLI mode, `.spades/intent.html`
+is NOT written — only `INTENT.md` exists.
+
+There is no Linear step — `INTENT.md` is a committed root document, not a
+tracker artefact. Continue to "Ship the intent update" below to
+land both files in their own bookkeeping PR.
+
+## Ship the intent update
+
+Mirror `/spades:close`'s bookkeeping flow so the metadata write
+doesn't leave the worktree dirty.
+
+### 1. Choose the branch name
+
+Pattern: `chore/intent-update-<YYYY-MM-DD>`. The full name MUST
+match the `/repo:branch` regex
+(`^(feat|fix|chore|docs|refactor|rnd|hotfix)/[a-z0-9]([a-z0-9-]{0,48}[a-z0-9])?$`).
+
+If `chore/intent-update-<YYYY-MM-DD>` already exists locally
+(`/spades:intent` was run twice in one day), suffix with a 4-char
+random alphanumeric tag: `chore/intent-update-<YYYY-MM-DD>-<aaaa>`.
+
+If, after suffixing, the branch still collides, abort with:
+
+> *Bookkeeping branch already exists from a previous run. Either
+> merge its PR on GitHub then re-run `/spades:intent`, or delete
+> it (`git branch -D <name>`) and re-run.*
+
+### 2. Create the branch
+
+```bash
+git switch -c <bookkeeping-branch>
+```
+
+### 3. Stage + commit
+
+Stage both files when in HTML mode:
 
 ```bash
 git add INTENT.md
-git commit -m "Update project intent"
+# also, when review_format: html:
+git add .spades/intent.html
+git commit -m "$(cat <<'EOF'
+chore(spades): update INTENT
+
+<short summary of what changed — Create or Edit, and which
+sections moved if Edit. Mirror the post-write conversational
+confirmation.>
+
+Files:
+- INTENT.md           (durable, AI-readable source of truth)
+- .spades/intent.html (persistent human-viewable render — HTML mode only)
+EOF
+)"
 ```
 
-There is no Linear step — `INTENT.md` is a committed root document, not a
-tracker artefact.
+### 4. Push + open the bookkeeping PR
+
+Branch by `scm:` from `.spades/config`:
+
+- **`scm: github`** —
+
+  ```bash
+  git push -u origin <bookkeeping-branch>
+  gh pr create --title "chore(spades): update INTENT" --body "$(cat <<'EOF'
+  ## Summary
+
+  Bookkeeping commit — updates `INTENT.md` (the project's durable
+  statement of intent).
+
+  ## What changed
+
+  - **Mode:** Create | Edit
+  - **Sections touched:** <list — Problem / Users / What it does /
+    Success / Non-goals / Maturity / last_reviewed only>
+
+  ## Files touched
+
+  - `INTENT.md` — the durable AI-readable source.
+  - `.spades/intent.html` — persistent human-viewable render
+    (HTML mode only).
+
+  No code changes. `INTENT.md` is read by `/spades:plan` and
+  `/spades:review` to keep work aligned with the project's
+  purpose.
+  EOF
+  )"
+  ```
+
+  Capture and print the PR URL prominently:
+
+  ```
+  ○ Intent PR opened: <pr-url>
+  ○ Merge it on GitHub — squash recommended — then return here.
+  ```
+
+- **`scm: local-git`** — push to the configured remote if any,
+  otherwise commit-only. Skip the PR + skip Step 5's wait:
+
+  ```bash
+  git push -u origin <bookkeeping-branch>   # only if a remote is configured
+  ```
+
+  Print: *"pushed `<branch>` to `origin`; intent updated without
+  a PR (scm: local-git)."* Then jump to Step 6 cleanup. If no
+  remote is configured, print *"intent committed locally on
+  `<branch>`; no remote configured so nothing was pushed."* and
+  exit without cleanup (the human owns the merge to main).
+
+### 5. Wait for the human to confirm the merge (scm: github only)
+
+Ask via `AskUserQuestion`:
+
+> *Has the intent PR been merged?*
+>
+> - **Yes — intent PR is merged.** Continue with cleanup.
+> - **Not yet — exit, I'll merge it and clean up myself.**
+
+If **Not yet** → exit cleanly. The PR stays open. After the human
+merges it on GitHub, the recovery path is `/repo:sync`.
+
+### 6. Post-merge cleanup
+
+```bash
+git checkout main
+git pull --ff-only
+git branch -D <bookkeeping-branch>
+git status --porcelain
+```
+
+If `git status --porcelain` surfaces anything, print it but
+don't abort.
 
 ### Transient HTML preview (HTML mode only)
 

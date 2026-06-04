@@ -8,6 +8,46 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.2.0] — 2026-06-04
+
+**MINOR** — `/spades:learn` and `/spades:intent` now auto-ship
+their own metadata in a bookkeeping PR (mirroring `/spades:close`),
+so they don't leave the worktree dirty and block the next
+`/repo:sync`. User reported: invoking either skill wrote metadata
+files into the working tree and merely "suggested" a commit;
+running `/repo:sync` afterwards correctly refused (dirty tree),
+breaking flow.
+
+Skills:
+
+- `learn/SKILL.md` (→ 3.2.0) — replaces the old "Step 5: Suggest
+  a commit" prose with a full "Step 5: Ship the learning metadata"
+  flow: precondition check (on `main`, clean tree, `gh` available
+  when `scm: github`) BEFORE writing; `chore/learn-<date>-<slug>`
+  branch off `main`; commit; push; `gh pr create`; wait on
+  `AskUserQuestion("Has the learning PR been merged?")`; post-merge
+  cleanup. Private learnings (`public_safe: false`) skip the entire
+  ship step — `private/` is gitignored. `scm: local-git` pushes (if
+  remote configured) and skips the AskUserQuestion wait.
+- `intent/SKILL.md` (→ 3.2.0) — same ship pattern. Branch name
+  `chore/intent-update-<YYYY-MM-DD>` (with a 4-char random suffix
+  on same-day collision). In HTML mode, the skill also writes a
+  persistent `.spades/intent.html` alongside `INTENT.md` (using
+  the existing template) — both files ship in the same bookkeeping
+  PR. The pre-existing transient `.spades/.tmp/intent.html` preview
+  is unchanged.
+
+User principle landed: artefacts the AI consumes stay Markdown
+(`.md`); artefacts the human views in HTML mode get a persistent
+`.html` rendering committed alongside. The two co-exist —
+`INTENT.md` is the source of truth, `.spades/intent.html` is the
+human's view.
+
+Out of scope for this minor: sister-plugin `spades-anywhere`
+(no SCM); other metadata-writing skills (`scope`, `plan`,
+`newproject` — those land mid-flow with downstream dependencies);
+a learnings index page (separable follow-up).
+
 ## [3.1.3] — 2026-06-03
 
 **PATCH** — Universal template-use enforcement for HTML-rendering
