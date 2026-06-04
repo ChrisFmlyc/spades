@@ -1,7 +1,7 @@
 ---
 name: intent
 description: Create or maintain INTENT.md, the project's durable statement of intent — the problem it solves, who it serves, what it does, what success looks like, and its non-goals. Use when someone says "set up INTENT.md", "capture our project intent", "what is this project for", "update the intent doc", "review our non-goals", or when INTENT.md is missing, still an unfilled template, or flagged stale. The human composes the intent; this skill structures and probes but never authors it.
-version: 0.1.2
+version: 0.2.0
 ---
 
 # SPADES Intent
@@ -267,16 +267,40 @@ Write `./INTENT.md` only after the human has reviewed every section in play:
 - **Edit mode** — apply the confirmed changes and update `last_reviewed`.
   Preserve sections the human did not touch.
 
-Then confirm what changed, remind the human that `INTENT.md` is a living
-document the SPADES loop reads, and suggest they commit it:
+**In HTML mode (`review_format: html`), also write a persistent
+`.spades-anywhere/intent.html` alongside `INTENT.md`.** Use the
+same template the transient preview uses
+(`${CLAUDE_PLUGIN_ROOT}/skills/intent/template.html`) with the
+same placeholder substitutions described under "Transient HTML
+preview" below — the only difference is the destination path and
+lifecycle:
 
-```bash
-git add INTENT.md
-git commit -m "Update project intent"
-```
+- `.spades-anywhere/intent.html` is **persistent** (saved
+  alongside `INTENT.md` in the chat-surface knowledge store the
+  human is using — Claude Project files, ChatGPT GPT files,
+  Gemini Gem references, Notion, wherever). It is the human's
+  steady-state view of the project's intent.
+- `.spades-anywhere/.tmp/intent.html` (covered below) is
+  **transient**. It exists only for the in-flight edit review
+  and is recreated each time `/spades-anywhere:intent` runs.
 
-There is no Linear step — `INTENT.md` is a committed root document, not a
-tracker artefact.
+Both files use the same template content; they just live in
+different places for different jobs. In CLI mode,
+`.spades-anywhere/intent.html` is NOT written — only `INTENT.md`
+exists.
+
+Principle landed: artefacts the AI reads stay Markdown
+(`INTENT.md`); artefacts the human views in HTML mode get a
+persistent HTML rendering. There is **no SCM** in spades-anywhere
+— no branch, no PR, no wait-for-merge gate. The framework just
+writes the file; the human saves both to their knowledge store
+on their own cadence.
+
+Then confirm what changed and remind the human that `INTENT.md`
+is a living document the SPADES loop reads.
+
+There is no Linear step — `INTENT.md` is the project's durable
+root document, not a tracker artefact.
 
 ### Transient HTML preview (HTML mode only)
 

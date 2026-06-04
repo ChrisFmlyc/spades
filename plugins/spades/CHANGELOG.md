@@ -8,6 +8,39 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.3.0] — 2026-06-04
+
+**MINOR** — `/spades:evaluate` promoted from consumer to producer
+in HTML mode. The verification plan + verdict now renders to a
+persistent `.spades/evaluations/<plan-id>-<YYYY-MM-DD>.html` using
+the new bundled `template.html` (B-style, gold palette, sidebar
+verdict pill, per-criterion rows, audit timeline). The Plan's
+audit-trail line remains the AI-readable source of truth; the new
+HTML is purely the human's rich view. CLI mode is unchanged.
+
+User principle landed (continuing PR #29's direction): artefacts
+the AI reads stay Markdown / audit-trail lines; artefacts the
+human views in HTML mode get a persistent HTML rendering.
+
+Files:
+
+- `skills/evaluate/template.html` — **NEW**. Mirrors the review
+  template's sidebar + verdict + structured-rows layout, adapted
+  for verification-plan data.
+- `skills/evaluate/SKILL.md` (→ 3.2.0) — rewrites the output
+  format section; inserts Step 5.5 (render HTML) between Step 5
+  and the worker fan-out; no precondition gate (evaluate runs
+  mid-flow on a feature branch).
+- `docs/FRAMEWORK.md` — adds `evaluate` to the producing-skills
+  list and clarifies it's a dual-role skill (consumes the Plan's
+  `.html` at Pre-Flight, produces the evaluation `.html` at
+  Step 5.5).
+
+Pairs with `spades-anywhere` v0.2.0 in the same PR — the same
+promotion happens there at Step 2.5 (writes
+`.spades-anywhere/evaluations/<plan-id>-<date>.html`, evaluator
+always `human`, no SCM).
+
 ## [3.2.0] — 2026-06-04
 
 **MINOR** — `/spades:learn` and `/spades:intent` now auto-ship

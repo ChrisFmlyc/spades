@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered work against a Plan's parent Scope acceptance criteria. Returns PASS / PARTIAL / FAIL. Human-only verdict — no test execution, no automated checks. Use after `/spades-anywhere:do` has marked a Plan as delivering and the human has done the work, when someone says "evaluate this", "check if this is done", "verify the work", or when a Plan is in status `delivering` or `evaluating`. If not PASS, this skill routes the work back to `/spades-anywhere:do` and the human keeps going.
-version: 0.1.1
+version: 0.2.0
 ---
 
 # /spades-anywhere:evaluate
@@ -24,11 +24,30 @@ Read `docs/FRAMEWORK.md` § Hierarchy, § Target Resolution, and
 ### Output format
 
 This skill honours `review_format:` from `.spades-anywhere/config`
-per `docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In HTML
-mode, auto-open the Plan's `.html` (and the parent Scope's
-`.html`) via the OPEN_CMD prelude at the start so the human can
-see what's being evaluated. In CLI mode, summarise inline. The
-verdict-walk and audit-trail writes are identical between modes.
+per `docs/FRAMEWORK.md § Output Format (CLI vs HTML)`.
+
+In CLI mode this skill is consumer-only: the verdict-walk happens
+inline in the conversation and the result lives as an audit-trail
+line on the Plan file.
+
+In HTML mode this skill is **also a producer**. Two things happen:
+
+1. The Plan's `.html` (and the parent Scope's `.html`) are
+   auto-opened at the Pre-Flight step so the human can see what
+   is being evaluated — same as today.
+2. After Step 2 picks an aggregated verdict, render the
+   per-criterion table + verdict via
+   `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html` and
+   write `.spades-anywhere/evaluations/<plan-id>-<YYYY-MM-DD>.html`,
+   then auto-open via OPEN_CMD. The audit-trail line on the Plan
+   is unchanged (still authoritative for the AI reader); the HTML
+   report is the **human's** rich view of the verdict.
+
+In `spades-anywhere`, the evaluator is **always the human** —
+there is no `delivery:` routing; render `{{spades.evaluator}}` as
+`human` in every report.
+
+CLI mode does NOT write any evaluation file.
 
 ## Pre-Flight
 
@@ -112,6 +131,69 @@ The human owns the final verdict. The aggregation above is a
 suggestion; the override lets the human pick a different verdict
 when context (frustration with the approach, schedule pressure,
 new information) trumps the mechanical aggregation.
+
+## Step 2.5 — Render the evaluation HTML (HTML mode only)
+
+When `review_format: html` (read from `.spades-anywhere/config`),
+produce a persistent evaluation report after the verdict is
+picked.
+
+**You MUST render via the bundled `template.html`. Do NOT
+hand-roll the HTML.** Validate the template exists and the named
+blocks below match the markers in the actual file before
+substituting; abort and surface any mismatch. See
+`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
+use the bundled template` for the canonical rule.
+
+1. **Read the template** at
+   `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html`.
+2. **Validate** it contains:
+   - `<!-- SPADES-BLOCK:verification-rows -->`
+   - `<!-- SPADES-BLOCK:audit-events -->`
+
+   Abort if either is missing.
+3. **Substitute placeholders:**
+   - `{{spades.plan_id}}`, `{{spades.plan_title}}`,
+     `{{spades.scope_id}}`, `{{spades.scope_title}}`,
+     `{{spades.evaluated}}` (today's date),
+     `{{spades.evaluator}}` (**always** `human` in
+     spades-anywhere),
+     `{{spades.plugin_version}}`,
+     `{{spades.verdict}}` (`PASS` / `PARTIAL` / `FAIL`),
+     `{{spades.verdict_class}}` (`pass` / `partial` / `fail`),
+     `{{spades.verdict_summary_html}}` (the human's free-form
+     rationale, or a default of "All N criteria met." for
+     PASS).
+   - `<!-- SPADES-BLOCK:verification-rows -->` — one row per
+     acceptance criterion from the Scope. Per-item:
+     `{{block.criterion}}` (criterion text from Scope),
+     `{{block.method}}` (`Human check` — there is no automated
+     verification in spades-anywhere),
+     `{{block.verdict}}` (`PASS` / `FAIL` / `PARTIAL` from the
+     human's *met / partial / not met* choice; `NA` if deferred),
+     `{{block.verdict_class}}` (`pass` / `fail` / `partial` /
+     `na`),
+     `{{block.notes}}` (the one-line note the human captured).
+   - `<!-- SPADES-BLOCK:audit-events -->` — one per audit-trail
+     entry on the Plan whose `desc` contains `Evaluation` (the
+     per-criterion verdicts and the final aggregate), in
+     chronological order. Per-item: `{{block.date}}`,
+     `{{block.desc}}`.
+4. **Write** to
+   `.spades-anywhere/evaluations/<plan_id_lower>-<YYYY-MM-DD>.html`
+   (creating `.spades-anywhere/evaluations/` if missing).
+5. **Auto-open** via the OPEN_CMD prelude. Print the file path
+   with "open this in your browser" if `OPEN_CMD` is empty.
+
+There is **no SCM in spades-anywhere** — no branch, no PR, no
+wait-for-merge gate. The human saves the HTML to their
+chat-surface knowledge store (Claude Project files, ChatGPT GPT
+files, Gemini Gem references, Notion, wherever) on their own
+cadence. The framework just writes the file; persistence beyond
+that is the human's call.
+
+In CLI mode this step is skipped entirely; the Plan's
+audit-trail line is the only output as today.
 
 ## Step 3 — Write the verdict (fan-out dispatch)
 
