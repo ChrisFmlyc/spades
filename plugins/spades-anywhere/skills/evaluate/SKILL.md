@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered work against a Plan's parent Scope acceptance criteria. Returns PASS / PARTIAL / FAIL. Human-only verdict — no test execution, no automated checks. Use after `/spades-anywhere:do` has marked a Plan as delivering and the human has done the work, when someone says "evaluate this", "check if this is done", "verify the work", or when a Plan is in status `delivering` or `evaluating`. If not PASS, this skill routes the work back to `/spades-anywhere:do` and the human keeps going.
-version: 0.2.0
+version: 0.3.0
 ---
 
 # /spades-anywhere:evaluate
@@ -166,14 +166,23 @@ use the bundled template` for the canonical rule.
      PASS).
    - `<!-- SPADES-BLOCK:verification-rows -->` — one row per
      acceptance criterion from the Scope. Per-item:
-     `{{block.criterion}}` (criterion text from Scope),
-     `{{block.method}}` (`Human check` — there is no automated
-     verification in spades-anywhere),
-     `{{block.verdict}}` (`PASS` / `FAIL` / `PARTIAL` from the
-     human's *met / partial / not met* choice; `NA` if deferred),
-     `{{block.verdict_class}}` (`pass` / `fail` / `partial` /
-     `na`),
-     `{{block.notes}}` (the one-line note the human captured).
+     - `{{block.criterion}}` — criterion text from the Scope.
+     - `{{block.verifier}}` — display label for who/what checked
+       the row. In `spades-anywhere` this is **always `Human`** —
+       there is no AI / test / lint verification in a chat-surface
+       context. (The chip is still rendered so the human's report
+       reads consistently with the coding plugin and shows the
+       gold "Human" chip per the org branding.)
+     - `{{block.verifier_class}}` — always `human`.
+     - `{{block.method}}` — the concrete method (`Eyes-on`,
+       `Asked guest for feedback`, `Compared to photo brief`,
+       etc.). Free-form; keep short.
+     - `{{block.verdict}}` — `PASS` / `FAIL` / `PARTIAL` from
+       the human's *met / partial / not met* choice; `NA` if
+       deferred.
+     - `{{block.verdict_class}}` — `pass` / `fail` / `partial` /
+       `na`.
+     - `{{block.notes}}` — the one-line note the human captured.
    - `<!-- SPADES-BLOCK:audit-events -->` — one per audit-trail
      entry on the Plan whose `desc` contains `Evaluation` (the
      per-criterion verdicts and the final aggregate), in
