@@ -19,11 +19,14 @@ below mirror those contracts.
 ### Output format
 
 This skill honours `review_format:` from `.spades/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In CLI mode, write
-the Plan as `.spades/plans/P-<…>.md`. In HTML mode, render via the
-sibling `${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html` (includes
-the expandable task-card pattern) and write `.spades/plans/P-<…>.html`,
-then auto-open. Same flow; format swap only.
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML) → Universal
+rule`. In **both** modes, write `.spades/plans/P-<…>.md` — this
+is the AI-readable source of truth. In HTML mode,
+**additionally** render via the sibling
+`${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html` (includes the
+expandable task-card pattern) and write `.spades/plans/P-<…>.html`
+for the human's view, then auto-open. HTML mode is additive —
+the `.md` always exists; the `.html` is added in HTML mode.
 
 **HTML mode is review-via-file, not review-via-CLI.** Do NOT paste
 the Plan body (tasks, technical approach, risks, etc.) to the CLI
@@ -188,7 +191,7 @@ risks, etc.) to the CLI for human approval before this step writes
 the file in HTML mode**. The file IS the review surface in HTML mode
 (see § Output format above).
 
-### Step 5.A — CLI mode (`review_format: cli`)
+### Step 5.A — Write the canonical `.md` (both modes)
 
 Write `.spades/plans/<filename>.md` with this exact frontmatter:
 
@@ -259,7 +262,12 @@ linear_issue_id: <id>                            # only when backend: linear
      /spades:ship. Do not edit by hand. -->
 ```
 
-### Step 5.B — HTML mode (`review_format: html`)
+### Step 5.B — Additionally render the HTML (HTML mode only)
+
+When `review_format: html`, after the `.md` in Step 5.A is
+written, render the HTML companion file. The `.md` is unchanged;
+the `.html` is **additive**.
+
 
 **You MUST render via the bundled `template.html`. Do NOT
 hand-roll the HTML.** Validate the template exists and the named
@@ -314,7 +322,7 @@ use the bundled template` for the canonical rule.
    ```
    If `OPEN_CMD` is empty (unknown OS), print the file path with a
    "open this in your browser" message. Never crash.
-6. Do NOT also write a `.md`. The HTML is canonical in HTML mode.
+6. The `.md` from Step 5.A is unchanged — both files coexist.
 
 ## Step 6 — Fan-out: scope-audit update + backend mirror
 

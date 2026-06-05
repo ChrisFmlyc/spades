@@ -52,16 +52,24 @@ but the review report itself always lands locally at
 
 ### Output format
 
-This skill honours `review_format:` from `.spades-anywhere/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In CLI mode, write
-the tiered report to `.spades-anywhere/reviews/<target>-<date>.md` and also
-print the inline summary to the terminal (today's behaviour). In
-HTML mode, render via the sibling
+This skill honours `review_format:` from
+`.spades-anywhere/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML) → Universal
+rule`. In **both** modes, write the tiered report to
+`.spades-anywhere/reviews/<target>-<date>.md` — this is the
+AI-readable source of truth and the canonical record. In **CLI
+mode** the inline panel digest also prints to the terminal (the
+human's only review surface). In **HTML mode**, *instead* of
+printing the digest, render via the sibling
 `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html` — sidebar
-verdict roll-up, persona-card grid, and severity-tab findings — and
-write `.spades-anywhere/reviews/<target>-<date>.html`, then auto-open. The
-four-persona panel dispatch and merge logic are identical between
-modes; only the final report's format changes.
+verdict roll-up, persona-card grid, and severity-tab findings —
+and write `.spades-anywhere/reviews/<target>-<date>.html` for
+the human's view, then auto-open. The four-persona panel
+dispatch and merge logic are identical between modes; HTML mode
+is additive on the file system (the `.md` always exists; the
+`.html` is added) and strictly alternative on the human's
+review surface (digest in the terminal OR digest rendered in
+the browser, never both).
 
 You are coordinating an independent multi-persona review of SPADES work.
 The value of a panel review comes from **genuine independence across
@@ -637,7 +645,7 @@ report to a file under `.spades-anywhere/reviews/`. **Read `review_format:`
 from `.spades-anywhere/config` and branch on the format.** The review MUST
 write a file before the inline digest is printed.
 
-#### CLI mode (`review_format: cli`)
+#### Write the canonical `.md` (both modes)
 
 - **Path:** `.spades-anywhere/reviews/<slug>-<date>.md`. `<slug>` is the reviewed
   Scope or Plan's tracker identifier lower-cased (e.g. `s-add-ai-helper-bot`), or a
@@ -648,7 +656,12 @@ write a file before the inline digest is printed.
   `<slug>-<date>-2.md`, then `-3`, and so on. Never overwrite an
   existing review file; each run is its own audit record.
 
-#### HTML mode (`review_format: html`)
+#### Additionally render the HTML (HTML mode only)
+
+When `review_format: html`, after the `.md` above is written,
+render the HTML companion file. The `.md` is unchanged; the
+`.html` is **additive**.
+
 
 **You MUST render via the bundled `template.html`. Do NOT
 hand-roll the HTML.** Validate the template exists and the named
@@ -687,10 +700,14 @@ use the bundled template` for the canonical rule.
   rules. Collision rule applies identically: `<slug>-<date>-2.html`,
   `-3`, etc.
 - Auto-open via the OPEN_CMD prelude
-  (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). The inline CLI
-  digest still prints regardless — HTML mode adds the open, it does
-  not suppress the digest.
-- Do NOT also write a `.md`.
+  (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). **In HTML
+  mode, do NOT print the inline CLI digest** — the open `.html`
+  is the human's review surface. The terminal in HTML mode gets
+  only the short `✓ Review written: <path>` confirmation +
+  any conversational text. The full digest lives in the `.html`
+  (and the same content is in the `.md` for the AI / fallback
+  reading via `cat`).
+- The `.md` from the previous sub-step is unchanged — both files coexist.
 - **Contents:** the banner, the envelope, the section title, every
   persona's prose summary verbatim, **every** merged finding at every
   severity shown in full (the file is not tiered — it is the complete
@@ -698,11 +715,15 @@ use the bundled template` for the canonical rule.
 - `.spades-anywhere/reviews/` is gitignored by default; the review file is a
   local audit artefact, not committed output.
 
-Create `.spades-anywhere/reviews/` lazily on the first write; do not pre-create
-it. The inline report's `Full report:` pointer names the file just
-written. If the write fails, say so plainly inline
-(`Full report: write failed — <reason>`) and continue — a failed
-persistence write never aborts the review; the inline digest stands.
+Create `.spades-anywhere/reviews/` lazily on the first write;
+do not pre-create it. The inline report's `Full report:`
+pointer names the file just written. If the write fails, say so
+plainly inline (`Full report: write failed — <reason>`) and
+continue — a failed persistence write never aborts the review.
+**Failure fallback**: if the `.md` and / or `.html` write
+failed in HTML mode, the digest *is* printed to CLI as a
+backup so the human still sees the panel output. In CLI mode
+this is moot — the digest is the primary display already.
 
 ## Cross-Model Synthesis
 

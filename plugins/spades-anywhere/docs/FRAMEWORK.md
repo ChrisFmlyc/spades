@@ -654,25 +654,93 @@ reference it.
 ## Output Format (CLI vs HTML)
 
 `/spades-anywhere:setup` Step 1.7 records `review_format:` in
-`.spades-anywhere/config` — one of `cli` (default) or `html`. The value
-controls the *format* of artefacts written to `.spades-anywhere/` and the
-*medium* of presentation when a skill would otherwise paste a large
-block to the CLI. The skill flows, prompts, and decisions don't
-change between modes; only the format and presentation do.
+`.spades-anywhere/config` — one of `cli` (default) or `html`.
+The value controls *whether* an HTML companion file is written
+alongside the canonical Markdown, and the *medium* of
+presentation when a skill would otherwise paste a large block
+to the CLI. The skill flows, prompts, and decisions don't
+change between modes.
+
+### Universal rule — `.md` always, `.html` additive in HTML mode
+
+**Every producing skill writes its canonical `.md` in BOTH
+modes.** The `.md` is the AI-readable source of truth — the AI,
+sub-agents, and any other tool reading the knowledge store all
+consume the `.md`. The `.md` lives at the artefact's canonical
+path in `.spades-anywhere/<dir>/<id>.md` (or the repo-root path
+for project docs: `INTENT.md`, `ARCHITECTURE.md`, `PATTERNS.md`,
+`ANTI-PATTERNS.md`).
+
+**In HTML mode, the skill ADDITIONALLY writes an `.html`
+companion alongside the `.md`** — same data, rendered through
+the skill's bundled `template.html` for the human's view, then
+auto-opened via `OPEN_CMD`. The `.html` is purely a human-view
+enrichment; it never replaces the `.md`.
+
+This is the load-bearing rule:
+
+- **CLI mode** = `.md` is the only file. Skill body summarises
+  inline to the terminal where the skill prose already does
+  that.
+- **HTML mode** = `.md` PLUS `.html`. Both files coexist. The
+  human reviews the `.html`; the AI continues to read the
+  `.md`.
+
+Strip `.html` out of HTML mode and you have CLI mode. Add
+`.html` to CLI mode and you have HTML mode. HTML is a strict
+superset of CLI.
+
+There is no "format swap" — that pattern existed in earlier
+versions and has been removed. Any skill prose still mentioning
+"format swap only" or "do NOT also write a `.md`" is stale and
+should be fixed.
+
+#### What about evaluate's two-page HTML output?
+
+`/spades-anywhere:evaluate` is a special case in two respects:
+
+1. It does NOT write a per-evaluation `.md` — the verdict lives
+   only as an audit-trail line on the Plan's existing `.md`.
+   That audit line is the AI-readable source of truth.
+2. In HTML mode it writes **two** `.html` files
+   (`<plan>-<date>-plan.html` at Pre-Flight Step 5 and
+   `-report.html` at Step 2.5) — the verification plan + the
+   completed evaluation report.
+
+The universal rule still applies in spirit: the AI's source of
+truth lives in the `.md` (the Plan's audit trail); HTML mode
+adds human-viewable `.html` artefacts on top. CLI mode just
+omits the `.html`s.
+
+#### What about cross-cutting transient views (status, list)?
+
+`/spades-anywhere:status` and `/spades-anywhere:list` don't
+produce persistent artefacts — they render a current-state view
+from existing artefacts. In CLI mode they print to the
+terminal; in HTML mode they additionally write
+`.spades-anywhere/.tmp/<view>.html` (gitignored, regenerated
+each call) and auto-open it. The terminal output still appears
+for short status text in both modes.
 
 ### Producing skills — `cli` vs `html` write
 
-Producing skills are `/spades-anywhere:newproject`, `/spades-anywhere:scope`,
-`/spades-anywhere:plan`, `/spades-anywhere:learn`, `/spades-anywhere:review`. Each writes an
-artefact at the end of its flow.
+Producing skills are `/spades-anywhere:newproject`,
+`/spades-anywhere:scope`, `/spades-anywhere:plan`,
+`/spades-anywhere:learn`, `/spades-anywhere:review`,
+`/spades-anywhere:intent`, `/spades-anywhere:architecture`,
+`/spades-anywhere:patterns`, `/spades-anywhere:anti-patterns`.
+Each writes an artefact at the end of its flow.
 
-- **`review_format: cli`** — write a Markdown `.md` file under
-  `.spades-anywhere/<dir>/<id>.md` exactly as in v2 (today's behaviour).
-  Paste a summary to the terminal where the skill body already
-  does that.
-- **`review_format: html`** — write an HTML `.html` file under
-  `.spades-anywhere/<dir>/<id>.html` using the producing skill's sibling
-  `template.html` resource (located at
+- **`review_format: cli`** — write the canonical `.md` under
+  `.spades-anywhere/<dir>/<id>.md` (or repo root for project
+  docs). Paste a summary to the terminal where the skill body
+  already does that. No HTML written.
+- **`review_format: html`** — write the canonical `.md` exactly
+  as in CLI mode, AND ADDITIONALLY write `.html` companion at
+  `.spades-anywhere/<dir>/<id>.html` (or
+  `.spades-anywhere/<name>.html` for project docs alongside
+  their `<NAME>.md`) using the skill's sibling `template.html`
+  resource (located at
   `${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/template.html`).
   Render by:
   1. Reading the sibling template file end-to-end.

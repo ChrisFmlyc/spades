@@ -16,13 +16,15 @@ running. The Project frontmatter schema below mirrors that contract.
 ### Output format
 
 This skill honours `review_format:` from `.spades/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In CLI mode, write
-the Project record as `.spades/projects/<slug>.md` (today's
-behaviour). In HTML mode, render via the sibling
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML) → Universal
+rule`. In **both** modes, write the Project record as
+`.spades/projects/<slug>.md` — this is the AI-readable source
+of truth and the canonical record. In HTML mode,
+**additionally** render via the sibling
 `${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html` and write
-`.spades/projects/<slug>.html`, then auto-open via the OPEN_CMD
-prelude. The skill flow itself is identical between modes; only the
-artefact format and the post-write presentation change.
+`.spades/projects/<slug>.html` for the human's view, then
+auto-open via the OPEN_CMD prelude. HTML mode is additive — the
+`.md` always exists; the `.html` is added in HTML mode.
 
 **HTML mode is review-via-file, not review-via-CLI.** Do NOT paste
 the Project record body to the CLI for the human's approval before
@@ -95,7 +97,7 @@ mode (see § Output format above).
 
 ### When `backend: local`
 
-#### Step 3.A — CLI mode (`review_format: cli`)
+#### Step 3.A — Write the canonical `.md` (both modes)
 
 Write `.spades/projects/<slug>.md` with this exact shape:
 
@@ -133,7 +135,11 @@ updated: YYYY-MM-DD
 <!-- /spades:list will populate this on demand; do not maintain by hand -->
 ```
 
-#### Step 3.B — HTML mode (`review_format: html`)
+#### Step 3.B — Additionally render the HTML (HTML mode only)
+
+When `review_format: html`, after the `.md` in Step 3.A is
+written, render the HTML companion file. The `.md` is unchanged;
+the `.html` is **additive**.
 
 **You MUST render via the bundled `template.html`. Do NOT
 hand-roll the HTML.** Validate the template exists and the named
@@ -172,7 +178,7 @@ use the bundled template` for the canonical rule.
 5. **Auto-open** via the OPEN_CMD prelude
    (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the file
    path with "open this in your browser" if `OPEN_CMD` is empty.
-6. Do NOT also write a `.md`.
+6. The `.md` from Step 3.A is unchanged — both files coexist.
 
 ### When `backend: linear` — fan-out dispatch
 

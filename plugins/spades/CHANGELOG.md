@@ -8,6 +8,81 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.7.0] — 2026-06-05
+
+**MINOR** — Universal additive HTML rule. Every producing skill
+now writes the canonical `.md` in **both** modes; in HTML mode
+it ADDITIONALLY writes the `.html` companion. CLI mode = `.md`
+only; HTML mode = `.md` + `.html` coexisting. Strip the `.html`
+out of HTML mode and you have CLI mode.
+
+User context:
+
+> *html mode is basically an alternative that also generates a
+> html file...because its easier for a human to read. For ai
+> files, agents, patterns, architecture etc...they should also
+> generate a human read html file...but remember, they're there
+> for the ai...so md is a must. In all cases, cli mode is just
+> the html alternative — if its cli mode you just replace html
+> with md/cli the whole way through.*
+
+Fixes a real inconsistency: scope / plan / learn / review /
+newproject used to **swap** extensions (CLI = `.md` only;
+HTML = `.html` only). That meant in HTML mode the `.md` didn't
+exist on disk — so the AI, other harnesses (Cursor, Codex,
+Aider, Cline), and the GitHub web UI all lost the readable
+markdown form. Project docs (intent / architecture / patterns /
+anti-patterns) were already additive; evaluate was already
+correct in its own way. This PR makes the rule universal.
+
+### Skills changed
+
+| Skill | Before | After |
+|-------|--------|-------|
+| `scope` | CLI=`.md`; HTML=`.html` only | `.md` always; HTML mode also writes `.html` |
+| `plan` | same | same |
+| `learn` | same | same |
+| `review` | CLI=`.md`+terminal digest; HTML=`.html`+terminal digest (double-render) | `.md` always; HTML mode adds `.html` and **suppresses** the CLI digest (HTML is the only surface; `.md` is the fallback if HTML doesn't display); CLI mode unchanged |
+| `newproject` | CLI=`.md`; HTML=`.html` only | `.md` always; HTML mode also writes `.html` |
+
+In each SKILL.md:
+
+- "Output format" section rewritten: `In both modes write .md;
+  in HTML mode additionally write .html`. The "format swap only"
+  language removed.
+- The CLI-vs-HTML mode branch in the Write step renamed to
+  "Write the canonical `.md` (both modes)" + "Additionally
+  render the HTML (HTML mode only)" — both modes now go through
+  the `.md` write; HTML mode just adds the second step.
+- The `Do NOT also write a .md. The HTML is canonical in HTML
+  mode` line removed and replaced with `The .md is unchanged —
+  both files coexist`.
+
+The `review` skill additionally drops its previous
+"digest still prints regardless" carve-out: in HTML mode the
+panel digest is now suppressed (the `.html` is the human's
+review surface, and the `.md` is the fallback). The digest
+*does* print as a backup if the `.md` / `.html` write fails —
+so the human never misses the panel output, but they don't see
+it duplicated in successful runs either.
+
+### `docs/FRAMEWORK.md`
+
+New canonical **"Universal rule — `.md` always, `.html` additive
+in HTML mode"** sub-section under `## Output Format (CLI vs
+HTML)`. Spelled out load-bearing-ly: HTML is a strict superset
+of CLI. Covers the two special cases (evaluate's two-page split,
+status/list's transient views) so the rule's apparent
+exceptions are documented inline.
+
+The `### Producing skills — cli vs html write` sub-section
+expanded to include the four project-doc skills (intent /
+architecture / patterns / anti-patterns) and updated to reflect
+that HTML mode is additive, not swap.
+
+Pairs with `spades-anywhere` v0.6.0 in the same PR (same fix,
+same skills + the spades-anywhere FRAMEWORK rule).
+
 ## [3.6.0] — 2026-06-05
 
 **MINOR** — Promotes the three project-level docs that have lived

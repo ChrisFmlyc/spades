@@ -7,6 +7,22 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the plugin
 version via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
+## [0.6.0] — 2026-06-05
+
+**MINOR** — Mirror of `spades` v3.7.0's universal additive HTML
+rule. CLI mode = `.md` only; HTML mode = `.md` + `.html`
+coexisting. HTML is a strict superset of CLI.
+
+Five swap-pattern skills converted to additive in this plugin:
+`scope`, `plan`, `learn`, `review`, `newproject`. Each SKILL.md's
+"Output format" section rewritten; "format swap only" language
+removed; the `Do NOT also write a .md` instruction removed and
+replaced with `both files coexist`.
+
+`docs/FRAMEWORK.md` grows the canonical **"Universal rule"**
+sub-section under `## Output Format (CLI vs HTML)`, mirroring
+the coding plugin's wording (with `.spades-anywhere/` paths).
+
 ## [0.5.0] — 2026-06-05
 
 **MINOR** — Mirror of `spades` 3.6.0. Three new facilitator
