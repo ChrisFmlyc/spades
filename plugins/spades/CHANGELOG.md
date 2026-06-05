@@ -8,6 +8,86 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.6.0] — 2026-06-05
+
+**MINOR** — Promotes the three project-level docs that have lived
+as setup-time scaffolds into first-class facilitator skills,
+peers of `/spades:intent`. Setup now asks per-file whether to
+create, scaffold, or skip each — only prompting for docs that are
+incomplete. AGENTS.md marker block grows an explicit
+"Operating Principles — Agile, four pillars" section
+(Collaborate · Deliver · Reflect · Improve) tied to the skill
+map.
+
+User context (paraphrased):
+
+> *create skill for the other md files, which during setup
+> should ask if you want to create each or skip... rerunning
+> them should read the current state/docs and update, not write
+> from scratch... very keen on focusing on agile: collaborate,
+> deliver, reflect, improve.*
+
+### Three new skills (all v1.0.0)
+
+| Skill | Owns | Sections (locked schema) |
+|-------|------|--------------------------|
+| `/spades:architecture` | `ARCHITECTURE.md` — how the system is built | Overview · Tech Stack · Components · Data Flow · Security Posture · Operational Posture |
+| `/spades:patterns` | `PATTERNS.md` — approved conventions | Code Organisation · Error Handling · Testing · Naming |
+| `/spades:anti-patterns` | `ANTI-PATTERNS.md` — explicit prohibitions | Runtime Dependencies · Hidden State · Premature Abstraction · Other Bans |
+
+Each:
+
+- Mirrors `/spades:intent`'s Socratic facilitator shape:
+  "facilitate, never author"; Create vs Edit mode detection;
+  read existing file and update; `last_reviewed` field.
+- Bundles a B-style `template.html` (gold palette, black text on
+  white panels). Anti-patterns gets a red left-rail per section
+  to distinguish prohibitions visually.
+- Writes a persistent `.spades/<name>.html` in HTML mode
+  alongside the `.md`, plus a transient `.spades/.tmp/<name>.html`
+  preview during the edit flow. `.md` is the AI-readable source
+  of truth; `.html` is the human's view.
+
+### `/spades:setup` Step 7 — unified per-file ask
+
+Replaces the old "Step 7 — Scaffold ARCHITECTURE.md /
+PATTERNS.md / ANTI-PATTERNS.md" + "Step 8 — Optional: scaffold
+INTENT.md" with a single Step 7 that:
+
+- Detects per-file state (missing / scaffolded-but-unfilled /
+  complete).
+- Skips silently if complete.
+- Otherwise asks per file via AskUserQuestion: *Create now*
+  (invokes the relevant skill inline) / *Scaffold empty
+  template* / *Skip*.
+
+Re-runnable and idempotent — re-running setup later only prompts
+for docs that are still incomplete.
+
+### AGENTS.md — Operating Principles section
+
+New "Operating Principles — Agile, four pillars" section in the
+marker block:
+
+1. **Collaborate** — Scope / Plan / Approve / Review.
+2. **Deliver** — Do / Ship / Quick.
+3. **Reflect** — Evaluate / Status.
+4. **Improve** — Learn / Intent · Architecture · Patterns ·
+   Anti-Patterns refresh.
+
+The skill table grows from 16 → 19 entries.
+
+### `docs/FRAMEWORK.md`
+
+`architecture`, `patterns`, `anti-patterns` added to the
+producing-skills list.
+
+Pairs with `spades-anywhere` v0.5.0 in the same PR (same three
+skills with non-coding framing: architecture covers stages /
+stakeholders / cadence / tools / constraints; patterns covers
+process / communication / decisions / quality bar; anti-patterns
+covers process / communication / tools / other bans).
+
 ## [3.5.0] — 2026-06-05
 
 **MINOR** — Restructures `/spades:evaluate` HTML output into TWO

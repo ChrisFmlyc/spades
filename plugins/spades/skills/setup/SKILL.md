@@ -720,9 +720,44 @@ in this file and apply to **every** agent that reads this file —
 Claude Code, Cursor, Codex, Aider, or anything else that honours
 `AGENTS.md`.
 
+## Operating Principles — Agile, four pillars
+
+SPADES is an agile-by-design operating model. The whole loop, every
+skill, and every gate ladder back to four pillars. Hold these as the
+"why" behind any individual rule below.
+
+1. **Collaborate.** Humans and AI work in close-loop conversation.
+   Scope, Plan, and Approve are explicit collaboration gates — the
+   AI proposes structure; the human owns intent and acceptance.
+   `/spades:review` exists to broaden collaboration with multiple
+   perspectives (four reviewer personas) on demand.
+2. **Deliver.** Working output beats documentation about output.
+   Do and Ship close the loop with something real — code merged,
+   an artefact recorded, an action evidenced. Quick-path
+   (`/spades:quick`) exists so small work can deliver without
+   ceremony.
+3. **Reflect.** Evaluate is a real gate, not a rubber stamp.
+   PASS / PARTIAL / FAIL is captured with reasoning. Every Plan
+   produces an evaluation HTML the human can revisit. The next
+   pass starts with reflection on the last one.
+4. **Improve.** Learnings (`/spades:learn`) are first-class. INTENT,
+   ARCHITECTURE, PATTERNS, ANTI-PATTERNS all carry a
+   `last_reviewed` field and get refreshed when reality drifts.
+   Drift between docs and code is a signal to act, not paper
+   over.
+
+Skill mapping:
+
+| Pillar | Where it lives |
+|--------|----------------|
+| Collaborate | Scope, Plan, Approve, Review |
+| Deliver | Do, Ship, Quick |
+| Reflect | Evaluate, Status |
+| Improve | Learn, Intent / Architecture / Patterns / Anti-Patterns refresh |
+
 ## SPADES Skills (v2.0)
 
-The SPADES plugin (`spades`) provides these 16 skills:
+The SPADES plugin (`spades`) provides these 19 skills:
 
 | Skill | What it does |
 |-------|-------------|
@@ -741,7 +776,10 @@ The SPADES plugin (`spades`) provides these 16 skills:
 | `/spades:research` | Read-only research via an isolated Opus subagent |
 | `/spades:list` | List active scopes, filterable by phase |
 | `/spades:status` | Show current SPADES phase + dependency graph |
-| `/spades:intent` | Maintain `INTENT.md` — the durable project statement |
+| `/spades:intent` | Maintain `INTENT.md` — the durable project statement (why) |
+| `/spades:architecture` | Maintain `ARCHITECTURE.md` — how the system is built |
+| `/spades:patterns` | Maintain `PATTERNS.md` — approved conventions |
+| `/spades:anti-patterns` | Maintain `ANTI-PATTERNS.md` — explicit prohibitions |
 
 ## The SPADES Loop
 
@@ -916,89 +954,104 @@ shipment record. Work that cannot be traced through this chain must
 not ship.
 ```
 
-## Step 7 — Scaffold ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md
+## Step 7 — Project documentation (per-file ask)
 
-For each of these files at the repo root, create it if missing.
-**Never overwrite if it exists.** If the human wants the latest
-scaffolding inside an existing file, they can rename theirs aside and
-re-run setup.
+Four durable project-level docs live at the repo root, each owned by
+its own facilitator skill:
 
-### `ARCHITECTURE.md` (template content)
+| File | Skill | Owns |
+|------|-------|------|
+| `INTENT.md` | `/spades:intent` | Why the project exists, for whom, success, non-goals |
+| `ARCHITECTURE.md` | `/spades:architecture` | How the system is built (tech stack, components, data flow, security, ops) |
+| `PATTERNS.md` | `/spades:patterns` | Approved conventions (code organisation, error handling, testing, naming) |
+| `ANTI-PATTERNS.md` | `/spades:anti-patterns` | Explicit prohibitions ("we don't do X") |
 
-```markdown
-# Architecture
+For each file, in the order above:
 
-<!-- Describe the system at a high level. What are the major components,
-how do they talk to each other, what runs where? -->
+### 7.A — Detect current state
 
-## Overview
-<!-- 2-3 paragraphs of context. What does this system do? -->
+Read the file at the repo root and classify it as one of:
 
-## Tech Stack
-<!-- Languages, frameworks, databases, infra primitives. -->
+1. **Missing** — the file does not exist on disk.
+2. **Scaffolded but unfilled** — the file exists but contains
+   two or more `<!-- Describe … -->` / `<!-- List … -->` /
+   placeholder comment markers. The template was scaffolded
+   previously but no human has filled it in.
+3. **Complete** — the file exists and the placeholder markers
+   have largely been replaced with real content (fewer than two
+   placeholder markers).
 
-## Data Flow
-<!-- How information moves through the system. -->
+### 7.B — Skip if complete
 
-## Security Requirements
-<!-- Auth, secrets, data classification, compliance constraints. -->
+If the file is **Complete**, do nothing. Don't prompt; don't
+re-scaffold; don't invoke the facilitator skill. The human has
+already done the work. (They can always re-invoke the relevant
+skill directly when they want to refresh.)
 
-## Operational Posture
-<!-- Hosting, deployment, monitoring, incident response. -->
-```
+Print a one-line confirmation: `✓ INTENT.md complete (last
+reviewed YYYY-MM-DD).`
 
-### `PATTERNS.md` (template content)
+### 7.C — Otherwise, ask per file via AskUserQuestion
 
-```markdown
-# Patterns
+For each Missing / Scaffolded-but-unfilled file, ask via
+`AskUserQuestion`:
 
-<!-- Approved patterns and conventions this codebase uses. Reference
-these in Plans so reviewers can compare proposals against them. -->
+> *<filename> — how would you like to handle this?*
+>
+> - **Create / complete now** (recommended for the first run)
+>   — invokes the relevant skill inline (`/spades:intent`,
+>   `/spades:architecture`, `/spades:patterns`,
+>   `/spades:anti-patterns`). The skill walks the human through
+>   the sections via its facilitate-never-author flow. After the
+>   skill returns, this Step 7 loop continues to the next file.
+> - **Scaffold an empty template** — write the scaffolded
+>   markdown (the same template the facilitator skill would
+>   produce in "start blank" mode) so the human can fill it in
+>   later. Doesn't invoke the skill; doesn't ask any content
+>   questions. Useful when the human wants the docs to exist as
+>   structure but isn't ready to fill them in right now.
+> - **Skip** — write nothing. The file stays missing. The
+>   facilitator skill can still be invoked later, and other SPADES
+>   skills (`/spades:plan`, `/spades:review`) will surface
+>   gentle nudges when they notice the file is absent.
 
-## Code organisation
-<!-- e.g. "feature-folders, not layers" -->
+### 7.D — Template content for the "Scaffold empty" branch
 
-## Error handling
-<!-- e.g. "Result<T,E> for fallible operations; never throw across
-boundaries" -->
+When the human picks **Scaffold an empty template**, write
+exactly the inline template the relevant SKILL.md documents
+under its "Inline ... Template" section. Don't fabricate
+alternative content here; the SKILL.md is the source of truth
+for the scaffolded shape.
 
-## Testing
-<!-- e.g. "test-first for new features; characterization-first for
-changes to untested code" -->
+The skills handle their own scaffolding when invoked at "start
+blank" — Step 7 only needs to reproduce that scaffold without
+invoking the skill. Read each SKILL.md's template section and
+write its content verbatim:
 
-## Naming
-<!-- conventions for files, functions, types -->
-```
+- `INTENT.md` → see `/spades:intent` § "Inline INTENT.md Template"
+- `ARCHITECTURE.md` → see `/spades:architecture` § "Inline
+  ARCHITECTURE.md Template"
+- `PATTERNS.md` → see `/spades:patterns` § "Inline PATTERNS.md
+  Template"
+- `ANTI-PATTERNS.md` → see `/spades:anti-patterns` § "Inline
+  ANTI-PATTERNS.md Template"
 
-### `ANTI-PATTERNS.md` (template content)
+Set `last_reviewed: <today>` in the frontmatter so the staleness
+detector doesn't immediately flag the scaffold.
 
-```markdown
-# Anti-Patterns
+### 7.E — Re-run safety
 
-<!-- Things this codebase deliberately avoids. The Plan must not
-introduce any of these. -->
+If the human re-runs `/spades:setup` later, Step 7 re-classifies
+each file:
 
-## Runtime dependencies
-<!-- e.g. "No runtime dependency on PyYAML; stdlib-only Markdown lint" -->
+- A previously **Scaffolded but unfilled** file that's now
+  **Complete** is skipped silently.
+- A previously **Complete** file stays skipped — no churn.
+- A file that the human chose to **Skip** earlier (and is still
+  missing) gets asked again.
 
-## Hidden state
-<!-- e.g. "No singletons; thread the dependency explicitly" -->
-
-## Premature abstraction
-<!-- e.g. "Three similar lines are fine; don't extract until N=4" -->
-```
-
-## Step 8 — Optional: scaffold INTENT.md
-
-If `INTENT.md` is missing at the repo root, ask the human (via
-`AskUserQuestion`) whether to scaffold it now:
-
-- **Yes, scaffold now** — invokes `/spades:intent` inline.
-- **Skip for now** — leave it.
-
-INTENT.md is the project's durable statement of intent (problem,
-users, what-it-does, success, non-goals, maturity). It's distinct
-from `ARCHITECTURE.md`, which is *how*; INTENT is *why*.
+This means re-running setup is safe and idempotent: the human
+gets prompted only for the docs that are still incomplete.
 
 ## Step 9 — Confirm and summarise
 

@@ -7,6 +7,46 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the plugin
 version via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
+## [0.5.0] — 2026-06-05
+
+**MINOR** — Mirror of `spades` 3.6.0. Three new facilitator
+skills for the project-level docs, plus a unified setup
+per-file ask, plus the agile "Operating Principles" section in
+the AGENTS.md marker block.
+
+### Three new skills (all v1.0.0)
+
+| Skill | Owns | Sections (locked schema, non-coding framing) |
+|-------|------|----------------------------------------------|
+| `/spades-anywhere:architecture` | `ARCHITECTURE.md` — how the work is structured | Overview · Stages · Stakeholders · Cadence · Tools & Resources · Constraints |
+| `/spades-anywhere:patterns` | `PATTERNS.md` — approved process conventions | Process Conventions · Communication · Decision Making · Quality Bar |
+| `/spades-anywhere:anti-patterns` | `ANTI-PATTERNS.md` — explicit prohibitions | Process · Communication · Tools & Resources · Other Bans |
+
+Each mirrors `/spades-anywhere:intent`'s Socratic facilitator
+shape: "facilitate, never author"; Create vs Edit mode
+detection; read existing file and update; `last_reviewed`
+field; persistent `.spades-anywhere/<name>.html` in HTML mode.
+
+### `/spades-anywhere:setup` Step 7 — unified per-file ask
+
+Replaces the old optional INTENT-only scaffold with a Step 7
+that asks per file (Create / Scaffold / Skip) for all four
+project docs. Only prompts for incomplete docs; re-runnable and
+idempotent.
+
+### AGENTS.md — Operating Principles
+
+New "Operating Principles — Agile, four pillars" section
+(Collaborate · Deliver · Reflect · Improve) tied to the skill
+map. Skills table updated to 17 entries (16 → 19 in coding
+plugin terms minus the two `spades-anywhere`-missing skills
+`close` and `quick`).
+
+### `docs/FRAMEWORK.md`
+
+`architecture`, `patterns`, `anti-patterns` added to the
+producing-skills list.
+
 ## [0.4.0] — 2026-06-05
 
 **MINOR** — Mirror of `spades` 3.5.0's two-page evaluate
