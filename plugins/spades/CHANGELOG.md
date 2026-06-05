@@ -42,7 +42,7 @@ correct in its own way. This PR makes the rule universal.
 | `scope` | CLI=`.md`; HTML=`.html` only | `.md` always; HTML mode also writes `.html` |
 | `plan` | same | same |
 | `learn` | same | same |
-| `review` | CLI=`.md`+terminal; HTML=`.html` only | `.md` always; HTML mode also writes `.html`; terminal digest unchanged |
+| `review` | CLI=`.md`+terminal digest; HTML=`.html`+terminal digest (double-render) | `.md` always; HTML mode adds `.html` and **suppresses** the CLI digest (HTML is the only surface; `.md` is the fallback if HTML doesn't display); CLI mode unchanged |
 | `newproject` | CLI=`.md`; HTML=`.html` only | `.md` always; HTML mode also writes `.html` |
 
 In each SKILL.md:
@@ -57,6 +57,14 @@ In each SKILL.md:
 - The `Do NOT also write a .md. The HTML is canonical in HTML
   mode` line removed and replaced with `The .md is unchanged —
   both files coexist`.
+
+The `review` skill additionally drops its previous
+"digest still prints regardless" carve-out: in HTML mode the
+panel digest is now suppressed (the `.html` is the human's
+review surface, and the `.md` is the fallback). The digest
+*does* print as a backup if the `.md` / `.html` write fails —
+so the human never misses the panel output, but they don't see
+it duplicated in successful runs either.
 
 ### `docs/FRAMEWORK.md`
 
