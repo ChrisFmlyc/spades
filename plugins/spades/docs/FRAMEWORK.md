@@ -804,7 +804,7 @@ The rule:
 
 The skills that ship a bundled template: `scope`, `plan`,
 `newproject`, `learn`, `review`, `status`, `list`, `intent`,
-`evaluate`.
+`evaluate`, `architecture`, `patterns`, `anti-patterns`.
 
 This rule exists because the *value* of HTML mode comes from the
 agreed-on presentation — the sidebar, the typography, the colour

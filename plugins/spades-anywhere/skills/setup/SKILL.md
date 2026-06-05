@@ -583,13 +583,43 @@ code work in coding harnesses). The two share a framework but
 target different runtimes and different kinds of work — see
 [`README.md`](README.md) for what `spades-anywhere` is for.
 
-## spades-anywhere Skills (v0.1)
+## Operating Principles — Agile, four pillars
+
+`spades-anywhere` is an agile-by-design operating model for
+non-coding work. The whole loop, every skill, and every gate
+ladder back to four pillars.
+
+1. **Collaborate.** Humans and AI work in close-loop
+   conversation. Scope, Plan, Approve, and Review are explicit
+   collaboration gates.
+2. **Deliver.** Working output beats documentation about output.
+   Do and Ship close the loop with something real — an artefact
+   produced, an action evidenced.
+3. **Reflect.** Evaluate is a real human gate. The do →
+   evaluate loop runs until PASS, and verdicts are captured
+   with reasoning.
+4. **Improve.** Learnings (`/spades-anywhere:learn`) are
+   first-class. INTENT, ARCHITECTURE, PATTERNS, ANTI-PATTERNS
+   all carry a `last_reviewed` field and get refreshed when
+   reality drifts.
+
+| Pillar | Where it lives |
+|--------|----------------|
+| Collaborate | Scope, Plan, Approve, Review |
+| Deliver | Do, Ship |
+| Reflect | Evaluate, Status |
+| Improve | Learn, Intent / Architecture / Patterns / Anti-Patterns refresh |
+
+## spades-anywhere Skills (v0.5)
 
 | Skill | What it does |
 |-------|-------------|
 | `/spades-anywhere:setup` | Configure backend + scaffold this project (re-runnable) |
 | `/spades-anywhere:newproject` | Create a new project record |
-| `/spades-anywhere:intent` | Maintain `INTENT.md` — the durable project statement (problem, users, success criteria, non-goals) |
+| `/spades-anywhere:intent` | Maintain `INTENT.md` — why the project exists |
+| `/spades-anywhere:architecture` | Maintain `ARCHITECTURE.md` — how the work is structured (stages, stakeholders, cadence, tools, constraints) |
+| `/spades-anywhere:patterns` | Maintain `PATTERNS.md` — approved process conventions |
+| `/spades-anywhere:anti-patterns` | Maintain `ANTI-PATTERNS.md` — explicit "we don't do X" rules |
 | `/spades-anywhere:scope` | Create or edit a Scope (`S-<description-slug>`) |
 | `/spades-anywhere:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope |
 | `/spades-anywhere:approve` | Present a Plan for human review and record routing |
@@ -725,17 +755,84 @@ Every piece of work must trace through: project → scope → plan(s)
 cannot be traced through this chain must not ship.
 ```
 
-## Step 7 — Optional: scaffold INTENT.md
+## Step 7 — Project documentation (per-file ask)
 
-If `INTENT.md` is missing at the repo root, ask the human (via
-`AskUserQuestion`) whether to scaffold it now:
+Four durable project-level docs live at the repo root (or
+knowledge store root), each owned by its own facilitator skill:
 
-- **Yes, scaffold now** — invokes `/spades-anywhere:intent` inline.
-- **Skip for now** — leave it.
+| File | Skill | Owns |
+|------|-------|------|
+| `INTENT.md` | `/spades-anywhere:intent` | Why the project exists, for whom, success, non-goals |
+| `ARCHITECTURE.md` | `/spades-anywhere:architecture` | How the work is structured (stages, stakeholders, cadence, tools, constraints) |
+| `PATTERNS.md` | `/spades-anywhere:patterns` | Approved process conventions |
+| `ANTI-PATTERNS.md` | `/spades-anywhere:anti-patterns` | Explicit prohibitions ("we don't do X") |
 
-INTENT.md is the project's durable statement of intent (problem,
-users, what-it-does, success, non-goals, maturity). It's distinct
-from `ARCHITECTURE.md`, which is *how*; INTENT is *why*.
+For each file, in the order above:
+
+### 7.A — Detect current state
+
+Read the file at the repo root and classify it as one of:
+
+1. **Missing** — the file does not exist on disk.
+2. **Scaffolded but unfilled** — the file exists but contains
+   two or more `<!-- Describe … -->` / `<!-- List … -->` /
+   placeholder comment markers.
+3. **Complete** — the file exists and the placeholder markers
+   have largely been replaced with real content (fewer than two
+   placeholder markers).
+
+### 7.B — Skip if complete
+
+If the file is **Complete**, do nothing. Don't prompt; don't
+re-scaffold; don't invoke the facilitator skill. The human has
+already done the work.
+
+Print a one-line confirmation: `✓ INTENT.md complete (last
+reviewed YYYY-MM-DD).`
+
+### 7.C — Otherwise, ask per file via AskUserQuestion
+
+For each Missing / Scaffolded-but-unfilled file, ask via
+`AskUserQuestion`:
+
+> *<filename> — how would you like to handle this?*
+>
+> - **Create / complete now** (recommended for the first run)
+>   — invokes the relevant skill inline. The skill walks the
+>   human through the sections via its facilitate-never-author
+>   flow. After the skill returns, this Step 7 loop continues
+>   to the next file.
+> - **Scaffold an empty template** — write the scaffolded
+>   markdown (the same template the facilitator skill would
+>   produce in "start blank" mode) so the human can fill it in
+>   later. Doesn't invoke the skill; doesn't ask any content
+>   questions.
+> - **Skip** — write nothing. The file stays missing. The
+>   facilitator skill can still be invoked later.
+
+### 7.D — Template content for the "Scaffold empty" branch
+
+When the human picks **Scaffold an empty template**, read the
+relevant SKILL.md's "Inline ... Template" section and write that
+content verbatim:
+
+- `INTENT.md` → see `/spades-anywhere:intent` § "Inline
+  INTENT.md Template"
+- `ARCHITECTURE.md` → see `/spades-anywhere:architecture` §
+  "Inline ARCHITECTURE.md Template"
+- `PATTERNS.md` → see `/spades-anywhere:patterns` § "Inline
+  PATTERNS.md Template"
+- `ANTI-PATTERNS.md` → see `/spades-anywhere:anti-patterns` §
+  "Inline ANTI-PATTERNS.md Template"
+
+Set `last_reviewed: <today>` in the frontmatter.
+
+### 7.E — Re-run safety
+
+If the human re-runs `/spades-anywhere:setup` later, Step 7
+re-classifies each file. Previously **Scaffolded** files that
+are now **Complete** are skipped silently. Previously **Skipped**
+files (still missing) get asked again. Idempotent.
 
 ## Step 8 — Confirm and summarise
 
