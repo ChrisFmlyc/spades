@@ -820,31 +820,49 @@ Consumer skills are `/spades:approve`, `/spades:evaluate`,
 `/spades:list`, `/spades:intent`. Each, at some point in its flow,
 presents an artefact for the human to review.
 
-`/spades:evaluate` is a **dual-role** skill: it consumes the
-Plan's existing `.html` at Pre-Flight (so the human sees what's
-being evaluated), AND in HTML mode it also produces a persistent
-evaluation report at `.spades/evaluations/<plan-id>-<date>.html`
-(after Step 5 picks a verdict). Treat it as a consumer for the
-Pre-Flight open and as a producer for the Step 5.5 render.
+`/spades:evaluate` is a **two-page producer** in HTML mode. It
+does NOT open the Plan's `.html` at Pre-Flight any more — that
+caused users to mistake the Plan render for the eval output. The
+two pages it writes are:
+
+1. **Page 1 — Verification plan**:
+   `.spades/evaluations/<plan-id>-<date>-plan.html`, written at
+   Step 2.5 after the verification plan is proposed and before
+   the human approves it at Step 2.6. Shows the concrete
+   verification steps with verifier chips (AI / Human / Test /
+   Lint / Manual); verdicts: `PENDING`.
+2. **Page 2 — Evaluation report**:
+   `.spades/evaluations/<plan-id>-<date>-report.html`, written at
+   Step 5.5 after the human picks the verdict at Step 5 and
+   provides a one-paragraph rationale. Same template; verdicts
+   filled in; aggregate verdict pill in the sidebar.
+
+`{{spades.mode}}` (`plan` | `report`) in the template drives the
+visible differences between the two pages — sidebar brand, H1
+prefix, tagline, browser title.
 
 - **`review_format: cli`** — paste the artefact's content (or a
   summary) to the terminal as today.
 - **`review_format: html`** — auto-open the relevant `.html`
   artefact in the default browser via the OPEN_CMD prelude.
-  - For artefact-bound reviews (approve / evaluate / do / ship /
-    close): the `.html` already exists at
-    `.spades/<dir>/<id>.html` because the producing skill wrote
-    it. Just open it.
+  - For artefact-bound reviews (approve / do / ship / close):
+    the `.html` already exists at `.spades/<dir>/<id>.html`
+    because the producing skill wrote it. Just open it.
+    (`evaluate` is **not** in this list — see below; it writes
+    its own pair of pages and does NOT open the Plan's `.html`.)
   - For transient cross-cutting views (status / list / intent):
     render to `.spades/.tmp/<view>.html` using the consumer
     skill's sibling `template.html`, then open. Transient files
     are regenerated on every invocation; `/spades:setup` appends
     `.spades/.tmp/` to the consumer repo's `.gitignore` at install
     time, so these files are never committed.
-  - For evaluate's *produced* report: persistent at
-    `.spades/evaluations/<plan-id>-<date>.html`; ships in the
-    feature branch's own PR (no separate bookkeeping flow because
-    evaluate runs mid-flow, not on `main`).
+  - For evaluate's *produced* pages: persistent at
+    `.spades/evaluations/<plan-id>-<date>-plan.html` (page 1,
+    written at Step 2.5) and
+    `.spades/evaluations/<plan-id>-<date>-report.html` (page 2,
+    written at Step 5.5). Both ship in the feature branch's own
+    PR (no separate bookkeeping flow because evaluate runs
+    mid-flow, not on `main`).
 
 In CLI mode, every consumer skill behaves exactly as in v2 — no
 HTML written, no browser opens.
