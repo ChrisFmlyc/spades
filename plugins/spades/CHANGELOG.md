@@ -8,6 +8,52 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.5.0] — 2026-06-05
+
+**MINOR** — Restructures `/spades:evaluate` HTML output into TWO
+distinct pages with a human approval gate between them. Fixes a
+field-reported bug where the user invoked evaluate in HTML mode,
+saw the Plan's `.html` open in the browser (from Pre-Flight),
+and reported "the eval rendered the plan, not the evaluation."
+
+Root cause: Pre-Flight auto-opened the Plan's `.html` ("the open
+`.html` IS the review surface"); the evaluation HTML only
+appeared at the end as a wrap-up. The user looked at the wrong
+tab during the verification walk-through and didn't see the
+human/AI/test row breakdown until after the work was done.
+
+### Two-page redesign
+
+| Page | When written | What it shows |
+|------|--------------|---------------|
+| 1. `<plan-id>-<date>-plan.html` | Step 2.5, after verification plan agreed | Concrete verification steps + verifier chips, all verdicts `PENDING`. Human reviews and approves at Step 2.6 before any tests fire. |
+| 2. `<plan-id>-<date>-report.html` | Step 5.5, after human picks verdict + provides rationale | Same template, verdicts filled in, aggregate verdict pill, rationale in summary card. |
+
+The Plan's `.html` is no longer auto-opened by evaluate. Each
+eval page carries the Plan ID + parent Scope in its breadcrumb.
+
+### Schema changes
+
+- Template v1.1.0 → v1.2.0:
+  - New `{{spades.mode}}` (`plan` | `report`) drives sidebar
+    brand, H1 prefix, tagline, browser title.
+  - Column rename: `Criterion` → `Verification step`.
+  - Block-field rename: `{{block.criterion}}` →
+    `{{block.step}}`. New `{{block.criterion_ref}}` (small grey
+    suffix linking back to e.g. `C1`).
+  - New `PENDING` verdict state and `pending` CSS class for
+    page 1's rows.
+- SKILL.md (→ 3.4.0):
+  - Pre-Flight: drop the Plan's `.html` auto-open in HTML mode.
+  - New Step 2.5 (page 1 render) and Step 2.6 (approve gate).
+  - Step 5 now captures a free-form one-paragraph rationale
+    after the verdict AskUserQuestion.
+  - Step 5.5 rewritten as page 2 render (distinct file path,
+    distinct `mode` framing).
+
+Pairs with `spades-anywhere` v0.4.0 (same two-page redesign,
+adapted for the simpler human-only flow).
+
 ## [3.4.0] — 2026-06-04
 
 **MINOR** — Evaluate HTML report's verification table now shows

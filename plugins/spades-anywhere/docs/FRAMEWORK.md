@@ -818,33 +818,48 @@ Consumer skills are `/spades-anywhere:approve`, `/spades-anywhere:evaluate`,
 `/spades-anywhere:list`, `/spades-anywhere:intent`. Each, at some point in its flow,
 presents an artefact for the human to review.
 
-`/spades-anywhere:evaluate` is a **dual-role** skill: it consumes
-the Plan's and Scope's existing `.html` at Pre-Flight (so the
-human sees what's being evaluated), AND in HTML mode it also
-produces a persistent evaluation report at
-`.spades-anywhere/evaluations/<plan-id>-<date>.html` (after
-Step 2 picks an aggregated verdict). Treat it as a consumer for
-the Pre-Flight open and as a producer for the Step 2.5 render.
+`/spades-anywhere:evaluate` is a **two-page producer** in HTML
+mode. It does NOT open the Plan's or Scope's `.html` at
+Pre-Flight any more — that caused users to mistake the Plan
+render for the eval output. The two pages it writes are:
+
+1. **Page 1 — Verification plan**:
+   `.spades-anywhere/evaluations/<plan-id>-<date>-plan.html`,
+   written at Pre-Flight Step 5 before the per-criterion walk
+   starts. Shows each acceptance criterion as a row with
+   `verifier: Human` (gold chip), verdict `PENDING`. The human
+   previews what's about to be asked.
+2. **Page 2 — Evaluation report**:
+   `.spades-anywhere/evaluations/<plan-id>-<date>-report.html`,
+   written at Step 2.5 after the human picks the verdict at
+   Step 2 and provides a one-paragraph rationale. Same template;
+   verdicts filled in.
+
+`{{spades.mode}}` (`plan` | `report`) drives sidebar brand, H1
+prefix, tagline, browser title.
 
 - **`review_format: cli`** — paste the artefact's content (or a
   summary) to the terminal as today.
 - **`review_format: html`** — auto-open the relevant `.html`
   artefact in the default browser via the OPEN_CMD prelude.
-  - For artefact-bound reviews (approve / evaluate / do / ship):
-    the `.html` already exists at
-    `.spades-anywhere/<dir>/<id>.html` because the producing skill wrote
-    it. Just open it.
+  - For artefact-bound reviews (approve / do / ship): the
+    `.html` already exists at `.spades-anywhere/<dir>/<id>.html`
+    because the producing skill wrote it. Just open it.
+    (`evaluate` is **not** in this list — see above; it writes
+    its own pair of pages and does NOT open the Plan's `.html`.)
   - For transient cross-cutting views (status / list / intent):
     render to `.spades-anywhere/.tmp/<view>.html` using the consumer
     skill's sibling `template.html`, then open. Transient files
     are regenerated on every invocation; `/spades-anywhere:setup` appends
     `.spades-anywhere/.tmp/` to the consumer repo's `.gitignore` at install
     time, so these files are never committed.
-  - For evaluate's *produced* report: persistent at
-    `.spades-anywhere/evaluations/<plan-id>-<date>.html`. There is
-    no SCM in spades-anywhere — the human saves the rendered
-    file to their chat-surface knowledge store on their own
-    cadence.
+  - For evaluate's *produced* pages: persistent at
+    `.spades-anywhere/evaluations/<plan-id>-<date>-plan.html`
+    (page 1, written at Pre-Flight Step 5) and
+    `.spades-anywhere/evaluations/<plan-id>-<date>-report.html`
+    (page 2, written at Step 2.5). There is no SCM in
+    spades-anywhere — the human saves both rendered files to
+    their chat-surface knowledge store on their own cadence.
   - For intent's *produced* persistent HTML: when
     `review_format: html`, `/spades-anywhere:intent` writes
     `.spades-anywhere/intent.html` alongside `INTENT.md` (in

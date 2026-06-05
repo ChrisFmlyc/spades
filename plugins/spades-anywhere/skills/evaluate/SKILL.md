@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered work against a Plan's parent Scope acceptance criteria. Returns PASS / PARTIAL / FAIL. Human-only verdict — no test execution, no automated checks. Use after `/spades-anywhere:do` has marked a Plan as delivering and the human has done the work, when someone says "evaluate this", "check if this is done", "verify the work", or when a Plan is in status `delivering` or `evaluating`. If not PASS, this skill routes the work back to `/spades-anywhere:do` and the human keeps going.
-version: 0.3.0
+version: 0.4.0
 ---
 
 # /spades-anywhere:evaluate
@@ -67,18 +67,75 @@ CLI mode does NOT write any evaluation file.
      - No Scopes in `evaluating` → keep delivering Plans.
 3. **Read the target.** Plan + parent Scope, OR Scope + every Plan
    under it.
-4. **Open the artefact (HTML mode only).** When `review_format:
-   html`, run the OPEN_CMD prelude and open the Plan's (or each
-   Plan's) `.html` plus the parent Scope's. **In HTML mode the
-   open `.html` IS the review surface — do NOT also paste /
-   summarise / restate the Plan body, the Scope's acceptance
-   criteria list, or the cumulative verdict table to the CLI; the
-   human has the browser tab.** Short conversational text (the
-   per-criterion `AskUserQuestion` polls, the final `✓ Plan
-   evaluated …` confirmation, error messages) stays CLI as today.
-   In CLI mode, summarise inline as today. See
-   `docs/FRAMEWORK.md § Output Format → What counts as review-form
-   text` for the canonical line.
+4. **Do NOT auto-open the Plan's or Scope's `.html` in HTML
+   mode.** This is a deliberate change from prior versions. The
+   Plan/Scope `.html` files are not the eval review surface; the
+   verification-plan HTML (page 1, written at Pre-Flight Step 5
+   below) is. Opening the wrong page caused confusion in the
+   field. The eval pages carry the Plan ID + parent Scope in
+   their breadcrumb if the human wants to cross-check.
+
+5. **Render PAGE 1: verification plan HTML (HTML mode only).**
+   When `review_format: html`, render the upcoming acceptance-
+   criteria walk as a table the human can preview *before*
+   Step 1 starts asking per-criterion questions. This is the
+   "before we start" page, paired with page 2 written at
+   Step 2.5.
+
+   **You MUST render via the bundled `template.html`. Do NOT
+   hand-roll the HTML.**
+
+   1. **Read the template** at
+      `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html`.
+   2. **Validate** it contains:
+      - `<!-- SPADES-BLOCK:verification-rows -->`
+      - `<!-- SPADES-BLOCK:audit-events -->`
+
+      Abort if either is missing.
+   3. **Substitute placeholders** with `mode: plan`:
+      - `{{spades.mode}}` = `plan`
+      - `{{spades.brand_label}}` = `Verification Plan`
+      - `{{spades.h1_prefix}}` = `Verification plan`
+      - `{{spades.page_title}}` = `Verification`
+      - `{{spades.tagline}}` = `What we're about to walk through. One row per acceptance criterion. After you answer each, the completed report appears as page 2.`
+      - `{{spades.verdict}}` = `PENDING`
+      - `{{spades.verdict_class}}` = `pending`
+      - `{{spades.verdict_summary_html}}` = `<p>Walk-through not started yet. The completed report appears at Step 2.5 once you've answered each criterion.</p>`
+      - `{{spades.plan_id}}`, `{{spades.plan_title}}`,
+        `{{spades.scope_id}}`, `{{spades.scope_title}}`,
+        `{{spades.evaluated}}` (today's date),
+        `{{spades.evaluator}}` = `human` (always in
+        spades-anywhere),
+        `{{spades.plugin_version}}`.
+      - `<!-- SPADES-BLOCK:verification-rows -->` — one row per
+        acceptance criterion from the parent Scope. Per-item:
+        - `{{block.step}}` — the criterion text rephrased as a
+          concrete check action ("Verify the venue was set up
+          on time", "Confirm guests were happy with the food").
+        - `{{block.criterion_ref}}` — `C1`, `C2`, etc.
+        - `{{block.verifier}}` = `Human` (always).
+        - `{{block.verifier_class}}` = `human`.
+        - `{{block.method}}` = `Eyes-on` (placeholder; the human
+          fills in the actual method in their note at Step 1).
+        - `{{block.verdict}}` = `PENDING`.
+        - `{{block.verdict_class}}` = `pending`.
+        - `{{block.notes}}` = empty.
+      - `<!-- SPADES-BLOCK:audit-events -->` — every audit-trail
+        entry on the Plan whose `desc` contains `Evaluation`
+        (likely empty at this point — just the audit line about
+        the evaluation having started).
+   4. **Write** to
+      `.spades-anywhere/evaluations/<plan_id_lower>-<YYYY-MM-DD>-plan.html`
+      (creating `.spades-anywhere/evaluations/` if missing).
+   5. **Auto-open** via the OPEN_CMD prelude. Print:
+
+      ```
+      ○ Verification plan opened: .spades-anywhere/evaluations/<plan-id>-<date>-plan.html
+      ○ I'll walk you through each row next.
+      ```
+
+   In CLI mode this step is skipped; the per-criterion walk in
+   Step 1 is the review surface.
 
 ## Step 1 — Walk the Scope's acceptance criteria
 
@@ -132,18 +189,20 @@ suggestion; the override lets the human pick a different verdict
 when context (frustration with the approach, schedule pressure,
 new information) trumps the mechanical aggregation.
 
-## Step 2.5 — Render the evaluation HTML (HTML mode only)
+**Then capture a one-paragraph rationale.** After the verdict
+choice, ask free-form: *"In a sentence or two, why this verdict?
+What's the take-away the next reader should have?"* The reply
+becomes `{{spades.verdict_summary_html}}` in page 2's
+summary card.
 
-When `review_format: html` (read from `.spades-anywhere/config`),
-produce a persistent evaluation report after the verdict is
-picked.
+## Step 2.5 — Render PAGE 2: evaluation report HTML (HTML mode only)
+
+When `review_format: html`, after Step 2 captures the verdict
+and rationale, produce the completed evaluation report. Same
+template as page 1; different `mode` framing.
 
 **You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-blocks below match the markers in the actual file before
-substituting; abort and surface any mismatch. See
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
-use the bundled template` for the canonical rule.
+hand-roll the HTML.**
 
 1. **Read the template** at
    `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html`.
@@ -152,53 +211,55 @@ use the bundled template` for the canonical rule.
    - `<!-- SPADES-BLOCK:audit-events -->`
 
    Abort if either is missing.
-3. **Substitute placeholders:**
+3. **Substitute placeholders** with `mode: report`:
+   - `{{spades.mode}}` = `report`
+   - `{{spades.brand_label}}` = `Evaluation Report`
+   - `{{spades.h1_prefix}}` = `Evaluation report`
+   - `{{spades.page_title}}` = `Evaluation`
+   - `{{spades.tagline}}` = `All verdicts confirmed. The Plan's audit-trail line on \`.spades-anywhere/plans/<plan-id>.md\` is the authoritative record; this report is your rich view.`
+   - `{{spades.verdict}}` — `PASS` / `PARTIAL` / `FAIL` from
+     Step 2.
+   - `{{spades.verdict_class}}` — `pass` / `partial` / `fail`.
+   - `{{spades.verdict_summary_html}}` — the one-paragraph
+     rationale captured at Step 2, HTML-escaped and wrapped in
+     `<p>` tags.
    - `{{spades.plan_id}}`, `{{spades.plan_title}}`,
      `{{spades.scope_id}}`, `{{spades.scope_title}}`,
      `{{spades.evaluated}}` (today's date),
-     `{{spades.evaluator}}` (**always** `human` in
-     spades-anywhere),
-     `{{spades.plugin_version}}`,
-     `{{spades.verdict}}` (`PASS` / `PARTIAL` / `FAIL`),
-     `{{spades.verdict_class}}` (`pass` / `partial` / `fail`),
-     `{{spades.verdict_summary_html}}` (the human's free-form
-     rationale, or a default of "All N criteria met." for
-     PASS).
-   - `<!-- SPADES-BLOCK:verification-rows -->` — one row per
-     acceptance criterion from the Scope. Per-item:
-     - `{{block.criterion}}` — criterion text from the Scope.
-     - `{{block.verifier}}` — display label for who/what checked
-       the row. In `spades-anywhere` this is **always `Human`** —
-       there is no AI / test / lint verification in a chat-surface
-       context. (The chip is still rendered so the human's report
-       reads consistently with the coding plugin and shows the
-       gold "Human" chip per the org branding.)
-     - `{{block.verifier_class}}` — always `human`.
-     - `{{block.method}}` — the concrete method (`Eyes-on`,
-       `Asked guest for feedback`, `Compared to photo brief`,
-       etc.). Free-form; keep short.
-     - `{{block.verdict}}` — `PASS` / `FAIL` / `PARTIAL` from
-       the human's *met / partial / not met* choice; `NA` if
-       deferred.
-     - `{{block.verdict_class}}` — `pass` / `fail` / `partial` /
+     `{{spades.evaluator}}` = `human` (always),
+     `{{spades.plugin_version}}`.
+   - `<!-- SPADES-BLOCK:verification-rows -->` — same rows as
+     page 1, now with verdicts filled in from Step 1's
+     per-criterion walk. Per-item:
+     - `{{block.step}}` — the criterion text as a concrete
+       check action (same as page 1).
+     - `{{block.criterion_ref}}` — `C1`, `C2`, etc.
+     - `{{block.verifier}}` = `Human` (always).
+     - `{{block.verifier_class}}` = `human`.
+     - `{{block.method}}` — the concrete method, taken from the
+       human's note at Step 1 if they mentioned one (`Eyes-on`,
+       `Asked guest for feedback`, `Compared to photo brief`).
+     - `{{block.verdict}}` — `PASS` (met) / `PARTIAL` (partial) /
+       `FAIL` (not met); `NA` if deferred.
+     - `{{block.verdict_class}}` — `pass` / `partial` / `fail` /
        `na`.
      - `{{block.notes}}` — the one-line note the human captured.
-   - `<!-- SPADES-BLOCK:audit-events -->` — one per audit-trail
-     entry on the Plan whose `desc` contains `Evaluation` (the
-     per-criterion verdicts and the final aggregate), in
+   - `<!-- SPADES-BLOCK:audit-events -->` — every audit-trail
+     entry on the Plan whose `desc` contains `Evaluation`, in
      chronological order. Per-item: `{{block.date}}`,
      `{{block.desc}}`.
 4. **Write** to
-   `.spades-anywhere/evaluations/<plan_id_lower>-<YYYY-MM-DD>.html`
-   (creating `.spades-anywhere/evaluations/` if missing).
+   `.spades-anywhere/evaluations/<plan_id_lower>-<YYYY-MM-DD>-report.html`
+   (note the `-report.html` suffix — distinct from page 1's
+   `-plan.html`).
 5. **Auto-open** via the OPEN_CMD prelude. Print the file path
    with "open this in your browser" if `OPEN_CMD` is empty.
 
 There is **no SCM in spades-anywhere** — no branch, no PR, no
-wait-for-merge gate. The human saves the HTML to their
+wait-for-merge gate. The human saves both pages to their
 chat-surface knowledge store (Claude Project files, ChatGPT GPT
 files, Gemini Gem references, Notion, wherever) on their own
-cadence. The framework just writes the file; persistence beyond
+cadence. The framework just writes the files; persistence beyond
 that is the human's call.
 
 In CLI mode this step is skipped entirely; the Plan's

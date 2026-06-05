@@ -7,6 +7,29 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the plugin
 version via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
+## [0.4.0] — 2026-06-05
+
+**MINOR** — Mirror of `spades` 3.5.0's two-page evaluate
+redesign. Same field-reported bug; same root cause; same fix.
+Adapted for the simpler chat-surface flow:
+
+- Pre-Flight: dropped the Plan's and Scope's `.html` auto-open.
+- New Pre-Flight Step 5: renders page 1
+  (`<plan-id>-<date>-plan.html`) showing each acceptance
+  criterion as a row with `verifier: Human` and verdict
+  `PENDING`. Auto-opens before the per-criterion walk starts.
+- Step 2 now captures a free-form one-paragraph rationale
+  after the overall verdict AskUserQuestion.
+- Step 2.5 rewritten as page 2 render
+  (`<plan-id>-<date>-report.html`) — distinct file path,
+  distinct `mode: report` framing.
+
+Template v1.1.0 → v1.2.0 (byte-identical to coding plugin's
+template apart from the version-banner comment).
+
+There is no SCM in spades-anywhere — the human saves both pages
+to their chat-surface knowledge store on their own cadence.
+
 ## [0.3.0] — 2026-06-04
 
 **MINOR** — Verification table in the evaluate HTML report now

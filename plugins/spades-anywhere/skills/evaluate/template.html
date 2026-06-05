@@ -1,18 +1,35 @@
 <!DOCTYPE html>
-<!-- SPADES-anywhere template: evaluate v1.1.0 (matches plugin v0.3.0) -->
+<!-- SPADES-anywhere template: evaluate v1.2.0 (matches plugin v0.4.0) -->
 <!--
+  This template renders TWO distinct pages from the same file:
+
+    1. PAGE 1 — Verification plan (mode: plan)
+       Written at Step 1.5, before any verification runs. Shows the
+       proposed verification rows (all verdicts: pending). The human
+       reviews this page and approves it at Step 1.6 before any tests
+       fire.
+
+    2. PAGE 2 — Evaluation report (mode: report)
+       Written at Step 5.5, after the human has confirmed the verdict
+       + summary rationale. Shows the same rows with verdicts filled
+       in and the aggregate verdict pill in the sidebar.
+
+  {{spades.mode}} drives the differences between the two pages —
+  sidebar brand label, H1 prefix, tagline, browser title.
+
   Section blocks:
-    verification-rows — one per acceptance criterion
+    verification-rows — one per verification step
     audit-events      — every Evaluation* line from the Plan's audit trail
 
   Verification-row fields:
-    {{block.criterion}}         — the acceptance criterion text
-    {{block.verifier}}          — who/what checked it: AI | Human | Test | Lint | Manual
+    {{block.step}}              — the concrete verification action ("Run npm test", "Eyes-on on iPad")
+    {{block.criterion_ref}}     — short link back to the criterion this row verifies (e.g. "C1", "Q")
+    {{block.verifier}}          — who/what checks it: AI | Human | Test | Lint | Manual
     {{block.verifier_class}}    — ai | human | test | lint | manual (CSS hook)
     {{block.method}}            — how it was checked (test name, file path, "Eyes-on", etc.)
-    {{block.verdict}}           — PASS | FAIL | PARTIAL | NA
-    {{block.verdict_class}}     — pass | fail | partial | na (CSS hook)
-    {{block.notes}}             — short notes / evidence
+    {{block.verdict}}           — PASS | FAIL | PARTIAL | NA | PENDING
+    {{block.verdict_class}}     — pass | fail | partial | na | pending (CSS hook)
+    {{block.notes}}             — short notes / evidence (empty on page 1)
 
   Audit-event fields:
     {{block.date}}
@@ -22,7 +39,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Evaluation · {{spades.plan_id}}</title>
+<title>{{spades.page_title}} · {{spades.plan_id}}</title>
 <style>
   :root {
     --gold: #FFC107;
@@ -38,6 +55,7 @@
     --verdict-partial: #FFDE59;
     --verdict-fail:    #dc2626;
     --verdict-na:      #6b7280;
+    --verdict-pending: #d4d4d4;
     --verifier-ai:     #3b82f6;
     --verifier-human:  #FFC107;
     --verifier-test:   #16a34a;
@@ -61,6 +79,7 @@
   .verdict.pass    { background: var(--verdict-pass); color: var(--ink); }
   .verdict.partial { background: var(--verdict-partial); color: var(--ink); }
   .verdict.fail    { background: var(--verdict-fail); color: #fff; }
+  .verdict.pending { background: var(--verdict-pending); color: var(--ink); }
   .anchor-nav { padding: 0.5rem 0; }
   .anchor-nav h3 { padding: 0 1.4rem; margin-bottom: 0.4rem; font-size: 0.7rem; color: var(--gray-text); font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; }
   .anchor-nav a { display: block; padding: 0.55rem 1.4rem; color: var(--ink); text-decoration: none; font-size: 0.92rem; border-left: 3px solid transparent; }
@@ -88,6 +107,9 @@
   .v-badge.partial { background: var(--verdict-partial); color: var(--ink); }
   .v-badge.fail    { background: var(--verdict-fail); color: #fff; }
   .v-badge.na      { background: var(--verdict-na); color: #fff; }
+  .v-badge.pending { background: var(--verdict-pending); color: var(--ink); font-style: italic; }
+  .row-step      { font-weight: 500; }
+  .row-step .criterion-ref { color: var(--gray-text); font-size: 0.78rem; font-family: ui-monospace, monospace; margin-left: 0.5rem; }
   .by-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.18rem 0.55rem; border-radius: 3px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
   .by-badge::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.85; }
   .by-badge.ai     { background: var(--verifier-ai);     color: #fff; }
@@ -114,6 +136,7 @@
 </head>
 <body>
 <script type="application/yaml" id="spades-frontmatter">
+mode: {{spades.mode}}
 plan_id: {{spades.plan_id}}
 plan_title: {{spades.plan_title}}
 scope_id: {{spades.scope_id}}
@@ -126,7 +149,7 @@ plugin_version: {{spades.plugin_version}}
   <div class="layout">
     <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="brand">SPADES · Evaluation</div>
+        <div class="brand">SPADES · {{spades.brand_label}}</div>
         <div class="id">{{spades.plan_id}} · {{spades.evaluated}}</div>
       </div>
       <div class="sidebar-section">
@@ -150,9 +173,9 @@ plugin_version: {{spades.plugin_version}}
       </nav>
     </aside>
     <main>
-      <div class="crumbs">{{spades.scope_id}}<span class="sep">›</span>{{spades.plan_id}}<span class="sep">›</span>evaluate</div>
-      <h1>{{spades.plan_title}}</h1>
-      <p class="tagline">Evaluation of <code>{{spades.plan_id}}</code> against its acceptance criteria. The Plan's audit-trail line is the AI-readable source of truth; this report is the human's rich view.</p>
+      <div class="crumbs">{{spades.scope_id}}<span class="sep">›</span>{{spades.plan_id}}<span class="sep">›</span>evaluate · {{spades.mode}}</div>
+      <h1>{{spades.h1_prefix}}: {{spades.plan_title}}</h1>
+      <p class="tagline">{{spades.tagline}}</p>
 
       <section id="summary">
         <h2>Verdict Summary</h2>
@@ -160,15 +183,15 @@ plugin_version: {{spades.plugin_version}}
       </section>
 
       <section id="verification">
-        <h2>Verification Plan</h2>
+        <h2>Verification Steps</h2>
         <table class="verification">
           <thead>
-            <tr><th>Criterion</th><th>By</th><th>Method</th><th>Verdict</th><th>Notes</th></tr>
+            <tr><th>Verification step</th><th>By</th><th>Method</th><th>Verdict</th><th>Notes</th></tr>
           </thead>
           <tbody>
             <!-- SPADES-BLOCK:verification-rows -->
             <tr>
-              <td class="row-criterion">{{block.criterion}}</td>
+              <td class="row-step">{{block.step}}<span class="criterion-ref">{{block.criterion_ref}}</span></td>
               <td class="row-by"><span class="by-badge {{block.verifier_class}}">{{block.verifier}}</span></td>
               <td class="row-method">{{block.method}}</td>
               <td class="row-verdict"><span class="v-badge {{block.verdict_class}}">{{block.verdict}}</span></td>
@@ -193,7 +216,7 @@ plugin_version: {{spades.plugin_version}}
           <!-- SPADES-ENDBLOCK -->
         </script>
       </section>
-      <footer>SPADES · v{{spades.plugin_version}} · template: Evaluate · rendered {{spades.evaluated}} · audit-trail line on the Plan is authoritative</footer>
+      <footer>SPADES · v{{spades.plugin_version}} · template: Evaluate ({{spades.mode}}) · rendered {{spades.evaluated}} · audit-trail line on the Plan is authoritative</footer>
     </main>
   </div>
 </body>
