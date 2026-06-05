@@ -16,11 +16,14 @@ running. Schemas below mirror that contract.
 ### Output format
 
 This skill honours `review_format:` from `.spades/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In CLI mode, write
-the Scope as `.spades/scopes/S-<slug>.md`. In HTML mode, render via
-the sibling `${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html` and
-write `.spades/scopes/S-<slug>.html`, then auto-open via the
-OPEN_CMD prelude. Same flow; format swap only.
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML) → Universal
+rule`. In **both** modes, write `.spades/scopes/S-<slug>.md` —
+this is the AI-readable source of truth and the canonical
+record. In HTML mode, **additionally** render via the sibling
+`${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html` and write
+`.spades/scopes/S-<slug>.html` for the human's view, then
+auto-open via the OPEN_CMD prelude. HTML mode is additive —
+the `.md` always exists; the `.html` is added in HTML mode.
 
 **HTML mode is review-via-file, not review-via-CLI.** Do NOT paste
 the Scope body (or any substantive excerpt of it) to the CLI for
@@ -250,7 +253,7 @@ pasted to the CLI, **and never paste the Scope body to the CLI for
 human approval before this step writes the file in HTML mode**. The
 file IS the review surface in HTML mode (see § Output format above).
 
-### Step 7.A — CLI mode (`review_format: cli`)
+### Step 7.A — Write the canonical `.md` (both modes)
 
 ### Filename
 
@@ -321,7 +324,11 @@ linear_issue_id: <id>          # only when backend: linear AND synced
      /spades:ship. Do not edit by hand. -->
 ```
 
-### Step 7.B — HTML mode (`review_format: html`)
+### Step 7.B — Additionally render the HTML (HTML mode only)
+
+When `review_format: html`, after the `.md` in Step 7.A is
+written, render the HTML companion file. The `.md` is unchanged;
+the `.html` is **additive**.
 
 **You MUST render via the bundled `template.html`. Do NOT
 hand-roll the HTML.** Validate the template exists and the named
@@ -364,7 +371,7 @@ use the bundled template` for the canonical rule.
    `docs/FRAMEWORK.md § OPEN_CMD detection prelude`. If the OS
    detection returns empty, print the file path with "open this in
    your browser". Never crash.
-6. Do NOT also write a `.md`. The HTML is canonical in HTML mode.
+6. The `.md` from Step 7.A is unchanged — both files coexist.
 
 ## Step 8 — Backend Mirror (fan-out dispatch)
 

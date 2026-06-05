@@ -45,15 +45,18 @@ but the review report itself always lands locally at
 ### Output format
 
 This skill honours `review_format:` from `.spades/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In CLI mode, write
-the tiered report to `.spades/reviews/<target>-<date>.md` and also
-print the inline summary to the terminal (today's behaviour). In
-HTML mode, render via the sibling
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML) → Universal
+rule`. In **both** modes, write the tiered report to
+`.spades/reviews/<target>-<date>.md` — this is the AI-readable
+source of truth and the canonical record. In CLI mode the
+inline summary also prints to the terminal as today. In HTML
+mode, **additionally** render via the sibling
 `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html` — sidebar
-verdict roll-up, persona-card grid, and severity-tab findings — and
-write `.spades/reviews/<target>-<date>.html`, then auto-open. The
-four-persona panel dispatch and merge logic are identical between
-modes; only the final report's format changes.
+verdict roll-up, persona-card grid, and severity-tab findings —
+and write `.spades/reviews/<target>-<date>.html` for the human's
+view, then auto-open. The four-persona panel dispatch and merge
+logic are identical between modes; HTML mode is additive — the
+`.md` always exists; the `.html` is added in HTML mode.
 
 You are coordinating an independent multi-persona review of SPADES work.
 The value of a panel review comes from **genuine independence across
@@ -628,7 +631,7 @@ report to a file under `.spades/reviews/`. **Read `review_format:`
 from `.spades/config` and branch on the format.** The review MUST
 write a file before the inline digest is printed.
 
-#### CLI mode (`review_format: cli`)
+#### Write the canonical `.md` (both modes)
 
 - **Path:** `.spades/reviews/<slug>-<date>.md`. `<slug>` is the reviewed
   Scope or Plan's tracker identifier lower-cased (e.g. `s-add-ai-helper-bot`), or a
@@ -639,7 +642,11 @@ write a file before the inline digest is printed.
   `<slug>-<date>-2.md`, then `-3`, and so on. Never overwrite an
   existing review file; each run is its own audit record.
 
-#### HTML mode (`review_format: html`)
+#### Additionally render the HTML (HTML mode only)
+
+When `review_format: html`, after the `.md` above is written,
+render the HTML companion file. The `.md` is unchanged; the
+`.html` is **additive**.
 
 **You MUST render via the bundled `template.html`. Do NOT
 hand-roll the HTML.** Validate the template exists and the named
@@ -680,7 +687,7 @@ use the bundled template` for the canonical rule.
   (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). The inline CLI
   digest still prints regardless — HTML mode adds the open, it does
   not suppress the digest.
-- Do NOT also write a `.md`.
+- The `.md` from the previous sub-step is unchanged — both files coexist.
 - **Contents:** the banner, the envelope, the section title, every
   persona's prose summary verbatim, **every** merged finding at every
   severity shown in full (the file is not tiered — it is the complete

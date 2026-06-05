@@ -18,13 +18,17 @@ skill makes **no backend MCP calls**.
 
 ### Output format
 
-This skill honours `review_format:` from `.spades-anywhere/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In CLI mode, write
-the learning as `.spades-anywhere/learnings/YYYY-MM-DD-<slug>.md`. In HTML
-mode, render via the sibling
+This skill honours `review_format:` from
+`.spades-anywhere/config` per
+`docs/FRAMEWORK.md § Output Format (CLI vs HTML) → Universal
+rule`. In **both** modes, write the learning as
+`.spades-anywhere/learnings/YYYY-MM-DD-<slug>.md` — this is the
+AI-readable source of truth and the canonical record. In HTML
+mode, **additionally** render via the sibling
 `${CLAUDE_PLUGIN_ROOT}/skills/learn/template.html` and write the
-`.html` variant at the equivalent path, then auto-open. Same flow;
-format swap only.
+`.html` companion at the equivalent path for the human's view,
+then auto-open. HTML mode is additive — the `.md` always
+exists; the `.html` is added in HTML mode.
 
 **HTML mode is review-via-file, not review-via-CLI.** Do NOT paste
 the learning body to the CLI for the human's approval before Step 4
@@ -129,12 +133,17 @@ When invoked in the default mode:
    `onboarding-must-be-idempotent`, not `learn-1`). The slug is the
    same across both formats; only the extension and rendering differ.
 
-   ##### CLI mode (`review_format: cli`)
+   ##### Write the canonical `.md` (both modes)
 
    - If `public_safe: true` → write `.spades-anywhere/learnings/YYYY-MM-DD-<slug>.md`.
    - If `public_safe: false` → write `.spades-anywhere/learnings/private/YYYY-MM-DD-<slug>.md`.
 
-   ##### HTML mode (`review_format: html`)
+   ##### Additionally render the HTML (HTML mode only)
+
+   When `review_format: html`, after the `.md` above is written,
+   render the HTML companion file. The `.md` is unchanged; the
+   `.html` is **additive**.
+
 
    **You MUST render via the bundled `template.html`. Do NOT
    hand-roll the HTML.** Validate the template exists and the named
@@ -172,7 +181,7 @@ When invoked in the default mode:
      (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the
      file path with "open this in your browser" if `OPEN_CMD` is
      empty.
-   - Do NOT also write a `.md`.
+   - The `.md` written above is unchanged — both files coexist.
 5. **Suggest a commit.** For public learnings, commit alongside the
    work that produced the learning where possible. For private
    learnings, remind the human that `private/` is gitignored — no
