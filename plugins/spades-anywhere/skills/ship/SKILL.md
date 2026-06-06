@@ -58,6 +58,29 @@ identical between modes.
      route back to `/spades-anywhere:do`
    - `evaluating` + FAIL → abort; not shippable
    - any other status → abort with a clear message
+
+5. **Capture a one-line description** (light, optional). Ask via
+   `AskUserQuestion`:
+
+   - *Type a brief description of this ship (one line)*
+   - *Skip — proceed without a description*
+
+   For *Type*, follow up with a free-form prompt: *"Brief description
+   (one line) — e.g. 'venue confirmed, deposit paid'."* Capture the
+   reply verbatim (≤140 chars; truncate with `…` if longer). The
+   description is the human's words; do not paraphrase. Hold it for
+   the audit-trail line in Step 1 (added by the existing audit writer).
+   Skip is fine — the structured evidence captured in Step 3 stands on
+   its own.
+
+6. **Append the Ship-phase-started line.** Write to the Plan's audit
+   trail before the deliverable-type branch:
+
+   ```markdown
+   - YYYY-MM-DD: Ship phase started[ — "<description>"].
+   ```
+
+   Omit the ` — "<description>"` clause when Step 5 was skipped.
 5. **Open the artefacts (HTML mode only).** When `review_format:
    html`, run the OPEN_CMD prelude and open both the Plan's `.html`
    and the parent Scope's `.html`. **In HTML mode the open `.html`
@@ -171,17 +194,17 @@ intent_criteria_evidence)`. Append to the audit trail:
 
 ## Step 4 — Update status
 
-Plan status → `shipped`. `updated: <today>`.
+Plan status → `shipping`. `updated: <today>`.
 
-If every Plan under the parent Scope is now `shipped`:
-- Scope status → `done`
-- Append to Scope audit trail:
-  ```markdown
-  - YYYY-MM-DD: All plans shipped. Scope done.
-  ```
+The Plan stays at `shipping` until `/spades-anywhere:close` runs. The
+two-step ship → close split mirrors the sister `spades` plugin's
+process: `/ship` captures the evidence, `/close` finalises the
+metadata (Plan → `shipped`, Scope rollup, Linear mirror). See
+`docs/FRAMEWORK.md § Scope status rollup` for the rollup rules.
 
-When `backend: linear`, mirror: sub-issue → "Done", parent Issue →
-"Done" (only if every sub-issue is Done).
+When `backend: linear`, mirror only the status transition: sub-issue
+→ "Shipping". `/spades-anywhere:close` handles the final "Done"
+transition and any parent-Issue rollup.
 
 ## Step 5 — Suggest a Learning
 
@@ -199,16 +222,14 @@ context. The learning will be tagged and stored under
 ## Step 6 — Confirm
 
 ```
-✓ Plan shipped:   P-host-birthday-party-3HyD
-✓ Scope:          S-plan-birthday-party (done — all plans shipped)
-✓ Deliverable:    action — "Birthday party hosted at venue"
-✓ Evidence:       4 items (photos, thank-you notes, vendor receipts)
-✓ INTENT criteria: 3/3 met, 0/3 partial
-✓ Status:         shipped
+✓ Ship recorded:    P-host-birthday-party-3HyD
+✓ Plan status:      shipping
+✓ Deliverable:      action — "Birthday party hosted at venue"
+✓ Evidence:         4 items (photos, thank-you notes, vendor receipts)
+✓ INTENT criteria:  3/3 met, 0/3 partial
 
 Next:
-  /spades-anywhere:learn                       — capture a learning
-  /spades-anywhere:status                      — see what's still open
+  /spades-anywhere:close P-host-birthday-party-3HyD   — finalise (Plan → shipped, Scope rollup, Linear mirror)
 ```
 
 ## Edge cases

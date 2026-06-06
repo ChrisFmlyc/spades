@@ -36,9 +36,16 @@ SCOPE → PLAN → APPROVE → DO → EVALUATE → SHIP
 | Evaluate  | Human verdict        | PASS / PARTIAL / FAIL against the Scope's acceptance criteria |
 | Ship      | Confirmation walk    | Per-criterion evidence captured against the project's `INTENT.md` success criteria |
 
-The phases are mandatory and ordered. There is no fast-track path in
-`spades-anywhere` (the `spades`-side `/spades:quick` 50-LoC shortcut
-has no clean equivalent for human work).
+The phases are mandatory and ordered for any work that touches
+project intent or runs against acceptance criteria. For genuinely
+trivial human work — a single errand, a one-line doc tweak, sending
+one email — there is a **fast-track path** via
+`/spades-anywhere:quick`, mirroring the sister `spades` plugin's
+shape. The gate criteria differ (time-bound, single-action, no
+intent shift — not LoC-based) but the marker-file shape and the
+relationship to `/evaluate`, `/list`, and `/status` is the same.
+See `/spades-anywhere:quick` for the gate and `§ ID Format → Quick-item
+ID` below for the file layout.
 
 ### Why six (not five)
 
@@ -152,21 +159,31 @@ Skill responsibilities:
 - `/spades-anywhere:do` bumps `planning` → `delivering` on the first
   Plan entering Do.
 - `/spades-anywhere:evaluate` bumps to `evaluating` on the first PASS verdict.
-- `/spades-anywhere:ship` bumps to `shipping` on the first PR opened.
-- `/spades-anywhere:close` is the **only** skill that transitions Scope →
-  `done`, and only when **every** child Plan has `status: shipped`.
+- `/spades-anywhere:ship` bumps to `shipping` on the first Plan
+  entering Ship (`spades-anywhere` has no PRs — Ship is the
+  shipment-evidence-capture step).
+- `/spades-anywhere:close` is the **only** skill that transitions
+  Scope → `done`. It applies the mixed-terminal rollup rules below.
 
 **One-way transitions only.** A Scope never moves backward. If Plan
 B is rejected after Plan A has shipped, the Scope stays at `shipping`
 (or `done` if A was the last); the rejected Plan is a leaf state on
 its own track. The Scope's audit trail records both transitions.
 
-**Rejected Plans do not block rollup.** They're terminal but don't
-hold the Scope back from `done` — Scope `done` requires every Plan
-to be either `shipped` or `rejected` (with the rejection explicitly
-acknowledged). Today the implementation only counts `shipped`;
-mixed-terminal Scopes (some shipped, some rejected) require a human
-decision via the rollup audit entry.
+**Rejected Plans do not block rollup, but require explicit
+acknowledgement.** They're terminal — `/spades-anywhere:close`
+classifies each sibling as `shipped`, `rejected`, or still in flight,
+then applies the rollup rules:
+
+- Every sibling `shipped` → roll up silently to `done`.
+- Mix of `shipped` and `rejected`, at least one `shipped` →
+  `/spades-anywhere:close` prompts via `AskUserQuestion` listing the
+  rejected siblings; on confirmation the Scope rolls up to `done`
+  with the rejections acknowledged in the audit trail.
+- Every sibling `rejected` (no `shipped`) → no rollup. The Scope
+  didn't ship anything; it stays at `shipping` until the human
+  re-scopes or abandons explicitly.
+- Any sibling still in flight → no rollup.
 
 ---
 
@@ -194,6 +211,18 @@ from its filename), filesystem-safe, and stable.
   `own-suffix` to the filename in dependency order (most recent
   dependency first).
 - Stored at: `.spades-anywhere/plans/<filename>.md`.
+
+### Quick-item ID
+- Form: `Q-<description-slug>-<own-suffix>`.
+- `own-suffix` — 4-character base62 (same generator as Plan IDs).
+- Stored at: `.spades-anywhere/quick/Q-<description-slug>-<own-suffix>.md`.
+- A quick item is work being done **under a project** but **outside
+  the Scope/Plan loop** — `/spades-anywhere:quick` creates one when a
+  tiny action meets every gate criterion. `/spades-anywhere:list`
+  and `/spades-anywhere:status` surface quick items in their own
+  subsection, distinct from Scopes. `/spades-anywhere:evaluate`
+  accepts a `Q-…` target and runs its Quick-Path Branch
+  (action + evidence retro-validation).
 
 Worked examples:
 
@@ -227,6 +256,7 @@ volume is high (plans, where the same description may recur).
 ├── projects/<project-slug>.md                # project records
 ├── scopes/S-<description-slug>.md            # scope records
 ├── plans/P-<desc-slug>-<suffix>[-<dep>...].md # plan records
+├── quick/Q-<desc-slug>-<suffix>.md           # quick-path items (no Scope/Plan)
 ├── learnings/YYYY-MM-DD-<slug>.md            # learning records
 └── reviews/<slug>-<date>.md                  # panel-review reports
 ```
@@ -263,6 +293,7 @@ repos:
   - https://github.com/cdsec/cdsec-portal
 owners:
   - chris@cdsec.co.uk
+status: active | archived | abandoned   # see § Terminal States; default `active` when omitted
 created: 2026-05-29
 updated: 2026-05-29
 linear_project_id: <uuid>           # only if backend: linear
@@ -276,7 +307,7 @@ linear_project_id: <uuid>           # only if backend: linear
 id: S-add-ai-helper-bot
 title: "Add AI Helper Bot"
 project: closed-door-security-website
-status: scoped | planning | delivering | evaluating | shipping | done
+status: scoped | planning | delivering | evaluating | shipping | done | abandoned
 type: feature | bug | chore | docs | refactor | investigation
 created: 2026-05-29
 updated: 2026-05-29
@@ -301,7 +332,7 @@ scope: S-add-ai-helper-bot
 title: "RAG Pipeline Lookup"
 depends_on: [28sD]                  # list of prior plans' id_suffix values
 status: draft | approved | delivering | evaluating | shipped | rejected
-delivery: ai | human | hybrid       # set by /spades-anywhere:approve
+delivery: human | hybrid            # set by /spades-anywhere:approve (no `ai` — spades-anywhere has no autonomous branch)
 evaluation: ai | human | hybrid     # set by /spades-anywhere:evaluate
 deliverable_type: code | artefact | action  # what Ship needs to do
 created: 2026-05-29
@@ -567,6 +598,49 @@ Every piece of work must be traceable through:
 
 Work that cannot be traced through this chain must not ship.
 
+### Terminal states — `rejected` vs `abandoned`
+
+Three terminal states exist across the artefact hierarchy, with
+deliberately different meanings:
+
+- **`rejected`** (Plans only) — *"We evaluated this attempt and
+  said no."* A judgement on **this particular approach**. The
+  underlying work may continue with a different Plan. `rejected`
+  comes from `/spades-anywhere:approve` or
+  `/spades-anywhere:evaluate` FAIL. A rejected Plan does NOT
+  terminate the parent Scope — write another Plan and keep going.
+
+- **`abandoned`** (Scopes and Projects) — *"We're not doing this
+  initiative. Full stop, never."* A terminal walk-away on **the
+  whole thing**. Set by
+  `/spades-anywhere:close <target> --abandon "reason"`. The reason
+  text is required; abandoning an initiative without recording why
+  is exactly the audit-trail hole this framework exists to prevent.
+
+- **`done`** (Scopes) / **`shipped`** (Plans) / **`archived`**
+  (Projects) — graceful completion. The artefact ran its arc.
+
+Directional rule: `rejected → abandoned` is allowed (you rejected
+several Plans, then decided the whole Scope isn't worth doing →
+abandon the Scope). `abandoned → anything` is not. Terminal means
+terminal.
+
+**No cascade.** Abandoning a Scope does NOT automatically reject or
+abandon its in-flight Plans. Those Plans stay at whatever status
+they were in; the parent's `abandoned` is the authoritative signal.
+`/spades-anywhere:list` and `/spades-anywhere:status` hide children
+of abandoned parents in the default view but they remain accessible
+via `/spades-anywhere:list all`. Cascading writes that can partially
+fail would risk lying about state.
+
+Mid-flight abandonment is explicitly allowed. You do not need to
+terminate child Plans first; the whole point of `abandoned` is to
+walk away from in-flight work cleanly.
+
+Quick items have no `abandoned` state — if you start a quick item
+and bail, delete the marker file. Quick is the lightweight path; a
+terminal status would be ceremony for a delete.
+
 ### Plan rejection — no cascade
 
 A Plan with `status: rejected` does **not** automatically invalidate
@@ -615,44 +689,71 @@ matching audit line.
 `spades-anywhere` runs in contexts where there is often no git repo
 at all (Claude Desktop project, ChatGPT conversation, mobile client).
 The freshness contract from the sister `spades` plugin still
-*conceptually* applies — read against the latest source of truth,
-not a stale snapshot — but the enforcement looks different:
+applies — read against the latest source of truth, not a stale
+snapshot. The contract is identical; what differs is which scenarios
+the contract activates in:
 
 - **Linear backend** — Linear is the canonical source. Sub-agents
   and skills that read state via the Linear MCP always see the
   current state; there is no "local main is behind" problem.
+  Freshness is a no-op in this scenario.
 - **Local backend, no git** — `.spades-anywhere/` lives on disk in
   the user's project folder. There is no remote to compare against;
   freshness is a no-op. The user owns their own files.
 - **Local backend, inside a git repo** — the consumer has chosen to
   put their `.spades-anywhere/` under version control (e.g. for a
-  shared family project). The same rule as `spades` applies: before
-  cross-cutting reads, run a freshness probe:
+  shared family project). **The same hard-refusal rule as `spades`
+  applies**: before any cross-cutting read or read-across sub-agent
+  spawn, the local checkout MUST be in sync with `origin/main`.
+
+  Verify with one command:
 
   ```bash
   git fetch origin --quiet && git rev-list --count main..origin/main
   ```
 
-  If non-zero, the consumer must sync (e.g. `git pull`, or
-  `/repo:sync` if they have the `ai-skills/repo` plugin installed,
-  or any equivalent action in their environment). `spades-anywhere`
-  does NOT require the `/repo` plugin — sync is the consumer's
-  responsibility, and the rule is informational only.
+  - Returns `0` → fresh, proceed.
+  - Non-zero → **stop**. Sync (`git pull`, or `/repo:sync` if the
+    `ai-skills/repo` plugin is installed, or the equivalent in your
+    environment) and re-invoke the skill. `spades-anywhere` does
+    NOT require the `/repo` plugin — sync is the consumer's
+    responsibility — but proceeding against stale state is **not
+    permitted**. Read-across sub-agents will halt rather than
+    produce findings against a stale snapshot.
+
+This is a hard rule, not informational. The skill-level enforcement
+lives in `/spades-anywhere:review` Step 1 and
+`/spades-anywhere:research` Step 1; both abort with a clear sync
+instruction when stale. Operators should run sync immediately after
+any pull/merge on the project repo, before invoking a SPADES skill.
 
 ### Subagent prompts
 
 Skills that spawn read-across sub-agents
 (`/spades-anywhere:review`'s panel, `/spades-anywhere:research`'s
-researcher) include a freshness pre-flight directly in the
-sub-agent's prompt only when the consumer is in the local-backend +
-git scenario. In all other scenarios the probe is skipped.
+researcher) include the freshness pre-flight directly in the
+sub-agent's prompt — but only the in-git scenario activates the
+check; Linear-backend and no-git local scenarios skip the probe
+entirely (because there's nothing to check). When the probe runs and
+returns stale, the sub-agent halts and surfaces the staleness to the
+operator. Sub-agents never produce findings against a stale
+snapshot.
+
+This matches the sister `spades` plugin's `/spades:review` and
+`/spades:research` enforcement exactly. Process symmetry is the
+point: a panel review run on stale state corrupts the audit trail
+the same way regardless of which plugin spawned it.
 
 ### Why this lives in FRAMEWORK.md
 
 Freshness is not skill-specific — it's a contract every skill
 participates in (in the scenarios where it applies). Defining it
 once here means individual skills don't repeat the rule; they
-reference it.
+reference it. The sister `spades` plugin documents the rule in
+**both** `AGENTS.md` § Freshness Before Read-Across (operating-rules
+summary) and `docs/FRAMEWORK.md` § Freshness (full contract);
+`spades-anywhere` keeps the contract in this single location because
+the plugin has no separate AGENTS.md surface today.
 
 ## Output Format (CLI vs HTML)
 
@@ -1106,3 +1207,102 @@ Adding a new skill that mirrors to Linear later? Author a per-skill
 fan-out table (one sub-agent per resource) and reference this
 section's contract. The dispatch-mode reporting, freshness probe,
 and failure semantics are inherited.
+
+### Drift detection (active probe in `/list` and `/status`)
+
+The failure semantics above handle the cases SPADES knows about — a
+worker returned `fail`, the coordinator surfaces it, the human
+retries. They do NOT catch:
+
+1. **Silent worker failures** — `worker-linear-*` returns `ok` but
+   the write didn't actually land.
+2. **Out-of-band Linear edits** — someone changes a sub-issue
+   status directly in Linear's UI.
+3. **Out-of-band file edits** — someone hand-edits
+   `.spades-anywhere/plans/*.md` frontmatter without going through
+   a skill.
+4. **Forgotten retries** — a Linear worker failed, the human
+   acknowledged it, then forgot to re-run the originating skill.
+
+`/spades-anywhere:list` and `/spades-anywhere:status` run an
+**active drift probe** when `backend: linear` and surface any drift
+in the same view as the rest of their output. The probe is
+*additive* — it uses the local and Linear data the skills already
+fetch, so cost is at most a single comparison pass per artefact, no
+extra round-trips.
+
+#### What gets compared
+
+For each Plan, Scope, and Project surfaced by the skill:
+
+1. Read the local file's frontmatter `status:` value.
+2. Read the corresponding Linear artefact's **workflow state type**
+   (Linear's universal classification — `backlog`, `unstarted`,
+   `started`, `completed`, `canceled` — not the team-specific
+   status name, which varies per Linear team).
+3. Compare against the expected mapping below.
+
+#### Status-type mapping (canonical)
+
+| Local SPADES status | Expected Linear workflow type |
+|---|---|
+| Scope `scoped` | `backlog` or `unstarted` |
+| Scope `planning` | `unstarted` |
+| Scope `delivering` / `evaluating` / `shipping` | `started` |
+| Scope `done` | `completed` |
+| Scope `abandoned` | `canceled` |
+| Plan `draft` | `unstarted` |
+| Plan `approved` | `unstarted` or `started` |
+| Plan `delivering` / `evaluating` / `shipping` | `started` |
+| Plan `shipped` | `completed` |
+| Plan `rejected` | `canceled` |
+| Project `active` | not `completed`/`canceled` |
+| Project `archived` | `completed` |
+| Project `abandoned` | `canceled` |
+
+If Linear is in a workflow type that isn't in the expected set,
+that's drift.
+
+#### What "drift" surfaces look like
+
+`/list` and `/status` print a one-line warning per drifted
+artefact:
+
+```
+⚠ Linear drift: S-plan-birthday-party — local `delivering`, Linear `completed` (Done). Re-run /spades-anywhere:close S-… (Pass) to roll up locally, or edit Linear if the local file is wrong.
+```
+
+The warning includes:
+- Artefact ID
+- Local status value
+- Linear's actual workflow state type (and team-specific name, if
+  available)
+- A pointer to the most likely remediation skill — usually
+  re-running the originating writer skill to push local state to
+  Linear
+
+The probe is informational, not blocking. `/list` and `/status`
+still render their main view; drift warnings appear in their own
+subsection below the table.
+
+#### When the probe runs
+
+- **Always** when `backend: linear` and the active project's Linear
+  Project ID resolves.
+- **Skipped** when `backend: local` (nothing to compare against) or
+  when the Linear API is unreachable (`/list` and `/status` continue
+  with a one-line note: *"Drift probe skipped — Linear unreachable.
+  Showing local view only."*).
+
+#### Why active probe, not passive markers
+
+A passive-marker scheme (writers record a `pending-reconcile:`
+audit-trail line when a worker returns `fail`) would catch the
+known failure case but miss silent failures and out-of-band edits.
+The active probe catches all three because it always compares the
+two truth-claims regardless of how the drift was introduced.
+
+The cost is one extra Linear comparison pass per `/list` or
+`/status` invocation — cheap because the skills already fetch both
+sides; the probe is just *"do the comparison we previously
+skipped"*.

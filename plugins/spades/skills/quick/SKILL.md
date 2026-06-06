@@ -178,37 +178,111 @@ the gate and should not have reached this step.
 
 ## Backend Integration
 
+Quick-path work creates a **quick-item marker file** under the active
+project. The file is the local-canonical record — it's what
+`/spades:evaluate`, `/spades:list`, and `/spades:status` find when
+they look for quick-path work. The marker exists for **both
+backends**; when `backend: linear`, the Linear issue carries the
+labels and status as a mirror, but the local file is authoritative.
+
+### The marker file
+
+Path: `.spades/quick/Q-<slug>-<4-char-suffix>.md`
+
+- `<slug>` is derived from the Linear issue title (or, if none, the
+  PR description's one-line "What" field). Same slug rules as Scope
+  IDs (lowercase, `[a-z0-9-]`, ≤ 50 chars).
+- `<4-char-suffix>` is a base62 random suffix (same generator as Plan
+  IDs) so two quick items with similar titles don't collide.
+
+Frontmatter:
+
+```yaml
+---
+id: Q-fix-broken-form-4nKr
+id_suffix: 4nKr
+project: <project-slug>
+title: "<one-line title>"
+type: bug | tweak | chore | docs | refactor
+status: shipped                # quick items reach shipped on PR open
+pr_url: <url-or-empty>
+branch: spades-quick/<...>
+linear_issue_id: <id>          # only when backend: linear
+delivery: ai | human           # who did the change
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
+---
+```
+
+Body (mirrors the PR description template):
+
+```markdown
+# <title>
+
+## What
+<one sentence>
+
+## Why
+<one sentence or linked issue text>
+
+## Change
+<one short paragraph>
+
+## Gate Check (retrospective)
+- [x] Single concern
+- [x] ≤ 50 LoC changed
+- [x] Scoped to one file / tight cluster
+- [x] No new dependencies
+- [x] No schema or migration changes
+- [x] No architectural changes
+- [x] No security-sensitive code touched
+- [x] No public API changes
+- [x] Revertible as one commit
+- [x] Existing tests cover the area
+
+## Audit Trail
+- YYYY-MM-DD: Quick-path opened. Type: <type>. PR: <url>. Branch: <name>. Delivery: <ai|human>.
+```
+
+After PR merge, append:
+
+```markdown
+- YYYY-MM-DD: Quick-path merged. Merge: <sha>.
+```
+
 ### When `backend: linear`
 
-When there's a Linear issue:
+In addition to writing the marker file:
 
-1. Apply labels:
+1. Apply labels on the Linear issue:
    - `spades:quick`
    - One of `type:bug`, `type:tweak`, `type:chore`, `type:docs`, `type:refactor`
    - `ai-delivered` or `human-delivery`
-2. Update status: Todo → In Progress → In Review.
-3. Post the PR URL as a comment.
-4. **Do NOT create sub-issues.** The Linear issue is the whole unit of
+2. Update issue status: Todo → In Progress → In Review.
+3. Post the PR URL as a comment on the Linear issue.
+4. Record the Linear issue ID in the marker file's `linear_issue_id:`
+   frontmatter field.
+5. **Do NOT create sub-issues.** The Linear issue is the whole unit of
    work on the quick path. Do not attach a Plan document.
-5. **Do NOT mark the issue Done.** The human does that after reviewing
+6. **Do NOT mark the issue Done.** The human does that after reviewing
    and merging the PR.
 
-If no Linear issue exists, the PR itself is the audit trail.
+If no Linear issue exists, the marker file alone is the audit trail.
 
 ### When `backend: local`
 
-There is no separate Scope or Plan file. The PR description is the
-canonical record.
+Just the marker file. The PR description and the marker file
+together are the canonical record. `linear_issue_id:` is omitted
+(or left as `null`).
 
-Optionally, append a one-line note to the active project's
-`.spades/projects/<slug>.md` under an `## Audit Trail` heading:
+### Why a marker file, not the project audit trail
 
-```markdown
-- YYYY-MM-DD: quick-path fix — <type> — PR <url>
-```
-
-This gives `/spades:list` and `/spades:status` something to surface
-when asked about quick-path work.
+`/spades:evaluate`, `/spades:list`, and `/spades:status` look at
+structured files, not line-by-line audit-trail parses. A dedicated
+marker file gives quick-path work the same iteration shape as
+Scopes and Plans, surfaces it consistently in `/list` and
+`/status`, and lets `/evaluate` find it by ID. The project file's
+audit trail is no longer used for quick-path tracking.
 
 ## When the Gate Changes Mid-Flight
 

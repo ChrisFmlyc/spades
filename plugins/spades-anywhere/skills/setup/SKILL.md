@@ -627,16 +627,21 @@ ladder back to four pillars.
 | `/spades-anywhere:approve` | Present a Plan for human review and record routing |
 | `/spades-anywhere:do` | Mark a Plan delivering + restate the Scope's acceptance criteria back to you |
 | `/spades-anywhere:evaluate` | Human verdict against the Scope's acceptance criteria — PASS / PARTIAL / FAIL |
-| `/spades-anywhere:ship` | Confirmation walk through the project's `INTENT.md` success criteria |
+| `/spades-anywhere:ship` | Capture shipment evidence + confirmation walk through `INTENT.md` success criteria; Plan → `shipping` |
+| `/spades-anywhere:close` | Conversational close-out: pass / reject / abandon based on target. Pass finalises (Plan → shipped, Scope → done, Project → archived); reject (Plans) and abandon (Scopes, Projects) require a reason. Pure metadata — no SCM, no PR. |
+| `/spades-anywhere:quick` | Fast-track for trivial human work — quick-item marker file (`.spades-anywhere/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades-anywhere:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades-anywhere:learn` | Capture a learning under `.spades-anywhere/learnings/` |
 | `/spades-anywhere:research` | Read-only research via an isolated Opus subagent |
 | `/spades-anywhere:list` | List active scopes, filterable by phase |
 | `/spades-anywhere:status` | Show current phase + dependency graph |
 
-**Note:** there are **no `/spades-anywhere:close` and no
-`/spades-anywhere:quick`**. Close is for PR bookkeeping (code work
-only); Quick is for ≤50-LoC code fast-tracks. Neither applies here.
+**Note:** the spades-anywhere `/close` and `/quick` skills mirror
+the **process** of their `spades` siblings, but the **mechanics**
+differ. `/close` has no bookkeeping PR (no SCM); it's pure metadata
+finalisation. `/quick`'s gate is time- and action-based (≤30 min,
+single concrete action, no project-intent shift) rather than
+LoC-based, because the work it covers is human, not code.
 
 ## The Loop
 

@@ -25,8 +25,8 @@ when working in it. Invoke them by their namespaced names:
 | `/spades:do` | Execute an approved Plan, routed per the approval decision |
 | `/spades:evaluate` | Check delivered output against acceptance criteria |
 | `/spades:ship` | Open PR + review + merge (code) or record deliverable (artefact / action) |
-| `/spades:close` | Post-merge close-out: open bookkeeping PR, mirror to Linear (run `/repo:sync` first) |
-| `/spades:quick` | Fast-track for trivial work — PR description is the audit trail |
+| `/spades:close` | Conversational close-out entry. Asks pass / reject / abandon based on target type. Pass = finalise (Plan → shipped, Scope → done, Project → archived). Reject (Plans) and Abandon (Scopes, Projects) require a reason. Opens a bookkeeping PR for any file change; run `/repo:sync` first. |
+| `/spades:quick` | Fast-track for trivial work — quick-item marker file (`.spades/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |
 | `/spades:research` | Read-only research via an isolated Opus subagent |
@@ -172,8 +172,13 @@ appended) and authoritatively in the `depends_on:` frontmatter field.
   - **`action`** — record evidence of completion (photo, email
     reference, receipt, signed doc).
 - A Plan reaches `status: shipped` only when its deliverable is real
-  to the outside world. A Scope reaches `status: done` only when every
-  Plan under it is `shipped`.
+  to the outside world. A Scope reaches `status: done` when every
+  Plan under it is terminal — either `shipped` or `rejected` — with
+  at least one `shipped`. When any sibling is `rejected`, the rollup
+  is human-acknowledged via `AskUserQuestion` so the rejection is
+  recorded explicitly in the Scope audit trail. A Scope where every
+  Plan was `rejected` does not roll up to `done` — it remains at
+  `shipping` until the human re-scopes or abandons explicitly.
 
 ## Architecture Constraints
 
@@ -242,6 +247,16 @@ producing findings against a stale snapshot.
 The canonical definition lives in `docs/FRAMEWORK.md § Freshness`.
 This section is the operating-rules-level statement; that section is
 the contract.
+
+The sister `spades-anywhere` plugin enforces the same rule, with
+identical hard-refusal behaviour, in the local-backend + git
+scenario (the only `spades-anywhere` scenario where a remote main
+exists to compare against). See
+`plugins/spades-anywhere/docs/FRAMEWORK.md § Freshness` for the
+plugin-specific framing. The skill-level checks in
+`/spades-anywhere:review` Step 1 and `/spades-anywhere:research`
+Step 1 mirror `/spades:review` and `/spades:research`: same probe,
+same abort message structure, same "do not proceed" semantics.
 
 ## Sub-agent Fan-Out
 
@@ -457,6 +472,42 @@ trail is complete.
 (merged, CI green, checklist complete) instead of iterating per-plan
 tasks. Sub-records are forbidden on the quick path regardless of
 verdict.
+
+## Deliberate Non-Goals
+
+Things SPADES does NOT do, by design. Each entry records the
+decision and why, so a future contributor can tell *"deliberately
+omitted"* apart from *"never thought of it"*.
+
+### No cross-Scope dependencies
+
+`depends_on:` links Plans within the same Scope. There is no
+`depends_on_scopes:` field on Scopes, and no cross-Scope blocking in
+`/status`, `/list`, or `/close`.
+
+**Why:** Scopes should be isolated outcomes managed via an external
+roadmap, not via in-framework wiring. The cardinal rule is that a
+Scope must be able to release a change — even one intended for the
+future — without breaking or blocking another Scope. If two Scopes
+genuinely need each other to ship in order, the Scope boundaries are
+wrong: combine them, or accept that the sequencing lives in the
+roadmap (a human-readable artefact outside `.spades/`), not in the
+dependency graph. The same applies to `spades-anywhere`.
+
+### No `abandoned` status for Quick items
+
+`/spades:close --abandon` applies to Scopes and Projects only.
+Plans use `rejected` (via `/spades:approve` or `/spades:evaluate`
+FAIL); Quick items have no terminal walk-away status at all.
+
+**Why:** Quick items are intentionally the lightweight path — the
+whole point is to skip ceremony. If you start a quick item and
+bail, just delete the marker file at `.spades/quick/Q-<id>.md`.
+Adding a status enum + a setter skill for the quick path would
+inflate exactly the ceremony the quick path exists to avoid. A
+deleted file is a sufficient signal; if you want a trace, the git
+history records the delete. The same applies to
+`spades-anywhere/quick/Q-<id>.md`.
 
 ## What You Must Never Do
 

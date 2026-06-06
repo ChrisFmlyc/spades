@@ -1,22 +1,130 @@
 ---
 name: close
-description: Close out a Plan whose `/spades:ship` PR has been squash-merged on GitHub. Opens a small bookkeeping PR that records the `Shipped` marker on `main`, waits for the human to merge it, then mirrors completion to Linear (when applicable) and rolls up the parent Scope. Assumes the local repo is already in post-merge sync (run `/repo:sync` first). Use after `/spades:ship` opened a PR and you've merged it on GitHub, when someone says "close this", "close P-…", "the PR is merged, mark it shipped", or when a Plan is in status `shipping` with a `PR opened:` marker.
-version: 3.1.2
+description: The single conversational entry point for closing out a Plan, Scope, or Project. Asks the human what they're doing — finalise as shipped/done/archived (the happy path), reject (Plans only), or abandon (Scopes and Projects only). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging" — the skill figures out which flow applies.
+version: 4.0.0
 ---
 
 # /spades:close
 
-You are closing out a Plan whose `/spades:ship` PR has been
-squash-merged on GitHub. Close opens a small bookkeeping PR that
-lands the Plan-file's `Shipped` marker on `main`, waits for the human
-to merge that bookkeeping PR, then mirrors completion to Linear (when
-applicable) and confirms.
+You are the close-out entry point. The human tells you what to
+close; **you ask them what kind of close it is** — pass, reject, or
+abandon — and you do the right thing based on the target type and
+their answer.
 
-This skill is the consolidated replacement for the old
-`/spades:ship P-<id>` resume path. `/spades:ship` Step 6 remains as a
-legacy fallback; `/spades:close` is the recommended path.
+Three close flows live in this skill:
 
-Read `docs/FRAMEWORK.md` § Target Resolution before running.
+1. **Pass** (happy path) — finalise the artefact's lifecycle.
+   - Plan → `status: shipped` (requires merged PR + bookkeeping
+     commit; same machinery as the prior version of this skill).
+   - Scope → `status: done` (only when every child Plan is
+     terminal; mixed-terminal rollup applies).
+   - Project → `status: archived` (graceful sunset).
+2. **Reject** — Plan rollback. Plan → `status: rejected`. Applies
+   to Plans in any non-terminal status (`approved`, `delivering`,
+   `evaluating`, `shipping`). A Plan in `draft` doesn't need
+   rejection — the menu offers *"leave in draft (no-op)"* instead.
+   Requires a reason.
+3. **Abandon** — terminal walk-away on a container. Scope or
+   Project → `status: abandoned`. Plans cannot be abandoned (they
+   are attempts, not initiatives — see `docs/FRAMEWORK.md §
+   Terminal States`). Requires a reason.
+
+Read `docs/FRAMEWORK.md` § Target Resolution and § Terminal States
+before running.
+
+## Conversational Entry
+
+**Step 0 — Detect the target.**
+
+- If the human passed an explicit ID, resolve it by prefix:
+  `P-<slug>-<suffix>` → Plan; `S-<slug>` → Scope; bare slug that
+  matches a `.spades/projects/<slug>.md` → Project.
+- If no ID was passed, ask via `AskUserQuestion`:
+  - *Plan* → run the Plan picker (status filter: `approved`,
+    `delivering`, `evaluating`, `shipping`).
+  - *Scope* → run the Scope picker (status filter: any non-terminal).
+  - *Project* → run the Project picker (status filter: `active`).
+- If the human gave an ambiguous reference ("close that thing", "the
+  newsletter scope"), surface 1–3 best candidates and ask which one.
+  Don't guess silently.
+
+**Step 1 — Ask what kind of close.**
+
+Read the target's current `status:` first; the menu options are
+conditional on that.
+
+For **Plans**:
+
+| Plan status | Menu options |
+|---|---|
+| `draft` | *Leave in draft (no-op)* / *Reject* |
+| `approved` | *Reject* (no pass — Plan hasn't been delivered yet) |
+| `delivering` | *Reject* (no pass — Plan hasn't been evaluated) |
+| `evaluating` | *Reject* (no pass — Plan hasn't shipped) |
+| `shipping` (with `PR opened:` and no `Shipped` line) | *Pass — finalise as shipped (requires merged PR)* / *Reject* |
+| `shipped` / `rejected` | abort: *"Plan `<id>` is already `<status>`. Terminal means terminal."* |
+
+For **Scopes**:
+
+| Scope status | Menu options |
+|---|---|
+| `scoped` / `planning` (no Plans started) | *Abandon* (no pass — nothing to roll up) |
+| `delivering` / `evaluating` / `shipping` | *Pass — roll up to done (requires every Plan terminal; mixed-terminal aware)* / *Abandon* |
+| `done` / `abandoned` | abort: *"Scope `<id>` is already `<status>`."* |
+
+For **Projects**:
+
+| Project status | Menu options |
+|---|---|
+| `active` | *Pass — archive (graceful sunset)* / *Abandon* |
+| `archived` / `abandoned` | abort: *"Project `<slug>` is already `<status>`."* |
+
+**Step 2 — Capture a reason (Reject / Abandon only).**
+
+If the human picked *Reject* or *Abandon*, follow up with a
+free-form prompt: *"Brief reason (one line) — why are you
+[rejecting / abandoning]?"* The reason is **required**; pressing
+through with an empty string re-prompts with: *"Rejecting /
+abandoning needs a reason. The audit trail loses meaning without
+one."*
+
+**Step 3 — Route to the matching flow.**
+
+- *Leave in draft (no-op)* → exit cleanly. Print *"Plan `<id>` left
+  at `draft`. Run `/spades:approve` when ready."*
+- *Pass* on a Plan → continue to **Plan Pass Flow** (the existing
+  Pre-Flight + Steps 1–9 below; PR merge verification, bookkeeping
+  PR, Scope rollup, Linear mirror).
+- *Pass* on a Scope → continue to **Scope Roll-Up Flow** (new; see
+  below). Mixed-terminal aware.
+- *Pass* on a Project → continue to **Project Archive Flow** (new;
+  see below).
+- *Reject* on a Plan → continue to **Plan Reject Flow** (new; see
+  below).
+- *Abandon* on a Scope → continue to **Scope Abandonment Flow**
+  (existing; below).
+- *Abandon* on a Project → continue to **Project Abandonment Flow**
+  (existing; below).
+
+## Power-user Shortcuts
+
+For automation, two flags skip Step 1's menu but still capture a
+reason (Step 2):
+
+- `/spades:close P-foo --reject "reason"` — skip to Plan Reject
+  Flow. Reason is consumed; no second prompt.
+- `/spades:close S-foo --abandon "reason"` — skip to Scope
+  Abandonment Flow.
+- `/spades:close <project-slug> --abandon "reason"` — skip to
+  Project Abandonment Flow.
+
+Invalid flag/target combos abort with a clear message:
+- `--abandon` with a Plan ID → *"Plans use `rejected`, not
+  `abandoned`. Use `--reject "reason"` instead."*
+- `--reject` with a Scope or Project → *"Scopes and Projects use
+  `abandoned`, not `rejected`. Use `--abandon "reason"` instead."*
+- Either flag with no reason text → *"<flag> needs a reason. Re-run
+  with `<flag> "reason text here"`."*
 
 ### Output format
 
@@ -27,7 +135,13 @@ HTML mode auto-open the Plan's existing `.html` file via the
 OPEN_CMD prelude. The bookkeeping-PR workflow, sync invocations,
 and Linear mirror calls are identical between modes.
 
-## Pre-Flight
+## Plan Pass Flow — Pre-Flight + Steps 1–9
+
+Reached when target is a Plan in `status: shipping` and the human
+picked *Pass* (or invoked bare `/close P-foo` with a merged PR
+detected).
+
+### Pre-Flight
 
 **Prerequisite — post-merge git state.** `/spades:close` does NOT do
 the post-merge git cleanup itself — that's `/repo:sync`'s job (in the
@@ -145,10 +259,12 @@ lives elsewhere by design.
      status if surfaced by `gh pr view`. Ask via `AskUserQuestion`:
      - *Wait — re-run later (exit, do nothing)*
      - *Abort — exit without changes*
-   - `CLOSED` (not merged) → ask via `AskUserQuestion`:
-     - *Mark the Plan rejected (status → `rejected`, audit entry)*
-     - *Re-open the PR manually then re-run (exit, do nothing)*
-     - *Abort*
+   - `CLOSED` (not merged) → surface the state and exit with a
+     pointer to the Reject flow: *"PR `<URL>` is closed without
+     merge. The Plan can't pass — re-run as `/spades:close
+     <plan_id> --reject "reason"` to mark the Plan rejected, or
+     re-open the PR on GitHub to retry the merge."* The skill does
+     not silently switch flows; the human picks Reject explicitly.
 
    On any non-MERGED state, exit before Step 2 — nothing has changed.
 
@@ -201,20 +317,43 @@ skills maintain. Update:
   - YYYY-MM-DD: Shipped (github). PR: <URL>. Merge: <merge-sha>. Merged by: <login>.
   ```
 
-### 3.2 Edit the Scope file (if rolling up)
+### 3.2 Edit the Scope file (mixed-terminal aware rollup)
 
-Read all sibling Plans under `scope_id`. If every one is now
-`status: shipped` (counting this one as already updated):
+Read every sibling Plan under `scope_id` (counting this one as
+already `shipped`). Classify each:
 
-- Update `.spades/scopes/<scope_id>.md` frontmatter `status:` →
-  `done`, `updated:` → today.
-- Append to the Scope's `## Audit Trail`:
+- `shipped` — terminal, success.
+- `rejected` — terminal, abandoned (a prior explicit decision).
+- Anything else (`draft`, `approved`, `delivering`, `evaluating`,
+  `shipping`) — still in flight.
 
+Rules:
+
+- **Every sibling is `shipped`** → roll up silently. Update
+  `.spades/scopes/<scope_id>.md` frontmatter `status:` → `done`,
+  `updated:` → today. Append to the Scope's `## Audit Trail`:
   ```markdown
   - YYYY-MM-DD: All plans shipped. Scope done.
   ```
 
-Otherwise, leave the Scope unchanged — sibling Plans still in flight.
+- **Every sibling is terminal (mix of `shipped` and `rejected`) and at
+  least one is `shipped`** → ask the human to acknowledge via
+  `AskUserQuestion`, listing the rejected siblings so the
+  acknowledgement is informed. If they accept, update the Scope
+  frontmatter and append:
+  ```markdown
+  - YYYY-MM-DD: All plans terminal. Shipped: <n>. Rejected: <m>
+    (acknowledged: P-<id-1>, P-<id-2>). Scope done.
+  ```
+  If they decline, leave the Scope unchanged and record a deferred
+  rollup line in the Plan's audit trail.
+
+- **Every sibling is `rejected` (no `shipped`)** → no rollup; the
+  Scope didn't ship anything. Surface and stop short of the rollup
+  edit. The Plan close-out itself still proceeds.
+
+- **At least one sibling still in flight** → no rollup; leave the
+  Scope unchanged — sibling Plans still in flight.
 
 ### 3.3 Stage + commit
 
@@ -354,6 +493,164 @@ Next:
   /spades:status                           — see what's still open
 ```
 
+## Plan Reject Flow
+
+Reached when target is a Plan in `approved`, `delivering`,
+`evaluating`, or `shipping`, and the human picked *Reject* (or
+invoked `/close P-foo --reject "reason"`). Plans in `draft` use
+*"leave in draft (no-op)"* from the menu — no skill action needed.
+
+A reject is a Plan rollback. The Plan stays as a leaf state on its
+own track; sibling Plans and the parent Scope are unchanged.
+
+### R1. Pre-Flight
+1. **Confirm setup + active project.** Read `.spades/config`. Abort
+   otherwise.
+2. **Confirm `scm: github`** if the Plan has any audit-trail markers
+   from `/spades:do` (a feature branch may exist that needs the
+   `/repo` workflow). For `scm: local-git` and no SCM markers,
+   skip; the human edits the file directly if they prefer.
+3. **Confirm `/repo` plugin + post-merge git state** — same checks
+   as the Plan Pass Pre-Flight (clean `main`, fast-forwarded with
+   `origin/main`).
+4. **Resolve the Plan** and read its current `status:`. Refuse if
+   already `shipped` or `rejected`.
+5. **If the Plan's audit trail has a `PR opened:` line with no
+   later `Shipped`**, query GitHub for the PR state and surface it
+   to the human: *"PR `<URL>` is currently `<state>` (open/closed/
+   merged). Rejecting will mark the Plan rejected but won't close
+   the PR — close it on GitHub if you haven't already."* This is
+   purely informational; the rejection proceeds either way.
+
+### R2. Create the bookkeeping branch
+- Branch name: `chore/reject-<lower(plan-slug-without-P-prefix)>`,
+  truncate to 50 chars; validate against `/repo:branch` regex.
+- `git switch -c <bookkeeping-branch>`.
+
+### R3. Edit the Plan file
+- Frontmatter `status:` → `rejected`.
+- Frontmatter `updated:` → today's date.
+- Append to `## Audit Trail`:
+
+  ```markdown
+  - YYYY-MM-DD: Rejected. Reason: <reason>.
+  ```
+
+### R4. Stage + commit + open bookkeeping PR
+- `git add .spades/plans/<plan_id>.md`
+- Commit message: `chore(spades): reject <plan_id>` with body
+  *"Records rejection of Plan `<plan_id>`. Reason: `<reason>`.
+  Parent Scope unchanged; sibling Plans unchanged. See
+  `docs/FRAMEWORK.md § Plan rejection — no cascade`."*
+- Push, open PR with the same content.
+
+### R5. Wait for human merge + cleanup
+Same as Plan Pass Steps 5–6 (AskUserQuestion gate; post-merge
+cleanup).
+
+### R6. Linear mirror (when `backend: linear`)
+- Update sub-issue → `Cancelled` (or team equivalent).
+- Apply label `spades:rejected`.
+- Comment: *"Rejected. Reason: `<reason>`. Bookkeeping PR: `<URL>`."*
+
+### R7. Confirm
+```
+✓ Plan rejected:      <plan_id>
+✓ Reason:             <reason>
+✓ Bookkeeping PR:     <bookkeeping-pr-url>
+✓ Linear mirror:      sub-issue Cancelled                    # omit when backend: local
+✓ Sibling Plans:      unchanged (no cascade)
+✓ Parent Scope:       unchanged
+
+Next:
+  /spades:plan S-<scope>     — draft a replacement Plan toward the same goal
+  /spades:list               — see what else is active
+```
+
+## Scope Roll-Up Flow
+
+Reached when target is a Scope in `delivering`/`evaluating`/
+`shipping` and the human picked *Pass*. Uses the same mixed-terminal
+rollup logic as the Plan Pass Flow's Step 3.2 — but standalone, so
+the human can roll up a Scope explicitly (e.g. after a deferred
+acknowledgement, or when child Plans reached terminal states out of
+order).
+
+### U1. Pre-Flight
+1. **Confirm setup + active project.** Read `.spades/config`.
+2. **Confirm `scm: github`** + post-merge git state — same checks.
+3. **Resolve the Scope.** Refuse if `status:` is already `done` or
+   `abandoned`.
+4. **Read every sibling Plan** and classify (per Plan Pass Step 3.2
+   rules): `shipped`, `rejected`, or still in flight.
+5. **Decide the rollup:**
+   - **Every Plan `shipped`** → proceed; rollup is unambiguous.
+   - **Mix of `shipped` and `rejected`, ≥1 `shipped`** → prompt the
+     human with the rejected siblings list (mixed-terminal ack).
+     Proceed on confirmation.
+   - **Every Plan `rejected`** → abort: *"Scope `<id>` has no
+     shipped Plans. Roll-up to `done` doesn't apply. Use *Abandon*
+     instead if you're walking away."*
+   - **Any Plan still in flight** → abort: *"Scope `<id>` has Plans
+     still in flight (<list>). Wait for them to terminate, or
+     abandon the Scope."*
+
+### U2. Create the bookkeeping branch
+- Branch name: `chore/rollup-<lower(scope-slug-without-S-prefix)>`.
+
+### U3. Edit the Scope file
+- Frontmatter `status:` → `done`.
+- Frontmatter `updated:` → today's date.
+- Append to `## Audit Trail`:
+
+  ```markdown
+  - YYYY-MM-DD: All plans terminal. Shipped: <n>. Rejected: <m>[ (acknowledged: P-<id-1>, P-<id-2>)]. Scope done.
+  ```
+
+### U4–U7. Commit, PR, wait for merge, mirror, confirm
+Same shape as Plan Pass Steps 4–7 with `chore(spades): rollup <S-id>`
+commit/PR messaging. Linear mirror updates the parent Issue → Done.
+
+## Project Archive Flow
+
+Reached when target is a Project in `active` and the human picked
+*Pass*. Archived is the graceful-sunset terminal state — distinct
+from `abandoned` (see `docs/FRAMEWORK.md § Terminal States`).
+
+### V1. Pre-Flight
+1. **Confirm setup.** Read `.spades/config`.
+2. **Confirm `scm: github`** + post-merge git state.
+3. **Resolve the Project** by slug. Refuse if `status:` is already
+   `archived` or `abandoned`.
+4. **Check active child work.** If any Scope under this Project is
+   still in flight (`scoped`/`planning`/`delivering`/`evaluating`/
+   `shipping`), surface the list and ask via `AskUserQuestion`:
+   - *Proceed anyway — archive the Project; in-flight Scopes stay
+     at their current status (no cascade).*
+   - *Abort — close the in-flight Scopes first.*
+
+### V2. Create the bookkeeping branch
+- Branch name: `chore/archive-project-<project-slug>`.
+
+### V3. Edit the Project file
+- Frontmatter `status:` → `archived`.
+- Frontmatter `updated:` → today's date.
+- Append to the Project's `## Audit Trail`:
+
+  ```markdown
+  - YYYY-MM-DD: Archived. Project lifecycle complete.[ Active child Scopes at archive: <list>.]
+  ```
+
+The reason text is **not required** for Archive (the action is
+graceful sunset; the absence of a reason is itself the signal). If
+the human wants to record a reason anyway, they can edit the
+audit-trail line on the bookkeeping branch.
+
+### V4–V7. Commit, PR, wait for merge, mirror, confirm
+Same shape as Scope Abandonment Steps A4–A7, with `chore(spades):
+archive <project-slug>` commit/PR messaging. Linear mirror updates
+the Linear Project to `Completed` (or equivalent).
+
 ## Workflow integration with `/repo:sync`
 
 The intended flow after a `/spades:ship` PR is squash-merged on
@@ -368,6 +665,104 @@ A future enhancement to the `repo` plugin would have `/repo:sync`
 auto-detect Plans in `status: shipping` with a `PR opened:` marker
 on the just-merged branch and offer to chain into `/spades:close`
 automatically. Until that lands, run the two skills in sequence.
+
+## Scope Abandonment Flow
+
+Reached when target is `S-<slug>` and `--abandon "reason"` is set.
+See `docs/FRAMEWORK.md § Terminal States` for the contract.
+
+### A1. Pre-Flight
+1. **Confirm setup + active project.** Read `.spades/config`. Abort
+   otherwise.
+2. **Confirm `scm: github`.** If `scm: local-git`, abort with:
+   *"`/spades:close --abandon` is only meaningful for `scm: github`.
+   For local-git, edit the Scope file directly: set `status:
+   abandoned` and append an audit-trail line."* (Symmetry with the
+   Plan-close path; local-git is single-phase.)
+3. **Confirm `/repo` plugin + post-merge git state** — same checks
+   as Steps 3–4 of the Plan-close Pre-Flight (clean `main`, fast-
+   forwarded with `origin/main`). Abort with `/repo:sync` pointer if
+   any check fails.
+4. **Resolve the Scope.** Read `.spades/scopes/<S-id>.md`. Abort if
+   missing.
+5. **Refuse if already terminal.** If `status:` is already
+   `abandoned` or `done`, abort with: *"Scope `<S-id>` is already
+   `<status>`. Terminal means terminal."*
+
+### A2. Create the bookkeeping branch
+- Branch name: `chore/abandon-<lower(scope-slug-without-S-prefix)>`
+  (truncate to 50 chars if needed). Validate against `/repo:branch`
+  regex.
+- `git switch -c <bookkeeping-branch>`.
+
+### A3. Edit the Scope file
+- Frontmatter `status:` → `abandoned`.
+- Frontmatter `updated:` → today's date.
+- Append to `## Audit Trail`:
+
+  ```markdown
+  - YYYY-MM-DD: Abandoned. Reason: <reason>.
+  ```
+
+### A4. Stage + commit + open bookkeeping PR
+- `git add .spades/scopes/<S-id>.md`
+- Commit message: `chore(spades): abandon <S-id>` with body
+  *"Records abandonment of Scope `<S-id>`. Reason: `<reason>`. No
+  cascade — child Plans retain their current status; see
+  `docs/FRAMEWORK.md § Terminal States`."*
+- Push, open PR with the same content in the body.
+- Print the PR URL prominently.
+
+### A5. Wait for human merge + cleanup
+Same as Plan-close Steps 5–6 (AskUserQuestion gate; post-merge
+cleanup via `git checkout main && git pull --ff-only && git branch
+-D <bookkeeping-branch>`).
+
+### A6. Linear mirror (when `backend: linear`)
+- Update parent Issue → status `Cancelled` (or the team's equivalent
+  for "abandoned" — fall back to `Canceled`).
+- Apply label `spades:abandoned` to the parent Issue.
+- Post a comment: *"Abandoned. Reason: `<reason>`. Bookkeeping PR:
+  `<URL>`. No cascade — child sub-issues unchanged; see
+  `docs/FRAMEWORK.md § Terminal States`."*
+
+### A7. Confirm
+```
+✓ Scope abandoned:      <S-id>
+✓ Reason:               <reason>
+✓ Bookkeeping PR merged: <bookkeeping-pr-url>
+✓ Linear mirror:        parent Issue Cancelled                 # omit when backend: local
+✓ Child Plans:          unchanged (no cascade)
+✓ Status:               abandoned
+
+Next:
+  /spades:list all     — see abandoned Scopes alongside active
+  /spades:status       — review remaining active work
+```
+
+## Project Abandonment Flow
+
+Reached when target is `<project-slug>` and `--abandon "reason"` is
+set. Identical shape to Scope abandonment with two differences:
+
+1. Target file is `.spades/projects/<project-slug>.md`, not
+   `.spades/scopes/<S-id>.md`.
+2. Linear mirror updates the Linear *Project* (not an Issue) to
+   `Canceled`/`Cancelled`. If the team doesn't have a project-level
+   "cancelled" status, apply a `spades:abandoned` label on the
+   project and surface the limitation to the human.
+3. Branch name: `chore/abandon-project-<project-slug>` (truncate
+   to 50 chars if needed).
+
+Pre-Flight, edit, PR, mirror, confirm — all follow the Scope
+abandonment shape. The audit-trail line is identical:
+
+```markdown
+- YYYY-MM-DD: Abandoned. Reason: <reason>.
+```
+
+No cascade to child Scopes (which keep their own statuses). The
+project's `abandoned` is the authoritative signal.
 
 ## Edge Cases
 
@@ -387,3 +782,8 @@ automatically. Until that lands, run the two skills in sequence.
   The target resolver returns zero candidates; the skill exits
   saying so. The Plan is fine — the audit trail just lives in a
   prior commit.
+- **Abandon target is already terminal.** Pre-Flight Step A5 / P5
+  catches this; the skill aborts without touching files.
+- **`--abandon` passed with a Plan ID.** Target-Type Routing
+  catches this; the skill explains that Plans use `rejected` (via
+  Approve/Evaluate gates), not `abandoned`.

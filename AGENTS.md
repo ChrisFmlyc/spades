@@ -98,7 +98,7 @@ PR's parity section (see below) records the conclusions.
 | FRAMEWORK.md § Backend Interface — SCM driver, two-phase resume, `EXTENDING-SCM.md` | **No** — code-only |
 | Skill body: `scope`, `plan`, `approve`, `learn`, `list`, `status`, `intent`, `newproject`, `review`, `research`, `setup` | **Yes** |
 | Skill body: `do`, `evaluate`, `ship` | **Adapt** — `spades` has code branches (PR, SCM, autonomous AI execution), `spades-anywhere` doesn't |
-| Skill body: `close`, `quick` | **No** — these don't exist in `spades-anywhere` |
+| Skill body: `close`, `quick` | **Adapt** — these exist in both plugins now; `spades` carries github bookkeeping-PR and LoC gate, `spades-anywhere` carries the same process shape with no-SCM finalisation and action-based gate |
 | Anything mentioning `scm:`, `/repo:` plugin, branch creation, PR open, merge SHA, two-phase resume, `EXTENDING-SCM.md` | **No** — code-only |
 | HTML templates (`template.html`) | **Yes** — same templates; only labels differ. Keep the B-style sizing / gold palette identical |
 | Lint scripts (`scripts/lint/`) | **Yes** — same schema; adjust the path the walker scans |

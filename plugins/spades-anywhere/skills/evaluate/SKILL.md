@@ -59,18 +59,89 @@ is the only file written; HTML mode adds the two eval pages on top.
 
 1. **Confirm setup + active project.** Abort otherwise.
 2. **Resolve the target** per `docs/FRAMEWORK.md` § Target
-   Resolution. This skill can take either a Plan or a Scope
-   (whole-scope evaluation when every Plan under it is done):
-   - **If the human passed an ID,** resolve directly:
-     `P-<slug>-<suffix>` → Plan; `S-<slug>` → Scope.
+   Resolution. This skill can take a Plan, a Scope (whole-scope
+   evaluation when every Plan under it is done), or a Quick item.
+   - **If the human passed an ID,** resolve by prefix:
+     `P-<slug>-<suffix>` → Plan; `S-<slug>` → Scope;
+     `Q-<slug>-<suffix>` → Quick item → jump to **Quick-Path
+     Branch** (below) and skip the rest of Pre-Flight.
    - **If invoked bare,** ask via `AskUserQuestion`:
      - *One plan* → Plan picker, status filter `delivering` or
        `evaluating`.
      - *Whole scope* → Scope picker, status filter `evaluating`.
+     - *Quick item* → Quick-item picker; glob
+       `.spades-anywhere/quick/Q-*.md`, filter to active project,
+       list items with no `Evaluate — verdict:` line yet.
    - **Zero-candidate suggestions:**
      - No Plans in `delivering` / `evaluating` →
        `/spades-anywhere:do P-…` on an approved plan first.
      - No Scopes in `evaluating` → keep delivering Plans.
+     - No unevaluated Quick items → none yet — run
+       `/spades-anywhere:quick` first or pick a Plan/Scope.
+
+## Quick-Path Branch
+
+If the target ID begins with `Q-` (a quick-item marker file under
+`.spades-anywhere/quick/`), or — for `backend: linear` — the target
+issue carries a `spades:quick` label, this is a fast-track item.
+Skip the full evaluation and validate the recorded action directly:
+
+1. **Read the marker file** at `.spades-anywhere/quick/<Q-id>.md`.
+   Pull `type`, `evidence_ref`, `delivery`, and the Gate Check
+   retrospect from the body.
+2. **Verify the recorded action and evidence.** Did the human do
+   what the marker says they did? Is the evidence reference
+   reachable / parseable / corroborated?
+3. **Validate the gate retrospectively** — does the recorded action
+   still satisfy every fast-track criterion the Gate Check ticked?
+4. **Verdict** (via `AskUserQuestion`):
+   - **PASS** — action completed, evidence holds, gate retrospect
+     still holds
+   - **PARTIAL** — small follow-up needed
+   - **FAIL** — gate violated retrospectively; the action should
+     have been a Scope. Open a `/spades-anywhere:scope` to capture
+     the work properly.
+
+5. **If PARTIAL, route the follow-up.** Don't leave the human
+   guessing what comes next. Immediately follow up with a second
+   `AskUserQuestion`:
+
+   > *Follow-up route:*
+   > - **Update this marker** — the follow-up is a clarifying
+   >   message or a missing piece of evidence on the same action.
+   >   Edit `.spades-anywhere/quick/<Q-id>.md` directly to add the
+   >   evidence reference, then re-run `/spades-anywhere:evaluate
+   >   Q-<id>` when ready.
+   > - **Open a new quick item** — the follow-up is a separate
+   >   action. Run `/spades-anywhere:quick` again; reference this
+   >   Q-id in the new item's *Why* field so the linkage is
+   >   readable in the audit trail.
+   > - **Re-route through the full loop** — the work is bigger than
+   >   the quick-path gate allowed. Run `/spades-anywhere:scope` to
+   >   capture it properly.
+
+   Print the exact next-command for the chosen route as the last
+   conversational line (e.g. *"Next: edit
+   `.spades-anywhere/quick/Q-<id>.md` to add the receipt photo,
+   then re-run `/spades-anywhere:evaluate Q-<id>`."*).
+
+6. **Append to the marker's audit trail:**
+
+   ```markdown
+   - YYYY-MM-DD: Evaluate — verdict: <PASS|PARTIAL|FAIL>. <one-line rationale>.[ Follow-up: <route>.]
+   ```
+
+   The ` Follow-up: <route>` clause is appended only when the
+   verdict is PARTIAL; omit otherwise. Routes are `update-marker` /
+   `new-quick` / `full-loop` — short tokens for grep-friendly audit
+   trails.
+
+   When `backend: linear`, also post a one-line comment on the
+   Linear issue: *"`/spades-anywhere:evaluate` verdict:
+   `<PASS|PARTIAL|FAIL>` — `<rationale>`.[ Follow-up: `<route>`.]"*
+
+No sub-issues are ever created for quick-path items. The marker
+file remains the canonical record.
 3. **Read the target.** Plan + parent Scope, OR Scope + every Plan
    under it.
 4. **Do NOT auto-open the Plan's or Scope's `.html` in HTML

@@ -163,6 +163,20 @@ combined line later to verify it's pushing the right branch.
 
 ## Step 2 — Update Status
 
+Before updating status, capture a light one-line description (the
+"what are you about to do" line) via `AskUserQuestion`:
+
+- *Type a brief description (one line)*
+- *Skip — proceed without a description*
+
+For *Type*, follow up with a free-form prompt: *"Brief description
+(one line) — e.g. 'wiring the retry middleware'."* Capture the reply
+verbatim (≤140 chars; truncate with `…` if longer). Skip is fine —
+the routing/branch clauses alone are enough to start. For
+`delivery: ai`, the AI route's commit messages already provide a
+fine-grained trail, so Skip is the typical choice; for `human` and
+`hybrid`, a description is recommended.
+
 Move the Plan to `status: delivering` and `updated: <today>`.
 
 Append a single combined start-line to the Plan's
@@ -170,12 +184,13 @@ Append a single combined start-line to the Plan's
 pattern):
 
 ```markdown
-- YYYY-MM-DD: Do phase started — routing: <ai|human|hybrid>[, branch: <prefix>/<slug>].
+- YYYY-MM-DD: Do phase started — routing: <ai|human|hybrid>[, branch: <prefix>/<slug>][ — "<description>"].
 ```
 
 The `, branch: …` clause is included when `deliverable_type: code`
 (Step 1 created or confirmed the branch) and omitted for
-`artefact` / `action` deliverables.
+`artefact` / `action` deliverables. Omit the ` — "<description>"`
+clause when the human skipped the description.
 
 Also update the parent Scope's status to `delivering` if it isn't
 already.

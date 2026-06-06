@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SPADES Scopes · {{spades.project_slug}}</title>
 <style>
-  :root { --gold: #FFC107; --gold-light: #FFDE59; --gold-soft: #fff4cc; --ink: #1a1a1a; --panel: #ffffff; --page: #fafafa; --gray: #e8e8e8; --gray-text: #5a5a5a; --border: #d4d4d4; --st-scoped: #6b7280; --st-planning: #f59e0b; --st-approval: #f97316; --st-delivering: #3b82f6; --st-evaluating: #8b5cf6; --st-shipping: #06b6d4; --st-shipped: #10b981; --st-done: #047857; --st-rejected: #ef4444; }
+  :root { --gold: #FFC107; --gold-light: #FFDE59; --gold-soft: #fff4cc; --ink: #1a1a1a; --panel: #ffffff; --page: #fafafa; --gray: #e8e8e8; --gray-text: #5a5a5a; --border: #d4d4d4; --st-scoped: #6b7280; --st-planning: #f59e0b; --st-approval: #f97316; --st-delivering: #3b82f6; --st-evaluating: #8b5cf6; --st-shipping: #06b6d4; --st-shipped: #10b981; --st-done: #047857; --st-rejected: #ef4444; --st-abandoned: #78716c; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--page); color: var(--ink); font-size: 17.5px; line-height: 1.6; }
   .layout { display: grid; grid-template-columns: 375px minmax(0, 1fr); min-height: 100vh; }
@@ -41,7 +41,11 @@
   .pill { display: inline-flex; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; color: white; }
   .pill.scoped { background: var(--st-scoped); } .pill.planning { background: var(--st-planning); } .pill.approval { background: var(--st-approval); }
   .pill.delivering { background: var(--st-delivering); } .pill.evaluating { background: var(--st-evaluating); } .pill.shipping { background: var(--st-shipping); }
-  .pill.shipped { background: var(--st-shipped); } .pill.done { background: var(--st-done); } .pill.rejected { background: var(--st-rejected); }
+  .pill.shipped { background: var(--st-shipped); } .pill.done { background: var(--st-done); } .pill.rejected { background: var(--st-rejected); } .pill.abandoned { background: var(--st-abandoned); }
+  .blocked-warning { display: block; margin-top: 0.35rem; padding: 0.35rem 0.6rem; background: #fef2f2; border-left: 3px solid var(--st-rejected); border-radius: 3px; font-size: 0.82rem; color: var(--ink); }
+  .blocked-warning strong { color: var(--st-rejected); margin-right: 0.3rem; }
+  .blocked-warning ul { margin: 0.2rem 0 0 1rem; padding: 0; }
+  .blocked-warning li { font-family: ui-monospace, monospace; font-size: 0.78rem; }
   footer { padding: 1.2rem 4rem; color: var(--gray-text); font-size: 0.8rem; border-top: 1px solid var(--border); }
   /* Wide-screen: bump padding so prose doesn't run edge to edge while main column still flexes. */
   @media (min-width: 1600px) { main { padding: 3rem 6rem; } }
@@ -89,7 +93,7 @@ rendered_at: {{spades.rendered_at}}
               <td class="id">{{block.id}}</td>
               <td><a href="{{block.href}}">{{block.title}}</a></td>
               <td><span class="pill {{block.status}}">{{block.status}}</span></td>
-              <td>{{block.plans_total}} / {{block.plans_shipped}} shipped</td>
+              <td>{{block.plans_breakdown}}{{block.blocked_warning_html}}</td>
               <td>{{block.updated}}</td>
             </tr>
             <!-- SPADES-ENDBLOCK -->

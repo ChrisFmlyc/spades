@@ -771,8 +771,8 @@ The SPADES plugin (`spades`) provides these 19 skills:
 | `/spades:do` | Execute an approved Plan (routed AI / human / hybrid) |
 | `/spades:evaluate` | Check delivered output against the Plan |
 | `/spades:ship` | Open PR + review + merge (code) or record deliverable (artefact / action) |
-| `/spades:close` | Post-merge close-out: open bookkeeping PR, mirror to Linear (run `/repo:sync` first) |
-| `/spades:quick` | Fast-track for trivial work — PR description is the audit trail |
+| `/spades:close` | Conversational close-out: pass / reject / abandon based on target. Pass finalises (Plan → shipped, Scope → done, Project → archived); reject (Plans) and abandon (Scopes, Projects) require a reason. Opens a bookkeeping PR; run `/repo:sync` first. |
+| `/spades:quick` | Fast-track for trivial work — quick-item marker file (`.spades/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |
 | `/spades:research` | Read-only research via an isolated Opus subagent |
