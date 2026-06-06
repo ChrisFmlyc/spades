@@ -55,8 +55,9 @@ SCOPE   → PLAN   → APPROVE → DO     → EVALUATE → SHIP
 - **Scope** (human-owned) — what's the outcome and how do we know
   we got it (acceptance criteria)?
 - **Plan** (AI drafts, human reviews) — break the outcome into
-  tasks with a posture per task (discover-first / outline-first /
-  decide-first / iterate / straight-through).
+  tasks with a posture per task (specify-first / discover-first /
+  iterate / spike / straight-through — the shared set across
+  `spades` and `spades-anywhere`).
 - **Approve** (human gate) — is the plan good? Route delivery
   human or hybrid (AI assists with drafts / research / structure;
   the human acts).

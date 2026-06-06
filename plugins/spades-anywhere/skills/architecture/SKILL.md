@@ -1,6 +1,6 @@
 ---
 name: architecture
-description: Create or maintain ARCHITECTURE.md, the project's durable statement of HOW the work is structured — stages, stakeholders, cadence, tools, constraints. Use when someone says "set up ARCHITECTURE.md", "document our process", "what stages does this work move through", "update the architecture doc", or when ARCHITECTURE.md is missing, still an unfilled template, or flagged stale. The human composes the architecture; this skill structures and probes but never authors it.
+description: Create or maintain ARCHITECTURE.md, the project's durable statement of HOW the work is structured — stages, stakeholders, cadence, tools, constraints. Use when someone says "set up ARCHITECTURE.md", "document our process", "what stages does this work move through", "who's involved at each stage", "what's our cadence", "what tools do we use", "what are our hard constraints", "update the architecture doc", "refresh the operating model", or when ARCHITECTURE.md is missing, still an unfilled template, or flagged stale by /spades-anywhere:plan, /spades-anywhere:approve, or /spades-anywhere:review. Also use proactively after a stakeholder change, tool migration, or cadence revision that exposes drift between the doc and reality. The human composes the architecture; this skill structures and probes but never authors it. SKIP when the human's intent is per-Scope acceptance criteria (use /spades-anywhere:scope instead) or process conventions / quality bar (use /spades-anywhere:patterns).
 version: 1.0.0
 ---
 
@@ -203,7 +203,20 @@ There is **no SCM in spades-anywhere** — no branch, no PR, no
 wait-for-merge gate. The human saves both files to their
 chat-surface knowledge store on their own cadence.
 
-### Transient HTML preview (HTML mode only)
+### Per-section review surface (mode-branched)
+
+**Read `review_format:` from `.spades-anywhere/config` and branch.**
+Both modes need a stable review surface alongside the Socratic
+walk — only the surface differs.
+
+#### CLI mode
+
+The per-section reflect-and-confirm summary printed inline during
+the walk IS the review surface. After each section, print the
+captured content as a self-contained block the human can scroll
+back to. No file preview is rendered.
+
+#### HTML mode — transient preview
 
 When `review_format: html`, also render to
 `.spades-anywhere/.tmp/architecture.html` during the edit flow.

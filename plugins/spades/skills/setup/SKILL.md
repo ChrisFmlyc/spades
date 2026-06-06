@@ -39,7 +39,9 @@ The framework dogfoods itself by running setup against its own
 `plugins/spades/` directory — but you only do that when explicitly told
 "set up the dogfood project".
 
-## Step 0 — Prerequisite plugin check (`ai-skills/repo`)
+## Pre-Flight
+
+### Prerequisite plugin check (`ai-skills/repo`)
 
 SPADES depends on the `repo` plugin from the **`ai-skills`** Claude
 Code marketplace for two slash commands:
@@ -84,7 +86,7 @@ continuing. If it still reports `missing`, re-show the install guide
 and ask again — do not advance with the prerequisite unsatisfied
 unless the human explicitly chose "Skip for now".
 
-## Step 0.5 — Git repo check
+### Git repo check
 
 SPADES expects the working directory to already be a git repository.
 Scaffolded files (`AGENTS.md`, `ARCHITECTURE.md`, `.spades/config`,
@@ -119,7 +121,7 @@ tells *agents* what to do; this probe is the *mechanical* enforcement
 at setup time so a brand-new-repo flow can't accidentally produce
 SPADES files outside version control.
 
-## Step 0.7 — Capture existing config (re-run context)
+### Capture existing config (re-run context)
 
 Before asking any questions, capture the current state of
 `.spades/config` (if it exists) into context variables. The captured
@@ -440,7 +442,7 @@ and only after the human confirms the diff).
 
 ## Step 2.5 — Diff & Confirm
 
-Compute the diff between the captured `current_*` values (Step 0.7)
+Compute the diff between the captured `current_*` values (Pre-Flight § Capture existing config)
 and the human's new answers (Steps 1 / 1.5 / 2). Three cases:
 
 ### Case A — No `.spades/config` existed (fresh install)
@@ -813,9 +815,8 @@ instruction.
 - Each Plan has an ID of the form
   `P-<description-slug>-<4-char-suffix>[-<dep-suffix>...]`.
 - Plans declare dependencies on prior Plans via `depends_on:`.
-- Each task in a Plan declares an execution posture (`test-first`,
-  `characterization-first`, `refactor-first`, `spike`,
-  `straight-through`).
+- Each task in a Plan declares an execution posture (`specify-first`,
+  `discover-first`, `iterate`, `spike`, `straight-through`).
 - Do NOT begin Do-phase work until the Plan is approved.
 
 ### 3. Approve (Human gate)

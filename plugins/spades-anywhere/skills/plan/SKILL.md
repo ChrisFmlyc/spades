@@ -125,10 +125,25 @@ Show the computed filename to the human; confirm before proceeding.
 
 ## Step 4 — Draft the Plan
 
-Propose the full draft Plan, then ask: *"Does the task breakdown feel
-right? Anything I'm underestimating? Should any tasks be human-delivered
-instead?"* Iterate until the human is satisfied; do NOT write the file
-yet.
+**Read `review_format:` from `.spades-anywhere/config` and branch.**
+Both modes iterate on the same draft conceptually; only the iteration
+surface differs.
+
+### CLI mode
+
+Propose the full draft Plan inline in the terminal, then ask: *"Does
+the task breakdown feel right? Anything I'm underestimating? Should
+any tasks be human-delivered instead?"* Iterate by re-pasting revised
+sections until the human is satisfied; do NOT write the file yet.
+
+### HTML mode
+
+Do NOT paste the Plan body to the CLI. Confirm the high-level shape
+verbally (number of tasks, headline approach, deliverable type), then
+proceed straight to Step 5 — that step writes the working `.md` and
+auto-opens the rendered `.html`. The human reviews the rendered file
+and tells you what to change; iterate via targeted file edits (they
+reload to see changes). Never re-paste a new full draft to the CLI.
 
 The Plan structure:
 
@@ -155,10 +170,10 @@ Skip this section entirely if nothing matched. Silence is cheaper than
 For each task, declare:
 - **Title**: short, descriptive
 - **Description**: what needs to be built
-- **Posture**: `discover-first` | `outline-first` | `decide-first`
-  | `iterate` | `straight-through`. See `docs/FRAMEWORK.md` § Execution
-  Posture. No silent defaults — if you pick `straight-through`,
-  justify it on the task line.
+- **Posture**: `specify-first` | `discover-first` | `iterate` | `spike`
+  | `straight-through`. See `docs/FRAMEWORK.md` § Execution Posture.
+  No silent defaults — if you pick `straight-through`, justify it on
+  the task line.
 - **Effort**: brief (<1h) | moderate (1–4h) | significant (4+h)
 - **Depends on**: task numbers within this Plan, or "none"
 - **Routing**: `ai` | `human`. **Required when the Plan's
@@ -207,6 +222,7 @@ title: "<title>"
 depends_on: [<dep-suffix-1>, <dep-suffix-2>]    # or [] if none
 status: draft
 delivery: undecided                              # /spades-anywhere:approve sets this
+evaluation: undecided                            # /spades-anywhere:evaluate sets this
 deliverable_type: code | artefact | action
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
@@ -238,7 +254,7 @@ linear_issue_id: <id>                            # only when backend: linear
 ## Tasks
 
 ### Task 1: <title>
-- **Posture:** discover-first
+- **Posture:** discover-first   # or specify-first / iterate / spike / straight-through
 - **Effort:** moderate
 - **Depends on:** none
 - **Routing:** ai            # only required when Plan `delivery: hybrid` (see below). For Plans with a single Plan-level routing (`ai` or `human`), omit this field — every task inherits.

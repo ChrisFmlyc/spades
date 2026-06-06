@@ -89,11 +89,16 @@ identical between modes.
 
 Move the Plan to `status: delivering` and `updated: <today>`.
 
-Append to the Plan's `## Audit Trail`:
+Append a single combined start-line to the Plan's
+`## Audit Trail` (mirrors Approve / Evaluate's one-line-per-phase
+pattern; matches the sister `spades` plugin's grammar):
 
 ```markdown
 - YYYY-MM-DD: Do phase started — routing: <human|hybrid>.
 ```
+
+`spades-anywhere` has no feature branches, so there is no
+`, branch: …` clause to append.
 
 Also update the parent Scope's status to `delivering` if it isn't
 already.

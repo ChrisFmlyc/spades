@@ -41,7 +41,9 @@ The framework dogfoods itself by running setup against its own
 `plugins/spades-anywhere/` directory — but you only do that when
 explicitly told "set up the dogfood project".
 
-## Step 0.7 — Capture existing config (re-run context)
+## Pre-Flight
+
+### Capture existing config (re-run context)
 
 > `spades-anywhere` deliberately has **no `/repo` plugin
 > prerequisite**, **no SCM selection**, and **no git-repo check**.
@@ -286,7 +288,7 @@ and only after the human confirms the diff).
 
 ## Step 2.5 — Diff & Confirm
 
-Compute the diff between the captured `current_*` values (Step 0.7)
+Compute the diff between the captured `current_*` values (Pre-Flight § Capture existing config)
 and the human's new answers (Steps 1 / 1.5 / 2). Three cases:
 
 ### Case A — No `.spades-anywhere/config` existed (fresh install)
@@ -672,9 +674,8 @@ and the human keeps going. The do → evaluate loop runs until PASS.
 - Each Plan has an ID of the form
   `P-<description-slug>-<4-char-suffix>[-<dep-suffix>...]`.
 - Plans declare dependencies on prior Plans via `depends_on:`.
-- Each task in a Plan declares an execution posture
-  (`discover-first`, `outline-first`, `decide-first`, `iterate`,
-  `straight-through`).
+- Each task in a Plan declares an execution posture (`specify-first`,
+  `discover-first`, `iterate`, `spike`, `straight-through`).
 - Do NOT begin Do-phase work until the Plan is approved.
 
 ### 3. Approve (Human gate)

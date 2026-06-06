@@ -53,7 +53,6 @@ than silently succeeding.
    |-----------------|--------------------------|
    | scoped          | Scoped                   |
    | planning        | Planning                 |
-   | approval        | Approval                 |
    | delivering      | Delivering / In Progress |
    | evaluating      | Evaluating / In Review   |
    | shipping        | Shipping                 |

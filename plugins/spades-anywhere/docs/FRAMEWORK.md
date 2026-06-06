@@ -137,7 +137,7 @@ Plan A status   Plan B status   Plan C status   →   Scope status
 shipped         shipped         shipped             done
 shipped         shipping        draft               shipping
 delivering      approved        draft               delivering
-approved        approved        draft               approval
+approved        approved        draft               planning
 draft           draft           draft               planning
 (none yet)                                          scoped
 ```
@@ -146,10 +146,11 @@ Skill responsibilities:
 
 - `/spades-anywhere:plan` bumps the Scope from `scoped` → `planning` on the
   first Plan created.
-- `/spades-anywhere:approve` bumps `planning` → `approval` on the first
-  Plan approved.
-- `/spades-anywhere:do` bumps `approval` → `delivering` on the first Plan
-  entering Do.
+- `/spades-anywhere:approve` does NOT change the Scope's status — the
+  Plan's own `status: approved` carries the gate decision. The Scope
+  stays at `planning` through the approval gate.
+- `/spades-anywhere:do` bumps `planning` → `delivering` on the first
+  Plan entering Do.
 - `/spades-anywhere:evaluate` bumps to `evaluating` on the first PASS verdict.
 - `/spades-anywhere:ship` bumps to `shipping` on the first PR opened.
 - `/spades-anywhere:close` is the **only** skill that transitions Scope →
@@ -275,7 +276,7 @@ linear_project_id: <uuid>           # only if backend: linear
 id: S-add-ai-helper-bot
 title: "Add AI Helper Bot"
 project: closed-door-security-website
-status: scoped | planning | approval | delivering | evaluating | shipping | done
+status: scoped | planning | delivering | evaluating | shipping | done
 type: feature | bug | chore | docs | refactor | investigation
 created: 2026-05-29
 updated: 2026-05-29
@@ -520,33 +521,35 @@ artefact type + status filter.
 
 ## Execution Posture
 
-When a plan declares tasks, each task picks one execution posture. The
-posture declares *how* to approach the work, not what to do.
+When a plan declares tasks, each task picks one execution posture from
+a fixed set shared between `spades` and `spades-anywhere`. The
+posture declares *how* to approach the work, not what to do. The set
+is identical across plugins so a Plan moving between coding and
+non-coding contexts stays legible.
 
-The `spades` plugin defines a code-flavoured posture set (`test-first`,
-`characterization-first`, `refactor-first`, `spike`,
-`straight-through`). `spades-anywhere` uses a domain-agnostic set
-suited to real-world human tasks:
-
-- **`discover-first`** — the outcome is clear but the path isn't.
-  Spend the first portion of effort gathering information (talk to
-  stakeholders, read source material, scope vendors) before
-  committing to an approach.
-- **`outline-first`** — the work has internal structure. Draft the
-  skeleton (party run-sheet, chapter outline, hiring stages) before
-  filling in details. Make the structure reviewable on its own.
-- **`decide-first`** — a key choice gates the rest of the work
-  (venue, candidate, tool, date). Make that choice before
-  scheduling downstream tasks against it.
-- **`iterate`** — the deliverable is something you improve in
-  passes (a draft, a recipe, a routine). Plan multiple short
-  cycles, each producing a reviewable version.
+- **`specify-first`** — the target is clear and worth pinning down
+  before starting. **Non-code:** draft the outline / success criteria
+  / brief (party run-sheet, chapter outline, hiring stages) before
+  filling in the detail. **Code:** write failing tests first, then
+  satisfy them.
+- **`discover-first`** — the path isn't clear yet; understand the
+  current state before changing or committing. **Non-code:** talk to
+  stakeholders, read source material, scope vendors before picking an
+  approach. **Code:** characterize existing behaviour in tests before
+  refactoring it.
+- **`iterate`** — the deliverable improves in small passes.
+  **Non-code:** plan multiple short cycles (a draft, a recipe, a
+  routine), each producing a reviewable version. **Code:** reshape
+  an area in small refactor steps, or build incrementally.
+- **`spike`** — the correct approach is genuinely unknown; the output
+  is *learning* or *a decision* (which venue, which candidate, which
+  tool), not the deliverable. Time-boxed.
 - **`straight-through`** — the task is mechanical enough that extra
   ceremony adds no value. Not a silent default — state the
-  justification.
+  justification on the task line.
 
 A task may declare mixed posture (e.g. `discover-first on the venue
-options; decide-first on the date`).
+options; specify-first on the run-sheet`).
 
 ---
 

@@ -140,7 +140,7 @@ PROJECT_ID_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,63})$")
 SCOPE_CORE_REQUIRED = ("id", "title", "project", "status", "type", "created", "updated")
 SCOPE_ENUMS = {
     "status": (
-        "scoped", "planning", "approval", "delivering",
+        "scoped", "planning", "delivering",
         "evaluating", "shipping", "done", "rejected",
     ),
     "type": (

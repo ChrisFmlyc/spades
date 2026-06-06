@@ -121,7 +121,7 @@ Plan A status   Plan B status   Plan C status   →   Scope status
 shipped         shipped         shipped             done
 shipped         shipping        draft               shipping
 delivering      approved        draft               delivering
-approved        approved        draft               approval
+approved        approved        draft               planning
 draft           draft           draft               planning
 (none yet)                                          scoped
 ```
@@ -130,9 +130,10 @@ Skill responsibilities:
 
 - `/spades:plan` bumps the Scope from `scoped` → `planning` on the
   first Plan created.
-- `/spades:approve` bumps `planning` → `approval` on the first
-  Plan approved.
-- `/spades:do` bumps `approval` → `delivering` on the first Plan
+- `/spades:approve` does NOT change the Scope's status — the Plan's
+  own `status: approved` carries the gate decision. The Scope stays
+  at `planning` through the approval gate.
+- `/spades:do` bumps `planning` → `delivering` on the first Plan
   entering Do.
 - `/spades:evaluate` bumps to `evaluating` on the first PASS verdict.
 - `/spades:ship` bumps to `shipping` on the first PR opened.
@@ -261,7 +262,7 @@ linear_project_id: <uuid>           # only if backend: linear
 id: S-add-ai-helper-bot
 title: "Add AI Helper Bot"
 project: closed-door-security-website
-status: scoped | planning | approval | delivering | evaluating | shipping | done
+status: scoped | planning | delivering | evaluating | shipping | done
 type: feature | bug | chore | docs | refactor | investigation
 created: 2026-05-29
 updated: 2026-05-29
@@ -522,23 +523,35 @@ all-or-nothing.
 
 ## Execution Posture
 
-When a plan declares tasks, each task picks one execution posture. The
-posture declares *how* to approach the build, not what to build.
+When a plan declares tasks, each task picks one execution posture from
+a fixed set shared between `spades` and `spades-anywhere`. The
+posture declares *how* to approach the work, not what to do. The set
+is identical across plugins so a Plan moving between coding and
+non-coding contexts stays legible.
 
-- **`test-first`** — desired behaviour is well-specified; write failing
-  tests first, then satisfy them.
-- **`characterization-first`** — existing code without adequate tests;
-  pin current behaviour in tests *before* changing it.
-- **`refactor-first`** — the area can't cleanly absorb the new
-  behaviour; reshape it first, then add the new behaviour.
+- **`specify-first`** — the target is clear and worth pinning down
+  before starting. **Code:** write failing tests first, then satisfy
+  them. **Non-code:** draft the outline / success criteria / brief
+  before filling in the detail.
+- **`discover-first`** — the path isn't clear yet; understand the
+  current state before changing or committing. **Code:** characterize
+  existing behaviour in tests before refactoring it. **Non-code:**
+  talk to stakeholders, read source material, scope vendors before
+  picking an approach.
+- **`iterate`** — the deliverable improves in small passes. **Code:**
+  reshape an area in small refactor steps, or build incrementally.
+  **Non-code:** plan multiple short cycles (a draft, a recipe, a
+  routine), each producing a reviewable version.
 - **`spike`** — the correct approach is genuinely unknown; the output
-  is *learning*, not shippable code.
+  is *learning* or *a decision*, not the deliverable. Time-boxed and
+  not shippable as-is.
 - **`straight-through`** — the change is mechanical enough that extra
   ceremony adds no value. Not a silent default — state the
-  justification.
+  justification on the task line.
 
-A task may declare mixed posture (e.g. `characterization-first on the
-existing module; test-first on the new behaviour`).
+A task may declare mixed posture (e.g. `discover-first on the venue
+options; specify-first on the run-sheet`, or `discover-first on the
+existing module; specify-first on the new behaviour`).
 
 ---
 

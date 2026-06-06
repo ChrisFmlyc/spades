@@ -17,37 +17,44 @@ Resolution before running.
 This skill honours `review_format:` from `.spades/config` per
 `docs/FRAMEWORK.md § Output Format (CLI vs HTML)`.
 
-In CLI mode this skill is consumer-only: it summarises the Plan
-and verification plan inline, and the verdict lives as a single
-audit-trail line on the Plan file (`worker-file-plan-evaluate`).
+The flow is **a two-surface review** in both modes — once before
+verification runs (the locked verification plan) and once after
+(the final report). The logic, prompts, and audit-trail writes
+are identical between modes; only the human's review surface
+differs:
 
-In HTML mode this skill is **a two-page producer**:
-
-1. **Page 1 — Verification plan.** Written at Step 1.5, *before*
-   any verification runs. Contains the proposed verification rows
-   (one per acceptance criterion: the concrete step, the
-   verifier — AI / Human / Test / Lint / Manual — and the method).
-   Every row's verdict shows `PENDING`. The human reviews page 1
-   and approves it at Step 1.6 before any tests execute.
-2. **Page 2 — Evaluation report.** Written at Step 5.5, *after*
-   Step 5 captures the human's per-row inputs for their sections
-   AND the overall verdict + free-form rationale. Same template
-   rendered with verdicts filled in.
+1. **Surface 1 — Verification plan** (Step 2.5). Presents the
+   proposed rows (one per acceptance criterion: the concrete
+   step, the verifier — AI / Human / Test / Lint / Manual — and
+   the method). Every verdict shows `PENDING`. The human reviews
+   the locked plan and approves it at Step 2.6 before any tests
+   execute.
+   - **CLI mode** — the verification-plan table emitted at Step 2
+     stays on screen; an anchor line marks it as the locked review
+     surface.
+   - **HTML mode** — renders page 1 via the bundled template, writes
+     to `.spades/evaluations/<plan-id>-<date>-plan.html`, and auto-
+     opens it; the CLI gets only a brief "opened" nudge.
+2. **Surface 2 — Evaluation report** (Step 5.5). Presents the
+   same rows with verdicts and notes filled in, plus the overall
+   verdict and the human's free-form rationale.
+   - **CLI mode** — the report table emitted at Step 5 stays on
+     screen; an anchor line names the verdict.
+   - **HTML mode** — renders page 2 via the same template with
+     `{{spades.mode}}: report` framing, writes to
+     `.spades/evaluations/<plan-id>-<date>-report.html`, and auto-
+     opens it; the CLI gets only a brief "opened" nudge.
 
 The Plan's existing `.html` (written by `/spades:plan`) is
-**NOT auto-opened** by this skill — the user's confusion bug
-was caused by mistaking that page for the eval output. Each
-eval page carries the Plan ID + parent Scope in its sidebar
-breadcrumb; if the human wants the Plan view, they open it
-themselves.
+**NOT auto-opened** by this skill — the user's confusion bug was
+caused by mistaking that page for the eval output. Each eval
+page carries the Plan ID + parent Scope in its sidebar breadcrumb;
+if the human wants the Plan view, they open it themselves.
 
 `{{spades.mode}}` (`plan` | `report`) drives the differences
-between the two pages — sidebar brand, H1 prefix, tagline,
-browser title.
-
-The PASS / PARTIAL / FAIL verdict prompts and audit-trail writes
-stay identical between modes. CLI mode does NOT write any
-evaluation file — same as today.
+between the two HTML pages — sidebar brand, H1 prefix, tagline,
+browser title. In CLI mode the Plan's audit-trail line is the
+only file written; HTML mode adds the two eval pages on top.
 
 ### Routing
 
@@ -212,13 +219,31 @@ Append the agreed verification plan to the Plan's audit trail:
     - Q : AI (`npm test`) — pending
 ```
 
-### Step 2.5 — Render PAGE 1: verification plan HTML (HTML mode only)
+### Step 2.5 — Present the locked verification plan
 
-When `review_format: html`, after the verification plan is
-agreed (the audit-trail line above is written) BUT before any
-verification actually runs, render page 1 and auto-open it. This
-gives the human a clear, structured view of the proposed
-verification plan to review.
+**Read `review_format:` from `.spades/config` and branch.** Step 2's
+interactive build agrees the verification plan; this step presents
+it as the human's locked review surface before Step 2.6's approve
+gate. Both modes have a Step 2.5 — only the surface differs.
+
+#### CLI mode
+
+The verification-plan table emitted during Step 2 IS the locked
+review surface — leave it on screen. Print one anchor line so the
+human knows the gate is here:
+
+```
+○ Verification plan locked above — approve, edit, or reject at the prompt next.
+```
+
+Then proceed to Step 2.6.
+
+#### HTML mode
+
+After the verification plan is agreed (the audit-trail line above is
+written) BUT before any verification actually runs, render page 1
+and auto-open it. This gives the human a clear, structured view of
+the proposed verification plan to review.
 
 **You MUST render via the bundled `template.html`. Do NOT
 hand-roll the HTML.** Validate the template exists and the named
@@ -283,8 +308,8 @@ use the bundled template` for the canonical rule.
    ○ Approve, edit, or reject below — then I'll run the checks.
    ```
 
-In CLI mode this step is skipped (the CLI table earlier in
-Step 2 is the review surface).
+Both branches then continue to Step 2.6 — the approve gate is
+identical between modes.
 
 ### Step 2.6 — Approve the verification plan (the gate)
 
@@ -453,12 +478,28 @@ What's the take-away the next reader should have?"* The reply
 becomes `{{spades.verdict_summary_html}}` in page 2's
 summary card. Trim and HTML-escape; keep `<p>` wrapping minimal.
 
-### Step 5.5 — Render PAGE 2: evaluation report HTML (HTML mode only)
+### Step 5.5 — Present the evaluation report
 
-When `review_format: html`, after the verdict is picked at
-Step 5 AND the human's rationale is captured, produce the
-completed evaluation report. Same template as page 1; different
-`mode` framing.
+**Read `review_format:` from `.spades/config` and branch.** Step 5
+picked the verdict and captured the rationale; this step presents
+the completed report as the closing review surface. Both modes have
+a Step 5.5 — only the surface differs.
+
+#### CLI mode
+
+The report table emitted during Step 5 IS the closing report surface
+— leave it on screen. Print one anchor line so the verdict is
+unambiguous:
+
+```
+✓ Evaluation report above — verdict: <PASS|PARTIAL|FAIL>. Plan audit-trail line records the same verdict.
+```
+
+#### HTML mode
+
+After the verdict is picked at Step 5 AND the human's rationale is
+captured, produce the completed evaluation report. Same template as
+page 1; different `mode` framing.
 
 **You MUST render via the bundled `template.html`. Do NOT
 hand-roll the HTML.**
@@ -514,8 +555,10 @@ Both pages now exist side by side: the pre-start verification
 plan (page 1) and the completed report (page 2). The human can
 compare them.
 
-In CLI mode this step is skipped entirely; the Plan's
-audit-trail line is the only output as today.
+In CLI mode the audit-trail line written by the fan-out below is
+the only file artefact — no HTML pages are written. The CLI
+surfaces emitted at Step 2.5 and Step 5.5 are the human's review
+record.
 
 ## Write the Verdict (fan-out dispatch)
 
@@ -527,7 +570,7 @@ general-purpose`):
 
 | Sub-agent | Resource owned | Returns |
 |-----------|---------------|---------|
-| `worker-file-plan-evaluate` | `.spades/plans/P-<…>.<ext>` — update Plan frontmatter (PASS: keep `status: evaluating`; PARTIAL: keep `status: evaluating`, record gaps; FAIL: `status: rejected`) and append to audit trail: `- YYYY-MM-DD: Evaluation — verdict: <PASS\|PARTIAL\|FAIL>. Notes: <…>.` | `{ status: ok }` |
+| `worker-file-plan-evaluate` | `.spades/plans/P-<…>.<ext>` — update Plan frontmatter (PASS: keep `status: evaluating`; PARTIAL: roll back to `status: delivering` so `/spades:do` can resume — record gaps in the audit-trail line; FAIL: `status: rejected`) and append to audit trail: `- YYYY-MM-DD: Evaluation — verdict: <PASS\|PARTIAL\|FAIL>. Notes: <…>.` | `{ status: ok }` |
 | `worker-file-scope-evaluate` *(only when this evaluation triggers a Scope rollup)* | `.spades/scopes/S-<scope-slug>.<ext>` — update rollup per `docs/FRAMEWORK.md § Hierarchy → Scope status rollup` and append audit-trail entry. Skip this sub-agent when no rollup change is required. | `{ status: ok }` |
 | `worker-linear-evaluate` *(only when `backend: linear`)* | Linear — call `record_evaluation(plan_id, verdict, notes)`: the driver posts the report as a comment on the sub-issue and updates sub-issue status. Includes the Layer-2 freshness probe. | `{ status: ok }` |
 
@@ -563,7 +606,7 @@ Next:
 ```
 ⚠ Plan evaluated: P-rag-pipeline-lookup-3HyD
 ⚠ Verdict:        PARTIAL — criterion 2 needs work
-⚠ Status:         evaluating (returning to /spades:do)
+⚠ Status:         delivering (returning to /spades:do)
 
 Next:
   /spades:do P-rag-pipeline-lookup-3HyD   — apply the fixes

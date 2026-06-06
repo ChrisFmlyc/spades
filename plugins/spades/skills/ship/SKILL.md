@@ -164,7 +164,7 @@ proceed anyway.
 Call `record_shipment(plan_id, artefact_ref)`. Append to audit trail:
 
 ```markdown
-- YYYY-MM-DD: Shipped. Artefact: <ref>. Type: artefact.
+- YYYY-MM-DD: Shipped (artefact). Ref: <ref>.
 ```
 
 ### Branch C: `deliverable_type: action`
@@ -195,7 +195,7 @@ Call `record_shipment(plan_id, artefact_ref)` with the evidence list.
 Append to audit trail:
 
 ```markdown
-- YYYY-MM-DD: Shipped. Action: <description>. Evidence:
+- YYYY-MM-DD: Shipped (action). Description: <description>. Evidence:
   - <evidence 1>
   - <evidence 2>
 ```
