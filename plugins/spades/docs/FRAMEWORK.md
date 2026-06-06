@@ -138,19 +138,27 @@ Skill responsibilities:
 - `/spades:evaluate` bumps to `evaluating` on the first PASS verdict.
 - `/spades:ship` bumps to `shipping` on the first PR opened.
 - `/spades:close` is the **only** skill that transitions Scope →
-  `done`, and only when **every** child Plan has `status: shipped`.
+  `done`. It applies the mixed-terminal rollup rules below.
 
 **One-way transitions only.** A Scope never moves backward. If Plan
 B is rejected after Plan A has shipped, the Scope stays at `shipping`
 (or `done` if A was the last); the rejected Plan is a leaf state on
 its own track. The Scope's audit trail records both transitions.
 
-**Rejected Plans do not block rollup.** They're terminal but don't
-hold the Scope back from `done` — Scope `done` requires every Plan
-to be either `shipped` or `rejected` (with the rejection explicitly
-acknowledged). Today the implementation only counts `shipped`;
-mixed-terminal Scopes (some shipped, some rejected) require a human
-decision via the rollup audit entry.
+**Rejected Plans do not block rollup, but require explicit
+acknowledgement.** They're terminal — `/spades:close` classifies
+each sibling as `shipped`, `rejected`, or still in flight, then
+applies the rollup rules:
+
+- Every sibling `shipped` → roll up silently to `done`.
+- Mix of `shipped` and `rejected`, at least one `shipped` →
+  `/spades:close` prompts via `AskUserQuestion` listing the rejected
+  siblings; on confirmation the Scope rolls up to `done` with the
+  rejections acknowledged in the audit trail.
+- Every sibling `rejected` (no `shipped`) → no rollup. The Scope
+  didn't ship anything; it stays at `shipping` until the human
+  re-scopes or abandons explicitly.
+- Any sibling still in flight → no rollup.
 
 ---
 
