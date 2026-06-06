@@ -8,6 +8,42 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.11.0] — 2026-06-06
+
+**MINOR** — Harden `/spades:close` against bad `gh pr view`
+outcomes. Closes HIGH finding F-1 from the rev-8 plugin logic
+review: previously, a transient `gh` auth/network failure on a
+Quick item could push the human to *Drop* — which deletes the
+marker — even though the underlying PR may have merged
+successfully. Drop is the data-loss path; a failed probe must
+never be sufficient signal to take it.
+
+**Quick Close Flow — Step 1:**
+
+- New "Outcome A — probe failure" branch (auth, network,
+  malformed `gh` response, missing required JSON fields). On
+  probe failure, abort cleanly with a remediation pointer
+  (`gh auth status`, network, rate limit). Drop is NOT offered.
+- New `CLOSED` decision option: *Update PR — the work shipped
+  under a different PR*. Captures the replacement PR URL via a
+  free-form follow-up, rewrites `pr_url` on the marker, re-probes.
+  Handles the force-replace pattern (original PR closed, work
+  shipped under a different PR number) without losing the audit
+  trail.
+- `OPEN` branch unchanged.
+- `MERGED` branch unchanged (now requires `mergeCommit.oid`
+  present, surfaced via the probe-failure branch if missing).
+
+**Plan Pass Flow — Step 1:** same probe-failure branch added
+(numbered Step 3). The Plan Pass Flow already exits cleanly on
+non-MERGED, so this only adds the missing `gh`-error path —
+surfacing the remediation explicitly instead of letting humans
+guess. No destructive write happens here before Step 2.
+
+- Skills bumped: `close` 4.1.1 → 4.2.0.
+- No skill behaviour changes in `spades-anywhere` — its Quick
+  Close Flow uses `AskUserQuestion` for the trigger, not `gh`.
+
 ## [3.10.0] — 2026-06-06
 
 **MINOR** — Parent-status precondition. Producing skills (`scope`,
