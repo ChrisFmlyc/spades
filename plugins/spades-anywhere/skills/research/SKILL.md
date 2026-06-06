@@ -8,12 +8,13 @@ version: 0.1.0
 
 ### Step 1 — Freshness check (mandatory)
 
-Per `docs/FRAMEWORK.md` § Freshness and `AGENTS.md` § Freshness
-Before Read-Across, this skill spawns a read-across researcher
-subagent. When research is scoped to an existing Scope (via
-`--scope <S-…>` or implicit Scope context), the researcher reads
-the local Scope file for context — a stale local `main` would feed
-stale context into the research dispatch.
+Per `docs/FRAMEWORK.md` § Freshness (the canonical contract for
+this plugin; the sister `spades` plugin documents the same rule
+under `AGENTS.md` § Freshness Before Read-Across), this skill spawns
+a read-across researcher subagent. When research is scoped to an
+existing Scope (via `--scope <S-…>` or implicit Scope context), the
+researcher reads the local Scope file for context — a stale local
+`main` would feed stale context into the research dispatch.
 
 Verify before spawning the researcher — but only when the consumer
 is in the local-backend + git scenario described in

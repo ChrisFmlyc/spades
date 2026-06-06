@@ -221,7 +221,7 @@ scope: S-<scope-slug>
 title: "<title>"
 depends_on: [<dep-suffix-1>, <dep-suffix-2>]    # or [] if none
 status: draft
-delivery: undecided                              # /spades-anywhere:approve sets this
+# delivery: omitted at draft time — /spades-anywhere:approve sets `human` or `hybrid`
 evaluation: undecided                            # /spades-anywhere:evaluate sets this
 deliverable_type: code | artefact | action
 created: YYYY-MM-DD

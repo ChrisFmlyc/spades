@@ -87,6 +87,17 @@ identical between modes.
 
 ## Step 1 — Update Status
 
+Before updating status, capture a light one-line description (the
+"what are you about to do" line) via `AskUserQuestion`:
+
+- *Type a brief description (one line)*
+- *Skip — proceed without a description*
+
+For *Type*, follow up with a free-form prompt: *"Brief description
+(one line) — e.g. 'drafting interview questions for round 1'."*
+Capture the reply verbatim (≤140 chars; truncate with `…` if longer).
+Skip is fine — the routing clause alone is enough to start.
+
 Move the Plan to `status: delivering` and `updated: <today>`.
 
 Append a single combined start-line to the Plan's
@@ -94,11 +105,12 @@ Append a single combined start-line to the Plan's
 pattern; matches the sister `spades` plugin's grammar):
 
 ```markdown
-- YYYY-MM-DD: Do phase started — routing: <human|hybrid>.
+- YYYY-MM-DD: Do phase started — routing: <human|hybrid>[ — "<description>"].
 ```
 
 `spades-anywhere` has no feature branches, so there is no
-`, branch: …` clause to append.
+`, branch: …` clause to append. Omit the ` — "<description>"`
+clause when the human skipped the description.
 
 Also update the parent Scope's status to `delivering` if it isn't
 already.
@@ -157,6 +169,15 @@ how to do their own life — `spades-anywhere` is a marker, not a
 project manager.
 
 ## Step 3 — Branch on `delivery:`
+
+If the Plan's frontmatter has `delivery: ai` (legacy or hand-edited
+state), abort immediately with this one-line message and stop:
+
+> `spades-anywhere` has no AI-autonomous branch. Re-run
+> `/spades-anywhere:approve P-…` and pick **Human** or **Hybrid**.
+
+Do not mark the Plan `delivering`. Do not touch any other state.
+The human re-routes via Approve and re-invokes `/spades-anywhere:do`.
 
 ### Branch A: `delivery: human` (default)
 

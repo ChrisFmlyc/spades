@@ -179,6 +179,17 @@ from its filename), filesystem-safe, and stable.
   dependency first).
 - Stored at: `.spades/plans/<filename>.md`.
 
+### Quick-item ID
+- Form: `Q-<description-slug>-<own-suffix>`.
+- `own-suffix` — 4-character base62 (same generator as Plan IDs).
+- Stored at: `.spades/quick/Q-<description-slug>-<own-suffix>.md`.
+- A quick item is work being done **under a project** but **outside
+  the Scope/Plan loop** — `/spades:quick` creates one when a tiny
+  change meets every gate criterion. `/spades:list` and
+  `/spades:status` surface quick items in their own subsection,
+  distinct from Scopes. `/spades:evaluate` accepts a `Q-…` target
+  and runs its Quick-Path Branch (PR retro-validation).
+
 Worked examples:
 
 ```
@@ -211,6 +222,7 @@ volume is high (plans, where the same description may recur).
 ├── projects/<project-slug>.md                # project records
 ├── scopes/S-<description-slug>.md            # scope records
 ├── plans/P-<desc-slug>-<suffix>[-<dep>...].md # plan records
+├── quick/Q-<desc-slug>-<suffix>.md           # quick-path items (no Scope/Plan)
 ├── learnings/YYYY-MM-DD-<slug>.md            # learning records
 └── reviews/<slug>-<date>.md                  # panel-review reports
 ```
@@ -249,6 +261,7 @@ repos:
   - https://github.com/cdsec/cdsec-portal
 owners:
   - chris@cdsec.co.uk
+status: active | archived | abandoned   # see § Terminal States; default `active` when omitted
 created: 2026-05-29
 updated: 2026-05-29
 linear_project_id: <uuid>           # only if backend: linear
@@ -262,7 +275,7 @@ linear_project_id: <uuid>           # only if backend: linear
 id: S-add-ai-helper-bot
 title: "Add AI Helper Bot"
 project: closed-door-security-website
-status: scoped | planning | delivering | evaluating | shipping | done
+status: scoped | planning | delivering | evaluating | shipping | done | abandoned
 type: feature | bug | chore | docs | refactor | investigation
 created: 2026-05-29
 updated: 2026-05-29
@@ -569,6 +582,50 @@ Every piece of work must be traceable through:
 7. A shipment record
 
 Work that cannot be traced through this chain must not ship.
+
+### Terminal states — `rejected` vs `abandoned`
+
+Three terminal states exist across the artefact hierarchy, with
+deliberately different meanings:
+
+- **`rejected`** (Plans only) — *"We evaluated this attempt and
+  said no."* A judgement on **this particular approach**. The
+  underlying work may continue with a different Plan. `rejected`
+  comes from `/spades:approve` (this approach is wrong) or
+  `/spades:evaluate` FAIL (this delivery missed the bar). A rejected
+  Plan does NOT terminate the parent Scope — write another Plan and
+  keep going.
+
+- **`abandoned`** (Scopes and Projects) — *"We're not doing this
+  initiative. Full stop, never."* A terminal walk-away on **the
+  whole thing**. Set by `/spades:close <target> --abandon "reason"`.
+  The reason text is required; abandoning an initiative without
+  recording why is exactly the audit-trail hole this framework
+  exists to prevent.
+
+- **`done`** (Scopes) / **`shipped`** (Plans) / **`archived`**
+  (Projects) — graceful completion. The artefact ran its arc.
+
+Directional rule: `rejected → abandoned` is allowed (you rejected
+several Plans, then decided the whole Scope isn't worth doing →
+abandon the Scope). `abandoned → anything` is not. Terminal means
+terminal.
+
+**No cascade.** Abandoning a Scope does NOT automatically reject or
+abandon its in-flight Plans. Those Plans stay at whatever status
+they were in; the parent's `abandoned` is the authoritative signal.
+`/spades:list` and `/spades:status` hide children of abandoned
+parents in the default view but they remain accessible via
+`/spades:list all`. Cascading writes that can partially fail would
+risk lying about state.
+
+Mid-flight abandonment is explicitly allowed. You do not need to
+terminate child Plans first; the whole point of `abandoned` is to
+walk away from in-flight work cleanly.
+
+Quick items have no `abandoned` state — if you start a quick item
+and bail, delete the marker file. Quick is the lightweight path; a
+terminal status would be ceremony for a delete.
 
 ### Plan rejection — no cascade
 
@@ -1111,3 +1168,101 @@ Adding a new skill that mirrors to Linear later? Author a per-skill
 fan-out table (one sub-agent per resource) and reference this
 section's contract. The dispatch-mode reporting, freshness probe,
 and failure semantics are inherited.
+
+### Drift detection (active probe in `/list` and `/status`)
+
+The failure semantics above handle the cases SPADES knows about — a
+worker returned `fail`, the coordinator surfaces it, the human
+retries. They do NOT catch:
+
+1. **Silent worker failures** — `worker-linear-*` returns `ok` but
+   the write didn't actually land (network glitch, API quirk).
+2. **Out-of-band Linear edits** — someone changes a sub-issue status
+   directly in Linear's UI.
+3. **Out-of-band file edits** — someone hand-edits
+   `.spades/plans/*.md` frontmatter without going through a skill.
+4. **Forgotten retries** — a Linear worker failed, the human
+   acknowledged it, then forgot to re-run the originating skill.
+
+`/spades:list` and `/spades:status` run an **active drift probe**
+when `backend: linear` and surface any drift in the same view as the
+rest of their output. The probe is *additive* — it uses the local
+and Linear data the skills already fetch (per § Sub-agent Dispatch's
+"two-source read"), so cost is at most a single comparison pass per
+artefact, no extra round-trips beyond what those skills already
+make.
+
+#### What gets compared
+
+For each Plan, Scope, and Project surfaced by the skill:
+
+1. Read the local file's frontmatter `status:` value.
+2. Read the corresponding Linear artefact's **workflow state type**
+   (Linear's universal classification — `backlog`, `unstarted`,
+   `started`, `completed`, `canceled` — not the team-specific
+   status name, which varies per Linear team).
+3. Compare against the expected mapping below.
+
+#### Status-type mapping (canonical)
+
+| Local SPADES status | Expected Linear workflow type |
+|---|---|
+| Scope `scoped` | `backlog` or `unstarted` |
+| Scope `planning` | `unstarted` |
+| Scope `delivering` / `evaluating` / `shipping` | `started` |
+| Scope `done` | `completed` |
+| Scope `abandoned` | `canceled` |
+| Plan `draft` | `unstarted` |
+| Plan `approved` | `unstarted` or `started` |
+| Plan `delivering` / `evaluating` / `shipping` | `started` |
+| Plan `shipped` | `completed` |
+| Plan `rejected` | `canceled` |
+| Project `active` | not `completed`/`canceled` |
+| Project `archived` | `completed` |
+| Project `abandoned` | `canceled` |
+
+If Linear is in a workflow type that isn't in the expected set,
+that's drift.
+
+#### What "drift" surfaces look like
+
+`/list` and `/status` print a one-line warning per drifted artefact:
+
+```
+⚠ Linear drift: S-add-newsletter — local `delivering`, Linear `completed` (Done). Re-run /spades:close S-… (Pass) to roll up locally, or edit Linear if the local file is wrong.
+```
+
+The warning includes:
+- Artefact ID
+- Local status value
+- Linear's actual workflow state type (and team-specific name, if
+  available)
+- A pointer to the most likely remediation skill — usually
+  re-running the originating writer skill to push local state to
+  Linear
+
+The probe is informational, not blocking. `/list` and `/status` still
+render their main view; the drift warnings appear in their own
+subsection below the table.
+
+#### When the probe runs
+
+- **Always** when `backend: linear` and the active project's Linear
+  Project ID resolves.
+- **Skipped** when `backend: local` (nothing to compare against) or
+  when the Linear API is unreachable (`/list` and `/status` continue
+  with a one-line note: *"Drift probe skipped — Linear unreachable.
+  Showing local view only."*).
+
+#### Why active probe, not passive markers
+
+A passive-marker scheme (writers record a `pending-reconcile:`
+audit-trail line when a worker returns `fail`) would catch the
+known failure case but miss silent failures and out-of-band edits.
+The active probe catches all three because it always compares the
+two truth-claims regardless of how the drift was introduced.
+
+The cost is one extra Linear comparison pass per `/list` or
+`/status` invocation — cheap because the skills already fetch both
+sides; the probe is just *"do the comparison we previously
+skipped"*.

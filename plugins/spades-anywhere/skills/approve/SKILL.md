@@ -139,19 +139,17 @@ free-form prompt for the notes.
 ## Routing Decision (Only When Approved)
 
 If the decision was Approve or Approve-with-notes, ask via
-`AskUserQuestion`. The three options use the same wording as
-`/spades-anywhere:evaluate`'s evaluation-routing question, so the human gets
-a consistent vocabulary across the loop:
+`AskUserQuestion`. `spades-anywhere` has no AI-autonomous branch —
+the human always does the work — so routing has two options only:
 
-1. **AI** — `/spades-anywhere:do` will execute autonomously, committing as it
-   goes.
-2. **Human** — `/spades-anywhere:do` records the assignment in the backend;
+1. **Human** — `/spades-anywhere:do` records the assignment in the backend;
    a human picks this up and does the work.
-3. **Hybrid** — split per task. AI does its tasks, then hands off to
-   a human for theirs. Per-task routing is recorded as a
-   `- **Routing:** ai | human` bullet under each task in the Plan
-   body (the Plan template already provisions this field; see
-   `/spades-anywhere:plan` § Tasks).
+2. **Hybrid** — split per task. The human owns most tasks; AI assists
+   on selected tasks by producing drafts, research, structure, or
+   decision frames — the human reviews and applies. Per-task routing
+   is recorded as a `- **Routing:** ai | human` bullet under each task
+   in the Plan body (the Plan template already provisions this field;
+   see `/spades-anywhere:plan` § Tasks).
 
    When the human picks Hybrid, walk each task and ask:
 
@@ -169,8 +167,8 @@ a consistent vocabulary across the loop:
 Notes:
 - For `deliverable_type: action` (server install, vendor call),
   Human is the typical choice.
-- For `deliverable_type: code` on standard feature work, AI is the
-  typical choice.
+- For `deliverable_type: code`, Hybrid is the typical choice — AI
+  drafts, the human reviews and commits.
 
 ## Write the Decision (fan-out dispatch)
 
@@ -182,9 +180,9 @@ general-purpose`):
 
 | Sub-agent | Resource owned | Returns |
 |-----------|---------------|---------|
-| `worker-file-plan-approve` | `.spades-anywhere/plans/P-<…>.<ext>` — update frontmatter (`status: approved` \| `rejected` \| keep `draft`; `delivery: ai \| human \| hybrid \| undecided`; `updated: <today>`) and append to audit trail: `- YYYY-MM-DD: Approved by <human> — routing: <routing>. Notes: <any notes>.` For `delivery: hybrid` also write the per-task Routing fields under each task. | `{ status: ok }` |
+| `worker-file-plan-approve` | `.spades-anywhere/plans/P-<…>.<ext>` — update frontmatter (`status: approved` \| `rejected` \| keep `draft`; `delivery: human \| hybrid`; `updated: <today>`) and append to audit trail: `- YYYY-MM-DD: Approved by <human> — routing: <routing>. Notes: <any notes>.` For `delivery: hybrid` also write the per-task Routing fields under each task. | `{ status: ok }` |
 | `worker-file-scope-approve` | `.spades-anywhere/scopes/S-<scope-slug>.<ext>` — update Scope frontmatter (`updated: <today>` only; status stays at `planning` — the Plan's own `status: approved` carries the approval gate decision; the Scope advances when the first child Plan transitions into `delivering`) and append a short audit-trail entry referencing the plan ID. | `{ status: ok }` |
-| `worker-linear-approve` *(only when `backend: linear`)* | Linear — call `record_approval(plan_id, decision, routing, notes)`: (1) post a comment on the Plan's sub-issue with decision + routing, (2) update sub-issue status to "Approval" (or "Delivering" for immediate AI hand-off), (3) apply routing label (`ai-delivered`, `human-delivery`, `hybrid-delivery`). Includes the Layer-2 freshness probe. | `{ status: ok }` |
+| `worker-linear-approve` *(only when `backend: linear`)* | Linear — call `record_approval(plan_id, decision, routing, notes)`: (1) post a comment on the Plan's sub-issue with decision + routing, (2) update sub-issue status to "Approval", (3) apply routing label (`human-delivery`, `hybrid-delivery`). Includes the Layer-2 freshness probe. | `{ status: ok }` |
 
 No back-write — `linear_issue_id` is already in the Plan file from
 `/spades-anywhere:plan`. After sub-agents return, the coordinator collects

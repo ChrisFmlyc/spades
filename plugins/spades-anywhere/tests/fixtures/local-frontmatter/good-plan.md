@@ -5,7 +5,7 @@ scope: S-add-ai-helper-bot
 title: "Create Initial Mastra Bot"
 depends_on: []
 status: draft
-delivery: undecided
+delivery: human
 deliverable_type: code
 created: 2026-05-29
 updated: 2026-05-29

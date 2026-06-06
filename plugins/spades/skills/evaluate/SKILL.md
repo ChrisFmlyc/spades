@@ -70,18 +70,26 @@ plans get the AI structuring help.
 
 1. **Confirm setup + active project.** Abort otherwise.
 2. **Resolve the target** per `docs/FRAMEWORK.md` § Target
-   Resolution. This skill is unusual: it can take either a Plan or a
-   Scope (whole-scope evaluation when every Plan under it is done).
-   - **If the human passed an ID,** resolve directly: `P-<slug>-<suffix>`
-     → Plan; `S-<slug>` → Scope.
+   Resolution. This skill is unusual: it can take a Plan, a Scope
+   (whole-scope evaluation when every Plan under it is done), or a
+   Quick item.
+   - **If the human passed an ID,** resolve by prefix:
+     `P-<slug>-<suffix>` → Plan; `S-<slug>` → Scope;
+     `Q-<slug>-<suffix>` → Quick item → jump to **Quick-Path Branch**
+     (below) and skip the rest of Pre-Flight.
    - **If invoked bare,** ask via `AskUserQuestion`:
      - *One plan* → Plan picker, status filter `delivering` or
        `evaluating`.
      - *Whole scope* → Scope picker, status filter `evaluating`.
+     - *Quick item* → Quick-item picker; glob `.spades/quick/Q-*.md`,
+       filter to active project, list items with no `Evaluate —
+       verdict:` line yet in their audit trail.
    - **Zero-candidate suggestions:**
      - No Plans in `delivering`/`evaluating` → `/spades:do P-…` on an
        approved plan first.
      - No Scopes in `evaluating` → none yet — keep delivering Plans.
+     - No unevaluated Quick items → none yet — run `/spades:quick`
+       first or pick a Plan/Scope.
 3. **Read the target.** Plan + parent Scope, OR Scope + every Plan
    under it. Read `review_format:` from `.spades/config` first — in
    CLI mode artefacts are `.md`, in HTML mode `.html`.
@@ -99,27 +107,76 @@ plans get the AI structuring help.
 
 ## Quick-Path Branch
 
-If the target Scope (or the Plan's parent Scope) has the `quick` flag
-set in its audit trail or carries a `spades:quick` label in Linear,
-this is a fast-track item. Skip the full evaluation and validate the
-PR directly:
+If the target ID begins with `Q-` (a quick-item marker file under
+`.spades/quick/`), or — for `backend: linear` — the target issue
+carries a `spades:quick` label, this is a fast-track item. Skip the
+full evaluation and validate the PR directly:
 
-1. Find the PR (search audit trail, or comments in Linear, or recent
-   PRs in the repo referencing the issue).
-2. Verify: merged or open; CI green; PR description follows the
-   `/spades:quick` template (Type, What, Why, Verification, Gate
-   checklist).
-3. Validate the gate retrospectively — does the diff still satisfy
-   every fast-track criterion?
-4. Verdict (via `AskUserQuestion`):
+1. **Read the marker file** at `.spades/quick/<Q-id>.md`. Pull
+   `pr_url`, `type`, `branch`, `delivery`, and the Gate Check
+   retrospect from the body.
+2. **Find the PR.** Prefer the `pr_url` from the marker file; fall
+   back to Linear comments (when `backend: linear`) or recent
+   `spades-quick/*` branches in the repo if the field is empty.
+3. **Verify the PR.** Merged or open; CI green; PR description
+   follows the `/spades:quick` template (Type, What, Why,
+   Verification, Gate checklist).
+4. **Validate the gate retrospectively** — does the merged (or
+   pending) diff still satisfy every fast-track criterion the
+   marker file's Gate Check section ticked?
+5. **Verdict** (via `AskUserQuestion`):
    - **PASS** — PR merged, CI green, gate retrospect still holds
-   - **PARTIAL** — small fix needed (new commits on same branch if
-     PR open; new quick-path PR referencing original if merged)
+   - **PARTIAL** — small fix needed
    - **FAIL** — gate violated retrospectively; roll back and re-route
      through `/spades:scope` + full loop
 
-Record the verdict via `record_evaluation`. No sub-issues are ever
-created for quick-path items.
+6. **If PARTIAL, route the follow-up.** Don't leave the human
+   guessing what comes next. Immediately follow up with a second
+   `AskUserQuestion`:
+
+   > *Follow-up route:*
+   > - **Add commits to the existing PR** — the PR is still open;
+   >   no SPADES skill needed. Make the fix in git and push to the
+   >   same `spades-quick/*` branch. Re-run `/spades:evaluate Q-<id>`
+   >   when ready.
+   > - **Open a new quick-path PR** — the original PR is merged.
+   >   Run `/spades:quick` again to create a follow-up; reference
+   >   this Q-id in the new item's *Why* field so the linkage is
+   >   readable in the audit trail.
+   > - **Re-route through the full loop** — gate is violated; this
+   >   isn't actually quick-path work. Run `/spades:scope` to capture
+   >   it properly, then plan/approve/do as usual.
+
+   Print the exact next-command for the chosen route as the last
+   conversational line (e.g. *"Next: run `/spades:scope` to capture
+   this as a proper Scope."*).
+
+7. **Append to the marker's audit trail:**
+
+   ```markdown
+   - YYYY-MM-DD: Evaluate — verdict: <PASS|PARTIAL|FAIL>. <one-line rationale>.[ Follow-up: <route>.]
+   ```
+
+   The ` Follow-up: <route>` clause is appended only when the verdict
+   is PARTIAL; omit otherwise. Routes are `add-commits` /
+   `new-quick-pr` / `full-loop` — short tokens for grep-friendly
+   audit trails.
+
+   When `backend: linear`, also post a one-line comment on the Linear
+   issue: *"`/spades:evaluate` verdict: `<PASS|PARTIAL|FAIL>` — `<rationale>`.[ Follow-up: `<route>`.]"*
+
+No sub-issues are ever created for quick-path items. The marker file
+remains the canonical record.
+
+### Target resolution for quick items
+
+`/spades:evaluate` accepts `Q-<slug>-<suffix>` as a target ID:
+
+- **If the human passed an ID** beginning with `Q-`, resolve to
+  `.spades/quick/<id>.md` and skip directly to the Quick-Path Branch.
+- **If invoked bare**, the third picker option (after *One plan*,
+  *Whole scope*) is *Quick item* → glob `.spades/quick/Q-*.md`,
+  filter to the active project, present a picker.
 
 ## Full-Loop Evaluation
 

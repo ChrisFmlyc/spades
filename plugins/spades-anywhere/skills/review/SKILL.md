@@ -8,11 +8,12 @@ version: 0.1.2
 
 ### Step 1 — Freshness check (mandatory)
 
-Per `docs/FRAMEWORK.md` § Freshness and `AGENTS.md` § Freshness
-Before Read-Across, this skill spawns four read-across subagents
-that read the local filesystem. A stale local `main` will produce
-stale findings — every persona will flag issues that have already
-shipped.
+Per `docs/FRAMEWORK.md` § Freshness (the canonical contract for
+this plugin; the sister `spades` plugin documents the same rule
+under `AGENTS.md` § Freshness Before Read-Across), this skill spawns
+four read-across subagents that read the local filesystem. A stale
+local `main` will produce stale findings — every persona will flag
+issues that have already shipped.
 
 Verify before spawning the panel:
 

@@ -91,13 +91,26 @@ Continue to Step 1.
 
 ## Step 1 — Update Status
 
+Before updating status, capture a light one-line description via
+`AskUserQuestion`:
+
+- *Type a brief description (one line)*
+- *Skip — proceed without a description*
+
+For *Type*, follow up with a free-form prompt: *"Brief description
+(one line) — e.g. 'publishing the auth refactor'."* Capture the
+reply verbatim (≤140 chars; truncate with `…` if longer). Skip is
+fine — the deliverable-type clause alone is enough.
+
 Move the Plan to `status: shipping` and `updated: <today>`.
 
 Append to the audit trail:
 
 ```markdown
-- YYYY-MM-DD: Ship phase started — deliverable_type: <code|artefact|action>.
+- YYYY-MM-DD: Ship phase started — deliverable_type: <code|artefact|action>[ — "<description>"].
 ```
+
+Omit the ` — "<description>"` clause when the human skipped.
 
 ## Step 2 — Branch on Deliverable Type
 
@@ -225,15 +238,47 @@ all live in the driver:
 
 Plan status → `shipped`. `updated: <today>`.
 
-If every Plan under the parent Scope is now `shipped`:
-- Scope status → `done`
-- Append to Scope audit trail:
+This step applies the **mixed-terminal Scope rollup** for the
+single-phase path (e.g. `scm: local-git`) and for `artefact` /
+`action` deliverables. Two-phase drivers (e.g. `scm: github`) do
+their rollup later via `/spades:close` Step 3.2 using the same
+rules.
+
+Read every sibling Plan under the parent Scope. Classify each:
+
+- `shipped` — terminal, success.
+- `rejected` — terminal, abandoned (rejection was a prior explicit
+  decision).
+- Anything else — still in flight.
+
+Rules:
+
+- **Every sibling is `shipped`** → roll up silently. Scope status →
+  `done`. Append to Scope audit trail:
   ```markdown
   - YYYY-MM-DD: All plans shipped. Scope done.
   ```
 
+- **Every sibling is terminal (mix of `shipped` and `rejected`) and at
+  least one is `shipped`** → ask the human to acknowledge via
+  `AskUserQuestion`, listing the rejected siblings. If they accept,
+  Scope status → `done`. Append:
+  ```markdown
+  - YYYY-MM-DD: All plans terminal. Shipped: <n>. Rejected: <m>
+    (acknowledged: P-<id-1>, P-<id-2>). Scope done.
+  ```
+  If they decline, leave the Scope at its current status and record
+  a deferred-ack line in the Plan's audit trail.
+
+- **Every sibling is `rejected` (no `shipped`)** → no rollup; the
+  Scope didn't ship anything. Surface and stop short of the rollup
+  edit. The Plan's own `status: shipped` write still proceeds.
+
+- **At least one sibling still in flight** → no rollup; leave Scope
+  unchanged.
+
 When `backend: linear`, mirror: sub-issue → "Done", parent Issue →
-"Done" (only if every sub-issue is Done).
+"Done" (only if every sub-issue is `Done`).
 
 ## Step 4 — Suggest a Learning
 
