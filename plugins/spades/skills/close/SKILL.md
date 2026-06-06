@@ -1,7 +1,7 @@
 ---
 name: close
 description: The single conversational entry point for closing out a Plan, Scope, or Project. Asks the human what they're doing — finalise as shipped/done/archived (the happy path), reject (Plans only), or abandon (Scopes and Projects only). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging" — the skill figures out which flow applies.
-version: 4.1.1
+version: 4.2.0
 ---
 
 # /spades:close
@@ -192,21 +192,47 @@ Query GitHub:
 gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy
 ```
 
-Branch on the response:
+The probe has **two outcome classes** — distinguish them before
+branching on `state`. A failed probe is NOT the same signal as a
+non-merged PR, and must never trigger the Drop path. Drop deletes
+the marker; on a transiently-failed lookup that would destroy the
+canonical record of work that may have shipped.
 
-- **`state: MERGED`** → continue to Step 2 (flip to shipped).
-- **`state: OPEN`** → the PR is still open. Tell the human; ask
-  via `AskUserQuestion`:
+**Outcome A — probe failure (auth, network, malformed response).**
+
+If `gh` exits non-zero, JSON parse fails, or any required field is
+missing (`state` null or absent, `mergeCommit.oid` missing when
+`state: MERGED`), **abort cleanly** — do NOT offer Drop. Print:
+
+> *Couldn't query PR `<pr_url>` — `gh` returned an error or
+> incomplete data. Re-run `/spades:close Q-<id>` after fixing the
+> underlying issue (check `gh auth status`, network, GitHub rate
+> limit). The marker is untouched at `status: shipping`.*
+
+**Outcome B — probe succeeded.** Branch on `state`:
+
+- **`MERGED`** → continue to Step 2 (flip to shipped).
+- **`OPEN`** → the PR is still open. Tell the human; ask via
+  `AskUserQuestion`:
   - *Wait — exit and come back later* (recommended)
   - *Drop the quick item* (delete marker; quick items have no
     abandoned state, the file is just removed)
   
   On *Wait* → exit cleanly. On *Drop* → continue to Step 3 (drop).
-- **`state: CLOSED`** (closed without merging) → the PR is dead.
-  Tell the human; ask via `AskUserQuestion`:
-  - *Drop the quick item* (recommended — delete marker)
+- **`CLOSED`** (closed without merging) → the PR is dead, but the
+  work itself may have shipped under a different PR (force-replace
+  pattern: original PR closed, replacement PR opened on a different
+  branch and merged). Surface that possibility *before* offering
+  Drop. Ask via `AskUserQuestion`:
+  - *Update PR — the work shipped under a different PR* (prompts
+    for the replacement PR URL via a free-form follow-up; validate
+    it points at the same `owner/repo` as the original; rewrite
+    `pr_url` on the marker; re-run Step 1 against the new URL)
+  - *Drop the quick item* (delete marker — the work is genuinely
+    gone)
   - *Cancel* — exit without changes
   
+  On *Update PR* → re-probe (loop back to the top of Step 1).
   On *Drop* → continue to Step 3. On *Cancel* → exit.
 
 ### Step 2 — Flip to shipped
@@ -388,7 +414,22 @@ lives elsewhere by design.
    gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy
    ```
 
-3. Branch on `state`:
+3. **Probe failure handling.** If `gh` exits non-zero, JSON parse
+   fails, or any required field is missing (`state` null or
+   absent, `mergeCommit.oid` missing when `state: MERGED`), abort
+   cleanly with:
+
+   > *Couldn't query PR `<URL>` — `gh` returned an error or
+   > incomplete data. Re-run `/spades:close <plan_id>` after
+   > fixing the underlying issue (check `gh auth status`, network,
+   > GitHub rate limit). The Plan is untouched at `status:
+   > shipping`.*
+
+   The Plan Pass Flow does no destructive writes before Step 2, so
+   a probe failure here is purely a re-runnable error — but
+   surfacing the remediation explicitly stops humans guessing.
+
+4. **Branch on `state`** (probe succeeded):
    - `MERGED` → capture `mergeCommit.oid` (full SHA),
      `mergedBy.login`, `mergedAt`. Continue.
    - `OPEN` → tell the human the PR is still open. Show CI/review
