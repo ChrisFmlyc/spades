@@ -122,9 +122,10 @@ Above the per-Scope detail, render a one-line-per-Scope summary:
 
 Fast-track items (no plans):
 
-| ID | Title | Type | Delivery | Evidence |
-|----|-------|------|----------|----------|
-| Q-book-venue-deposit-7Mqz | Book Venue Deposit | errand | human | receipt photo |
+| ID | Title | Type | Delivery | Evidence | Age |
+|----|-------|------|----------|----------|-----|
+| Q-book-venue-deposit-7Mqz | Book Venue Deposit | errand | human | receipt photo | 3 days |
+| Q-send-thankyou-cards-4nKr | Send Thank-you Cards | errand | human | — | ⚠ 22 days |
 ```
 
 Quick items appear in their own subsection only when present. They
@@ -132,6 +133,16 @@ have no Plan records. The marker file at
 `.spades-anywhere/quick/Q-<slug>-<suffix>.md` is the canonical
 source; the Linear `spades:quick` label (when `backend: linear`)
 is a mirror.
+
+**Age column.** Compute `Age` as the integer day-count between today
+and the marker's `created:` frontmatter field. `/spades-anywhere:quick`
+writes the marker directly at `status: shipping`, so `created:` is
+the "time-at-shipping started" anchor. Render as `<n> days` (or
+`<1 day` when same-day). Prefix the cell with `⚠ ` when
+`Age ≥ 14 days`. This signal matters more here than in the sister
+`spades` plugin because there is no external probe (no PR, no
+GitHub state) to back-stop a forgotten marker — the `created:` date
+is the only signal that work was opened and never closed.
 
 ## Step 4 — Recommendations
 
@@ -143,6 +154,7 @@ Suggest the single most useful next action:
 - A Plan in `shipping` (ship-evidence captured, not yet closed) → `Run /spades-anywhere:close P-… to finalise`
 - A Scope with no plans → `Run /spades-anywhere:plan S-… to draft the first plan`
 - An approved Plan with no `delivery:` set → `Re-run /spades-anywhere:approve P-… (routing not set)`
+- A Quick item at `status: shipping` with `Age ≥ 14 days` → `Run /spades-anywhere:close Q-<id> — marker has been at status: shipping for <n> days.`
 
 Surface only the most impactful one or two suggestions. Don't list
 every possible next step.

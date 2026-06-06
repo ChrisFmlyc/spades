@@ -120,15 +120,26 @@ Above the per-Scope detail, render a one-line-per-Scope summary:
 
 Fast-track items (no plans):
 
-| ID | Title | Type | Delivery | PR state |
-|----|-------|------|----------|----------|
-| Q-fix-broken-form-4nKr | Fix Broken Contact Form | bug | ai | merged (awaiting Done) |
+| ID | Title | Type | Delivery | PR state | Age |
+|----|-------|------|----------|----------|-----|
+| Q-fix-broken-form-4nKr | Fix Broken Contact Form | bug | ai | merged (awaiting Done) | 2 days |
+| Q-tweak-footer-9XaZ | Tweak Footer Copy | tweak | human | closed (no merge) | ⚠ 18 days |
 ```
 
 Quick items appear in their own subsection only when present. They
 have no Plan records. The marker file at
 `.spades/quick/Q-<slug>-<suffix>.md` is the canonical source; the
 Linear `spades:quick` label (when `backend: linear`) is a mirror.
+
+**Age column.** Compute `Age` as the integer day-count between today
+and the marker's `created:` frontmatter field. `/spades:quick` writes
+the marker directly at `status: shipping`, so `created:` is the
+"time-at-shipping started" anchor — note that re-writes by the
+Update PR sub-flow advance `updated:` but never reset `created:`,
+so the aging clock is stable across replacements. Render as
+`<n> days` (or `<1 day` when same-day). Prefix the cell with `⚠ `
+when `Age ≥ 14 days` — at that point the marker is overdue for a
+`/spades:close Q-<id>` run, regardless of the PR state column.
 
 ## Step 4 — Recommendations
 
@@ -139,6 +150,7 @@ Suggest the single most useful next action:
 - A Plan in `evaluating` with PASS in audit trail → `Run /spades:ship P-…`
 - A Scope with no plans → `Run /spades:plan S-… to draft the first plan`
 - A Plan with `delivery: undecided` → `Re-run /spades:approve P-… (routing not set)`
+- A Quick item at `status: shipping` with `Age ≥ 14 days` → `Run /spades:close Q-<id> — marker has been at status: shipping for <n> days.`
 
 Surface only the most impactful one or two suggestions. Don't list
 every possible next step.
