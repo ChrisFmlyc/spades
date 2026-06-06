@@ -223,6 +223,16 @@ from its filename), filesystem-safe, and stable.
   subsection, distinct from Scopes. `/spades-anywhere:evaluate`
   accepts a `Q-…` target and runs its Quick-Path Branch
   (action + evidence retro-validation).
+- **Two-phase lifecycle.** `/spades-anywhere:quick` opens the marker
+  at `status: shipping` with the planned action declared. The human
+  then goes off and does the thing. When they come back with
+  evidence, `/spades-anywhere:close Q-<id>` captures the evidence,
+  fills in the Action-taken and Evidence body sections, and flips
+  to `status: shipped`. Same shape as the sister `spades` plugin's
+  two-phase quick; different trigger — human-confirms-with-evidence
+  here, PR-merge over there. `status: shipped` always means *the
+  human reported back with evidence*. See `/spades-anywhere:quick`
+  and the Quick Close Flow in `/spades-anywhere:close`.
 
 Worked examples:
 
@@ -698,9 +708,13 @@ Mid-flight abandonment is explicitly allowed. You do not need to
 terminate child Plans first; the whole point of `abandoned` is to
 walk away from in-flight work cleanly.
 
-Quick items have no `abandoned` state — if you start a quick item
-and bail, delete the marker file. Quick is the lightweight path; a
-terminal status would be ceremony for a delete.
+Quick items have no `abandoned` (or `rejected`) state — if you
+start a quick item and bail, delete the marker file. Quick is the
+lightweight path; a terminal status would be ceremony for a
+delete. `/spades-anywhere:close Q-<id>` handles the drop
+conversationally: if the human reports the action didn't happen,
+it offers *Drop* alongside the normal *Done — flip to shipped
+with evidence* option.
 
 ### Plan rejection — no cascade
 

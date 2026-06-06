@@ -189,6 +189,13 @@ from its filename), filesystem-safe, and stable.
   `/spades:status` surface quick items in their own subsection,
   distinct from Scopes. `/spades:evaluate` accepts a `Q-…` target
   and runs its Quick-Path Branch (PR retro-validation).
+- **Two-phase lifecycle.** `/spades:quick` opens the marker at
+  `status: shipping` and opens the PR. After the PR merges, the
+  human runs `/spades:close Q-<id>` to flip to `status: shipped`
+  (matching the Plan ship → close two-phase shape). `status:
+  shipped` always means *actually merged* — never PR-opened-but-
+  unmerged. See `/spades:quick` and the Quick Close Flow in
+  `/spades:close`.
 
 Worked examples:
 
@@ -564,6 +571,22 @@ tweaks, small config nudges, docs changes — routes through
 `/spades:quick`. On this path, the PR description is the audit artefact;
 no separate Scope or Plan record is created.
 
+The quick path is **two-phase**, matching the Plan ship → close shape:
+
+- `/spades:quick` opens the work → writes the marker at `status:
+  shipping`, opens the PR, exits.
+- `/spades:close Q-<id>` finalises after PR merge → verifies merge
+  via `gh pr view`, flips to `status: shipped`, appends the
+  canonical `Shipped (github). PR: …. Merge: …. Merged by: ….`
+  audit-trail line.
+
+`status: shipped` always means the deliverable is real to the
+outside world (merged on main) — never PR-opened-but-unmerged. If
+the PR is closed without merging, `/spades:close Q-<id>` offers
+to **drop** the marker (delete the file). Quick items have no
+`rejected` or `abandoned` terminal status — a deleted marker is
+sufficient (see § Deliberate non-goals).
+
 ### The gate — ALL must be true
 
 1. Single concern
@@ -678,9 +701,12 @@ Mid-flight abandonment is explicitly allowed. You do not need to
 terminate child Plans first; the whole point of `abandoned` is to
 walk away from in-flight work cleanly.
 
-Quick items have no `abandoned` state — if you start a quick item
-and bail, delete the marker file. Quick is the lightweight path; a
-terminal status would be ceremony for a delete.
+Quick items have no `abandoned` (or `rejected`) state — if you
+start a quick item and bail, delete the marker file. Quick is the
+lightweight path; a terminal status would be ceremony for a
+delete. `/spades:close Q-<id>` handles the drop conversationally:
+when the PR is closed without merging (or never opened), it offers
+*Drop* alongside the normal *Pass — flip to shipped* option.
 
 ### Plan rejection — no cascade
 

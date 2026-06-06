@@ -1,7 +1,7 @@
 ---
 name: close
 description: The single conversational entry point for closing out a Plan, Scope, or Project. Asks the human what they're doing — finalise as shipped/done/archived (the happy path), reject (Plans only), or abandon (Scopes and Projects only). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging" — the skill figures out which flow applies.
-version: 4.0.1
+version: 4.1.1
 ---
 
 # /spades:close
@@ -11,7 +11,7 @@ close; **you ask them what kind of close it is** — pass, reject, or
 abandon — and you do the right thing based on the target type and
 their answer.
 
-Three close flows live in this skill:
+Four close flows live in this skill:
 
 1. **Pass** (happy path) — finalise the artefact's lifecycle.
    - Plan → `status: shipped` (requires merged PR + bookkeeping
@@ -19,6 +19,8 @@ Three close flows live in this skill:
    - Scope → `status: done` (only when every child Plan is
      terminal; mixed-terminal rollup applies).
    - Project → `status: archived` (graceful sunset).
+   - Quick item → `status: shipped` (requires merged PR;
+     lightweight — no bookkeeping commit, no Scope rollup).
 2. **Reject** — Plan rollback. Plan → `status: rejected`. Applies
    to Plans in any non-terminal status (`approved`, `delivering`,
    `evaluating`, `shipping`). A Plan in `draft` doesn't need
@@ -28,6 +30,12 @@ Three close flows live in this skill:
    Project → `status: abandoned`. Plans cannot be abandoned (they
    are attempts, not initiatives — see `docs/FRAMEWORK.md §
    Terminal States`). Requires a reason.
+4. **Drop** — quick-item bail. Quick item whose PR was closed
+   without merging → delete the marker file. Quick items have no
+   `rejected` / `abandoned` terminal status (per the framework's
+   deliberate non-goal); the marker file is just removed. No
+   reason required — git history records the delete if anyone
+   wants the trace.
 
 Read `docs/FRAMEWORK.md` § Target Resolution and § Terminal States
 before running.
@@ -37,16 +45,23 @@ before running.
 **Step 0 — Detect the target.**
 
 - If the human passed an explicit ID, resolve it by prefix:
-  `P-<slug>-<suffix>` → Plan; `S-<slug>` → Scope; bare slug that
-  matches a `.spades/projects/<slug>.md` → Project.
+  `P-<slug>-<suffix>` → Plan; `S-<slug>` → Scope; `Q-<slug>-<suffix>`
+  → Quick item; bare slug that matches a
+  `.spades/projects/<slug>.md` → Project.
 - If no ID was passed, ask via `AskUserQuestion`:
   - *Plan* → run the Plan picker (status filter: `approved`,
     `delivering`, `evaluating`, `shipping`).
   - *Scope* → run the Scope picker (status filter: any non-terminal).
+  - *Quick item* → run the Quick-item picker (glob
+    `.spades/quick/Q-*.md`, status filter: `shipping`).
   - *Project* → run the Project picker (status filter: `active`).
 - If the human gave an ambiguous reference ("close that thing", "the
   newsletter scope"), surface 1–3 best candidates and ask which one.
   Don't guess silently.
+- **If the resolved target is a Quick item, skip Step 1 and go
+  directly to the Quick Close Flow** — quick items have no menu
+  (the action is unambiguous: try to flip to shipped; offer Drop
+  only if the PR is closed unmerged).
 
 **Step 1 — Ask what kind of close.**
 
@@ -105,6 +120,8 @@ one."*
   (existing; below).
 - *Abandon* on a Project → continue to **Project Abandonment Flow**
   (existing; below).
+- Quick item (resolved at Step 0) → continue to **Quick Close
+  Flow** (no Step 1 menu).
 
 ## Power-user Shortcuts
 
@@ -134,6 +151,119 @@ skill would today print the Plan being closed to the terminal, in
 HTML mode auto-open the Plan's existing `.html` file via the
 OPEN_CMD prelude. The bookkeeping-PR workflow, sync invocations,
 and Linear mirror calls are identical between modes.
+
+## Quick Close Flow
+
+Reached when target is a Quick item (`Q-<slug>-<suffix>`). The
+action is to verify the PR has merged and flip the marker to
+`status: shipped`. No bookkeeping PR, no Scope rollup, no Linear
+sub-issue handling — quick items are deliberately lightweight (see
+`docs/FRAMEWORK.md § Fast-Track Path`).
+
+### Pre-Flight
+
+1. **Confirm setup + active project.** Read `.spades/config`. Abort
+   otherwise.
+2. **Read the marker file** at `.spades/quick/<Q-id>.md`. Capture:
+   - `id`, `pr_url`, `branch`, `linear_issue_id`, `status`.
+   - Reject if `status: shipped` — already terminal. Print:
+     *"Quick item `<Q-id>` is already `shipped`. Terminal means
+     terminal."*
+3. **Confirm `scm: github`.** If `scm: local-git` (or anything
+   else), the merge probe doesn't apply — abort with:
+
+   > *`/spades:close Q-<id>` is meaningful for `scm: github`.
+   > Local-git quick items reach shipped inside `/spades:quick`
+   > itself (single-phase). Nothing to close out.*
+
+   *(Note: future SCM drivers may extend this; see
+   `docs/EXTENDING-SCM.md`.)*
+4. **Open the marker (HTML mode only).** When `review_format: html`,
+   run the OPEN_CMD prelude and open `.spades/quick/<Q-id>.html` if
+   it exists. In CLI mode, print the marker's title and `pr_url`
+   inline.
+
+### Step 1 — Probe the PR state
+
+Parse the PR number from `pr_url` (last `/pull/<n>` segment).
+Query GitHub:
+
+```bash
+gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy
+```
+
+Branch on the response:
+
+- **`state: MERGED`** → continue to Step 2 (flip to shipped).
+- **`state: OPEN`** → the PR is still open. Tell the human; ask
+  via `AskUserQuestion`:
+  - *Wait — exit and come back later* (recommended)
+  - *Drop the quick item* (delete marker; quick items have no
+    abandoned state, the file is just removed)
+  
+  On *Wait* → exit cleanly. On *Drop* → continue to Step 3 (drop).
+- **`state: CLOSED`** (closed without merging) → the PR is dead.
+  Tell the human; ask via `AskUserQuestion`:
+  - *Drop the quick item* (recommended — delete marker)
+  - *Cancel* — exit without changes
+  
+  On *Drop* → continue to Step 3. On *Cancel* → exit.
+
+### Step 2 — Flip to shipped
+
+Update `.spades/quick/<Q-id>.md`:
+
+- Frontmatter: `status: shipping` → `status: shipped`;
+  `updated: <today>`.
+- Append to the `## Audit Trail` section:
+
+  ```markdown
+  - YYYY-MM-DD: Shipped (github). PR: <pr_url>. Merge: <merge-sha>. Merged by: <login>.
+  ```
+
+  The grammar matches the canonical Plan-close Shipped line so
+  every `Shipped` audit-trail entry across the framework is
+  parseable the same way.
+
+If HTML mode and `.spades/quick/<Q-id>.html` exists, re-render
+it via the bundled template (or append the audit-trail line to
+the existing HTML, matching the .md). Marker is the
+source-of-truth; the HTML is the human-readable mirror.
+
+### Step 3 — Drop (PR closed without merging)
+
+Delete the marker file at `.spades/quick/<Q-id>.md` (and the
+`.html` companion if present). Git history records the delete;
+no other audit-trail entry is needed.
+
+Print a single confirmation line:
+
+> *`Q-<id>` dropped. PR was closed without merging; marker
+> deleted. Git history records the trace.*
+
+### Step 4 — Linear mirror (when `backend: linear`)
+
+If `linear_issue_id` is present in the marker (and the marker
+existed before Step 3 deleted it — capture the ID first):
+
+- On Step 2 flip: move the Linear issue from In Review → Done.
+  Post a comment: *"Merged via `/spades:close Q-<id>`. Merge:
+  `<merge-sha>` by `<login>`."*
+- On Step 3 drop: move the Linear issue from In Review → Cancelled
+  (or Backlog, if your team uses that for not-done-not-failed).
+  Post a comment: *"Quick item dropped — PR closed without
+  merging."*
+
+### Step 5 — Confirm
+
+Print one line in CLI mode (HTML mode: the marker's `.html` is
+already updated):
+
+- On flip: *`✓ Q-<id> shipped. Merge: <merge-sha>.`*
+- On drop: *`✓ Q-<id> dropped.`*
+
+No commit, no PR, no Scope rollup. Quick items are leaf nodes —
+they don't have parents in the audit-trail sense.
 
 ## Plan Pass Flow — Pre-Flight + Steps 1–9
 

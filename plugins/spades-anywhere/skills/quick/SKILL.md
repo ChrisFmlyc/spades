@@ -1,7 +1,7 @@
 ---
 name: quick
 description: Fast-track path for trivial human work in spades-anywhere — tiny errands, one-off actions, quick artefact tweaks, single-message communications that don't warrant a Scope. Use when someone says "just do this small thing", "quick errand", "one-off task", "tiny tweak to the doc", or when you would otherwise invoke /spades-anywhere:scope for a change that clearly meets every gate criterion below. Do NOT use for anything touching project intent, multi-step coordination, financial commitment over a threshold, or work that needs evaluation against acceptance criteria.
-version: 0.1.0
+version: 0.2.0
 ---
 
 ## Pre-Flight
@@ -11,14 +11,28 @@ missing, abort and suggest `/spades-anywhere:setup`.
 
 # SPADES-Anywhere Quick — Fast-Track Path for Small Human Work
 
-You are delivering a trivial unit of human work through the
+You are opening a trivial unit of human work through the
 spades-anywhere fast-track path. The full loop (Scope → Plan →
 Approve → Do → Evaluate → Ship → Close) is friction theatre for
 sending one email, booking one slot, or fixing one typo in a doc.
-`/spades-anywhere:quick` compresses it into four steps —
-**Identify → Act → Verify → Record** — where the quick-item
+`/spades-anywhere:quick` compresses it into three steps —
+**Identify → Declare → Open marker** — where the quick-item
 marker file is the audit artefact and there is no separate Scope
 or Plan.
+
+`/spades-anywhere:quick` writes the marker at `status: shipping`
+(intent declared; the human has not yet acted). After the human
+does the thing, they run `/spades-anywhere:close Q-<id>` with
+evidence, which flips the marker to `status: shipped`. This
+two-phase shape mirrors the sister `spades` plugin's `/spades:quick`
+→ `/spades:close` — same vocabulary, same audit-trail grammar,
+just a different trigger: PR-merge for `spades`, human-confirms-with-
+evidence for `spades-anywhere`.
+
+The skill is a marker + AC-restatement artefact, exactly like
+`/spades-anywhere:do`. It does **not** take an assignee, schedule a
+cadence, or chase the human. They do the thing; you run the loop
+around them.
 
 This path mirrors the sister `spades` plugin's `/spades:quick`
 in process; the gate criteria differ because human work isn't
@@ -114,30 +128,35 @@ If the work is ambiguous between two types, ask the human via
   create one (for traceability) or skip Linear entirely (for the most
   trivial things, the marker file alone is enough).
 
-### 2. Act
+### 2. Declare
 
-The human does the thing. `/spades-anywhere:quick` is **not** an
-autonomous action skill — like every other anywhere skill, the AI
-stands down and the human acts. The AI's job here is to:
+The human is about to go off and do the thing. Your job is to make
+the contract explicit before they leave:
 
-- Restate what the human is about to do (one line) so they're clear.
-- Capture the evidence reference they'll bring back ("photo of
-  receipt", "forwarded email", "screenshot of the booking").
+- **Restate the action** in one line: what they are about to do,
+  to which artefact or recipient, by when.
+- **Restate what "done" looks like**: the evidence they will bring
+  back (a URL, a file path, a one-line attestation, a forwarded
+  message ID). Light is fine; the standard is "future-me can tell
+  what happened from this evidence alone".
+- Capture nothing else — no cadence, no check-in offer, no "I'll
+  remind you". The human owns the doing; the marker is the
+  contract.
 
-If the action turns out to be bigger than the gate allowed,
-**stop immediately** — bail to `/spades-anywhere:scope`.
+If the action turns out to be bigger than the gate allowed (even
+during this declaration), **stop immediately** — bail to
+`/spades-anywhere:scope`.
 
-### 3. Verify
+### 3. Open the marker
 
-- Confirm the action completed.
-- Capture evidence: a URL, a file path, a one-line attestation, a
-  forwarded message ID. Light is fine; the standard is "future-me
-  can tell what happened from this evidence alone".
+Write the quick-item marker file at `status: shipping`. The
+**Action taken** and **Evidence** body sections are left as
+`<filled in at close>` placeholders — the human has not yet
+acted, so those facts don't exist yet. The marker is the *intent
+contract*; `/spades-anywhere:close Q-<id>` fills in the actuals.
 
-### 4. Record
-
-Write the quick-item marker file. The marker file is the audit
-artefact.
+Confirm with a single conversational line: *"Marker opened.
+Run `/spades-anywhere:close Q-<id>` with evidence when done."*
 
 ## Backend Integration
 
@@ -166,8 +185,8 @@ id_suffix: 7Mqz
 project: <project-slug>
 title: "<one-line title>"
 type: bug | tweak | chore | docs | errand
-status: shipped                # quick items reach shipped on completion
-evidence_ref: <url-or-path-or-attestation>
+status: shipping               # at marker open. /spades-anywhere:close Q-<id> flips to shipped with evidence.
+evidence_ref: <filled-in-at-close>
 linear_issue_id: <id>          # only when backend: linear
 delivery: human                # always human in spades-anywhere
 created: YYYY-MM-DD
@@ -175,7 +194,7 @@ updated: YYYY-MM-DD
 ---
 ```
 
-Body:
+Body (as written by `/spades-anywhere:quick`):
 
 ```markdown
 # <title>
@@ -186,14 +205,13 @@ Body:
 ## Why
 <one sentence or linked context>
 
-## Action taken
-<one short paragraph — what the human did>
+## Action to take
+<one short paragraph — the action the human is about to take>
 
-## Evidence
-- <evidence ref 1>
-- <evidence ref 2 — optional>
+## Evidence (filled in at close)
+<filled in at close>
 
-## Gate Check (retrospective)
+## Gate Check (prospective)
 - [x] Single concrete action
 - [x] ≤ 30 min of human time
 - [x] One artefact or one recipient
@@ -206,9 +224,21 @@ Body:
 - [x] No verification against project success criteria
 
 ## Audit Trail
-- YYYY-MM-DD: Quick-path opened. Type: <type>.
-- YYYY-MM-DD: Quick-path completed. Evidence: <ref>.
+- YYYY-MM-DD: Quick-path opened. Type: <type>. Action: <one-line restatement>.
 ```
+
+After the human acts, `/spades-anywhere:close Q-<id>` flips
+`status: shipping → shipped`, fills in the **Action taken** and
+**Evidence** sections (replacing the placeholders), and appends a
+`Shipped` audit-trail line that matches the canonical close grammar:
+
+```markdown
+- YYYY-MM-DD: Shipped (action). Evidence: <ref>.
+```
+
+The `## Gate Check (prospective)` heading flips to `## Gate Check
+(retrospective)` at close — the gate is revalidated retrospectively
+against what actually happened.
 
 ### When `backend: linear`
 
@@ -218,10 +248,13 @@ In addition to writing the marker file:
    - `spades:quick`
    - One of `type:bug`, `type:tweak`, `type:chore`, `type:docs`, `type:errand`
    - `human-delivery` (always — spades-anywhere has no AI-delivered branch)
-2. Update issue status: Todo → In Progress → Done (quick items are
-   single-action; they reach Done as soon as the marker file is
-   written).
-3. Post a comment on the Linear issue with the evidence reference.
+2. Update issue status: Todo → In Progress. **Do NOT mark Done
+   in `/quick`** — the In Progress → Done transition happens in
+   `/spades-anywhere:close Q-<id>` after the human confirms with
+   evidence. This keeps the Linear state in lock-step with the
+   marker's `status:` field — both flip together.
+3. Post a comment on the Linear issue: *"Quick-path opened.
+   Action: `<one-line restatement>`."*
 4. Record the Linear issue ID in the marker file's `linear_issue_id:`
    frontmatter field.
 5. **Do NOT create sub-issues.** The Linear issue is the whole unit

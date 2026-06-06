@@ -7,9 +7,9 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the plugin
 version via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
-## [0.7.0] — 2026-06-06
+## [0.9.0] — 2026-06-06
 
-**MINOR** — Mirror of `spades` v3.8.0's parent-status precondition.
+**MINOR** — Mirror of `spades` v3.10.0's parent-status precondition.
 Producing skills (`scope`, `plan`, `approve`, `do`, `evaluate`,
 `ship`, `close` Pass route) now refuse hard when an ancestor in
 the target's container chain has terminal status `abandoned` (or,
@@ -29,11 +29,65 @@ the rev-7 plugin logic review.
 
 - Skills bumped: `scope` 0.1.2 → 0.1.3, `plan` 0.1.2 → 0.1.3,
   `approve` 0.1.0 → 0.1.1, `do` 0.1.1 → 0.1.2, `evaluate`
-  0.4.0 → 0.4.1, `ship` 0.1.1 → 0.1.2, `close` 1.0.0 → 1.0.1.
-- New files: `plugins/spades-anywhere/AGENTS.md`,
-  `plugins/spades-anywhere/.spades/version`.
+  0.4.0 → 0.4.1, `ship` 0.1.1 → 0.1.2, `close` 1.1.0 → 1.1.1.
+- New file: `plugins/spades-anywhere/AGENTS.md`.
 - Pre-existing step-numbering bug in `ship/SKILL.md` Pre-Flight
   (two steps labelled "5.") fixed as a drive-by.
+
+## [0.8.0] — 2026-06-06
+
+**MINOR** — Mirror of `spades` v3.9.0's two-phase quick path.
+`/spades-anywhere:quick` now writes the marker at `status:
+shipping` (intent declared; human has not yet acted), and
+`/spades-anywhere:close Q-<id>` captures the evidence the human
+brings back, fills in the placeholder body sections, and flips
+to `status: shipped`. Same shape as the sister plugin's two-phase
+quick — different trigger: human-confirms-with-evidence here,
+PR-merge in `spades`.
+
+Closes HIGH finding H-3 from the rev-7 plugin logic review and
+incidentally closes MED finding M-5 (`/close` not recognising
+`Q-` targets).
+
+**`/spades-anywhere:quick` changes (real flow restructure):**
+- Workflow shrinks from four steps (Identify → Act → Verify →
+  Record) to three (Identify → Declare → Open marker). The
+  marker is written **before** the human acts, not after — the
+  marker is now the *intent contract*, mirroring how
+  `/spades-anywhere:do` works for full-loop Plans.
+- Frontmatter `status: shipped` → `status: shipping`;
+  `evidence_ref: <filled-in-at-close>`.
+- Body sections **Action taken** and **Evidence** are written
+  as `<filled in at close>` placeholders by `/quick`; populated
+  by `/close`.
+- **Gate Check (prospective)** at open; flips to **(retrospective)**
+  at close — gate criteria are revalidated against what actually
+  happened.
+- Audit-trail line at marker-write: `Quick-path opened. Type: ….
+  Action: <one-line restatement>.` (no `Shipped` line yet).
+- Linear status transitions: Todo → In Progress only. The In
+  Progress → Done transition is `/spades-anywhere:close`'s job.
+
+**`/spades-anywhere:close` changes:**
+- Step 0 target detection recognises `Q-<slug>-<suffix>` IDs.
+- New **Quick Close Flow**:
+  - `AskUserQuestion` confirms the human did the thing.
+  - On *Done* — prompt for evidence ref (required); fill in
+    Action taken + Evidence body sections; flip to shipped;
+    append `Shipped (action). Evidence: ….` (or `Shipped
+    (artefact). Ref: ….` for docs/tweak types) — matches
+    canonical Ship-grammar.
+  - On *Drop* — delete the marker file (quick items have no
+    `abandoned`/`rejected` terminal status).
+  - Linear In Progress → Done on flip; In Progress → Cancelled
+    on drop.
+
+**FRAMEWORK.md** § ID Format § Quick-item ID updated to describe
+two-phase. § Terminal States's "Quick items have no abandoned
+state" paragraph extended to mention `/spades-anywhere:close`'s
+Drop handling.
+
+- Skills bumped: `quick` 0.1.0 → 0.2.0, `close` 1.0.0 → 1.1.0.
 
 ## [0.6.0] — 2026-06-05
 
