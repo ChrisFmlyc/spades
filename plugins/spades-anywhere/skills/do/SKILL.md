@@ -51,7 +51,11 @@ identical between modes.
    If the human passed a Plan ID, resolve directly; otherwise run
    the interactive picker.
 3. **Read the Plan and parent Scope.**
-4. **Verify status.** The Plan must be `status: approved` or
+4. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
+   Resolution → Parent-status precondition`. If the parent Scope is
+   `abandoned`, or its parent Project is `abandoned` / `archived`,
+   abort hard with the canonical error shape. No override.
+5. **Verify status.** The Plan must be `status: approved` or
    `status: delivering`. If `draft`, abort and suggest
    `/spades-anywhere:approve` first.
 6. **Verify dependencies.** Read every plan listed in the Plan's
