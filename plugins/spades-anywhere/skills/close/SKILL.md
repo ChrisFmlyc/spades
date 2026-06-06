@@ -1,7 +1,7 @@
 ---
 name: close
 description: The single conversational entry point for closing out a Plan, Scope, or Project in spades-anywhere. Asks the human what they're doing — finalise as shipped/done/archived (the happy path), reject (Plans only), or abandon (Scopes and Projects only). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "we're not doing this", "abandon this scope", "reject this plan". The skill figures out which flow applies. No SCM, no PR — all close flows are pure metadata writes.
-version: 1.0.0
+version: 1.0.1
 ---
 
 # /spades-anywhere:close
@@ -173,7 +173,14 @@ in the audit trail).
    - The shipment marker line from the Plan's audit trail (artefact
      reference or action evidence summary).
 
-4. **Open the artefact (HTML mode only).** Read `review_format:` from
+4. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
+   Resolution → Parent-status precondition`. If the parent Scope is
+   `abandoned`, or its parent Project is `abandoned` / `archived`,
+   abort hard with the canonical error shape. No override. (The
+   Reject and Abandon flows below are exempt — they *create*
+   terminal status; only the Pass route is gated.)
+
+5. **Open the artefact (HTML mode only).** Read `review_format:` from
    `.spades-anywhere/config`. When `review_format: html`, run the
    OPEN_CMD prelude (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`)
    and open the Plan's `.html`. In CLI mode, summarise inline as today.

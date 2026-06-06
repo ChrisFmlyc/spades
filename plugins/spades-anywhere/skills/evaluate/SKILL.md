@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered work against a Plan's parent Scope acceptance criteria. Returns PASS / PARTIAL / FAIL. Human-only verdict — no test execution, no automated checks. Use after `/spades-anywhere:do` has marked a Plan as delivering and the human has done the work, when someone says "evaluate this", "check if this is done", "verify the work", or when a Plan is in status `delivering` or `evaluating`. If not PASS, this skill routes the work back to `/spades-anywhere:do` and the human keeps going.
-version: 0.4.0
+version: 0.4.1
 ---
 
 # /spades-anywhere:evaluate
@@ -144,15 +144,23 @@ No sub-issues are ever created for quick-path items. The marker
 file remains the canonical record.
 3. **Read the target.** Plan + parent Scope, OR Scope + every Plan
    under it.
-4. **Do NOT auto-open the Plan's or Scope's `.html` in HTML
+4. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
+   Resolution → Parent-status precondition`. For a Plan target,
+   check the parent Scope and grandparent Project. For a Scope
+   target, check the parent Project. If any ancestor is `abandoned`
+   (or, for Projects, `archived`), abort hard with the canonical
+   error shape. No override. (Quick items handled above in the
+   Quick-Path Branch skip this rule — they are independent of the
+   Scope/Project hierarchy.)
+5. **Do NOT auto-open the Plan's or Scope's `.html` in HTML
    mode.** This is a deliberate change from prior versions. The
    Plan/Scope `.html` files are not the eval review surface; the
-   verification-plan HTML (page 1, written at Pre-Flight Step 5
+   verification-plan HTML (page 1, written at Pre-Flight Step 6
    below) is. Opening the wrong page caused confusion in the
    field. The eval pages carry the Plan ID + parent Scope in
    their breadcrumb if the human wants to cross-check.
 
-5. **Present the locked verification plan.** Both modes have this
+6. **Present the locked verification plan.** Both modes have this
    step — only the surface differs.
 
    **CLI mode** — the per-criterion walk in Step 1 IS the locked

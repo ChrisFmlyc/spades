@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.1.2
+version: 3.1.3
 ---
 
 # /spades:ship
@@ -38,7 +38,11 @@ driver dispatch all stay identical between modes.
    If the human passed a Plan ID, resolve directly; otherwise run the
    interactive picker.
 3. **Read the Plan and parent Scope.**
-4. **Verify status.** The Plan must be `status: evaluating` with a
+4. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
+   Resolution → Parent-status precondition`. If the parent Scope is
+   `abandoned`, or its parent Project is `abandoned` / `archived`,
+   abort hard with the canonical error shape. No override.
+5. **Verify status.** The Plan must be `status: evaluating` with a
    PASS verdict recorded in the audit trail. Acceptable variations:
    - `evaluating` + PASS → ship
    - `evaluating` + PARTIAL → ask the human if they want to ship
@@ -46,7 +50,7 @@ driver dispatch all stay identical between modes.
      route back to `/spades:do`
    - `evaluating` + FAIL → abort; not shippable
    - any other status → abort with a clear message
-5. **Open the artefacts (HTML mode only).** Read `review_format:`
+6. **Open the artefacts (HTML mode only).** Read `review_format:`
    from `.spades/config`. When `review_format: html`, run the
    OPEN_CMD prelude (`docs/FRAMEWORK.md § OPEN_CMD detection
    prelude`) and open both the Plan's `.html` and the parent Scope's

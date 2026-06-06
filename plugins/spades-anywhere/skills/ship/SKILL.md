@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship a delivered Plan in spades-anywhere — a confirmation walk through the project's INTENT.md success criteria, capturing evidence per criterion. Branches on `deliverable_type:` — `artefact` records a reference (URL, file, doc); `action` records evidence of a real-world action completed. Use after `/spades-anywhere:evaluate` has issued a PASS, when someone says "ship this", "release this", "mark it done", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 0.1.1
+version: 0.1.2
 ---
 
 # /spades-anywhere:ship
@@ -50,7 +50,11 @@ identical between modes.
    `INTENT.md`'s success criteria are about *the project's broader
    purpose*. Ship confirms the work moved the project-level
    criteria forward.
-4. **Verify status.** The Plan must be `status: evaluating` with a
+4. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
+   Resolution → Parent-status precondition`. If the parent Scope is
+   `abandoned`, or its parent Project is `abandoned` / `archived`,
+   abort hard with the canonical error shape. No override.
+5. **Verify status.** The Plan must be `status: evaluating` with a
    PASS verdict recorded in the audit trail. Acceptable variations:
    - `evaluating` + PASS → ship
    - `evaluating` + PARTIAL → ask the human if they want to ship
@@ -59,7 +63,7 @@ identical between modes.
    - `evaluating` + FAIL → abort; not shippable
    - any other status → abort with a clear message
 
-5. **Capture a one-line description** (light, optional). Ask via
+6. **Capture a one-line description** (light, optional). Ask via
    `AskUserQuestion`:
 
    - *Type a brief description of this ship (one line)*
@@ -73,15 +77,15 @@ identical between modes.
    Skip is fine — the structured evidence captured in Step 3 stands on
    its own.
 
-6. **Append the Ship-phase-started line.** Write to the Plan's audit
+7. **Append the Ship-phase-started line.** Write to the Plan's audit
    trail before the deliverable-type branch:
 
    ```markdown
    - YYYY-MM-DD: Ship phase started[ — "<description>"].
    ```
 
-   Omit the ` — "<description>"` clause when Step 5 was skipped.
-5. **Open the artefacts (HTML mode only).** When `review_format:
+   Omit the ` — "<description>"` clause when Step 6 was skipped.
+8. **Open the artefacts (HTML mode only).** When `review_format:
    html`, run the OPEN_CMD prelude and open both the Plan's `.html`
    and the parent Scope's `.html`. **In HTML mode the open `.html`
    files ARE the review surface — do NOT also paste / summarise

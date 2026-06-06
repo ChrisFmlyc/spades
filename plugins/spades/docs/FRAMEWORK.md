@@ -500,6 +500,54 @@ confirmation prompt is needed; if it's a slug or phrase, surface
 the resolution back via `AskUserQuestion` for one-step confirmation
 before continuing.
 
+### Parent-status precondition
+
+Once a target is resolved (or a parent container is picked, in the
+case of skills that *create* a new artefact), the skill MUST verify
+that no ancestor in the target's container chain has terminal
+status `abandoned` (or, for Projects, `archived`). Producing skills
+refuse hard when this check fails — there is no override.
+
+| Target | Ancestors to check |
+|--------|--------------------|
+| Plan | Parent Scope; grandparent Project |
+| Scope | Parent Project |
+| Project | (no ancestors — skip) |
+
+**The rule applies to:** `/spades:scope` (create and edit modes),
+`/spades:plan`, `/spades:approve`, `/spades:do`, `/spades:evaluate`,
+`/spades:ship`, and `/spades:close` on the **Pass** route.
+
+**Exemptions:**
+
+- `/spades:close --abandon` and `/spades:close --reject` are the
+  actions that *create* terminal status; they do not refuse based
+  on their own outcome.
+- `/spades:list` and `/spades:status` are read-only; they surface
+  abandoned ancestors and their descendants (under the `all` filter)
+  without refusing.
+- `/spades:quick` is independent of the Scope/Project hierarchy —
+  its gate is the fast-track criteria, not parent status.
+
+**Error shape (hard abort):**
+
+> ✗ Cannot &lt;action&gt; &lt;target-id&gt;: parent &lt;Scope|Project&gt;
+> &lt;ancestor-id&gt; is `abandoned` (&lt;date&gt;, "&lt;reason&gt;").
+>
+> Producing work on abandoned ancestors is refused — once the
+> container is abandoned, this work is out of scope. To resume the
+> work in a fresh container, create a new Scope (or Project) via
+> `/spades:scope` (or `/spades:newproject`) and draft Plans there.
+
+**Why hard refusal.** The framework deliberately does not cascade
+abandonment to child Plans (see § Terminal states — `rejected` vs
+`abandoned` → No cascade). The cost of that deliberate-no-cascade
+design is that every producing skill becomes the gatekeeper —
+without this rule, new work would silently land on a dead
+initiative and the audit trail would lose its meaning. Refusing at
+the gate, with a hard abort, is what makes the no-cascade design
+safe.
+
 ### Why this lives in FRAMEWORK.md
 
 Restating the same picker logic in six skills means six places to
@@ -611,13 +659,20 @@ several Plans, then decided the whole Scope isn't worth doing →
 abandon the Scope). `abandoned → anything` is not. Terminal means
 terminal.
 
-**No cascade.** Abandoning a Scope does NOT automatically reject or
-abandon its in-flight Plans. Those Plans stay at whatever status
-they were in; the parent's `abandoned` is the authoritative signal.
-`/spades:list` and `/spades:status` hide children of abandoned
-parents in the default view but they remain accessible via
-`/spades:list all`. Cascading writes that can partially fail would
-risk lying about state.
+**No cascade — but the gate refuses.** Abandoning a Scope does NOT
+automatically reject or abandon its in-flight Plans. Those Plans
+stay at whatever status they were in; the parent's `abandoned` is
+the authoritative signal. `/spades:list` and `/spades:status` hide
+children of abandoned parents in the default view but they remain
+accessible via `/spades:list all`. Cascading writes that can
+partially fail would risk lying about state.
+
+This deliberate-no-cascade design is paired with a hard gate:
+producing skills (`/spades:scope`, `/spades:plan`, `/spades:approve`,
+`/spades:do`, `/spades:evaluate`, `/spades:ship`, and `/spades:close`
+on the Pass route) refuse to act on a child of an `abandoned`
+ancestor. See § Target Resolution → Parent-status precondition for
+the contract.
 
 Mid-flight abandonment is explicitly allowed. You do not need to
 terminate child Plans first; the whole point of `abandoned` is to

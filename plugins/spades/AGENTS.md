@@ -514,6 +514,14 @@ history records the delete. The same applies to
 - Begin writing code without a documented Scope (or a valid fast-track
   gate pass)
 - Begin Do without an approved Plan (on the full loop)
+- Begin any producing work (Scope, Plan, Approve, Do, Evaluate,
+  Ship, or Close-Pass) on a child of an `abandoned` Scope or an
+  `abandoned`/`archived` Project. Producing skills refuse hard at
+  the gate — see `docs/FRAMEWORK.md § Target Resolution →
+  Parent-status precondition`. The deliberate no-cascade design
+  (abandoning a Scope does not auto-reject its Plans) is paired
+  with this hard refusal; without it, work would silently land on
+  a dead initiative.
 - Mark work shipped without verifying the deliverable is real (PR
   merged, artefact reachable, action evidenced)
 - Skip the Plan documentation step — Plans are first-class artefacts
