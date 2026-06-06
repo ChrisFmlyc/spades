@@ -1,7 +1,7 @@
 ---
 name: quick
 description: Fast-track path for trivial work — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when someone says "just fix this small thing", "quick tweak", "one-line change", "typo fix", "rename this variable", or when you would otherwise invoke /spades:scope for a change that clearly meets every gate criterion below. Do NOT use for anything touching architecture, auth, schemas, public APIs, or requiring more than one focused commit.
-version: 2.0.1
+version: 2.1.0
 ---
 
 ## Pre-Flight
@@ -17,6 +17,11 @@ friction theatre for a typo fix or a one-line config tweak.
 `/spades:quick` compresses it into four steps —
 **Identify → Fix → Verify → PR** — where the PR description is the
 audit artefact and there are no separate Scope or Plan records.
+
+`/spades:quick` opens the work; the marker is written at `status:
+shipping`. After the PR merges, run `/spades:close Q-<id>` to flip
+the marker to `status: shipped` (mirroring the Plan ship → close
+two-phase shape, so `shipped` always means *actually merged*).
 
 This path is a privilege, not a default. If *any* gate criterion below
 fails, stop and run `/spades:scope` for the full loop instead. The gate
@@ -135,7 +140,11 @@ enough" judgement that the human needs to call, prompt via
   everything a future reader needs.
 - On the Linear issue (if one exists): add the labels, post the PR URL
   as a comment, move the status to "In Review". Do not mark Done — the
-  human owns that transition.
+  In Review → Done transition is `/spades:close Q-<id>`'s job after
+  merge.
+- Write the marker file at `status: shipping`. Confirm to the human
+  with a one-line nudge: *"PR opened. Run `/spades:close Q-<id>` after
+  it merges to finalise."*
 
 ## PR Description Template
 
@@ -204,7 +213,7 @@ id_suffix: 4nKr
 project: <project-slug>
 title: "<one-line title>"
 type: bug | tweak | chore | docs | refactor
-status: shipped                # quick items reach shipped on PR open
+status: shipping               # at PR-open. /spades:close Q-<id> flips to shipped after merge.
 pr_url: <url-or-empty>
 branch: spades-quick/<...>
 linear_issue_id: <id>          # only when backend: linear
@@ -244,11 +253,19 @@ Body (mirrors the PR description template):
 - YYYY-MM-DD: Quick-path opened. Type: <type>. PR: <url>. Branch: <name>. Delivery: <ai|human>.
 ```
 
-After PR merge, append:
+After the PR merges, `/spades:close Q-<id>` verifies the merge,
+flips the marker to `status: shipped`, and appends a `Shipped`
+line that matches the canonical Plan-close grammar:
 
 ```markdown
-- YYYY-MM-DD: Quick-path merged. Merge: <sha>.
+- YYYY-MM-DD: Shipped (github). PR: <url>. Merge: <merge-sha>. Merged by: <login>.
 ```
+
+The marker is read by `/spades:list`, `/spades:status`, and
+`/spades:evaluate`, so `status:` is the load-bearing field: as
+long as the marker says `shipping`, the work is in-flight; only
+`/spades:close` (verifying real merge state via `gh pr view`)
+moves it to `shipped`.
 
 ### When `backend: linear`
 
@@ -264,8 +281,10 @@ In addition to writing the marker file:
    frontmatter field.
 5. **Do NOT create sub-issues.** The Linear issue is the whole unit of
    work on the quick path. Do not attach a Plan document.
-6. **Do NOT mark the issue Done.** The human does that after reviewing
-   and merging the PR.
+6. **Do NOT mark the issue Done in /quick.** The In Review → Done
+   transition happens in `/spades:close Q-<id>` after the PR is
+   verified merged. This keeps the Linear state in lock-step with the
+   marker's `status:` field — both flip together when merge is real.
 
 If no Linear issue exists, the marker file alone is the audit trail.
 
