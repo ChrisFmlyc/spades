@@ -224,16 +224,58 @@ missing (`state` null or absent, `mergeCommit.oid` missing when
   pattern: original PR closed, replacement PR opened on a different
   branch and merged). Surface that possibility *before* offering
   Drop. Ask via `AskUserQuestion`:
-  - *Update PR — the work shipped under a different PR* (prompts
-    for the replacement PR URL via a free-form follow-up; validate
-    it points at the same `owner/repo` as the original; rewrite
-    `pr_url` on the marker; re-run Step 1 against the new URL)
+  - *Update PR — the work shipped under a different PR* (see the
+    Update PR sub-flow below; the marker's `pr_url` is rewritten
+    only after the replacement URL is verified reachable)
   - *Drop the quick item* (delete marker — the work is genuinely
     gone)
   - *Cancel* — exit without changes
   
-  On *Update PR* → re-probe (loop back to the top of Step 1).
-  On *Drop* → continue to Step 3. On *Cancel* → exit.
+  On *Update PR* → enter the sub-flow. On *Drop* → continue to
+  Step 3. On *Cancel* → exit.
+
+  **Update PR sub-flow.** The marker is read-only until the probe
+  against the replacement URL succeeds; this is the validate-before-
+  write contract that lets the outer abort message in Outcome A
+  truthfully promise *"the marker is untouched"*.
+  
+  1. Prompt for the replacement PR URL via a free-form follow-up.
+  2. Validate the input *before* touching the marker:
+     - Must parse as a GitHub PR URL pointing at the same `owner/repo`
+       as the current `pr_url`. If not, re-prompt with a short error
+       (*"Replacement must be a PR under `<owner>/<repo>` — try again
+       or pick Cancel."*).
+     - Must NOT be byte-equal to the current `pr_url`. If it is,
+       re-prompt with *"That's the same URL — paste a different
+       replacement, or pick Cancel."* (No marker write yet.)
+  3. **Probe the replacement URL inline** with the same `gh pr view
+     <new-n> --json state,mergeCommit,mergedAt,mergedBy` call used in
+     Step 1. Do NOT rewrite `pr_url` before this probe completes.
+     - **Probe failure on the replacement** (gh non-zero / JSON parse
+       error / missing fields) → the marker has not been touched, so
+       offer a tailored retry via `AskUserQuestion`:
+       - *Try a different URL* — re-enter the sub-flow at step 1.
+       - *Cancel* — exit without changes.
+       
+       Print the tailored message:
+       
+       > *Couldn't reach `<new-url>` — `gh` returned an error or
+       > incomplete data. The marker is untouched at
+       > `status: shipping`. Try a different URL, or Cancel and re-run
+       > `/spades:close Q-<id>` later.*
+       
+       Drop is intentionally NOT offered here — the human can return
+       to the outer CLOSED menu by Cancelling and re-running the
+       skill, where Drop is reachable against the original (probe-
+       confirmed CLOSED) PR.
+     - **Probe success on the replacement** → rewrite `pr_url` on the
+       marker to the replacement URL (this is the first marker write
+       in the sub-flow), then dispatch on the new `state` exactly as
+       in Step 1: `MERGED` → Step 2; `OPEN` → Wait/Drop menu;
+       `CLOSED` → re-enter this outer CLOSED handler (Update PR /
+       Drop / Cancel). The marker now records the URL we have
+       evidence for; the original URL survives in the audit-trail
+       `PR opened:` line written by `/spades:quick`.
 
 ### Step 2 — Flip to shipped
 
