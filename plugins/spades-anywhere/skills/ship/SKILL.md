@@ -134,7 +134,7 @@ Call `record_shipment(plan_id, artefact_ref, intent_criteria_evidence)`.
 Append to the audit trail:
 
 ```markdown
-- YYYY-MM-DD: Shipped. Artefact: <ref>. Type: artefact.
+- YYYY-MM-DD: Shipped (artefact). Ref: <ref>.
   INTENT success criteria evidence:
   - <criterion 1> — <yes|partial|no|n/a> — <evidence>
   - <criterion 2> — …
@@ -161,8 +161,7 @@ Call `record_shipment(plan_id, evidence_list,
 intent_criteria_evidence)`. Append to the audit trail:
 
 ```markdown
-- YYYY-MM-DD: Shipped. Action: <description>. Type: action.
-  Evidence:
+- YYYY-MM-DD: Shipped (action). Description: <description>. Evidence:
   - <evidence 1>
   - <evidence 2>
   INTENT success criteria evidence:

@@ -4,6 +4,8 @@ description: Capture a learning from completed work and store it under .spades-a
 version: 0.1.2
 ---
 
+# SPADES-anywhere Learn
+
 ## Pre-Flight
 
 Read `.spades-anywhere/config` to confirm the active project (used as the
@@ -13,8 +15,6 @@ default `scope_ref` resolver below). If `.spades-anywhere/config` is missing,
 
 Learnings live under `.spades-anywhere/learnings/` regardless of backend. This
 skill makes **no backend MCP calls**.
-
-# SPADES Learn
 
 ### Output format
 

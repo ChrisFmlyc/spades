@@ -17,9 +17,9 @@ You are executing an approved Plan. The Plan's `delivery:` field
 You do NOT make the routing decision here. That happened at Approve.
 
 Read `docs/FRAMEWORK.md` § Target Resolution and § Execution Posture
-before running — every task declares a posture (`test-first`,
-`characterization-first`, `refactor-first`, `spike`,
-`straight-through`) and the posture drives how you build.
+before running — every task declares a posture (`specify-first`,
+`discover-first`, `iterate`, `spike`, `straight-through`) and the
+posture drives how you build.
 
 ### Output format
 
@@ -154,27 +154,28 @@ file's `## Audit Trail` heading and need to share a working tree.
 The name-validation rule from `/repo:branch` still applies — same
 prefix regex, same slug rules. Only the git primitive differs.
 
-### Record the branch
+### Hold the branch name for Step 2
 
-After `git switch -c <name>` succeeds, append to the Plan's
-`## Audit Trail`:
-
-```markdown
-- YYYY-MM-DD: Do phase started — branch: <prefix>/<slug>.
-```
-
-`/spades:ship` reads this line later to verify it's pushing the
-right branch.
+After `git switch -c <name>` succeeds, hold `<prefix>/<slug>` in
+memory for Step 2's single combined audit-trail entry — Step 1
+does NOT write its own line. `/spades:ship` reads the Step-2
+combined line later to verify it's pushing the right branch.
 
 ## Step 2 — Update Status
 
 Move the Plan to `status: delivering` and `updated: <today>`.
 
-Append to the Plan's `## Audit Trail`:
+Append a single combined start-line to the Plan's
+`## Audit Trail` (mirrors Approve / Evaluate's one-line-per-phase
+pattern):
 
 ```markdown
-- YYYY-MM-DD: Do phase started — routing: <ai|human|hybrid>.
+- YYYY-MM-DD: Do phase started — routing: <ai|human|hybrid>[, branch: <prefix>/<slug>].
 ```
+
+The `, branch: …` clause is included when `deliverable_type: code`
+(Step 1 created or confirmed the branch) and omitted for
+`artefact` / `action` deliverables.
 
 Also update the parent Scope's status to `delivering` if it isn't
 already.
@@ -193,12 +194,14 @@ You execute the Plan autonomously. The order:
 2. **Read `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`.** Your
    work must conform.
 3. **Execute tasks in the Plan's Delivery Sequence order.** For each
-   task, honour its execution posture:
-   - **`test-first`** — write failing tests, then satisfy them.
-   - **`characterization-first`** — pin current behaviour in tests
-     first, then change.
-   - **`refactor-first`** — reshape the area before adding the new
-     behaviour.
+   task, honour its execution posture (the shared 5-verb set from
+   `docs/FRAMEWORK.md` § Execution Posture):
+   - **`specify-first`** — write failing tests, then satisfy them.
+   - **`discover-first`** — pin current behaviour in tests first,
+     then change; or read the existing code/data carefully before
+     reshaping.
+   - **`iterate`** — reshape or build the area in small steps, each
+     leaving the tree green; covers what used to be `refactor-first`.
    - **`spike`** — produce a decision record or follow-up tasks; do
      NOT merge code from a spike.
    - **`straight-through`** — mechanical change; existing tests cover.
@@ -215,8 +218,7 @@ When all tasks complete, record completion in the audit trail —
 canonical transition to `evaluating`. Append:
 
 ```markdown
-- YYYY-MM-DD: Do phase complete (ai-delivered).
-  Tasks completed: 4. Commits: <list of SHAs>.
+- YYYY-MM-DD: Do phase complete — routing: ai. Tasks completed: 4. Commits: <list of SHAs>.
 ```
 
 Then fall through to Step 5.
@@ -231,7 +233,7 @@ You record the assignment and stand down. You do NOT start building.
 2. When `backend: linear`, assign the sub-issue to that person.
 3. Append to the Plan's audit trail:
    ```markdown
-   - YYYY-MM-DD: Do phase assigned to <name>. Human delivery.
+   - YYYY-MM-DD: Do phase complete — routing: human. Assigned to: <name>.
    ```
 4. Print a short summary and exit:
 
@@ -285,9 +287,16 @@ done):
 
 1. Plan status → `evaluating`.
 2. Parent Scope status → `evaluating` (if all plans under it are done).
-3. Append final audit trail line:
+3. Append the audit-trail lines. **For Hybrid Plans only**, write
+   the canonical complete-line first (Branch C does not write one
+   of its own — Branch A wrote one for AI, Branch B wrote one for
+   Human, but Hybrid waits until everything is done):
    ```markdown
-   - YYYY-MM-DD: Do phase complete. Ready for /spades:evaluate.
+   - YYYY-MM-DD: Do phase complete — routing: hybrid.
+   ```
+   Then in both AI and Hybrid cases, write the transition line:
+   ```markdown
+   - YYYY-MM-DD: Plan ready for evaluation — routing: <ai|hybrid>.
    ```
 
 Print the summary:

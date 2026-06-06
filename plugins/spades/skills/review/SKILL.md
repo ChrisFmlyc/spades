@@ -124,7 +124,7 @@ Resolution:
 2. **Step 2 (list candidates).** Per the per-skill status filter in
    FRAMEWORK.md § Target Resolution:
    - **Scope review** → list Scopes for the active project in any
-     active phase (`scoped`, `planning`, `approval`, `delivering`,
+     active phase (`scoped`, `planning`, `delivering`,
      `evaluating`, `shipping`).
    - **Plan review** / **Full review** → list Plans for the active
      project in `draft`, `approved`, `delivering`, or `evaluating`
@@ -501,7 +501,16 @@ three-point agreement is the stated check that a degraded run can never
 be silently presented as a panel; it holds in the inline report and the
 persisted file alike.
 
-### The tiered inline report
+### The tiered inline report (CLI mode)
+
+**Read `review_format:` from `.spades/config` and branch.** In CLI
+mode this digest IS the human's review surface and prints to the
+terminal in full. In HTML mode the digest is *not* printed inline —
+the rendered `.html` (written under "The persisted full report"
+below) is the human's review surface, and the terminal gets only a
+short `✓ Review written: <path>` line plus any conversational text.
+Both modes still write the canonical `.md`; the digest content is
+identical between surfaces — only where it renders differs.
 
 The inline report shows, in order:
 

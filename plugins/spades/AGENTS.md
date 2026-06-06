@@ -96,9 +96,9 @@ appended) and authoritatively in the `depends_on:` frontmatter field.
   shipped`.
 - Each Plan body includes: technical approach, 3–7 tasks, risks &
   assumptions, testing & verification, delivery sequence.
-- Each task in a Plan declares an execution posture (`test-first`,
-  `characterization-first`, `refactor-first`, `spike`,
-  `straight-through`). No silent defaults.
+- Each task in a Plan declares an execution posture (`specify-first`,
+  `discover-first`, `iterate`, `spike`, `straight-through`). No silent
+  defaults.
 - A Plan also declares its `deliverable_type:` (`code`, `artefact`, or
   `action`) — this drives what Ship does later.
 - You must NOT begin Do-phase work until the Plan is approved.

@@ -183,7 +183,7 @@ general-purpose`):
 | Sub-agent | Resource owned | Returns |
 |-----------|---------------|---------|
 | `worker-file-plan-approve` | `.spades-anywhere/plans/P-<…>.<ext>` — update frontmatter (`status: approved` \| `rejected` \| keep `draft`; `delivery: ai \| human \| hybrid \| undecided`; `updated: <today>`) and append to audit trail: `- YYYY-MM-DD: Approved by <human> — routing: <routing>. Notes: <any notes>.` For `delivery: hybrid` also write the per-task Routing fields under each task. | `{ status: ok }` |
-| `worker-file-scope-approve` | `.spades-anywhere/scopes/S-<scope-slug>.<ext>` — update Scope frontmatter (`status: approval` if was `planning`; `updated: <today>`) and append a short audit-trail entry referencing the plan ID. | `{ status: ok }` |
+| `worker-file-scope-approve` | `.spades-anywhere/scopes/S-<scope-slug>.<ext>` — update Scope frontmatter (`updated: <today>` only; status stays at `planning` — the Plan's own `status: approved` carries the approval gate decision; the Scope advances when the first child Plan transitions into `delivering`) and append a short audit-trail entry referencing the plan ID. | `{ status: ok }` |
 | `worker-linear-approve` *(only when `backend: linear`)* | Linear — call `record_approval(plan_id, decision, routing, notes)`: (1) post a comment on the Plan's sub-issue with decision + routing, (2) update sub-issue status to "Approval" (or "Delivering" for immediate AI hand-off), (3) apply routing label (`ai-delivered`, `human-delivery`, `hybrid-delivery`). Includes the Layer-2 freshness probe. | `{ status: ok }` |
 
 No back-write — `linear_issue_id` is already in the Plan file from

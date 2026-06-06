@@ -1,6 +1,6 @@
 ---
 name: review
-description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, constraints-strategist, stakeholder-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades-anywhere:approve. Non-blocking — informs the human but never gates shipping.
+description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades-anywhere:approve. Non-blocking — informs the human but never gates shipping.
 version: 0.1.2
 ---
 
@@ -134,7 +134,7 @@ Resolution:
 2. **Step 2 (list candidates).** Per the per-skill status filter in
    FRAMEWORK.md § Target Resolution:
    - **Scope review** → list Scopes for the active project in any
-     active phase (`scoped`, `planning`, `approval`, `delivering`,
+     active phase (`scoped`, `planning`, `delivering`,
      `evaluating`, `shipping`).
    - **Plan review** / **Full review** → list Plans for the active
      project in `draft`, `approved`, `delivering`, or `evaluating`
@@ -193,8 +193,8 @@ Four persona subagents, each defined by a bundled `review-*` agent:
 | Persona file                                    | Focus                                                                   |
 |-------------------------------------------------|-------------------------------------------------------------------------|
 | `review-scope-guardian`                   | Scope completeness, testability, Plan→Scope traceability; gold-plating / proportionality (absorbed remit) |
-| `review-constraints-strategist`          | Conflicts with INTENT.md         |
-| `review-stakeholder-lens`                    | Auth, injection, secrets, supply chain, IAM, data sensitivity           |
+| `review-architecture-strategist`          | Conflicts with INTENT.md         |
+| `review-security-lens`                    | Auth, injection, secrets, supply chain, IAM, data sensitivity           |
 | `review-adversarial-reviewer`             | Strongest attack on the Plan — what will fail and why; second-order / compounding cost (absorbed remit) |
 
 The panel was five personas through v1.1–v1.x; M-994 folded the
@@ -261,8 +261,8 @@ review from producing findings that reference a Plan that does not
 exist. Do not append it for Plan Review or Full Review.
 
 If the runtime does not support parallel Task spawns, run the four
-sequentially in this order: scope-guardian, constraints-strategist,
-stakeholder-lens, adversarial-reviewer. Never skip a persona to save
+sequentially in this order: scope-guardian, architecture-strategist,
+security-lens, adversarial-reviewer. Never skip a persona to save
 time — a reduced panel collapses back toward generalist.
 
 ### Dispatch-mode determination (v1.1.1)
@@ -334,7 +334,7 @@ findings — not a mechanical key match.
 > deduped on `(category, first 100 characters of message)`. That key
 > can never fire across personas: each persona file defines a
 > **disjoint** `category` enum — scope-guardian emits `traceability`,
-> stakeholder-lens emits `auth`, adversarial-reviewer emits
+> security-lens emits `auth`, adversarial-reviewer emits
 > `hidden-assumption`, and so on, with no value shared between any two
 > personas. Two personas therefore can never produce the same key, and
 > the `also_flagged_by` array was unreachable. Keep the distinction
@@ -346,7 +346,7 @@ findings — not a mechanical key match.
 > what makes that visible.
 
 Be conservative when clustering. If two findings are *related* but not
-the *same concern* — say, a stakeholder-lens worry about an auth boundary
+the *same concern* — say, a security-lens worry about an auth boundary
 and an adversarial-reviewer worry about a different failure mode on the
 same task — keep them separate and let both stand. A false merge hides
 a finding; a missed merge only costs a convergence annotation.
@@ -378,13 +378,13 @@ Six findings arrive from four personas (refs omitted for brevity):
 
 ```json
 [
-  {"persona": "stakeholder-lens", "severity": "major", "confidence": "high",
+  {"persona": "security-lens", "severity": "major", "confidence": "high",
    "category": "trust-boundary",
    "message": "Task 2's webhook handler trusts the caller-supplied signature header without verifying it against the shared secret."},
   {"persona": "adversarial-reviewer", "severity": "major", "confidence": "high",
    "category": "hidden-assumption",
    "message": "The Plan assumes the webhook caller is already authenticated upstream; if that assumption is wrong, Task 2 processes forged events."},
-  {"persona": "constraints-strategist", "severity": "major", "confidence": "low",
+  {"persona": "architecture-strategist", "severity": "major", "confidence": "low",
    "category": "patterns-drift",
    "message": "Task 2's handler bypasses the shared request-validation middleware PATTERNS.md mandates."},
   {"persona": "scope-guardian", "severity": "minor", "confidence": "high",
@@ -401,13 +401,13 @@ Six findings arrive from four personas (refs omitted for brevity):
 
 The merge produces **four** findings:
 
-1. The **stakeholder-lens**, **adversarial-reviewer**, and
-   **constraints-strategist** findings all describe the *same
+1. The **security-lens**, **adversarial-reviewer**, and
+   **architecture-strategist** findings all describe the *same
    underlying concern* — Task 2's webhook trusts an unverified caller —
    even though they were filed under three different categories
    (`trust-boundary`, `hidden-assumption`, `patterns-drift`). They
    converge into one finding: keep one of the three (all `major`) and
-   set `also_flagged_by: ["adversarial-reviewer", "constraints-strategist"]`.
+   set `also_flagged_by: ["adversarial-reviewer", "architecture-strategist"]`.
 2. The **scope-guardian** `acceptance-criteria` finding is a *distinct
    concern* (an untestable criterion) — it stays on its own.
 3. The second **adversarial-reviewer** finding is also *distinct* (a
@@ -512,7 +512,16 @@ three-point agreement is the stated check that a degraded run can never
 be silently presented as a panel; it holds in the inline report and the
 persisted file alike.
 
-### The tiered inline report
+### The tiered inline report (CLI mode)
+
+**Read `review_format:` from `.spades-anywhere/config` and branch.**
+In CLI mode this digest IS the human's review surface and prints to
+the terminal in full. In HTML mode the digest is *not* printed
+inline — the rendered `.html` (written under "The persisted full
+report" below) is the human's review surface, and the terminal gets
+only a short `✓ Review written: <path>` line plus any conversational
+text. Both modes still write the canonical `.md`; the digest content
+is identical between surfaces — only where it renders differs.
 
 The inline report shows, in order:
 
@@ -555,11 +564,11 @@ Summary from each persona (their own words, verbatim):
 
   <prose summary>
 
-─── constraints-strategist ────────────────────────────────
+─── architecture-strategist ────────────────────────────────
 
   <prose summary>
 
-─── stakeholder-lens ──────────────────────────────────────────
+─── security-lens ──────────────────────────────────────────
 
   <prose summary>
 
@@ -569,13 +578,13 @@ Summary from each persona (their own words, verbatim):
 
 Convergence — independent personas on the same concern:
 
-  [major, also_flagged_by ×2] stakeholder-lens — <message>
+  [major, also_flagged_by ×2] security-lens — <message>
     refs: Plan Task 2
-    also_flagged_by: [adversarial-reviewer, constraints-strategist]
+    also_flagged_by: [adversarial-reviewer, architecture-strategist]
 
 Findings — every blocking in full; major up to the inline budget:
 
-  [blocking] constraints-strategist — <message>
+  [blocking] architecture-strategist — <message>
     refs: ANTI-PATTERNS.md#..., Plan Task 4
   [major]    scope-guardian — <message>
     refs: Plan Task 3
@@ -611,11 +620,11 @@ Summary from each persona-prompted run (verbatim):
 
   <prose summary>
 
-─── constraints-strategist ────────────────────────────────
+─── architecture-strategist ────────────────────────────────
 
   <prose summary>
 
-─── stakeholder-lens ──────────────────────────────────────────
+─── security-lens ──────────────────────────────────────────
 
   <prose summary>
 
@@ -682,8 +691,8 @@ use the bundled template` for the canonical rule.
   - The envelope YAML block also goes verbatim into the
     `<script type="application/yaml" id="spades-frontmatter">` tag.
   - `<!-- SPADES-BLOCK:persona-cards -->` — repeated once per
-    persona (4 cards: scope-guardian, constraints-strategist,
-    stakeholder-lens, adversarial-reviewer). Per-item:
+    persona (4 cards: scope-guardian, architecture-strategist,
+    security-lens, adversarial-reviewer). Per-item:
     `{{block.persona}}`, `{{block.summary_html}}`,
     `{{block.finding_count}}`.
   - `<!-- SPADES-BLOCK:findings -->` — repeated once per merged

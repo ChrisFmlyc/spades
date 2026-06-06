@@ -1,6 +1,6 @@
 ---
 name: architecture
-description: Create or maintain ARCHITECTURE.md, the project's durable statement of HOW the system is built — components, tech stack, data flow, security posture, operational posture. Use when someone says "set up ARCHITECTURE.md", "document our architecture", "what's our tech stack", "update the architecture doc", or when ARCHITECTURE.md is missing, still an unfilled template, or flagged stale by /spades:plan. The human composes the architecture; this skill structures and probes but never authors it.
+description: Create or maintain ARCHITECTURE.md, the project's durable statement of HOW the system is built — components, tech stack, data flow, security posture, operational posture. Use when someone says "set up ARCHITECTURE.md", "document our architecture", "what's our tech stack", "describe the system", "capture the components", "what's the data flow", "what's our threat model", "update the architecture doc", "refresh the architecture", "where does the data go", or when ARCHITECTURE.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review (architecture-strategist persona). Also use proactively after a major dependency change, new component introduction, or a Plan that exposes drift between the doc and reality. The human composes the architecture; this skill structures and probes but never authors it. SKIP when the human's intent is per-Plan technical approach (use the Plan's Technical Approach section instead), API-level documentation (use in-code docs / OpenAPI), or process conventions (use /spades:patterns).
 version: 1.0.0
 ---
 
@@ -316,10 +316,23 @@ Then confirm what changed and remind the human that
 There is no Linear step — `ARCHITECTURE.md` is a committed root
 document, not a tracker artefact.
 
-### Transient HTML preview (HTML mode only)
+### Per-section review surface (mode-branched)
 
-**Read `review_format:` from `.spades/config`.** When
-`review_format: html`, during/after the section-by-section
+**Read `review_format:` from `.spades/config` and branch.** Both
+modes need a stable review surface alongside the Socratic walk —
+only the surface differs.
+
+#### CLI mode
+
+The per-section reflect-and-confirm summary printed inline during
+the walk IS the review surface. After each section, print the
+captured content as a self-contained block the human can scroll back
+to (don't re-emit only on demand). No file preview is rendered.
+Skip ahead to "Writing the File" once all sections are confirmed.
+
+#### HTML mode — transient preview
+
+When `review_format: html`, during/after the section-by-section
 walk, also render a transient preview:
 
 **You MUST render via the bundled `template.html`. Do NOT

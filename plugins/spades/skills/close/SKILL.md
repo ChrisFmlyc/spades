@@ -27,19 +27,18 @@ HTML mode auto-open the Plan's existing `.html` file via the
 OPEN_CMD prelude. The bookkeeping-PR workflow, sync invocations,
 and Linear mirror calls are identical between modes.
 
-## Prerequisite: post-merge git state
-
-`/spades:close` does NOT do the post-merge git cleanup itself —
-that's `/repo:sync`'s job (in the `repo` plugin from the `ai-skills`
-marketplace). Before running `/spades:close`, the human should have
-already run `/repo:sync` so the local checkout is on a clean,
-fast-forwarded `main` with the merged feature branch deleted.
-
-If the precondition checks below fail, the skill exits with a pointer
-to run `/repo:sync` first. It will not auto-sync the local state —
-that boundary lives elsewhere by design.
-
 ## Pre-Flight
+
+**Prerequisite — post-merge git state.** `/spades:close` does NOT do
+the post-merge git cleanup itself — that's `/repo:sync`'s job (in the
+`repo` plugin from the `ai-skills` marketplace). Before running
+`/spades:close`, the human should have already run `/repo:sync` so
+the local checkout is on a clean, fast-forwarded `main` with the
+merged feature branch deleted. The precondition checks in step 4
+below enforce this; the skill exits with a pointer to `/repo:sync`
+if they fail. It will not auto-sync the local state — that boundary
+lives elsewhere by design.
+
 
 1. **Confirm setup + active project.** Read `.spades/config`. Abort
    otherwise.
@@ -199,7 +198,7 @@ skills maintain. Update:
 - Append to the `## Audit Trail` section:
 
   ```markdown
-  - YYYY-MM-DD: Shipped. PR: <URL>. Merge: <merge-sha>. Merged by: <login>.
+  - YYYY-MM-DD: Shipped (github). PR: <URL>. Merge: <merge-sha>. Merged by: <login>.
   ```
 
 ### 3.2 Edit the Scope file (if rolling up)

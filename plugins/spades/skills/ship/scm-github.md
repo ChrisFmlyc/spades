@@ -156,7 +156,7 @@ Step 6 → this driver's Phase 2.
 3. **Record the shipment.** Append to the audit trail:
 
    ```markdown
-   - YYYY-MM-DD: Shipped. PR: <URL>. Merge: <sha>. Merged by: <login>.
+   - YYYY-MM-DD: Shipped (github). PR: <URL>. Merge: <sha>. Merged by: <login>.
    ```
 
 4. **Return to SKILL.md Step 3** to finalise the Plan status.

@@ -26,28 +26,34 @@ Read `docs/FRAMEWORK.md` § Hierarchy, § Target Resolution, and
 This skill honours `review_format:` from `.spades-anywhere/config`
 per `docs/FRAMEWORK.md § Output Format (CLI vs HTML)`.
 
-In CLI mode this skill is consumer-only: the verdict-walk happens
-inline in the conversation and the result lives as an audit-trail
-line on the Plan file.
+The flow is **a two-surface review** in both modes — once before
+the verdict-walk starts (the locked verification plan) and once
+after (the final report). The logic, prompts, and audit-trail
+writes are identical between modes; only the human's review
+surface differs:
 
-In HTML mode this skill is **also a producer**. Two things happen:
-
-1. The Plan's `.html` (and the parent Scope's `.html`) are
-   auto-opened at the Pre-Flight step so the human can see what
-   is being evaluated — same as today.
-2. After Step 2 picks an aggregated verdict, render the
-   per-criterion table + verdict via
-   `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html` and
-   write `.spades-anywhere/evaluations/<plan-id>-<YYYY-MM-DD>.html`,
-   then auto-open via OPEN_CMD. The audit-trail line on the Plan
-   is unchanged (still authoritative for the AI reader); the HTML
-   report is the **human's** rich view of the verdict.
+1. **Surface 1 — Verification plan** (Pre-Flight Step 5).
+   Presents the upcoming acceptance-criteria walk as a table.
+   Every verdict shows `PENDING` until Step 1 fills them in.
+   - **CLI mode** — Step 1's per-criterion walk IS the locked
+     review surface; an anchor line marks it.
+   - **HTML mode** — renders page 1 via the bundled template, writes
+     to `.spades-anywhere/evaluations/<plan-id>-<date>-plan.html`,
+     and auto-opens it; the CLI gets only a brief "opened" nudge.
+2. **Surface 2 — Evaluation report** (Step 2.5). Presents the
+   same rows with verdicts and notes filled in, plus the
+   aggregated verdict and the human's free-form rationale.
+   - **CLI mode** — Step 2's aggregated verdict + rationale IS
+     the closing report surface; an anchor line names the verdict.
+   - **HTML mode** — renders page 2 via the same template with
+     `{{spades.mode}}: report` framing, writes to
+     `.spades-anywhere/evaluations/<plan-id>-<date>-report.html`,
+     and auto-opens it; the CLI gets only a brief "opened" nudge.
 
 In `spades-anywhere`, the evaluator is **always the human** —
 there is no `delivery:` routing; render `{{spades.evaluator}}` as
-`human` in every report.
-
-CLI mode does NOT write any evaluation file.
+`human` in every report. In CLI mode the Plan's audit-trail line
+is the only file written; HTML mode adds the two eval pages on top.
 
 ## Pre-Flight
 
@@ -75,12 +81,23 @@ CLI mode does NOT write any evaluation file.
    field. The eval pages carry the Plan ID + parent Scope in
    their breadcrumb if the human wants to cross-check.
 
-5. **Render PAGE 1: verification plan HTML (HTML mode only).**
-   When `review_format: html`, render the upcoming acceptance-
-   criteria walk as a table the human can preview *before*
-   Step 1 starts asking per-criterion questions. This is the
-   "before we start" page, paired with page 2 written at
-   Step 2.5.
+5. **Present the locked verification plan.** Both modes have this
+   step — only the surface differs.
+
+   **CLI mode** — the per-criterion walk in Step 1 IS the locked
+   review surface. Print one anchor line so the human knows the
+   walk is the gate:
+
+   ```
+   ○ Verification plan locked — I'll walk each criterion next.
+   ```
+
+   Then proceed to Step 1.
+
+   **HTML mode** — render the upcoming acceptance-criteria walk
+   as a table the human can preview *before* Step 1 starts asking
+   per-criterion questions. This is the "before we start" page,
+   paired with page 2 written at Step 2.5.
 
    **You MUST render via the bundled `template.html`. Do NOT
    hand-roll the HTML.**
@@ -134,8 +151,8 @@ CLI mode does NOT write any evaluation file.
       ○ I'll walk you through each row next.
       ```
 
-   In CLI mode this step is skipped; the per-criterion walk in
-   Step 1 is the review surface.
+   Both branches then continue to Step 1 — the per-criterion walk
+   is identical between modes.
 
 ## Step 1 — Walk the Scope's acceptance criteria
 
@@ -195,11 +212,28 @@ What's the take-away the next reader should have?"* The reply
 becomes `{{spades.verdict_summary_html}}` in page 2's
 summary card.
 
-## Step 2.5 — Render PAGE 2: evaluation report HTML (HTML mode only)
+## Step 2.5 — Present the evaluation report
 
-When `review_format: html`, after Step 2 captures the verdict
-and rationale, produce the completed evaluation report. Same
-template as page 1; different `mode` framing.
+**Read `review_format:` from `.spades-anywhere/config` and branch.**
+Step 2 picked the aggregated verdict and captured the rationale;
+this step presents the completed report as the closing review
+surface. Both modes have a Step 2.5 — only the surface differs.
+
+### CLI mode
+
+The aggregated verdict + rationale emitted during Step 2 IS the
+closing report surface — leave it on screen. Print one anchor line
+so the verdict is unambiguous:
+
+```
+✓ Evaluation report above — verdict: <PASS|PARTIAL|FAIL>. Plan audit-trail line records the same verdict.
+```
+
+### HTML mode
+
+After Step 2 captures the verdict and rationale, produce the
+completed evaluation report. Same template as page 1; different
+`mode` framing.
 
 **You MUST render via the bundled `template.html`. Do NOT
 hand-roll the HTML.**
@@ -262,8 +296,10 @@ files, Gemini Gem references, Notion, wherever) on their own
 cadence. The framework just writes the files; persistence beyond
 that is the human's call.
 
-In CLI mode this step is skipped entirely; the Plan's
-audit-trail line is the only output as today.
+In CLI mode the audit-trail line written by the fan-out below is
+the only file artefact — no HTML pages are written. The CLI
+surfaces emitted at Pre-Flight Step 5 and Step 2.5 are the human's
+review record.
 
 ## Step 3 — Write the verdict (fan-out dispatch)
 

@@ -56,7 +56,7 @@ workflow is fine.
    - **`present`** → proceed.
    - **`missing`** → **hard gate**. Ask via `AskUserQuestion`:
      - **Run `/spades-anywhere:intent` now** *(Recommended)* — compose INTENT
-       before scoping. Invoke the intent skill inline; once it
+       before scoping. Invoke `/spades-anywhere:intent` inline; once it
        completes, resume here at Step 1.
      - **Override and proceed without INTENT** — only for
        throwaway / sandbox / prototype repos. Record the override
