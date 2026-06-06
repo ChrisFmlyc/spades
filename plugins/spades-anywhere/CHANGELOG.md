@@ -7,6 +7,33 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the plugin
 version via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
+## [0.9.0] — 2026-06-06
+
+**MINOR** — Mirror of `spades` v3.10.0's parent-status precondition.
+Producing skills (`scope`, `plan`, `approve`, `do`, `evaluate`,
+`ship`, `close` Pass route) now refuse hard when an ancestor in
+the target's container chain has terminal status `abandoned` (or,
+for Projects, `archived`). No override.
+
+`docs/FRAMEWORK.md § Target Resolution` grows a new "Parent-status
+precondition" sub-section; the "Terminal states → No cascade"
+paragraph gains a forward reference clarifying that no-cascade is
+paired with refuse-at-the-gate. Each producing SKILL.md adds one
+Pre-Flight step referencing the rule.
+
+Also in this release: the long-missing
+`plugins/spades-anywhere/AGENTS.md` is now an authored file (the
+README's install instructions for ChatGPT / Claude Projects /
+Gemini Gems link to it). Closes HIGH findings H-1 and H-2 from
+the rev-7 plugin logic review.
+
+- Skills bumped: `scope` 0.1.2 → 0.1.3, `plan` 0.1.2 → 0.1.3,
+  `approve` 0.1.0 → 0.1.1, `do` 0.1.1 → 0.1.2, `evaluate`
+  0.4.0 → 0.4.1, `ship` 0.1.1 → 0.1.2, `close` 1.1.0 → 1.1.1.
+- New file: `plugins/spades-anywhere/AGENTS.md`.
+- Pre-existing step-numbering bug in `ship/SKILL.md` Pre-Flight
+  (two steps labelled "5.") fixed as a drive-by.
+
 ## [0.8.0] — 2026-06-06
 
 **MINOR** — Mirror of `spades` v3.9.0's two-phase quick path.
@@ -59,11 +86,6 @@ incidentally closes MED finding M-5 (`/close` not recognising
 two-phase. § Terminal States's "Quick items have no abandoned
 state" paragraph extended to mention `/spades-anywhere:close`'s
 Drop handling.
-
-> **Stacking note.** This entry assumes `[0.7.0]` (PR #38 —
-> parent-status precondition + spades-anywhere AGENTS.md) merged
-> first. If the order changes, the version numbers in this PR
-> need rebasing.
 
 - Skills bumped: `quick` 0.1.0 → 0.2.0, `close` 1.0.0 → 1.1.0.
 

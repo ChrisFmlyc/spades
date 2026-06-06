@@ -8,6 +8,38 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.10.0] — 2026-06-06
+
+**MINOR** — Parent-status precondition. Producing skills (`scope`,
+`plan`, `approve`, `do`, `evaluate`, `ship`, `close` Pass route)
+now refuse hard when an ancestor in the target's container chain
+has terminal status `abandoned` (or, for Projects, `archived`).
+No override.
+
+Pairs with the deliberate-no-cascade rule already in
+`docs/FRAMEWORK.md § Terminal states`: abandoning a Scope does NOT
+auto-reject its in-flight Plans, but every producing skill is now
+the gatekeeper at the front door. Without the refusal, new work
+silently lands on a dead initiative and the audit trail loses its
+meaning. Closes HIGH finding H-2 from the rev-7 plugin logic
+review.
+
+Contract lives in `docs/FRAMEWORK.md § Target Resolution →
+Parent-status precondition`; each producing SKILL.md adds one
+Pre-Flight step referencing the rule.
+
+Exemptions: `/close --abandon` and `/close --reject` (the actions
+that *create* terminal status), `/list` and `/status` (read-only),
+and `/quick` (independent of the Scope/Project hierarchy).
+
+Mirrored in `spades-anywhere` v0.9.0.
+
+- Skills bumped: `scope` 3.1.3 → 3.1.4, `plan` 3.1.3 → 3.1.4,
+  `approve` 3.1.0 → 3.1.1, `do` 3.1.2 → 3.1.3, `evaluate`
+  3.4.0 → 3.4.1, `ship` 3.1.2 → 3.1.3, `close` 4.1.0 → 4.1.1.
+- Plugin version pin (`plugins/spades/.spades/version`) brought
+  in sync with `plugin.json`.
+
 ## [3.9.0] — 2026-06-06
 
 **MINOR** — Two-phase quick path. `/spades:quick` now writes the
@@ -51,11 +83,6 @@ mention `/spades:close`'s Drop handling.
 
 Mirrored in `spades-anywhere` v0.8.0 (same shape, human-confirm
 trigger instead of PR-merge).
-
-> **Stacking note.** This entry assumes `[3.8.0]` (PR #38 —
-> parent-status precondition + spades-anywhere AGENTS.md) merged
-> first. If the order changes, the version numbers in this PR
-> need rebasing.
 
 - Skills bumped: `quick` 2.0.1 → 2.1.0, `close` 4.0.0 → 4.1.0.
 

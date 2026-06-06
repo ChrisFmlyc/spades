@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:do` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.4.0
+version: 3.4.1
 ---
 
 # /spades:evaluate
@@ -93,11 +93,18 @@ plans get the AI structuring help.
 3. **Read the target.** Plan + parent Scope, OR Scope + every Plan
    under it. Read `review_format:` from `.spades/config` first — in
    CLI mode artefacts are `.md`, in HTML mode `.html`.
-4. **Read `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`.**
-5. **Record the routing.** Read the Plan's `delivery:` field
+4. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
+   Resolution → Parent-status precondition`. For a Plan target,
+   check the parent Scope and grandparent Project. For a Scope
+   target, check the parent Project. If any ancestor is `abandoned`
+   (or, for Projects, `archived`), abort hard with the canonical
+   error shape. No override. (Quick items skip this rule — they are
+   independent of the Scope/Project hierarchy.)
+5. **Read `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`.**
+6. **Record the routing.** Read the Plan's `delivery:` field
    (set at the Approve gate). Save as `<routing>` for Step 1.
    `ai` / `human` / `hybrid`.
-6. **Do NOT auto-open the Plan's `.html` in HTML mode.** This
+7. **Do NOT auto-open the Plan's `.html` in HTML mode.** This
    is a deliberate change from prior versions. The Plan's `.html`
    open at Pre-Flight was the source of the bug where users
    mistook it for the evaluation output. The eval HTML written

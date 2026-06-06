@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generate a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 0.1.2
+version: 0.1.3
 ---
 
 # /spades-anywhere:plan
@@ -54,7 +54,11 @@ workflow is fine.
    If the human passed an ID (`S-<slug>`), a slug, or a title in the
    invocation, fuzzy-resolve directly via `find_scope_fuzzy` and
    confirm if ambiguous. Otherwise run the interactive picker.
-4. **Verify Scope readiness.** If the Scope is missing required fields,
+4. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
+   Resolution → Parent-status precondition`. If the parent Scope is
+   `abandoned`, or its parent Project is `abandoned` / `archived`,
+   abort hard with the canonical error shape. No override.
+5. **Verify Scope readiness.** If the Scope is missing required fields,
    abort and suggest `/spades-anywhere:scope <slug>` (Edit mode) first.
 
 ## Step 1 — Read Context

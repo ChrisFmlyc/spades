@@ -1,7 +1,7 @@
 ---
 name: do
 description: Mark a Plan as delivering and restate its parent Scope's acceptance criteria back to the human, then stand down. In spades-anywhere, "Do" is not autonomous work — it's a marker that says "human is now doing the work" plus a reminder of what 'done' looks like. Use after `/spades-anywhere:approve` has run, when someone says "do this", "start this plan", "I'm going to work on this now", or when a Plan is in status `approved`. There is no AI-autonomous branch — only `delivery: human` (default) and `delivery: hybrid` (AI assists with research / drafts / structure; the human acts).
-version: 0.1.1
+version: 0.1.2
 ---
 
 # /spades-anywhere:do
@@ -54,7 +54,7 @@ identical between modes.
 4. **Verify status.** The Plan must be `status: approved` or
    `status: delivering`. If `draft`, abort and suggest
    `/spades-anywhere:approve` first.
-5. **Verify dependencies.** Read every plan listed in the Plan's
+6. **Verify dependencies.** Read every plan listed in the Plan's
    `depends_on:` field.
    - If any dependency has `status: rejected`, **abort** with a
      pointer to `/spades-anywhere:plan` for the rejected ancestor.
@@ -71,7 +71,7 @@ identical between modes.
      Offer (via `AskUserQuestion`):
      - **Wait** — abort, suggest finishing the dependency first
      - **Proceed anyway** — record the override in the audit trail
-6. **Open the artefact (HTML mode only).** When `review_format:
+7. **Open the artefact (HTML mode only).** When `review_format:
    html`, run the OPEN_CMD prelude and open the Plan's `.html`.
    **In HTML mode the open `.html` (and the linked Scope's `.html`)
    IS the review surface — do NOT also paste / summarise / restate

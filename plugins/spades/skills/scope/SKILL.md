@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 3.1.3
+version: 3.1.4
 ---
 
 # /spades:scope
@@ -40,7 +40,12 @@ workflow is fine.
    `/spades:setup` first.
 2. **Confirm active project.** Read `project:` from `.spades/config`.
    If missing, abort and suggest `/spades:newproject` to create one.
-3. **INTENT.md gate.** A Scope is measured against the project's
+3. **Verify Project active** per `docs/FRAMEWORK.md § Target
+   Resolution → Parent-status precondition`. If the active Project's
+   status is `abandoned` or `archived`, abort hard with the canonical
+   error shape. In Edit mode, also verify the parent Project of the
+   resolved target Scope (after Step 2 resolves it). No override.
+4. **INTENT.md gate.** A Scope is measured against the project's
    `INTENT.md` (the durable statement of *why* this project exists).
    Scoping without INTENT means scope drift is silent — there is no
    north star to measure against.
@@ -67,7 +72,7 @@ workflow is fine.
    running `/spades:intent` is minutes; the cost of months of
    silent scope drift is much higher. Friction is the feature.
 
-4. **Read the backend.** Branches below act according to `.spades/config`'s
+5. **Read the backend.** Branches below act according to `.spades/config`'s
    `backend:` field.
 
 ## Step 1 — Fast-Track Check First
