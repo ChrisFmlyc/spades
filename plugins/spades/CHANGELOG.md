@@ -8,6 +8,57 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [3.9.0] — 2026-06-06
+
+**MINOR** — Two-phase quick path. `/spades:quick` now writes the
+marker at `status: shipping` (PR opened, not yet merged), and
+`/spades:close Q-<id>` flips it to `status: shipped` after
+verifying the merge via `gh pr view`. Mirrors the Plan ship →
+close two-phase shape — `status: shipped` always means *actually
+merged*, never PR-opened-but-unmerged.
+
+Closes HIGH finding H-3 from the rev-7 plugin logic review and
+incidentally closes MED finding M-5 (`/close` not recognising
+`Q-` targets).
+
+**`/spades:quick` changes:**
+- Frontmatter `status: shipped` → `status: shipping`.
+- Audit-trail line at marker-write: `Quick-path opened. Type: …`
+  (the `Shipped` line is written later by `/spades:close`).
+- Linear status transitions: Todo → In Progress → In Review only.
+  The In Review → Done transition is `/spades:close`'s job.
+- Confirmation nudge added: *"PR opened. Run `/spades:close Q-<id>`
+  after it merges to finalise."*
+
+**`/spades:close` changes:**
+- Step 0 target detection recognises `Q-<slug>-<suffix>` IDs.
+- New **Quick Close Flow** (lightweight — no bookkeeping PR, no
+  Scope rollup):
+  - `gh pr view` probe: merged → flip to shipped; open →
+    ask Wait/Drop; closed-unmerged → ask Drop/Cancel.
+  - On flip: append `Shipped (github). PR: …. Merge: <sha>.
+    Merged by: <login>.` to the marker's audit trail
+    (matches canonical Plan-close grammar).
+  - On drop: delete the marker file (quick items have no
+    `abandoned`/`rejected` terminal status — see § Deliberate
+    non-goals in FRAMEWORK.md).
+  - Linear In Review → Done on flip; In Review → Cancelled on drop.
+
+**FRAMEWORK.md** § ID Format § Quick-item ID and § Fast-Track Path
+updated to describe two-phase explicitly. § Terminal States's
+"Quick items have no abandoned state" paragraph extended to
+mention `/spades:close`'s Drop handling.
+
+Mirrored in `spades-anywhere` v0.8.0 (same shape, human-confirm
+trigger instead of PR-merge).
+
+> **Stacking note.** This entry assumes `[3.8.0]` (PR #38 —
+> parent-status precondition + spades-anywhere AGENTS.md) merged
+> first. If the order changes, the version numbers in this PR
+> need rebasing.
+
+- Skills bumped: `quick` 2.0.1 → 2.1.0, `close` 4.0.0 → 4.1.0.
+
 ## [3.7.0] — 2026-06-05
 
 **MINOR** — Universal additive HTML rule. Every producing skill
