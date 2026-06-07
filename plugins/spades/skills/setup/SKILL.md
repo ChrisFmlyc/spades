@@ -1,473 +1,245 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 3.1.2
+version: 3.2.0
 ---
 
 # /spades:setup
 
-You are configuring SPADES in the current repository. This is the entry
-point: every other skill assumes setup has been run and that
-`.spades/config` exists.
+Configure SPADES in this repository. Every other skill assumes setup
+has run and `.spades/config` exists.
 
-**Setup re-runs the full interview every time** — same questions on a
-fresh install and on a re-run, no short-cuts based on existing state.
-Current values are surfaced as context above each question
-(*"Currently configured: …"*) but never bias the recommended option;
-the human re-engages with every choice. Before writing any changes,
-Step 2.5 presents a diff and requires explicit confirmation. When the
-human switches backend, Step 2.6 offers AI-assisted migration of
-existing artefacts (local → Linear or Linear → local). Setup never
-destroys human-written content — scope/plan/learning files on disk
-stay where they are; the AGENTS.md marker block is replaced in
-place, content outside the markers is untouched.
+**Re-runs ask every question again.** Current values appear as a
+*"Currently configured: …"* context line above each `AskUserQuestion`
+but never bias the recommended option. Step 2.5 diffs old vs new
+and requires explicit confirm before writes; Step 2.6 offers
+migration on backend switch. Setup never destroys human-written
+content (scope / plan / learning files stay; the AGENTS.md marker
+block is replaced in place, content outside the markers is
+untouched).
 
-Read `docs/FRAMEWORK.md` § Hierarchy and § .spades/ Local Layout before
-running. The schemas below are mirrors of that contract; FRAMEWORK.md
-is canonical.
+Read `docs/FRAMEWORK.md` § Hierarchy and § .spades/ Local Layout
+before running — FRAMEWORK.md is canonical.
 
 ## Self-Init Guard
 
-If the current working directory IS the SPADES framework repo itself
-(its `package.json` / `.claude-plugin/plugin.json` has `name: spades`
-or the `plugins/spades/` directory exists at the root), abort with:
+If this directory IS the SPADES framework repo itself
+(`.claude-plugin/plugin.json` has `name: spades` or
+`plugins/spades/` exists at the root), abort:
 
-> This is the SPADES framework's own repository. Setup is for consumer
-> repositories that want to *use* SPADES, not for the framework itself.
+> This is the SPADES framework's own repository. Setup is for
+> consumer repos that want to *use* SPADES, not for the framework
+> itself.
 
-The framework dogfoods itself by running setup against its own
-`plugins/spades/` directory — but you only do that when explicitly told
-"set up the dogfood project".
+(The framework dogfoods itself only when explicitly told *"set up
+the dogfood project"*.)
 
 ## Pre-Flight
 
-### Prerequisite plugin check (`ai-skills/repo`)
+### 1. Prerequisite plugin: `ai-skills/repo`
 
-SPADES depends on the `repo` plugin from the **`ai-skills`** Claude
-Code marketplace for two slash commands:
-
-- `/repo:sync` — post-merge git cleanup, called before `/spades:close`.
-- `/repo:branch` — branch-naming guardrail, enforces the prefix list
-  and the no-commits-on-main rule that `/spades:do`, `/spades:ship`,
-  and `/spades:close` all rely on.
-
-Probe whether the plugin is already installed:
+SPADES depends on `/repo:sync` (post-merge cleanup, called by
+`/spades:close`) and `/repo:branch` (branch-name regex +
+no-commits-on-main, used by `/spades:do`, `/spades:ship`,
+`/spades:close`).
 
 ```bash
 [ -d "$HOME/.claude/plugins/cache/ai-skills/repo" ] && echo found || echo missing
 ```
 
-- **`found`** — proceed to Step 1. (The plugin's commands are
-  available; no further action.)
-- **`missing`** — print the install guide below and ask via
-  `AskUserQuestion`:
-  - *I've installed it — re-probe and continue.*
-  - *Skip this for now — I'll install later. (Setup continues, but
-    `/spades:close`, `/spades:do`, and `/spades:ship` will refuse to
-    run until the `repo` plugin is installed.)*
-
-### Install guide — `ai-skills` marketplace + `repo` plugin
-
-The marketplace lives at
-[`github.com/ChrisFmlyc/ai-skills`](https://github.com/ChrisFmlyc/ai-skills).
-Install both the marketplace and the `repo` plugin from inside
-Claude Code:
+`found` → continue. `missing` → show install:
 
 ```
 /plugin marketplace add ChrisFmlyc/ai-skills
 /plugin install repo@ai-skills
 ```
 
-After install, verify by running `/repo:sync` or
-`/repo:branch` — Claude Code should recognise the slash commands.
+Then `AskUserQuestion`: *I've installed it — re-probe* / *Skip
+for now (close/do/ship will refuse until installed)*. If re-probe
+still `missing`, re-show and re-ask; only advance on explicit
+Skip.
 
-If the human picks "I've installed it", re-run the probe before
-continuing. If it still reports `missing`, re-show the install guide
-and ask again — do not advance with the prerequisite unsatisfied
-unless the human explicitly chose "Skip for now".
-
-### Git repo check
-
-SPADES expects the working directory to already be a git repository.
-Scaffolded files (`AGENTS.md`, `ARCHITECTURE.md`, `.spades/config`,
-etc.) are intended to be committed; the AGENTS.md marker block
-carries a version stamp; the dogfood AGENTS.md rule explicitly tells
-agents to defer to the `repo` plugin for git operations. None of
-that works against a directory that hasn't been `git init`'d.
-
-Probe:
+### 2. Git repo
 
 ```bash
 git rev-parse --git-dir >/dev/null 2>&1 && echo found || echo missing
 ```
 
-- **`found`** → proceed to Step 1.
-- **`missing`** → abort with:
+`found` → continue. `missing` → abort:
 
-  > *This directory isn't a git repository yet. Run `/repo:init`
-  > first — it initialises git, commits a placeholder README, wires
-  > origin, and pushes to `main`. Once that's done, re-invoke
-  > `/spades:setup` to configure SPADES on top.*
+> *This directory isn't a git repository. Run `/repo:init` first
+> (initialises git, placeholder README, wires origin, pushes
+> `main`), then re-invoke `/spades:setup`.*
 
-  Do not auto-run `/repo:init`. The human invokes it explicitly so
-  they can confirm origin URL, branch name preferences, and any
-  pre-init filesystem state. SPADES setup resumes only after
-  `/repo:init` has completed and the human re-runs the slash
-  command.
+Do **not** auto-run `/repo:init`.
 
-This belt-and-braces check complements the AGENTS.md operating rule
-("defer to the `repo` plugin for git operations") below: the rule
-tells *agents* what to do; this probe is the *mechanical* enforcement
-at setup time so a brand-new-repo flow can't accidentally produce
-SPADES files outside version control.
-
-### Capture existing config (re-run context)
-
-Before asking any questions, capture the current state of
-`.spades/config` (if it exists) into context variables. The captured
-values are surfaced **as context** in each subsequent question — they
-do NOT route the flow or bias the recommended option. The whole point
-of re-running setup is to re-engage with each choice, not to
-short-circuit on previous answers.
-
-Probe:
+### 3. Capture existing config (re-run context)
 
 ```bash
 [ -f .spades/config ] && echo present || echo missing
 ```
 
-- **`missing`** (fresh install) — all context variables stay unset.
-  Steps 1, 1.5, 2 ask their questions without pre-fill context.
-  Step 2.5's diff display is skipped (no pre-existing state to
-  diff against). Step 2.6 migration is skipped (nothing to migrate).
-- **`present`** — read the file and capture:
-  - `current_backend` — `linear` or `local`.
-  - `current_scm` — `github` or `local-git`.
-  - `current_project` — active project slug.
-  - `current_linear_team` — UUID if `current_backend == linear`.
-  - `current_linear_project` — UUID if `current_backend == linear`.
-  - `current_github_remote` — remote name if `current_scm == github`.
-  - `current_review_format` — `cli` or `html` (defaults to `cli` if
-    the field is absent in older configs).
+`missing` (fresh install) → all `current_*` stay unset; Step 2.5
+diff and Step 2.6 migration are skipped. `present` → read and
+capture:
 
-These variables flow into Steps 1, 1.5, 2 as a *"Currently
-configured: X"* context line above each `AskUserQuestion`. They also
-feed Step 2.5's diff and Step 2.6's migration walk.
+- `current_backend` (`linear` / `local`)
+- `current_scm` (`github` / `local-git`)
+- `current_project` (slug)
+- `current_linear_team`, `current_linear_project` (UUIDs, if Linear)
+- `current_github_remote` (if GitHub)
+- `current_review_format` (`cli` / `html`; defaults to `cli` on
+  older configs)
+
+These feed the *"Currently configured: …"* preamble on Steps 1,
+1.5, 1.7, 2 and the diff in Step 2.5.
 
 ## Step 1 — Backend Selection
 
-If `current_backend` is set (re-run case), print a context line
-above the question — never recommend "Keep current":
+If `current_backend` is set, print above the question (never
+recommend "Keep current"):
 
 > *Currently configured: `backend: <current_backend>`. The choice
 > below replaces it. Re-pick the same value if nothing's changed,
 > or switch — your call, but please make it explicitly.*
 
-Ask the human which backend they want, via `AskUserQuestion`:
+`AskUserQuestion`:
 
-- **`Linear`** — artefacts live as Linear Issues (Project, parent Issue,
-  sub-issues). Requires the Linear MCP to be configured. The skill will
-  verify Linear MCP is callable before committing.
-- **`Local`** — artefacts live as Markdown files under `.spades/`. No
-  external tracker needed. Easiest to start; full audit trail in-repo.
+- **`Linear`** — artefacts live as Linear Issues (Project, parent
+  Issue, sub-issues). Requires Linear MCP.
+- **`Local`** — artefacts live as Markdown files under `.spades/`.
+  No external tracker; full audit trail in-repo.
 
-Whichever the human picks is what gets written. Re-runs use the
-same two options — no "keep current" shortcut — so the human always
-re-engages with the choice.
+No "keep current" shortcut on re-run.
 
 ### If Linear was chosen
 
-#### Probe the Linear MCP
+**Probe Linear MCP** (teams-list call). At least one team
+returned → continue to *Bind team and project* below.
 
-Probe Linear MCP with a teams list call. If it returns at least one
-team, the MCP is reachable — continue to **Bind team and project**
-below.
-
-#### If the probe fails — guide the install, don't abort
-
-If the probe fails (no Linear MCP tool available in this session,
-401/403, connection refused, etc.), the Linear MCP isn't configured
-yet. Don't abort — walk the human through installing it.
-
-Tell the human something like:
-
-> The Linear MCP isn't installed in this Claude Code session yet.
-> Setup needs it to read teams and bind this repo to a Linear
-> Project. Two minutes to install. Here's how.
-
-Then present the install guide below.
-
-##### 1. Install the Linear MCP server
-
-Linear ships an **officially hosted remote MCP server** at
-`https://mcp.linear.app/mcp`. It uses OAuth 2.1 in the browser, so
-there are no API keys to manage. From a terminal outside Claude Code,
-run:
+**Probe fails** (no Linear MCP tool, 401/403, connection refused)
+→ don't abort. Walk the human through install:
 
 ```bash
 claude mcp add --transport http linear https://mcp.linear.app/mcp
 ```
 
-That writes the server into Claude Code's local config. The default
-scope is **local** (this project only). If the human wants it
-available across every repo on their machine, use `--scope user`:
+Scope options: default **local** (this project only), `--scope
+user` (every project on this machine), `--scope project`
+(committed `.mcp.json`, shared with team). Recommend **local**
+for the first run.
 
-```bash
-claude mcp add --transport http linear --scope user https://mcp.linear.app/mcp
-```
+After adding the server, the human runs `/mcp` inside Claude
+Code, picks Linear, and completes the OAuth flow in the browser.
+Verify with `claude mcp list` outside Claude Code, then `/mcp`
+inside — Linear should show connected with ~25 tools.
 
-If the human wants to **share the configuration with their team via
-version control**, use `--scope project` — it writes to a `.mcp.json`
-at the repo root, designed to be committed:
+Once connected, re-run `/spades:setup` and pick Linear again.
 
-```bash
-claude mcp add --transport http linear --scope project https://mcp.linear.app/mcp
-```
+**Bind team and project** (probe succeeded):
 
-The three scopes are local-only (per-project), user (every project on
-their machine), and project (shared via `.mcp.json`). Recommend
-**local** by default for the first run; the human can broaden later.
-
-##### 2. Authenticate via OAuth
-
-After adding the server, open a Claude Code session in the same
-project and run:
-
-```text
-/mcp
-```
-
-That opens the `/mcp` panel listing all configured MCP servers.
-Linear will be flagged as needing authentication; selecting it opens
-a browser window for the Linear OAuth flow. The human signs in to
-Linear (or confirms they're already signed in) and grants access to
-the Claude Code MCP client. The token is stored securely by Claude
-Code and refreshed automatically.
-
-If the browser doesn't open, Claude Code prints a URL the human can
-open manually. If the browser redirect fails after authenticating
-(connection-refused on `localhost`), Claude Code prompts for the
-callback URL — paste the full URL from the browser's address bar.
-
-##### 3. Verify the install
-
-From a terminal outside Claude Code:
-
-```bash
-claude mcp list
-```
-
-The `linear` server should appear in the list. Then inside Claude
-Code:
-
-```text
-/mcp
-```
-
-The Linear server should show as connected (not `⏸ Pending
-approval`, not `✗ Failed`) and report a non-zero tool count. The
-Linear MCP exposes about 25 tools — find/create/update issues,
-projects, comments, initiatives, milestones, project updates.
-
-##### 4. Resume /spades:setup
-
-Once the Linear MCP is connected, re-run `/spades:setup` and pick
-**Linear** again. The probe will succeed this time and setup will
-continue.
-
-#### Bind team and project (probe succeeded)
-
-1. Ask the human (via `AskUserQuestion`) which team to use. List the
-   teams returned by the probe.
-2. Ask which Linear Project to bind this SPADES project to. List
-   existing projects for the chosen team and offer **Create new
-   Linear Project** as an option (the next step,
-   `/spades:newproject`, handles creation).
-3. Record the chosen team ID and Linear Project ID in
-   `.spades/config` (Step 3 below).
+1. `AskUserQuestion`: which team? (list teams from probe).
+2. `AskUserQuestion`: which Linear Project? (list existing under
+   the chosen team + *Create new Linear Project*).
+3. If *Create new* → invoke `/spades:newproject` inline.
+4. Record `team_id` + `project_id` for Step 3.
 
 ### If Local was chosen
 
-Nothing to verify externally. Continue.
+Nothing to verify externally.
 
-## Step 1.5 — Source Code Management (SCM) selection
+## Step 1.5 — Source Code Management (SCM)
 
-If `current_scm` is set (re-run case), print a context line above
-the question:
+If `current_scm` is set, print *"Currently configured: `scm:
+<current_scm>`. The choice below replaces it. Re-pick or
+switch."*.
 
-> *Currently configured: `scm: <current_scm>`. The choice below
-> replaces it. Re-pick the same value if unchanged, or switch.*
+`AskUserQuestion`:
 
-Ask the human which SCM their code lives in via `AskUserQuestion`.
-This drives `/spades:ship`'s code-deliverable flow.
+- **`Local git`** — work commits to local git only. If a remote
+  is configured, `/spades:ship` pushes but does NOT open PRs.
+  Single-phase ship.
+- **`GitHub`** — work flows through GitHub PRs. `/spades:ship`
+  runs two-phase publish. Requires `gh` CLI installed +
+  authenticated.
+- (future: GitLab, Bitbucket — see `docs/EXTENDING-SCM.md`.)
 
-- **`Local git`** — work commits go to local git only. If a remote
-  is configured, `/spades:ship` pushes to it but does NOT open PRs.
-  No external tool dependency. Single-phase ship: push, record
-  commit SHA, mark shipped.
-- **`GitHub`** — work flows through GitHub PRs. `/spades:ship` runs
-  the two-phase publish (push + `gh pr create`, then resume after
-  squash-merge to record the merge SHA). Requires the `gh` CLI
-  installed and authenticated.
-- (future: GitLab, Bitbucket — extension points; see
-  `docs/EXTENDING-SCM.md` for the contract drivers must satisfy.)
-
-No "keep current" shortcut on re-run — same as Step 1, the human
-always picks one of the two options afresh.
+No "keep current" shortcut on re-run.
 
 ### If GitHub was chosen
 
-#### Probe gh CLI
+Probe `gh auth status`. Authenticated → continue.
 
-From a terminal:
-
-```bash
-gh auth status
-```
-
-If `gh` is installed and authenticated, the SCM is reachable —
-continue to Step 2.
-
-#### If gh isn't installed or unauthenticated — guide the install
-
-Don't abort. Walk the human through it.
-
-##### 1. Install gh CLI
-
-GitHub publishes packaged binaries for macOS, Linux, and Windows.
-
-- **macOS (Homebrew):** `brew install gh`
-- **Linux (apt):** see <https://cli.github.com/manual/installation>
-  for the apt repo setup, then `sudo apt install gh`
-- **Linux (yum/dnf):** see the same page for the dnf instructions
-- **Windows (winget):** `winget install --id GitHub.cli`
-
-Confirm with `gh --version`.
-
-##### 2. Authenticate
-
-```bash
-gh auth login
-```
-
-Pick `GitHub.com` (or `GitHub Enterprise Server` if applicable),
-authenticate via browser (recommended) or paste a Personal Access
-Token. Choose `HTTPS` or `SSH` for git operations to match your
-existing remote.
-
-##### 3. Verify
-
-```bash
-gh auth status
-```
-
-Should show "Logged in to github.com as <username>". Confirm
-permissions include `repo` scope.
-
-##### 4. Resume /spades:setup
-
-Once gh CLI is installed and authenticated, re-run `/spades:setup`
-and pick **GitHub** again. The probe will succeed this time and
-setup will continue.
+If unavailable / unauthenticated → don't abort. Install via
+`brew install gh` (macOS), `winget install --id GitHub.cli`
+(Windows), or the apt/dnf instructions at
+<https://cli.github.com/manual/installation>. Then `gh auth
+login` → pick GitHub.com / Enterprise, authenticate via browser
+(recommended) or PAT, choose HTTPS or SSH to match the remote.
+Verify with `gh auth status` (must include `repo` scope). Re-run
+`/spades:setup` and pick GitHub again.
 
 ### If Local git was chosen
 
-Nothing to verify externally. Continue.
+Nothing to verify externally.
 
-## Step 1.7 — Review format (CLI or HTML)
+## Step 1.7 — Review format
 
-If `current_review_format` is set (re-run case), print a context
-line above the question — never recommend "Keep current":
+If `current_review_format` is set, print *"Currently configured:
+`review_format: <current_review_format>`. Re-pick or switch."*.
 
-> *Currently configured: `review_format: <current_review_format>`.
-> The choice below replaces it. Re-pick the same value if
-> unchanged, or switch.*
-
-Ask via `AskUserQuestion`:
-
-> *How should SPADES present reviews and produce artefacts?*
-
-Two options:
+`AskUserQuestion`: *How should SPADES present reviews and produce
+artefacts?*
 
 - **HTML — auto-opens nicely formatted pages in your browser**
-  *(Recommended)* — artefacts (projects, scopes, plans, learnings,
-  reviews) are written as `.html` files under `.spades/` using the
-  templates that ship with each skill. Skills that today paste a
-  large review block to the CLI instead auto-open the relevant
-  `.html` page in the default browser via `open` / `xdg-open` /
-  `start`. Same content, much easier to review.
-- **CLI — pastes plain-text/markdown output to the terminal** —
-  artefacts are written as `.md` files (today's behaviour). Review
-  output pastes to CLI. Quieter, browser-free, all-in-the-terminal.
+  *(Recommended)*. Artefacts under `.spades/` are written as
+  `.html`; review-form output auto-opens via `open` / `xdg-open`
+  / `start`.
+- **CLI — pastes plain-text/markdown output to the terminal**.
+  Artefacts as `.md`; review output to CLI.
 
-Whichever the human picks is recorded as `review_format:` in
-`.spades/config` (Step 3 below). The choice affects:
-
-- **Producing skills** (`/spades:newproject`, `/spades:scope`,
-  `/spades:plan`, `/spades:learn`, `/spades:review`) write
-  artefacts in the chosen format.
-- **Consumer skills** (`/spades:approve`, `/spades:evaluate`,
-  `/spades:do`, `/spades:ship`, `/spades:close`, `/spades:status`,
-  `/spades:list`, `/spades:intent`) auto-open the relevant `.html`
-  in HTML mode; print to CLI in CLI mode.
-
-No "keep current" shortcut on re-runs — same as the other Step 1
-questions, the human always picks one of the two options afresh.
-
-The skill flow itself doesn't change between modes — same
-Pre-Flight, same Steps, same questions, same outputs. Only the
-*format* of the artefact written and the *medium* of presentation
-change.
+Recorded as `review_format:` in `.spades/config` (Step 3). The
+choice toggles per-skill rendering only — the flow itself is
+identical.
 
 ## Step 2 — Active Project
 
-If `current_project` is set (re-run case), print a context line:
+If `current_project` is set, print *"Currently active project:
+`<current_project>`. Re-pick or switch."*.
 
-> *Currently active project: `<current_project>`. The choice below
-> replaces it. Re-pick the same one to keep it, or switch.*
+`AskUserQuestion`:
 
-Ask which project this repo belongs to.
+- Existing `.spades/projects/<slug>.md` records → offer them +
+  *Create a new project*.
+- No records → *Create a new project* is the only option.
 
-- If `.spades/projects/` already contains records, offer them as
-  options plus **Create a new project**.
-- If there are no project records yet, offer **Create a new project**
-  as the only option.
+If *Create a new project* → invoke `/spades:newproject` inline;
+resume here with the new slug.
 
-If the human picks **Create a new project**, invoke `/spades:newproject`
-inline and resume here once it returns with the new project's slug.
-
-Record the project slug into a `new_project` variable for Step 2.5's
-diff (do **not** write `.spades/config` yet — that's Step 3's job
-and only after the human confirms the diff).
+Record the slug into `new_project` for Step 2.5's diff. Do **not**
+write `.spades/config` yet.
 
 ## Step 2.5 — Diff & Confirm
 
-Compute the diff between the captured `current_*` values (Pre-Flight § Capture existing config)
-and the human's new answers (Steps 1 / 1.5 / 2). Three cases:
+Diff captured `current_*` vs new answers. Three cases:
 
-### Case A — No `.spades/config` existed (fresh install)
+### Case A — Fresh install (no `.spades/config` existed)
 
-Skip the diff display entirely. The human's choices ARE the config.
-Go straight to Step 3.
+Skip the diff display. Go straight to Step 3.
 
-### Case B — Config existed and nothing changed
+### Case B — Config existed, nothing changed
 
 Every new value matches its `current_*` counterpart. Print:
 
-> *Nothing changed — backend, SCM, and active project all match the
-> existing config. Continue to refresh scaffolding (AGENTS.md
+> *Nothing changed — backend, SCM, and active project all match
+> the existing config. Continue to refresh scaffolding (AGENTS.md
 > marker block re-stamp, INTENT.md scaffold prompt, etc.)?*
 
-Ask via `AskUserQuestion`:
+`AskUserQuestion`: *Yes, refresh* / *Cancel — exit without writes*.
 
-- **Yes, refresh** — proceeds to Step 3+ (which writes the unchanged
-  config back, idempotent, and re-stamps the AGENTS.md marker
-  block to the current plugin version).
-- **Cancel — exit without writes** — exits cleanly.
+### Case C — Config existed, something changed
 
-### Case C — Config existed and something changed
-
-Show the diff block with each field's transition. Format:
+Show the diff:
 
 ```
 Detected pre-existing SPADES config. Confirm these changes
@@ -476,112 +248,72 @@ before any writes happen:
   Backend:        <current_backend>  →  <new_backend>
   SCM:            <current_scm>      →  <new_scm>
   Active project: <current_project>  (unchanged)
-  Linear team:    (unset)            →  <new_linear_team>      # only if backend changing or linear chosen
+  Linear team:    (unset)            →  <new_linear_team>      # if backend changing or linear chosen
   Linear project: (unset)            →  <new_linear_project>   # same
-  GitHub remote:  origin             (unchanged)               # only if scm: github
+  GitHub remote:  origin             (unchanged)               # if scm: github
 
 The local `.spades/config` and AGENTS.md marker block will be
 updated. Existing scopes / plans / learnings on disk are NEVER
 deleted by this skill.
 ```
 
-Mark `(unchanged)` against any field where new value matches
-current. The diff only lists fields that exist in either the
-current or new config (no junk rows).
+`(unchanged)` against fields where new = current. Only list fields
+present in either old or new config.
 
-Ask via `AskUserQuestion`:
+`AskUserQuestion`:
 
-- **Apply changes** — if `backend` is changing, proceed to Step 2.6
-  (migration). Otherwise straight to Step 3.
-- **Cancel — exit without writes** — exits cleanly; `.spades/config`
-  unchanged.
+- **Apply changes** — if `backend` is changing → Step 2.6.
+  Otherwise → Step 3.
+- **Cancel — exit without writes** — exits cleanly.
 
-## Step 2.6 — Backend-switch migration (AI-assisted)
+## Step 2.6 — Backend-switch migration
 
-This step fires **only** when Step 2.5 detected a backend change
-(`current_backend != new_backend`). For SCM / project / Linear team
-or project changes alone (with backend the same), skip to Step 3 —
-the existing artefacts already live under the right backend.
+Fires **only** when `current_backend != new_backend`. SCM /
+project / Linear team or project changes alone skip to Step 3.
 
 ### Direction A — `local → linear`
 
-The human had local files; they're switching to Linear. Without
-migration, old scopes/plans stay as local-only files and Linear
-starts empty — split-brain state. Setup offers to migrate.
-
-Ask via `AskUserQuestion`:
+`AskUserQuestion`:
 
 - **Walk the local artefacts and mirror them to Linear**
-  *(Recommended)* — performs the migration walk described below.
-- **Skip migration — start fresh in Linear** — local files stay
-  on disk untouched; Linear starts empty. Useful when the local
-  artefacts are historical and the human is genuinely starting a
-  fresh chapter.
-- **Cancel the backend switch** — return to Step 1; backend stays
-  `local`.
+  *(Recommended)* — migration walk below.
+- **Skip migration — start fresh in Linear** — local files
+  untouched; Linear starts empty.
+- **Cancel the backend switch** — back to Step 1.
 
-#### Migration walk (when "Walk … and mirror" is chosen)
+**Migration walk:** for each artefact, search Linear under the
+bound Project; match → link via frontmatter ID; no match →
+create.
 
-Perform these operations in order, surfacing progress inline:
-
-```
-Migrating local → linear …
-```
-
-1. **Projects.** For each file in `.spades/projects/<slug>.md`:
-   - Search the chosen Linear team for a Project with a matching
-     name. Search via the Linear MCP (`mcp__linear-server__list_projects`
-     filtered by team).
-   - If exactly one match → link: write `linear_project_id: <uuid>`
-     into the local file's frontmatter. Print:
-     `✓ Project '<name>' → matched existing (proj-<id>).`
-   - If multiple matches → disambiguate via `AskUserQuestion`,
-     listing candidates with their Linear IDs.
-   - If no match → create the Linear Project (`mcp__linear-server__save_project`)
-     with the local file's body as the description. Write the
-     returned ID back. Print: `✓ Project '<name>' → created (proj-<id>).`
-
-2. **Scopes.** For each `.spades/scopes/S-<slug>.md` belonging to the
-   active project:
-   - Search Linear for an Issue under the bound Project with a
-     matching title (`mcp__linear-server__list_issues` filtered).
-   - Match → link via `linear_issue_id:` frontmatter; report.
-   - No match → create the parent Issue
-     (`mcp__linear-server__save_issue`) with body = the Scope's
-     markdown body (Statement of Intent, Acceptance Criteria,
-     Architectural Constraints, Out of Scope, Risk / Unknowns,
-     Delivery Preference, current Audit Trail). Status mapped from
-     SPADES → Linear (`scoped` → "Triage" or team default,
-     `planning` → "Planning", `delivering` → "In Progress",
-     `done` → "Done", etc.). Write `linear_issue_id` back.
-
-3. **Plans.** For each `.spades/plans/P-<…>.md` belonging to one of
-   the migrated Scopes:
-   - Search under the Scope's parent Issue (via Linear MCP's
-     sub-issue listing) for a matching title.
-   - Match → link via `linear_issue_id:`.
-   - No match → create a sub-Issue under the Scope's parent Issue.
-     Body = the Plan's markdown body (Technical Approach, Tasks,
-     Risks & Assumptions, Testing & Verification, Delivery
-     Sequence, Audit Trail). SPADES `status:` → Linear status
-     (`draft` → "Backlog" or team default, `approved` → "Approval",
-     `delivering` → "Delivering" or "In Progress", `evaluating` →
-     "Evaluating", `shipping` → "Shipping", `shipped` → "Done",
-     `rejected` → "Cancelled"). Write `linear_issue_id` back.
-
-4. **Audit-trail entry** on each migrated artefact (Project, Scope,
-   Plan):
+1. **Projects** — `.spades/projects/<slug>.md` → Linear Project
+   (via `mcp__linear-server__list_projects` filtered by team, then
+   `mcp__linear-server__save_project` if no match). Write
+   `linear_project_id` back. Disambiguate multi-match via
+   `AskUserQuestion`.
+2. **Scopes** — `.spades/scopes/S-<slug>.md` → Linear Issue under
+   the bound Project. Body = the Scope's markdown (Statement of
+   Intent, Acceptance Criteria, Architectural Constraints, Out of
+   Scope, Risk / Unknowns, Delivery Preference, Audit Trail).
+   Status map: `scoped`→Triage/team-default, `planning`→Planning,
+   `delivering`→In Progress, `done`→Done. Write
+   `linear_issue_id` back.
+3. **Plans** — `.spades/plans/P-<…>.md` → sub-Issue under the
+   Scope's parent Issue. Body = Plan markdown (Technical Approach,
+   Tasks, Risks & Assumptions, Testing & Verification, Delivery
+   Sequence, Audit Trail). Status map: `draft`→Backlog/default,
+   `approved`→Approval, `delivering`→Delivering/In Progress,
+   `evaluating`→Evaluating, `shipping`→Shipping, `shipped`→Done,
+   `rejected`→Cancelled. Write `linear_issue_id` back.
+4. **Audit-trail entry** on each migrated artefact:
 
    ```markdown
    - YYYY-MM-DD: Migrated to Linear (backend switch). Linear: <id>.
    ```
 
-5. **Learnings.** Not migrated. They live as local-only commentary
-   under `.spades/learnings/` and are not tracker artefacts. Print
-   a single summary line:
-   `○ Learnings: kept local-only (4 files preserved, not migrated to Linear).`
+5. **Learnings** — not migrated; local-only commentary. Print:
+   `○ Learnings: kept local-only (N files preserved).`
 
-6. **Migration summary** at the end of the walk:
+6. **Migration summary:**
 
 ```
 ✓ Migration complete. local → linear:
@@ -593,76 +325,59 @@ Migrating local → linear …
 
 ### Direction B — `linear → local`
 
-The human had Linear; they're switching to local files. Without
-migration, Linear remains the source of truth but new work goes to
-local-only files. Setup offers reverse migration.
+`AskUserQuestion`:
 
-Ask via `AskUserQuestion`:
-
-- **Pull Linear artefacts down to local files**
-  *(Recommended for full repatriation)* — walks the bound Linear
-  Project, fetches each Issue + sub-Issue, writes a corresponding
-  `.spades/scopes/` or `.spades/plans/` file with frontmatter that
-  preserves `linear_issue_id` (so the link survives in case the
-  human later switches back).
-- **Skip — start fresh locally** — local files stay as-is; new
-  artefacts will be local-only.
-- **Cancel the backend switch** — return to Step 1.
-
-The pull walk shape mirrors Direction A's walk: Projects first
-(probably just one — the bound Linear Project), then top-level
-Issues (Scopes), then their sub-Issues (Plans), each written as
-a local file. Skip Linear comments that aren't sub-Issues — they're
-not SPADES artefacts.
+- **Pull Linear artefacts down to local files** *(Recommended)*
+  — walks the bound Linear Project (Projects → top-level Issues
+  for Scopes → sub-Issues for Plans) and writes each as a local
+  file, preserving `linear_issue_id` so a future switch back
+  still links. Skips comments (not SPADES artefacts).
+- **Skip — start fresh locally** — local files unchanged.
+- **Cancel the backend switch** — back to Step 1.
 
 ### Migration error handling (both directions)
 
-- **Linear MCP unreachable mid-walk** — abort gracefully. Items
-  already linked have their `linear_*_id` frontmatter persisted.
-  On retry (`/spades:setup` re-run with backend now matching the
-  target), Step 2.6 detects partial state (some files linked, some
-  not) and offers **Resume migration** / **Skip resume** /
-  **Cancel**.
-- **Linear-side duplicate title** — disambiguate via
-  `AskUserQuestion` listing candidate Linear IDs. Don't blind-pick.
-- **Network / rate-limit failures** — surface the error verbatim;
-  offer **Retry** / **Skip this item** / **Abort migration**. Don't
-  paper over.
+- **Linear MCP unreachable mid-walk** — abort gracefully; already-
+  linked items retain `linear_*_id` frontmatter. On retry, Step
+  2.6 detects partial state and offers *Resume migration* /
+  *Skip resume* / *Cancel*.
+- **Duplicate title** — disambiguate via `AskUserQuestion`
+  listing Linear IDs. Don't blind-pick.
+- **Network / rate-limit** — surface verbatim; offer *Retry* /
+  *Skip this item* / *Abort migration*.
 
 ## Step 3 — Write `.spades/config`
-
-Write or update `.spades/config` to exactly this shape:
 
 ```yaml
 backend: linear            # or: local
 project: <project-slug>
-scm: github                # or: local-git (more in docs/EXTENDING-SCM.md)
-review_format: html        # or: cli  (introduced in v3.0.0; defaults to cli if absent)
+scm: github                # or: local-git
+review_format: html        # or: cli  (defaults to cli on older configs)
 linear:                    # only when backend: linear
   team_id: <uuid>
   project_id: <uuid>
 github:                    # only when scm: github
-  remote: origin           # which git remote to push to (default: origin)
+  remote: origin
 ```
 
-Re-run safety: if a value the human did not change is already in the
-file, preserve it. Never blank fields the human still depends on.
+Re-run safety: preserve values the human didn't change. Never
+blank fields the human still depends on.
 
 ## Step 4 — Write `.spades/version`
 
-Write the current plugin version (read from
-`${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` `"version"`) as:
+Read the plugin version from
+`${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` `"version"` and
+write:
 
 ```
 spades_version=<plugin-version>
 ```
 
-(e.g. `spades_version=2.1.0`.) Idempotent — overwrite is fine.
+Idempotent — overwrite is fine.
 
-## Step 5 — Scaffold the .spades/ subdirectories
+## Step 5 — Scaffold the `.spades/` subdirectories
 
-Create the following empty directories if missing. Do not put any files
-in them; that's the job of the per-phase skills.
+Create if missing, no files inside:
 
 - `.spades/projects/`
 - `.spades/scopes/`
@@ -672,32 +387,28 @@ in them; that's the job of the per-phase skills.
 
 ## Step 5.5 — Ignore transient HTML scratch
 
-`/spades:status`, `/spades:list`, and `/spades:intent` (HTML mode)
-render to `.spades/.tmp/<view>.html`. Those files are regenerated on
-every invocation and have no archival value — they must not be
-committed.
+`.spades/.tmp/` holds regenerated HTML for `/spades:status`,
+`/spades:list`, `/spades:intent` and must not be committed.
+Idempotent:
 
-Ensure `.spades/.tmp/` is gitignored. Idempotent:
-
-1. If `.gitignore` does not exist at the repo root, create it with a
-   single line: `.spades/.tmp/`.
-2. If `.gitignore` exists and already contains a line matching
-   `.spades/.tmp/` (with or without a trailing `/`), do nothing.
-3. Otherwise append a trailing-newline-safe block:
+1. No `.gitignore` → create with one line: `.spades/.tmp/`.
+2. `.gitignore` already lists `.spades/.tmp` (with or without
+   trailing `/`) → do nothing.
+3. Otherwise append:
 
    ```
    # SPADES transient HTML scratch — regenerated on every status/list/intent run
    .spades/.tmp/
    ```
 
-Never rewrite or reorder the rest of `.gitignore`. Append-only.
+Append-only — never rewrite or reorder the rest of `.gitignore`.
 
 ## Step 6 — AGENTS.md (idempotent marker block)
 
-Locate `AGENTS.md` at the repo root. If it doesn't exist, create it
-with a one-line header: `# AGENTS.md` and a blank line.
+If `AGENTS.md` doesn't exist at the repo root, create it with one
+line `# AGENTS.md` + blank line.
 
-Insert or replace the SPADES section between these markers:
+Insert or replace the block between these markers:
 
 ```markdown
 <!-- SPADES-FRAMEWORK-START v<plugin-version> -->
@@ -705,12 +416,10 @@ Insert or replace the SPADES section between these markers:
 <!-- SPADES-FRAMEWORK-END -->
 ```
 
-If markers already exist (any version), replace the content between
-them in place. If they don't exist, append the marker block (and
-content) to the end of the file. **Never** edit content outside the
-markers.
+Markers exist (any version) → replace in place. Markers absent →
+append. **Never** edit content outside the markers.
 
-The content to write inside the markers:
+Content to write inside the markers:
 
 ```markdown
 
@@ -957,68 +666,26 @@ not ship.
 
 ## Step 6.5 — Bookkeeping PR for setup state (MANDATORY before Step 7)
 
-**This step is not optional and not skippable on idempotent re-runs.**
-The contract is about tree *state*, not whether setup actively wrote
-anything this turn. If setup-relevant paths show up in `git status
---porcelain` — whether they were written this turn or by a prior
-aborted run that never got committed — they MUST be captured in a
-bookkeeping PR before Step 7 begins.
+**Contract is tree state, not turn-local writes.** If any setup-
+relevant path is uncommitted (`??` / ` M` / `A `/ `D ` etc. in
+`git status --porcelain`), Step 6.5 captures it in a bookkeeping
+PR before Step 7. Step 7's facilitator skills (`/spades:intent`,
+`/spades:architecture`, `/spades:patterns`,
+`/spades:anti-patterns`) refuse to run on a dirty tree or off
+`main`; this step is what gets them runnable.
 
-The Step 7 facilitator skills (`/spades:intent`,
-`/spades:architecture`, `/spades:patterns`, `/spades:anti-patterns`)
-all refuse to run on a dirty tree or off `main`. Step 6.5 is the
-mechanism that gets the tree clean so those skills can run. Without
-it, setup finishes with a dirty tree and the human is left a manual
-to-do list — which is exactly the bug this step was introduced to
-fix.
+Mirrors `/spades:close`'s bookkeeping pattern: branch → commit →
+push → open PR → `AskUserQuestion` merge gate → post-merge
+cleanup → flow into Step 7 *in the same skill turn*.
 
-This step mirrors `/spades:close`'s bookkeeping pattern: branch +
-commit + push + open PR + wait for the human to confirm merge +
-post-merge cleanup. After the human confirms, control returns to
-Step 7 with a clean tree on a fresh `main`.
+### Rules
 
-### ANTI-PATTERN — never bypass Step 6.5
-
-Do **not** do any of the following, ever:
-
-- Conclude "all idempotent — nothing to commit" and skip to Step 9
-  while setup-relevant paths are still uncommitted. Untracked files
-  from a prior aborted setup run are *exactly* what Step 6.5 exists
-  to clean up.
-- Print "Next steps: commit the setup state on a non-main branch"
-  in Step 9. Step 6.5 IS the commit; if you're tempted to write that
-  line, you skipped Step 6.5.
-- Tell the human "skipping the doc loop because the tree is dirty"
-  and then exit. Step 6.5 cleans the tree precisely so the doc loop
-  can run; running Step 6.5 is the answer, not an exit.
-- Defer the bookkeeping PR until "after the docs are filled in".
-  The docs' own commits belong on a separate branch off a clean
-  `main`; mixing setup config writes with doc-content writes
-  defeats the audit trail.
-- **Ask "would you like me to create the branch / commit / open
-  the PR now?" before running 6.5.3 – 6.5.6.** The branch + commit
-  + push + `gh pr create` are **non-interactive** — they are part
-  of the skill's contract, not optional steps. The *only*
-  `AskUserQuestion` inside Step 6.5 is the merge-confirmation gate
-  at 6.5.7. If you find yourself drafting a *"Would you like me
-  to..?"* prompt before 6.5.7, you are wrong — just run the
-  commands.
-- **Print "Next actions on your side: 1. Review and merge the PR…
-  2. Run /repo:sync… 3. Run /spades:intent…"** after pushing the
-  PR. That is exactly the manual-to-do exit Step 6.5 was
-  introduced to eliminate. The PR is opened, then 6.5.7's
-  `AskUserQuestion` fires and waits. When the human answers Yes,
-  control flows into Step 7 *in this same skill run* — setup does
-  not exit and tell the human to re-invoke things.
-
-If any of those temptations arise, **run Step 6.5 (and then Step 7)
-instead**.
-
-### EXECUTION MODE — non-interactive through 6.5.6
-
-Sub-steps 6.5.2 through 6.5.6 execute mechanically with no
-permission prompts. Print one short line per phase so the human
-sees progress, then run the next command:
+**Non-interactive through 6.5.6.** Sub-steps 6.5.2 – 6.5.6 run
+mechanically. No permission prompts. The *only* `AskUserQuestion`
+in Step 6.5 is the merge-confirmation gate at 6.5.7. The single
+exception is 6.5.4's "not on main" branch, which has its own
+`AskUserQuestion` because the choice of base branch is a genuine
+judgement call. Print one short line per phase as progress:
 
 > *○ Creating bookkeeping branch `<name>` off `<base>` …*
 > *○ Staging setup-relevant paths …*
@@ -1027,112 +694,98 @@ sees progress, then run the next command:
 > *○ Opening PR …*
 > *○ Bookkeeping PR opened: `<url>`*
 
-Then — and only then — run 6.5.7's `AskUserQuestion`. The single
-exception is 6.5.4's "not on main" branch, which has its own
-`AskUserQuestion` because the choice of base branch is a judgement
-call the skill genuinely cannot make for the human.
+**Anti-patterns — do not, ever:**
+
+- Conclude *"all idempotent — nothing to commit"* and skip to
+  Step 9 while setup-relevant paths are still uncommitted.
+  Untracked files from a prior aborted setup run are exactly what
+  6.5 exists to clean up.
+- Print *"Next steps: commit the setup state on a non-main
+  branch"* in Step 9. Step 6.5 IS the commit; if you're tempted
+  to write that line, you skipped 6.5.
+- Tell the human *"skipping the doc loop because the tree is
+  dirty"* and exit. Step 6.5 cleans the tree precisely so the doc
+  loop can run.
+- Defer the bookkeeping PR until *"after the docs are filled
+  in"*. Docs' commits go on separate branches; mixing setup
+  config writes with doc-content writes defeats the audit trail.
+- Ask *"would you like me to create the branch / commit / open
+  the PR now?"* before 6.5.7. The branch + commit + push + `gh
+  pr create` are part of the contract, not optional steps.
+- Print *"Next actions on your side: 1. Review and merge … 2. Run
+  /repo:sync … 3. Run /spades:intent …"* after pushing the PR.
+  That's the manual-to-do exit 6.5 exists to eliminate. The PR
+  is opened, 6.5.7's `AskUserQuestion` fires, the human answers,
+  control flows into Step 7 *in this same skill run*.
 
 ### 6.5.1 — Detect uncommitted setup-relevant paths
-
-Run:
 
 ```bash
 git status --porcelain
 ```
 
-A path is "setup-relevant" if it matches any of:
+A path is **setup-relevant** if it matches any of:
 
-- `.spades/config`
-- `.spades/version`
+- `.spades/config`, `.spades/version`
 - `.spades/projects/**` (from inline `/spades:newproject` ever)
-- `.spades/scopes/**`, `.spades/plans/**` (from Step 2.6 migration
-  ever)
-- `AGENTS.md`
-- `.gitignore`
-- `INTENT.md`, `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`
-  *only* when they are scaffolded templates that Step 7 has not yet
-  filled in (i.e. their `last_reviewed:` is today's date AND the
-  body still contains `<!-- Describe … -->` placeholders) — these
-  arise when a prior setup run scaffolded them via the "Scaffold an
-  empty template" branch of Step 7.C but the bookkeeping PR was
-  never opened. **Filled-in versions of these files are NOT
+- `.spades/scopes/**`, `.spades/plans/**` (from Step 2.6 ever)
+- `AGENTS.md`, `.gitignore`
+- `INTENT.md` / `ARCHITECTURE.md` / `PATTERNS.md` /
+  `ANTI-PATTERNS.md` **only** when scaffolded-but-unfilled (i.e.
+  `last_reviewed:` today AND body still contains `<!-- Describe
+  … -->` placeholders) — left over from a prior aborted "Scaffold
+  empty" branch of 7.C. **Filled-in versions are NOT
   setup-relevant** — they belong to their facilitator skills'
-  audit trails and must not be swept into setup's bookkeeping PR.
+  audit trails and must not be swept in.
 
-Any status code matters: `??` (untracked), ` M` (modified),
-`A ` / `AM` / `MM` (staged + modified), `D ` (deleted), etc. The
-question is "is the path uncommitted?", not "did setup write to it
-this turn?".
+Decision:
 
-**Decision rule:**
-
-- If **at least one** setup-relevant path is uncommitted → Step 6.5
-  is mandatory; continue to 6.5.2.
-- If **zero** setup-relevant paths are uncommitted (a re-run on an
-  already-committed clean tree) → print the line below and continue
-  to Step 7.
+- ≥1 setup-relevant path uncommitted → Step 6.5 mandatory;
+  continue to 6.5.2.
+- 0 uncommitted → print and continue to Step 7:
 
   > *○ Working tree already clean — no bookkeeping PR needed.*
 
 ### 6.5.2 — SCM branching
 
-Branch on `scm:` from `.spades/config`:
+- `scm: github` → GitHub PR flow (6.5.3 – 6.5.7).
+- `scm: local-git` → local-git commit flow (6.5.8).
 
-- **`scm: github`** → run the **GitHub bookkeeping PR flow** below
-  (6.5.3 – 6.5.7). This is the canonical path.
-- **`scm: local-git`** → run the **local-git bookkeeping commit
-  flow** (6.5.8). Same idea (branch + commit + ask human to merge
-  locally + wait), but no PR.
+### 6.5.3 — Bookkeeping branch name
 
-### 6.5.3 — Choose the bookkeeping branch name
-
-Branch name must match the `/repo:branch` regex:
+Must match `/repo:branch` regex:
 
 ```
 ^(feat|fix|chore|docs|refactor|rnd|hotfix)/[a-z0-9]([a-z0-9-]{0,48}[a-z0-9])?$
 ```
 
-Strategy:
+Try `chore/spades-setup-<project-slug>` (truncate slug if total >
+50 chars). If a local branch with that name already exists from a
+prior aborted run, abort:
 
-1. Try `chore/spades-setup-<project-slug>` (e.g.
-   `chore/spades-setup-newsletter`). Truncate the slug if the
-   total exceeds 50 chars.
-2. If a local branch with that name already exists from a prior
-   aborted run, abort with:
-
-   > *Bookkeeping branch `<name>` already exists from a previous
-   > setup run. Either merge its PR on GitHub then re-run
-   > `/spades:setup`, or delete it (`git branch -D <name>`) and
-   > re-run.*
+> *Bookkeeping branch `<name>` already exists from a previous
+> setup run. Either merge its PR on GitHub then re-run
+> `/spades:setup`, or delete it (`git branch -D <name>`) and
+> re-run.*
 
 ### 6.5.4 — Create the branch
 
-If the current branch is `main` (or the default), create the
-bookkeeping branch off it:
+On `main` (or default) → `git switch -c <bookkeeping-branch>`.
 
-```bash
-git switch -c <bookkeeping-branch>
-```
+Not on `main` → `AskUserQuestion`:
 
-If the current branch is **not** `main`, surface this and ask via
-`AskUserQuestion` before proceeding:
-
-- *Stay on `<current-branch>` and commit setup writes here* — runs
-  `git switch -c <bookkeeping-branch>` off the current branch.
-  The bookkeeping PR target stays `main`.
-- *Switch to `main` first* — only safe if the current branch has
-  no uncommitted work outside setup's paths. The skill checks
-  `git status --porcelain` filtered to non-setup paths; if any
-  appear, it refuses with: *"`<current-branch>` has uncommitted
-  non-setup changes. Commit or stash them, then re-run
-  `/spades:setup`."*
-- *Cancel* — exit; setup writes remain uncommitted on disk and the
-  human can commit them however they like.
+- *Stay on `<current-branch>` and commit setup writes here* —
+  branches off current; PR target stays `main`.
+- *Switch to `main` first* — checks `git status --porcelain`
+  filtered to non-setup paths; if any appear, refuses with
+  *"`<current-branch>` has uncommitted non-setup changes. Commit
+  or stash them, then re-run `/spades:setup`."*
+- *Cancel* — exit; setup writes remain uncommitted on disk.
 
 ### 6.5.5 — Stage + commit
 
-Stage only the setup-touched paths detected at 6.5.1. **Never** use
-`git add -A` or `git add .` — that risks pulling in unrelated work.
+Stage only the paths from 6.5.1. **Never** `git add -A` / `git
+add .`.
 
 ```bash
 git add <setup-relevant-paths>
@@ -1152,13 +805,10 @@ EOF
 )"
 ```
 
-### 6.5.6 — Push and open the bookkeeping PR
+### 6.5.6 — Push + open PR
 
 ```bash
 git push -u origin <bookkeeping-branch>
-```
-
-```bash
 gh pr create --title "chore(spades): configure SPADES for <project-slug>" --body "$(cat <<'EOF'
 ## Summary
 
@@ -1168,56 +818,39 @@ project-documentation skills run.
 
 ## Files touched
 
-- `.spades/config`           — backend, SCM, active project, review format
-- `.spades/version`          — plugin version stamp
-- `AGENTS.md`                — SPADES marker block (v<plugin-version>)
-- `.gitignore`               — `.spades/.tmp/` (transient HTML scratch)
-- `.spades/projects/<slug>.md`   # only if /spades:newproject ran inline
-- `.spades/scopes/**`, `.spades/plans/**`  # only if Step 2.6 migrated
+- `.spades/config`, `.spades/version`
+- `AGENTS.md`  — SPADES marker block (v<plugin-version>)
+- `.gitignore` — `.spades/.tmp/`
+- `.spades/projects/<slug>.md`                   # if newproject ran
+- `.spades/scopes/**`, `.spades/plans/**`        # if Step 2.6 migrated
 
 ## Next
 
-After merging this PR, `/spades:setup` resumes with the per-file
-ask for `INTENT.md`, `ARCHITECTURE.md`, `PATTERNS.md`,
-`ANTI-PATTERNS.md` (Step 7).
+After merging, `/spades:setup` resumes with the per-file ask for
+INTENT.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md.
 
 No code changes. Pure configuration + audit trail.
 EOF
 )"
 ```
 
-Capture the bookkeeping PR URL and print it prominently:
+### 6.5.7 — Wait for merge (`AskUserQuestion`)
 
-```
-○ Bookkeeping PR opened: <bookkeeping-pr-url>
-○ Merge it on GitHub — squash recommended — then return here.
-```
-
-### 6.5.7 — Wait (via `AskUserQuestion`) for the human to confirm the merge
-
-This is the **only** gate in Step 6.5. The PR has been pushed and
-opened by 6.5.6. Now block on `AskUserQuestion`:
+**Only** gate in Step 6.5. PR is open; block on:
 
 > *Bookkeeping PR `<url>` is open. Has it been merged?*
 >
 > - **Yes — bookkeeping PR is merged.** Continue to Step 7.
 > - **Not yet — exit, I'll merge it and re-run `/spades:setup`.**
 
-**Do NOT** replace this `AskUserQuestion` with a textual "Next
-actions on your side: 1. Review and merge … 2. Run /repo:sync …"
-list. The `AskUserQuestion` IS the wait mechanism; the textual
-list is the bypass that re-introduces the manual-to-do exit this
-step is here to prevent. The human will Cmd-click the PR link in
-their terminal and merge it on GitHub — they don't need a
-numbered restatement.
+Do NOT replace this with a textual "Next actions" list — the
+`AskUserQuestion` IS the wait.
 
-On **Not yet** → exit cleanly. The bookkeeping PR stays open; the
-human merges it on GitHub, runs `/repo:sync` to clean up the
-merged branch, then re-invokes `/spades:setup` — which detects a
-clean tree at 6.5.1 (nothing to commit) and skips straight through
-to Step 7.
+**Not yet** → exit cleanly. PR stays open; human merges on
+GitHub, runs `/repo:sync`, then re-invokes `/spades:setup` —
+6.5.1 will find a clean tree and skip straight to Step 7.
 
-On **Yes** → run post-merge cleanup:
+**Yes** → post-merge cleanup:
 
 ```bash
 git checkout main
@@ -1226,176 +859,105 @@ git branch -D <bookkeeping-branch>
 git status --porcelain
 ```
 
-If `git status --porcelain` returns non-empty after the pull,
-surface it but do not abort — the human can address the residue.
+Non-empty `--porcelain` after pull → surface but don't abort.
 
-### 6.5.8 — Local-git bookkeeping commit flow
+### 6.5.8 — Local-git bookkeeping flow
 
-When `scm: local-git`, there is no PR machinery. Mirror the spirit
-of the GitHub flow:
+Same as 6.5.3 – 6.5.5 for branch / commit. **No push**, **no `gh
+pr create`**. Then `AskUserQuestion`:
 
-1. Branch name and creation: same as 6.5.3 / 6.5.4.
-2. Stage + commit: same as 6.5.5.
-3. **No push**, **no `gh pr create`**.
-4. Ask via `AskUserQuestion`:
+> *Setup's bookkeeping commit is on `<bookkeeping-branch>`. Merge
+> it locally (`git checkout main && git merge --ff-only
+> <bookkeeping-branch>` — or your preferred flow) so Step 7
+> starts on a clean `main`. Confirm when done.*
+>
+> - **Done — merged locally on main.** Continue to Step 7.
+> - **Not yet — exit, I'll merge and re-run `/spades:setup`.**
 
-   > *Setup's bookkeeping commit is on `<bookkeeping-branch>`. Merge
-   > it locally now (`git checkout main && git merge --ff-only
-   > <bookkeeping-branch>` — or however you prefer) so Step 7 starts
-   > on a clean `main`. Confirm when done.*
-   >
-   > - **Done — merged locally on main.** Continue to Step 7.
-   > - **Not yet — exit, I'll merge and re-run `/spades:setup`.**
-
-5. On **Done** → run `git status --porcelain` to verify clean tree;
-   continue to Step 7.
+On *Done* → `git status --porcelain` to verify clean; continue.
 
 ## Step 7 — Project documentation (per-file ask)
 
-**Entry contract.** Step 7 runs **in the same skill turn** that
-Step 6.5 finished (either because 6.5.1 found a clean tree and
-skipped straight here, or because the human answered Yes to
-6.5.7's merge-confirmation `AskUserQuestion`). Setup does **not**
-exit between Step 6.5 and Step 7, and does **not** tell the human
-to re-invoke `/spades:setup` to "do the doc loop next time". The
-single end-of-skill exit is at Step 9.
+**Entry contract.** Step 7 runs **in the same skill turn** Step
+6.5 finished (clean-tree skip-through OR `Yes` answer to 6.5.7).
+Setup does not exit between 6.5 and 7. The single end-of-skill
+exit is Step 9. The per-file ask below IS the query the human is
+expecting about running `/spades:intent`, `/spades:architecture`,
+`/spades:patterns`, `/spades:anti-patterns`.
 
-If the human answered Yes to 6.5.7 and the local checkout is now
-on the bookkeeping branch (the pre-merge state), run the
-post-merge cleanup before continuing:
-
-```bash
-git checkout main
-git pull --ff-only
-git branch -D <bookkeeping-branch>
-```
-
-— *unless* the same cleanup is already shown above under 6.5.7's
-"On **Yes**" path (which it is). Either way, by the time you reach
-Step 7's per-file ask, the local checkout is on a clean `main`.
-The facilitator skills' clean-tree-on-main preconditions are now
-satisfied.
-
-The per-file ask below is **the** query the human is expecting
-about running `/spades:intent`, `/spades:architecture`,
-`/spades:patterns`, `/spades:anti-patterns`. Do not summarise the
-options as a printed list — use `AskUserQuestion` per file so the
-human's answer is captured structurally.
-
-
-Four durable project-level docs live at the repo root, each owned by
-its own facilitator skill:
+Four durable project-level docs at the repo root, each owned by
+its facilitator skill:
 
 | File | Skill | Owns |
 |------|-------|------|
 | `INTENT.md` | `/spades:intent` | Why the project exists, for whom, success, non-goals |
-| `ARCHITECTURE.md` | `/spades:architecture` | How the system is built (tech stack, components, data flow, security, ops) |
+| `ARCHITECTURE.md` | `/spades:architecture` | How the system is built (tech, components, data flow, security, ops) |
 | `PATTERNS.md` | `/spades:patterns` | Approved conventions (code organisation, error handling, testing, naming) |
 | `ANTI-PATTERNS.md` | `/spades:anti-patterns` | Explicit prohibitions ("we don't do X") |
 
 For each file, in the order above:
 
-### 7.A — Detect current state
+### 7.A — Detect state
 
-Read the file at the repo root and classify it as one of:
-
-1. **Missing** — the file does not exist on disk.
-2. **Scaffolded but unfilled** — the file exists but contains
-   two or more `<!-- Describe … -->` / `<!-- List … -->` /
-   placeholder comment markers. The template was scaffolded
-   previously but no human has filled it in.
-3. **Complete** — the file exists and the placeholder markers
-   have largely been replaced with real content (fewer than two
-   placeholder markers).
+1. **Missing** — file doesn't exist.
+2. **Scaffolded but unfilled** — file exists and contains ≥ 2
+   `<!-- Describe … -->` / `<!-- List … -->` placeholder markers.
+3. **Complete** — file exists, < 2 placeholder markers.
 
 ### 7.B — Skip if complete
 
-If the file is **Complete**, do nothing. Don't prompt; don't
-re-scaffold; don't invoke the facilitator skill. The human has
-already done the work. (They can always re-invoke the relevant
-skill directly when they want to refresh.)
+Print one line: `✓ INTENT.md complete (last reviewed YYYY-MM-DD).`
+Don't prompt; don't re-scaffold; don't invoke the skill.
 
-Print a one-line confirmation: `✓ INTENT.md complete (last
-reviewed YYYY-MM-DD).`
-
-### 7.C — Otherwise, ask per file via AskUserQuestion
-
-For each Missing / Scaffolded-but-unfilled file, ask via
-`AskUserQuestion`:
+### 7.C — Otherwise ask per file via `AskUserQuestion`
 
 > *<filename> — how would you like to handle this?*
 >
-> - **Create / complete now** (recommended for the first run)
->   — invokes the relevant skill inline (`/spades:intent`,
->   `/spades:architecture`, `/spades:patterns`,
->   `/spades:anti-patterns`). The skill walks the human through
->   the sections via its facilitate-never-author flow. After the
->   skill returns, this Step 7 loop continues to the next file.
-> - **Scaffold an empty template** — write the scaffolded
->   markdown (the same template the facilitator skill would
->   produce in "start blank" mode) so the human can fill it in
->   later. Doesn't invoke the skill; doesn't ask any content
->   questions. Useful when the human wants the docs to exist as
->   structure but isn't ready to fill them in right now.
+> - **Create / complete now** *(recommended for the first run)* —
+>   invokes the facilitator skill inline. After it returns, Step
+>   7 continues to the next file.
+> - **Scaffold an empty template** — write the inline template
+>   the facilitator's SKILL.md documents. Doesn't invoke the
+>   skill; no content questions.
 > - **Skip** — write nothing. The file stays missing. The
->   facilitator skill can still be invoked later, and other SPADES
->   skills (`/spades:plan`, `/spades:review`) will surface
->   gentle nudges when they notice the file is absent.
+>   facilitator can be invoked later; other SPADES skills nudge
+>   if absent.
 
-### 7.D — Template content for the "Scaffold empty" branch
+### 7.D — Template content for "Scaffold empty"
 
-When the human picks **Scaffold an empty template**, write
-exactly the inline template the relevant SKILL.md documents
-under its "Inline ... Template" section. Don't fabricate
-alternative content here; the SKILL.md is the source of truth
-for the scaffolded shape.
+Read each facilitator SKILL.md's *"Inline ... Template"* section
+and write its content verbatim. Set `last_reviewed: <today>` in
+frontmatter so staleness detection doesn't immediately flag.
 
-The skills handle their own scaffolding when invoked at "start
-blank" — Step 7 only needs to reproduce that scaffold without
-invoking the skill. Read each SKILL.md's template section and
-write its content verbatim:
-
-- `INTENT.md` → see `/spades:intent` § "Inline INTENT.md Template"
-- `ARCHITECTURE.md` → see `/spades:architecture` § "Inline
-  ARCHITECTURE.md Template"
-- `PATTERNS.md` → see `/spades:patterns` § "Inline PATTERNS.md
-  Template"
-- `ANTI-PATTERNS.md` → see `/spades:anti-patterns` § "Inline
-  ANTI-PATTERNS.md Template"
-
-Set `last_reviewed: <today>` in the frontmatter so the staleness
-detector doesn't immediately flag the scaffold.
+- `INTENT.md` → `/spades:intent` § *Inline INTENT.md Template*
+- `ARCHITECTURE.md` → `/spades:architecture` § *Inline ARCHITECTURE.md Template*
+- `PATTERNS.md` → `/spades:patterns` § *Inline PATTERNS.md Template*
+- `ANTI-PATTERNS.md` → `/spades:anti-patterns` § *Inline ANTI-PATTERNS.md Template*
 
 ### 7.E — Re-run safety
 
-If the human re-runs `/spades:setup` later, Step 7 re-classifies
-each file:
+On re-run Step 7 re-classifies each file:
 
-- A previously **Scaffolded but unfilled** file that's now
-  **Complete** is skipped silently.
-- A previously **Complete** file stays skipped — no churn.
-- A file that the human chose to **Skip** earlier (and is still
-  missing) gets asked again.
-
-This means re-running setup is safe and idempotent: the human
-gets prompted only for the docs that are still incomplete.
+- Previously *Scaffolded-but-unfilled*, now *Complete* → skip silently.
+- Previously *Complete* → stay skipped.
+- Previously *Skip*, still missing → asked again.
 
 ## Step 9 — Confirm and summarise
 
-Print a concise summary that reflects actual transitions where
-applicable. For re-runs that changed something, show the `→`
-transition; for unchanged fields, append `(unchanged)`:
+Print a concise summary. Show `→` transitions for re-runs that
+changed; append `(unchanged)` for unchanged fields. Use `✓` done,
+`○` skipped, `✗` failed.
 
 ```
 ✓ Backend:        local → linear   (team: <name>, project: <name>)
 ✓ SCM:            local-git        (unchanged)
 ✓ Active project: spades-framework (unchanged)
-✓ Migrated:       1 project, 3 scopes, 11 plans → Linear
+✓ Migrated:       1 project, 3 scopes, 11 plans → Linear      # only if Step 2.6 walked
                   (4 learnings stayed local by design)
 ✓ Config:         .spades/config
 ✓ Version:        <plugin-version>
 ✓ Updated:        AGENTS.md (marker block re-stamped from v2.0.0 → v<plugin-version>)
-✓ Bookkeeping PR: <bookkeeping-pr-url>  (merged before Step 7)   # omit when working tree was already clean / scm: local-git merged locally
+✓ Bookkeeping PR: <bookkeeping-pr-url>  (merged before Step 7)  # omit when tree was already clean / local-git merged locally
 ✓ Created:        ARCHITECTURE.md, PATTERNS.md, ANTI-PATTERNS.md  (templates)
 ○ Skipped:        INTENT.md (re-run /spades:intent to scaffold)
 
@@ -1404,27 +966,22 @@ Next steps:
   /spades:scope <title>    — start a new Scope
 ```
 
-The **Migrated** line only appears when Step 2.6 actually ran (a
-backend switch + the human picked Walk-and-mirror or
-Pull-to-local). On Skip-migration it becomes:
+If Step 2.6 ran on *Skip migration*, the Migrated line becomes:
 
 ```
 ○ Migration:      skipped — local artefacts stay on disk; new
                   Linear-side work starts empty.
 ```
 
-For fresh installs (no prior config), the `(unchanged)` annotations
-don't apply — the summary just shows the chosen values without
-transitions.
+On fresh installs (no prior config), `(unchanged)` doesn't apply
+— show chosen values without transitions.
 
-Use `○` for skipped items, `✓` for done, `✗` for failed. Be brief —
-the human should be able to confirm correctness in 10 seconds.
+Be brief — the human should confirm correctness in 10 seconds.
 
 ## Why AGENTS.md, not CLAUDE.md
 
-SPADES targets `AGENTS.md` because it is the cross-agent convention —
-Claude Code, Cursor, Codex, Aider and most other agentic coding tools
-honour `AGENTS.md` as the source of project rules. A consumer repo
-that adopts SPADES gets one operating-rules file that every agent
-reads, instead of one file per vendor. Do not write `CLAUDE.md`,
-`CURSOR.md`, or similar per-agent variants.
+`AGENTS.md` is the cross-agent convention — Claude Code, Cursor,
+Codex, Aider and most agentic tools honour it. A consumer repo
+gets one operating-rules file every agent reads, not one per
+vendor. Don't write `CLAUDE.md`, `CURSOR.md`, or similar
+per-agent variants.
