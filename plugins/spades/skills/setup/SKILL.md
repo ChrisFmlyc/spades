@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 3.0.1
+version: 3.1.0
 ---
 
 # /spades:setup
@@ -955,6 +955,213 @@ shipment record. Work that cannot be traced through this chain must
 not ship.
 ```
 
+## Step 6.5 — Bookkeeping PR for setup writes
+
+Setup has now written `.spades/config`, `.spades/version`, `.gitignore`
+(if changed), the AGENTS.md marker block, and any artefacts produced
+by an inline `/spades:newproject` call (Step 2) or backend-switch
+migration (Step 2.6). Before handing off to the Step 7 facilitator
+skills (`/spades:intent`, `/spades:architecture`, `/spades:patterns`,
+`/spades:anti-patterns`) the working tree must be **clean** —
+otherwise those skills run on top of dirty state and their own
+audit-trail/commit flows mix setup's writes with their own.
+
+This step mirrors `/spades:close`'s bookkeeping pattern: branch +
+commit + push + open PR + wait for the human to confirm merge +
+post-merge cleanup. After the human confirms, control returns to
+Step 7 with a clean tree on a fresh `main`.
+
+### 6.5.1 — Detect setup-touched paths
+
+Run:
+
+```bash
+git status --porcelain
+```
+
+Filter the output to setup-relevant paths only:
+
+- `.spades/config`
+- `.spades/version`
+- `.spades/projects/**` (from inline `/spades:newproject`)
+- `.spades/scopes/**`, `.spades/plans/**` (only when Step 2.6 ran
+  and migrated artefacts)
+- `AGENTS.md`
+- `.gitignore`
+
+If **no setup-relevant paths** appear in `git status --porcelain` (a
+re-run where nothing changed), skip the rest of Step 6.5 entirely
+and continue to Step 7. Print:
+
+> *○ Working tree already clean — no bookkeeping PR needed.*
+
+### 6.5.2 — SCM branching
+
+Branch on `scm:` from `.spades/config`:
+
+- **`scm: github`** → run the **GitHub bookkeeping PR flow** below
+  (6.5.3 – 6.5.7). This is the canonical path.
+- **`scm: local-git`** → run the **local-git bookkeeping commit
+  flow** (6.5.8). Same idea (branch + commit + ask human to merge
+  locally + wait), but no PR.
+
+### 6.5.3 — Choose the bookkeeping branch name
+
+Branch name must match the `/repo:branch` regex:
+
+```
+^(feat|fix|chore|docs|refactor|rnd|hotfix)/[a-z0-9]([a-z0-9-]{0,48}[a-z0-9])?$
+```
+
+Strategy:
+
+1. Try `chore/spades-setup-<project-slug>` (e.g.
+   `chore/spades-setup-newsletter`). Truncate the slug if the
+   total exceeds 50 chars.
+2. If a local branch with that name already exists from a prior
+   aborted run, abort with:
+
+   > *Bookkeeping branch `<name>` already exists from a previous
+   > setup run. Either merge its PR on GitHub then re-run
+   > `/spades:setup`, or delete it (`git branch -D <name>`) and
+   > re-run.*
+
+### 6.5.4 — Create the branch
+
+If the current branch is `main` (or the default), create the
+bookkeeping branch off it:
+
+```bash
+git switch -c <bookkeeping-branch>
+```
+
+If the current branch is **not** `main`, surface this and ask via
+`AskUserQuestion` before proceeding:
+
+- *Stay on `<current-branch>` and commit setup writes here* — runs
+  `git switch -c <bookkeeping-branch>` off the current branch.
+  The bookkeeping PR target stays `main`.
+- *Switch to `main` first* — only safe if the current branch has
+  no uncommitted work outside setup's paths. The skill checks
+  `git status --porcelain` filtered to non-setup paths; if any
+  appear, it refuses with: *"`<current-branch>` has uncommitted
+  non-setup changes. Commit or stash them, then re-run
+  `/spades:setup`."*
+- *Cancel* — exit; setup writes remain uncommitted on disk and the
+  human can commit them however they like.
+
+### 6.5.5 — Stage + commit
+
+Stage only the setup-touched paths detected at 6.5.1. **Never** use
+`git add -A` or `git add .` — that risks pulling in unrelated work.
+
+```bash
+git add <setup-relevant-paths>
+git commit -m "$(cat <<'EOF'
+chore(spades): configure SPADES for <project-slug>
+
+Records initial SPADES configuration:
+- .spades/config, .spades/version
+- AGENTS.md (marker block stamped to v<plugin-version>)
+- .gitignore (added .spades/.tmp/)
+- <other-paths-as-applicable>
+
+Working tree must be clean before Step 7 facilitator skills
+(/spades:intent, /spades:architecture, /spades:patterns,
+/spades:anti-patterns) run.
+EOF
+)"
+```
+
+### 6.5.6 — Push and open the bookkeeping PR
+
+```bash
+git push -u origin <bookkeeping-branch>
+```
+
+```bash
+gh pr create --title "chore(spades): configure SPADES for <project-slug>" --body "$(cat <<'EOF'
+## Summary
+
+Bookkeeping commit — records the initial SPADES configuration for
+this repository on `main` so the working tree is clean before the
+project-documentation skills run.
+
+## Files touched
+
+- `.spades/config`           — backend, SCM, active project, review format
+- `.spades/version`          — plugin version stamp
+- `AGENTS.md`                — SPADES marker block (v<plugin-version>)
+- `.gitignore`               — `.spades/.tmp/` (transient HTML scratch)
+- `.spades/projects/<slug>.md`   # only if /spades:newproject ran inline
+- `.spades/scopes/**`, `.spades/plans/**`  # only if Step 2.6 migrated
+
+## Next
+
+After merging this PR, `/spades:setup` resumes with the per-file
+ask for `INTENT.md`, `ARCHITECTURE.md`, `PATTERNS.md`,
+`ANTI-PATTERNS.md` (Step 7).
+
+No code changes. Pure configuration + audit trail.
+EOF
+)"
+```
+
+Capture the bookkeeping PR URL and print it prominently:
+
+```
+○ Bookkeeping PR opened: <bookkeeping-pr-url>
+○ Merge it on GitHub — squash recommended — then return here.
+```
+
+### 6.5.7 — Wait for the human to confirm the merge
+
+Ask via `AskUserQuestion`:
+
+> *Has the setup bookkeeping PR been merged?*
+>
+> - **Yes — bookkeeping PR is merged.** Continue to Step 7.
+> - **Not yet — exit, I'll merge it and re-run `/spades:setup`.**
+
+On **Not yet** → exit cleanly. The bookkeeping PR stays open; the
+human merges it on GitHub, runs `/repo:sync` to clean up the
+merged branch, then re-invokes `/spades:setup` — which detects a
+clean tree at 6.5.1 (nothing to commit) and skips straight through
+to Step 7.
+
+On **Yes** → run post-merge cleanup:
+
+```bash
+git checkout main
+git pull --ff-only
+git branch -D <bookkeeping-branch>
+git status --porcelain
+```
+
+If `git status --porcelain` returns non-empty after the pull,
+surface it but do not abort — the human can address the residue.
+
+### 6.5.8 — Local-git bookkeeping commit flow
+
+When `scm: local-git`, there is no PR machinery. Mirror the spirit
+of the GitHub flow:
+
+1. Branch name and creation: same as 6.5.3 / 6.5.4.
+2. Stage + commit: same as 6.5.5.
+3. **No push**, **no `gh pr create`**.
+4. Ask via `AskUserQuestion`:
+
+   > *Setup's bookkeeping commit is on `<bookkeeping-branch>`. Merge
+   > it locally now (`git checkout main && git merge --ff-only
+   > <bookkeeping-branch>` — or however you prefer) so Step 7 starts
+   > on a clean `main`. Confirm when done.*
+   >
+   > - **Done — merged locally on main.** Continue to Step 7.
+   > - **Not yet — exit, I'll merge and re-run `/spades:setup`.**
+
+5. On **Done** → run `git status --porcelain` to verify clean tree;
+   continue to Step 7.
+
 ## Step 7 — Project documentation (per-file ask)
 
 Four durable project-level docs live at the repo root, each owned by
@@ -1069,6 +1276,7 @@ transition; for unchanged fields, append `(unchanged)`:
 ✓ Config:         .spades/config
 ✓ Version:        <plugin-version>
 ✓ Updated:        AGENTS.md (marker block re-stamped from v2.0.0 → v<plugin-version>)
+✓ Bookkeeping PR: <bookkeeping-pr-url>  (merged before Step 7)   # omit when working tree was already clean / scm: local-git merged locally
 ✓ Created:        ARCHITECTURE.md, PATTERNS.md, ANTI-PATTERNS.md  (templates)
 ○ Skipped:        INTENT.md (re-run /spades:intent to scaffold)
 
