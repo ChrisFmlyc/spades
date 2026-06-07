@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 3.1.0
+version: 3.1.1
 ---
 
 # /spades:setup
@@ -955,23 +955,50 @@ shipment record. Work that cannot be traced through this chain must
 not ship.
 ```
 
-## Step 6.5 — Bookkeeping PR for setup writes
+## Step 6.5 — Bookkeeping PR for setup state (MANDATORY before Step 7)
 
-Setup has now written `.spades/config`, `.spades/version`, `.gitignore`
-(if changed), the AGENTS.md marker block, and any artefacts produced
-by an inline `/spades:newproject` call (Step 2) or backend-switch
-migration (Step 2.6). Before handing off to the Step 7 facilitator
-skills (`/spades:intent`, `/spades:architecture`, `/spades:patterns`,
-`/spades:anti-patterns`) the working tree must be **clean** —
-otherwise those skills run on top of dirty state and their own
-audit-trail/commit flows mix setup's writes with their own.
+**This step is not optional and not skippable on idempotent re-runs.**
+The contract is about tree *state*, not whether setup actively wrote
+anything this turn. If setup-relevant paths show up in `git status
+--porcelain` — whether they were written this turn or by a prior
+aborted run that never got committed — they MUST be captured in a
+bookkeeping PR before Step 7 begins.
+
+The Step 7 facilitator skills (`/spades:intent`,
+`/spades:architecture`, `/spades:patterns`, `/spades:anti-patterns`)
+all refuse to run on a dirty tree or off `main`. Step 6.5 is the
+mechanism that gets the tree clean so those skills can run. Without
+it, setup finishes with a dirty tree and the human is left a manual
+to-do list — which is exactly the bug this step was introduced to
+fix.
 
 This step mirrors `/spades:close`'s bookkeeping pattern: branch +
 commit + push + open PR + wait for the human to confirm merge +
 post-merge cleanup. After the human confirms, control returns to
 Step 7 with a clean tree on a fresh `main`.
 
-### 6.5.1 — Detect setup-touched paths
+### ANTI-PATTERN — never bypass Step 6.5
+
+Do **not** do any of the following, ever:
+
+- Conclude "all idempotent — nothing to commit" and skip to Step 9
+  while setup-relevant paths are still uncommitted. Untracked files
+  from a prior aborted setup run are *exactly* what Step 6.5 exists
+  to clean up.
+- Print "Next steps: commit the setup state on a non-main branch"
+  in Step 9. Step 6.5 IS the commit; if you're tempted to write that
+  line, you skipped Step 6.5.
+- Tell the human "skipping the doc loop because the tree is dirty"
+  and then exit. Step 6.5 cleans the tree precisely so the doc loop
+  can run; running Step 6.5 is the answer, not an exit.
+- Defer the bookkeeping PR until "after the docs are filled in".
+  The docs' own commits belong on a separate branch off a clean
+  `main`; mixing setup config writes with doc-content writes
+  defeats the audit trail.
+
+If any of those temptations arise, **run Step 6.5 instead**.
+
+### 6.5.1 — Detect uncommitted setup-relevant paths
 
 Run:
 
@@ -979,21 +1006,39 @@ Run:
 git status --porcelain
 ```
 
-Filter the output to setup-relevant paths only:
+A path is "setup-relevant" if it matches any of:
 
 - `.spades/config`
 - `.spades/version`
-- `.spades/projects/**` (from inline `/spades:newproject`)
-- `.spades/scopes/**`, `.spades/plans/**` (only when Step 2.6 ran
-  and migrated artefacts)
+- `.spades/projects/**` (from inline `/spades:newproject` ever)
+- `.spades/scopes/**`, `.spades/plans/**` (from Step 2.6 migration
+  ever)
 - `AGENTS.md`
 - `.gitignore`
+- `INTENT.md`, `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`
+  *only* when they are scaffolded templates that Step 7 has not yet
+  filled in (i.e. their `last_reviewed:` is today's date AND the
+  body still contains `<!-- Describe … -->` placeholders) — these
+  arise when a prior setup run scaffolded them via the "Scaffold an
+  empty template" branch of Step 7.C but the bookkeeping PR was
+  never opened. **Filled-in versions of these files are NOT
+  setup-relevant** — they belong to their facilitator skills'
+  audit trails and must not be swept into setup's bookkeeping PR.
 
-If **no setup-relevant paths** appear in `git status --porcelain` (a
-re-run where nothing changed), skip the rest of Step 6.5 entirely
-and continue to Step 7. Print:
+Any status code matters: `??` (untracked), ` M` (modified),
+`A ` / `AM` / `MM` (staged + modified), `D ` (deleted), etc. The
+question is "is the path uncommitted?", not "did setup write to it
+this turn?".
 
-> *○ Working tree already clean — no bookkeeping PR needed.*
+**Decision rule:**
+
+- If **at least one** setup-relevant path is uncommitted → Step 6.5
+  is mandatory; continue to 6.5.2.
+- If **zero** setup-relevant paths are uncommitted (a re-run on an
+  already-committed clean tree) → print the line below and continue
+  to Step 7.
+
+  > *○ Working tree already clean — no bookkeeping PR needed.*
 
 ### 6.5.2 — SCM branching
 
