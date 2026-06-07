@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 3.1.1
+version: 3.1.2
 ---
 
 # /spades:setup
@@ -995,8 +995,42 @@ Do **not** do any of the following, ever:
   The docs' own commits belong on a separate branch off a clean
   `main`; mixing setup config writes with doc-content writes
   defeats the audit trail.
+- **Ask "would you like me to create the branch / commit / open
+  the PR now?" before running 6.5.3 – 6.5.6.** The branch + commit
+  + push + `gh pr create` are **non-interactive** — they are part
+  of the skill's contract, not optional steps. The *only*
+  `AskUserQuestion` inside Step 6.5 is the merge-confirmation gate
+  at 6.5.7. If you find yourself drafting a *"Would you like me
+  to..?"* prompt before 6.5.7, you are wrong — just run the
+  commands.
+- **Print "Next actions on your side: 1. Review and merge the PR…
+  2. Run /repo:sync… 3. Run /spades:intent…"** after pushing the
+  PR. That is exactly the manual-to-do exit Step 6.5 was
+  introduced to eliminate. The PR is opened, then 6.5.7's
+  `AskUserQuestion` fires and waits. When the human answers Yes,
+  control flows into Step 7 *in this same skill run* — setup does
+  not exit and tell the human to re-invoke things.
 
-If any of those temptations arise, **run Step 6.5 instead**.
+If any of those temptations arise, **run Step 6.5 (and then Step 7)
+instead**.
+
+### EXECUTION MODE — non-interactive through 6.5.6
+
+Sub-steps 6.5.2 through 6.5.6 execute mechanically with no
+permission prompts. Print one short line per phase so the human
+sees progress, then run the next command:
+
+> *○ Creating bookkeeping branch `<name>` off `<base>` …*
+> *○ Staging setup-relevant paths …*
+> *○ Committing …*
+> *○ Pushing to origin …*
+> *○ Opening PR …*
+> *○ Bookkeeping PR opened: `<url>`*
+
+Then — and only then — run 6.5.7's `AskUserQuestion`. The single
+exception is 6.5.4's "not on main" branch, which has its own
+`AskUserQuestion` because the choice of base branch is a judgement
+call the skill genuinely cannot make for the human.
 
 ### 6.5.1 — Detect uncommitted setup-relevant paths
 
@@ -1159,14 +1193,23 @@ Capture the bookkeeping PR URL and print it prominently:
 ○ Merge it on GitHub — squash recommended — then return here.
 ```
 
-### 6.5.7 — Wait for the human to confirm the merge
+### 6.5.7 — Wait (via `AskUserQuestion`) for the human to confirm the merge
 
-Ask via `AskUserQuestion`:
+This is the **only** gate in Step 6.5. The PR has been pushed and
+opened by 6.5.6. Now block on `AskUserQuestion`:
 
-> *Has the setup bookkeeping PR been merged?*
+> *Bookkeeping PR `<url>` is open. Has it been merged?*
 >
 > - **Yes — bookkeeping PR is merged.** Continue to Step 7.
 > - **Not yet — exit, I'll merge it and re-run `/spades:setup`.**
+
+**Do NOT** replace this `AskUserQuestion` with a textual "Next
+actions on your side: 1. Review and merge … 2. Run /repo:sync …"
+list. The `AskUserQuestion` IS the wait mechanism; the textual
+list is the bypass that re-introduces the manual-to-do exit this
+step is here to prevent. The human will Cmd-click the PR link in
+their terminal and merge it on GitHub — they don't need a
+numbered restatement.
 
 On **Not yet** → exit cleanly. The bookkeeping PR stays open; the
 human merges it on GitHub, runs `/repo:sync` to clean up the
@@ -1208,6 +1251,37 @@ of the GitHub flow:
    continue to Step 7.
 
 ## Step 7 — Project documentation (per-file ask)
+
+**Entry contract.** Step 7 runs **in the same skill turn** that
+Step 6.5 finished (either because 6.5.1 found a clean tree and
+skipped straight here, or because the human answered Yes to
+6.5.7's merge-confirmation `AskUserQuestion`). Setup does **not**
+exit between Step 6.5 and Step 7, and does **not** tell the human
+to re-invoke `/spades:setup` to "do the doc loop next time". The
+single end-of-skill exit is at Step 9.
+
+If the human answered Yes to 6.5.7 and the local checkout is now
+on the bookkeeping branch (the pre-merge state), run the
+post-merge cleanup before continuing:
+
+```bash
+git checkout main
+git pull --ff-only
+git branch -D <bookkeeping-branch>
+```
+
+— *unless* the same cleanup is already shown above under 6.5.7's
+"On **Yes**" path (which it is). Either way, by the time you reach
+Step 7's per-file ask, the local checkout is on a clean `main`.
+The facilitator skills' clean-tree-on-main preconditions are now
+satisfied.
+
+The per-file ask below is **the** query the human is expecting
+about running `/spades:intent`, `/spades:architecture`,
+`/spades:patterns`, `/spades:anti-patterns`. Do not summarise the
+options as a printed list — use `AskUserQuestion` per file so the
+human's answer is captured structurally.
+
 
 Four durable project-level docs live at the repo root, each owned by
 its own facilitator skill:
