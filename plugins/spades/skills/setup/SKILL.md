@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 3.2.0
+version: 4.0.0
 ---
 
 # /spades:setup
@@ -664,226 +664,13 @@ shipment record. Work that cannot be traced through this chain must
 not ship.
 ```
 
-## Step 6.5 — Bookkeeping PR for setup state (MANDATORY before Step 7)
-
-**Contract is tree state, not turn-local writes.** If any setup-
-relevant path is uncommitted (`??` / ` M` / `A `/ `D ` etc. in
-`git status --porcelain`), Step 6.5 captures it in a bookkeeping
-PR before Step 7. Step 7's facilitator skills (`/spades:intent`,
-`/spades:architecture`, `/spades:patterns`,
-`/spades:anti-patterns`) refuse to run on a dirty tree or off
-`main`; this step is what gets them runnable.
-
-Mirrors `/spades:close`'s bookkeeping pattern: branch → commit →
-push → open PR → `AskUserQuestion` merge gate → post-merge
-cleanup → flow into Step 7 *in the same skill turn*.
-
-### Rules
-
-**Non-interactive through 6.5.6.** Sub-steps 6.5.2 – 6.5.6 run
-mechanically. No permission prompts. The *only* `AskUserQuestion`
-in Step 6.5 is the merge-confirmation gate at 6.5.7. The single
-exception is 6.5.4's "not on main" branch, which has its own
-`AskUserQuestion` because the choice of base branch is a genuine
-judgement call. Print one short line per phase as progress:
-
-> *○ Creating bookkeeping branch `<name>` off `<base>` …*
-> *○ Staging setup-relevant paths …*
-> *○ Committing …*
-> *○ Pushing to origin …*
-> *○ Opening PR …*
-> *○ Bookkeeping PR opened: `<url>`*
-
-**Anti-patterns — do not, ever:**
-
-- Conclude *"all idempotent — nothing to commit"* and skip to
-  Step 9 while setup-relevant paths are still uncommitted.
-  Untracked files from a prior aborted setup run are exactly what
-  6.5 exists to clean up.
-- Print *"Next steps: commit the setup state on a non-main
-  branch"* in Step 9. Step 6.5 IS the commit; if you're tempted
-  to write that line, you skipped 6.5.
-- Tell the human *"skipping the doc loop because the tree is
-  dirty"* and exit. Step 6.5 cleans the tree precisely so the doc
-  loop can run.
-- Defer the bookkeeping PR until *"after the docs are filled
-  in"*. Docs' commits go on separate branches; mixing setup
-  config writes with doc-content writes defeats the audit trail.
-- Ask *"would you like me to create the branch / commit / open
-  the PR now?"* before 6.5.7. The branch + commit + push + `gh
-  pr create` are part of the contract, not optional steps.
-- Print *"Next actions on your side: 1. Review and merge … 2. Run
-  /repo:sync … 3. Run /spades:intent …"* after pushing the PR.
-  That's the manual-to-do exit 6.5 exists to eliminate. The PR
-  is opened, 6.5.7's `AskUserQuestion` fires, the human answers,
-  control flows into Step 7 *in this same skill run*.
-
-### 6.5.1 — Detect uncommitted setup-relevant paths
-
-```bash
-git status --porcelain
-```
-
-A path is **setup-relevant** if it matches any of:
-
-- `.spades/config`, `.spades/version`
-- `.spades/projects/**` (from inline `/spades:newproject` ever)
-- `.spades/scopes/**`, `.spades/plans/**` (from Step 2.6 ever)
-- `AGENTS.md`, `.gitignore`
-- `INTENT.md` / `ARCHITECTURE.md` / `PATTERNS.md` /
-  `ANTI-PATTERNS.md` **only** when scaffolded-but-unfilled (i.e.
-  `last_reviewed:` today AND body still contains `<!-- Describe
-  … -->` placeholders) — left over from a prior aborted "Scaffold
-  empty" branch of 7.C. **Filled-in versions are NOT
-  setup-relevant** — they belong to their facilitator skills'
-  audit trails and must not be swept in.
-
-Decision:
-
-- ≥1 setup-relevant path uncommitted → Step 6.5 mandatory;
-  continue to 6.5.2.
-- 0 uncommitted → print and continue to Step 7:
-
-  > *○ Working tree already clean — no bookkeeping PR needed.*
-
-### 6.5.2 — SCM branching
-
-- `scm: github` → GitHub PR flow (6.5.3 – 6.5.7).
-- `scm: local-git` → local-git commit flow (6.5.8).
-
-### 6.5.3 — Bookkeeping branch name
-
-Must match `/repo:branch` regex:
-
-```
-^(feat|fix|chore|docs|refactor|rnd|hotfix)/[a-z0-9]([a-z0-9-]{0,48}[a-z0-9])?$
-```
-
-Try `chore/spades-setup-<project-slug>` (truncate slug if total >
-50 chars). If a local branch with that name already exists from a
-prior aborted run, abort:
-
-> *Bookkeeping branch `<name>` already exists from a previous
-> setup run. Either merge its PR on GitHub then re-run
-> `/spades:setup`, or delete it (`git branch -D <name>`) and
-> re-run.*
-
-### 6.5.4 — Create the branch
-
-On `main` (or default) → `git switch -c <bookkeeping-branch>`.
-
-Not on `main` → `AskUserQuestion`:
-
-- *Stay on `<current-branch>` and commit setup writes here* —
-  branches off current; PR target stays `main`.
-- *Switch to `main` first* — checks `git status --porcelain`
-  filtered to non-setup paths; if any appear, refuses with
-  *"`<current-branch>` has uncommitted non-setup changes. Commit
-  or stash them, then re-run `/spades:setup`."*
-- *Cancel* — exit; setup writes remain uncommitted on disk.
-
-### 6.5.5 — Stage + commit
-
-Stage only the paths from 6.5.1. **Never** `git add -A` / `git
-add .`.
-
-```bash
-git add <setup-relevant-paths>
-git commit -m "$(cat <<'EOF'
-chore(spades): configure SPADES for <project-slug>
-
-Records initial SPADES configuration:
-- .spades/config, .spades/version
-- AGENTS.md (marker block stamped to v<plugin-version>)
-- .gitignore (added .spades/.tmp/)
-- <other-paths-as-applicable>
-
-Working tree must be clean before Step 7 facilitator skills
-(/spades:intent, /spades:architecture, /spades:patterns,
-/spades:anti-patterns) run.
-EOF
-)"
-```
-
-### 6.5.6 — Push + open PR
-
-```bash
-git push -u origin <bookkeeping-branch>
-gh pr create --title "chore(spades): configure SPADES for <project-slug>" --body "$(cat <<'EOF'
-## Summary
-
-Bookkeeping commit — records the initial SPADES configuration for
-this repository on `main` so the working tree is clean before the
-project-documentation skills run.
-
-## Files touched
-
-- `.spades/config`, `.spades/version`
-- `AGENTS.md`  — SPADES marker block (v<plugin-version>)
-- `.gitignore` — `.spades/.tmp/`
-- `.spades/projects/<slug>.md`                   # if newproject ran
-- `.spades/scopes/**`, `.spades/plans/**`        # if Step 2.6 migrated
-
-## Next
-
-After merging, `/spades:setup` resumes with the per-file ask for
-INTENT.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md.
-
-No code changes. Pure configuration + audit trail.
-EOF
-)"
-```
-
-### 6.5.7 — Wait for merge (`AskUserQuestion`)
-
-**Only** gate in Step 6.5. PR is open; block on:
-
-> *Bookkeeping PR `<url>` is open. Has it been merged?*
->
-> - **Yes — bookkeeping PR is merged.** Continue to Step 7.
-> - **Not yet — exit, I'll merge it and re-run `/spades:setup`.**
-
-Do NOT replace this with a textual "Next actions" list — the
-`AskUserQuestion` IS the wait.
-
-**Not yet** → exit cleanly. PR stays open; human merges on
-GitHub, runs `/repo:sync`, then re-invokes `/spades:setup` —
-6.5.1 will find a clean tree and skip straight to Step 7.
-
-**Yes** → post-merge cleanup:
-
-```bash
-git checkout main
-git pull --ff-only
-git branch -D <bookkeeping-branch>
-git status --porcelain
-```
-
-Non-empty `--porcelain` after pull → surface but don't abort.
-
-### 6.5.8 — Local-git bookkeeping flow
-
-Same as 6.5.3 – 6.5.5 for branch / commit. **No push**, **no `gh
-pr create`**. Then `AskUserQuestion`:
-
-> *Setup's bookkeeping commit is on `<bookkeeping-branch>`. Merge
-> it locally (`git checkout main && git merge --ff-only
-> <bookkeeping-branch>` — or your preferred flow) so Step 7
-> starts on a clean `main`. Confirm when done.*
->
-> - **Done — merged locally on main.** Continue to Step 7.
-> - **Not yet — exit, I'll merge and re-run `/spades:setup`.**
-
-On *Done* → `git status --porcelain` to verify clean; continue.
-
 ## Step 7 — Project documentation (per-file ask)
 
-**Entry contract.** Step 7 runs **in the same skill turn** Step
-6.5 finished (clean-tree skip-through OR `Yes` answer to 6.5.7).
-Setup does not exit between 6.5 and 7. The single end-of-skill
-exit is Step 9. The per-file ask below IS the query the human is
-expecting about running `/spades:intent`, `/spades:architecture`,
-`/spades:patterns`, `/spades:anti-patterns`.
+Setup does not open its own bookkeeping PR. The writes from Steps
+3 – 6 (and any inline `/spades:newproject` or Step 2.6 migration)
+sit uncommitted on the worktree; the next `/spades:close` (or
+whatever feature PR you naturally build next) sweeps them up.
+Step 7 follows immediately — there is no clean-tree gate.
 
 Four durable project-level docs at the repo root, each owned by
 its facilitator skill:
@@ -957,7 +744,6 @@ changed; append `(unchanged)` for unchanged fields. Use `✓` done,
 ✓ Config:         .spades/config
 ✓ Version:        <plugin-version>
 ✓ Updated:        AGENTS.md (marker block re-stamped from v2.0.0 → v<plugin-version>)
-✓ Bookkeeping PR: <bookkeeping-pr-url>  (merged before Step 7)  # omit when tree was already clean / local-git merged locally
 ✓ Created:        ARCHITECTURE.md, PATTERNS.md, ANTI-PATTERNS.md  (templates)
 ○ Skipped:        INTENT.md (re-run /spades:intent to scaffold)
 

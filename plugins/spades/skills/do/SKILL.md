@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 3.1.3
+version: 3.2.0
 ---
 
 # /spades:do
@@ -105,12 +105,10 @@ git status --porcelain                # working-tree state
 
 Then decide:
 
-- **On main / master, clean tree** → derive branch name (below),
-  validate against `/repo:branch`'s regex, then run
-  `git switch -c <name>`. Continue to Step 2.
-- **On main / master, dirty tree** → abort. Tell the human to
-  commit, stash, or discard those unrelated changes first. SPADES
-  does NOT silently carry unrelated work onto a new feature branch.
+- **On main / master** → derive branch name (below), validate
+  against `/repo:branch`'s regex, then run `git switch -c <name>`.
+  Any uncommitted changes ride onto the new feature branch — that's
+  fine, they belong with the Plan you're starting. Continue to Step 2.
 - **On a feature branch named for this Plan** — already in place.
   Record this as a resume in the audit trail; continue to Step 2.
 - **On a feature branch named for a different Plan** — warn the
