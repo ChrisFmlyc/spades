@@ -1,7 +1,7 @@
 ---
 name: close
 description: The single conversational entry point for closing out a Plan, Scope, or Project. Asks the human what they're doing — finalise as shipped/done/archived (the happy path), reject (Plans only), or abandon (Scopes and Projects only). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging" — the skill figures out which flow applies.
-version: 4.2.0
+version: 4.3.0
 ---
 
 # /spades:close
@@ -345,11 +345,12 @@ detected).
 the post-merge git cleanup itself — that's `/repo:sync`'s job (in the
 `repo` plugin from the `ai-skills` marketplace). Before running
 `/spades:close`, the human should have already run `/repo:sync` so
-the local checkout is on a clean, fast-forwarded `main` with the
-merged feature branch deleted. The precondition checks in step 4
-below enforce this; the skill exits with a pointer to `/repo:sync`
-if they fail. It will not auto-sync the local state — that boundary
-lives elsewhere by design.
+the local checkout is on a fast-forwarded `main` with the merged
+feature branch deleted. The precondition checks in step 4 below
+enforce branch + fast-forward state; **the working tree may be
+dirty** (close is the catch-all that sweeps outstanding SPADES
+bookkeeping into its own PR). It will not auto-sync the local state
+— that boundary lives elsewhere by design.
 
 
 1. **Confirm setup + active project.** Read `.spades/config`. Abort
@@ -387,15 +388,12 @@ lives elsewhere by design.
      to start on `main` after the merged feature branch has been
      cleaned up."*
 
-   - Working tree clean:
-
-     ```bash
-     git status --porcelain
-     ```
-
-     Must return empty. If not, abort with: *"Working tree isn't
-     clean. Commit, stash, or discard before running
-     `/spades:close`."*
+   - **Working tree may be dirty** — that's expected.
+     `/spades:close` is the catch-all bookkeeping moment: any
+     uncommitted SPADES-owned paths (`.spades/**`, `AGENTS.md`,
+     `INTENT.md`, `ARCHITECTURE.md`, `PATTERNS.md`,
+     `ANTI-PATTERNS.md`) get swept into the close PR at Step 3.3.
+     No precondition check on cleanliness here.
 
    - Local `main` is fast-forwarded to origin:
 
@@ -489,8 +487,11 @@ lives elsewhere by design.
 
 ## Step 2 — Create the bookkeeping branch
 
-You are on a clean `main`. Branch off it for the bookkeeping commit —
-commits on `main` are forbidden (`/repo:branch` enforces this).
+You are on `main` (possibly with a dirty worktree — that's
+expected). Branch off it for the bookkeeping commit — commits on
+`main` are forbidden (`/repo:branch` enforces this). Any
+uncommitted changes ride onto the new branch; the sweep in Step
+3.3 selects which paths get staged.
 
 ### 2.1 Choose the branch name
 
@@ -574,12 +575,29 @@ Rules:
 - **At least one sibling still in flight** → no rollup; leave the
   Scope unchanged — sibling Plans still in flight.
 
-### 3.3 Stage + commit
+### 3.3 Stage + commit (sweep outstanding bookkeeping)
+
+Stage the close-out writes **plus** any outstanding SPADES
+bookkeeping that's been accumulating on the worktree (writes from
+prior `/spades:setup`, `/spades:learn`, `/spades:intent`,
+`/spades:architecture`, `/spades:patterns`, `/spades:anti-patterns`
+runs that haven't been committed yet). This is the canonical
+sweep-up: close is the only skill that opens its own bookkeeping
+PR, and it gathers everything that's pending.
 
 ```bash
+# 1. Sweep outstanding SPADES-owned paths.
+git add -- .spades AGENTS.md INTENT.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md 2>/dev/null || true
+# 2. Add the close's own writes (already on disk from Step 3.1 / 3.2).
 git add .spades/plans/<plan_id>.md
 # and, if the Scope was updated:
 git add .spades/scopes/<scope_id>.md
+```
+
+Then commit. If the sweep picked up paths beyond the Plan and
+Scope edits, list them in the commit body:
+
+```bash
 git commit -m "$(cat <<'EOF'
 chore(spades): close <plan_id>
 
@@ -587,9 +605,19 @@ Records the Shipped marker for <plan_id> on main. Original PR:
 <URL>. Squash-merge: <merge-sha> by @<login>.
 
 Scope <scope_id> rolled up to `done`.   # omit if not rolled up
+
+Outstanding bookkeeping swept up:
+- <path-1>
+- <path-2>
+…
+# omit the "Outstanding bookkeeping" block if the sweep added nothing
 EOF
 )"
 ```
+
+Never `git add -A` or `git add .` — only sweep the SPADES-owned
+paths listed above. Unrelated user changes stay on the worktree
+and ride into the next feature branch naturally.
 
 ## Step 4 — Open the bookkeeping PR
 
@@ -616,8 +644,10 @@ on `main` after its ship PR was squash-merged.
 
 - `.spades/plans/<plan_id>.md` — `status: shipped`, audit entry.
 - `.spades/scopes/<scope_id>.md` — `status: done`, audit entry.   # omit if not rolled up
+- <swept-path-1>, <swept-path-2>, …                               # omit if nothing swept
 
-No code changes. Pure audit trail.
+No code changes. Pure audit trail (plus any outstanding SPADES
+bookkeeping swept up from a dirty worktree).
 EOF
 )"
 ```
