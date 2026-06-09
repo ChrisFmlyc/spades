@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 4.0.0
+version: 4.0.1
 ---
 
 # /spades:setup
@@ -665,12 +665,6 @@ not ship.
 ```
 
 ## Step 7 — Project documentation (per-file ask)
-
-Setup does not open its own bookkeeping PR. The writes from Steps
-3 – 6 (and any inline `/spades:newproject` or Step 2.6 migration)
-sit uncommitted on the worktree; the next `/spades:close` (or
-whatever feature PR you naturally build next) sweeps them up.
-Step 7 follows immediately — there is no clean-tree gate.
 
 Four durable project-level docs at the repo root, each owned by
 its facilitator skill:

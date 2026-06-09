@@ -1,7 +1,7 @@
 ---
 name: intent
 description: Create or maintain INTENT.md, the project's durable statement of intent — the problem it solves, who it serves, what it does, what success looks like, and its non-goals. Use when someone says "set up INTENT.md", "capture our project intent", "what is this project for", "update the intent doc", "review our non-goals", or when INTENT.md is missing, still an unfilled template, or flagged stale. The human composes the intent; this skill structures and probes but never authors it.
-version: 4.0.0
+version: 4.0.1
 ---
 
 # SPADES Intent
@@ -277,9 +277,9 @@ same placeholder substitutions described under "Transient HTML
 preview" below — the only difference is the destination path and
 lifecycle:
 
-- `.spades/intent.html` is **persistent** (committed to git
-  alongside `INTENT.md` in the bookkeeping PR). It is the human's
-  steady-state view of the project's intent.
+- `.spades/intent.html` is **persistent** (tracked, committed
+  alongside `INTENT.md`). It is the human's steady-state view of
+  the project's intent.
 - `.spades/.tmp/intent.html` (covered below) is **transient**
   (`.tmp/` is gitignored). It exists only for the in-flight edit
   review and is recreated each time `/spades:intent` runs.
@@ -289,10 +289,7 @@ different places for different jobs. In CLI mode, `.spades/intent.html`
 is NOT written — only `INTENT.md` exists.
 
 There is no Linear step — `INTENT.md` is a committed root
-document, not a tracker artefact. There is also no per-skill
-bookkeeping PR: `/spades:intent` writes the file(s) and exits. The
-next `/spades:close` (or whatever feature PR you're naturally
-building) sweeps the change up alongside its own commits.
+document, not a tracker artefact.
 
 ### Transient HTML preview (HTML mode only)
 
