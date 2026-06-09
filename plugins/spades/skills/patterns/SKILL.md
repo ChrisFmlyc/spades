@@ -1,7 +1,7 @@
 ---
 name: patterns
 description: Create or maintain PATTERNS.md, the project's durable list of APPROVED patterns and conventions — code organisation, error handling, testing, naming. Use when someone says "set up PATTERNS.md", "document our conventions", "what patterns do we use", "update the patterns doc", or when PATTERNS.md is missing, still an unfilled template, or flagged stale. The human composes the patterns; this skill structures and probes but never authors it.
-version: 1.0.0
+version: 1.0.1
 ---
 
 # SPADES Patterns
@@ -263,12 +263,15 @@ walk, also render a transient preview:
 **You MUST render via the bundled `template.html`. Do NOT
 hand-roll the HTML.** Validate the template exists and the named
 markers match before substituting; abort and surface any
-mismatch.
+mismatch. See `docs/FRAMEWORK.md § Output Format → HTML
+rendering: validate and use the bundled template` for the
+canonical rule.
 
 1. Read the template at
    `${CLAUDE_PLUGIN_ROOT}/skills/patterns/template.html`.
 2. Validate it contains the placeholders listed below; if any
-   are missing, abort.
+   are missing, abort with: *`template.html` missing required
+   markers — render aborted. `PATTERNS.md` is unchanged.*
 3. Substitute:
    - `{{spades.project_slug}}`, `{{spades.last_reviewed}}`,
      `{{spades.rendered_at}}`, `{{spades.plugin_version}}`.

@@ -1,7 +1,7 @@
 ---
 name: close
 description: The single conversational entry point for closing out a Plan, Scope, or Project. Asks the human what they're doing — finalise as shipped/done/archived (the happy path), reject (Plans only), or abandon (Scopes and Projects only). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging" — the skill figures out which flow applies.
-version: 4.3.1
+version: 4.3.2
 ---
 
 # /spades:close
@@ -369,7 +369,7 @@ fast-forward state in step 4 below; it does not auto-sync.
    > `/spades:setup` — it walks through installing the prerequisite
    > plugins.*
 
-4. **Precondition checks — local state is post-merge-clean.**
+4. **Precondition checks — on main, fast-forwarded (working tree may be dirty).**
 
    - Current branch:
 
@@ -523,7 +523,7 @@ skills maintain. Update:
 - Append to the `## Audit Trail` section:
 
   ```markdown
-  - YYYY-MM-DD: Shipped (github). PR: <URL>. Merge: <merge-sha>. Merged by: <login>.
+  - YYYY-MM-DD: Shipped (github). PR: <pr_url>. Merge: <merge-sha>. Merged by: <login>.
   ```
 
 ### 3.2 Edit the Scope file (mixed-terminal aware rollup)
@@ -554,8 +554,12 @@ Rules:
   - YYYY-MM-DD: All plans terminal. Shipped: <n>. Rejected: <m>
     (acknowledged: P-<id-1>, P-<id-2>). Scope done.
   ```
-  If they decline, leave the Scope unchanged and record a deferred
-  rollup line in the Plan's audit trail.
+  If they decline, the Plan's close-out still proceeds (Plan →
+  `shipped`) but the Scope stays unchanged. Append to the Plan's
+  audit trail:
+  ```markdown
+  - YYYY-MM-DD: Scope rollup deferred (mixed-terminal; human declined).
+  ```
 
 - **Every sibling is `rejected` (no `shipped`)** → no rollup; the
   Scope didn't ship anything. Surface and stop short of the rollup
@@ -757,7 +761,7 @@ own track; sibling Plans and the parent Scope are unchanged.
 - Append to `## Audit Trail`:
 
   ```markdown
-  - YYYY-MM-DD: Rejected. Reason: <reason>.
+  - YYYY-MM-DD: Plan rejected. Reason: <reason>.
   ```
 
 ### R4. Stage + commit + open bookkeeping PR
@@ -925,7 +929,7 @@ See `docs/FRAMEWORK.md § Terminal States` for the contract.
 - Append to `## Audit Trail`:
 
   ```markdown
-  - YYYY-MM-DD: Abandoned. Reason: <reason>.
+  - YYYY-MM-DD: Scope abandoned. Reason: <reason>.
   ```
 
 ### A4. Stage + commit + open bookkeeping PR
@@ -979,10 +983,10 @@ set. Identical shape to Scope abandonment with two differences:
    to 50 chars if needed).
 
 Pre-Flight, edit, PR, mirror, confirm — all follow the Scope
-abandonment shape. The audit-trail line is identical:
+abandonment shape. The audit-trail line is:
 
 ```markdown
-- YYYY-MM-DD: Abandoned. Reason: <reason>.
+- YYYY-MM-DD: Project abandoned. Reason: <reason>.
 ```
 
 No cascade to child Scopes (which keep their own statuses). The
