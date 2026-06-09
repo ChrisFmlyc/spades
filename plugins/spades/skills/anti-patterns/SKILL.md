@@ -1,7 +1,7 @@
 ---
 name: anti-patterns
 description: Create or maintain ANTI-PATTERNS.md, the project's durable list of things the codebase DELIBERATELY AVOIDS — runtime dependencies, hidden state, premature abstraction, and any other "we won't do X" rules. Use when someone says "set up ANTI-PATTERNS.md", "document what we don't do", "we should ban X", "we deliberately avoid Y", "what's forbidden here", "add an anti-pattern", "update the anti-patterns doc", "what shouldn't we do", or when ANTI-PATTERNS.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review. Also use proactively after a Plan rejection that traces to an unwritten prohibition. The human composes the prohibitions; this skill structures and probes but never authors it. SKIP when the human's intent is per-Plan risk capture (use the Plan's Risks & Assumptions section instead) or when documenting an APPROVED pattern (use /spades:patterns).
-version: 1.0.0
+version: 1.1.0
 ---
 
 # SPADES Anti-Patterns
@@ -251,10 +251,21 @@ every rule in play:
 - **Edit mode** — apply the confirmed changes and update
   `last_reviewed`. Preserve sections the human did not touch.
 
-**In HTML mode, also write a persistent
+**In HTML mode (`review_format: html`), also write a persistent
 `.spades/anti-patterns.html` alongside `ANTI-PATTERNS.md`.** Use
-the same template the transient preview uses. In CLI mode,
-`.spades/anti-patterns.html` is NOT written.
+the same template the transient preview uses
+(`${CLAUDE_PLUGIN_ROOT}/skills/anti-patterns/template.html`):
+
+- `.spades/anti-patterns.html` is **persistent** (tracked,
+  committed alongside `ANTI-PATTERNS.md`). The human's
+  steady-state view of the project's prohibitions.
+- `.spades/.tmp/anti-patterns.html` (covered below) is
+  **transient** (`.tmp/` is gitignored). It exists only for the
+  in-flight edit review.
+
+Both files use the same template content; only the path and
+lifecycle differ. In CLI mode, neither is written — only
+`ANTI-PATTERNS.md` exists.
 
 Then confirm what changed and remind the human that
 `ANTI-PATTERNS.md` is a living document the SPADES loop reads.
@@ -266,12 +277,17 @@ There is no Linear step.
 When `review_format: html`, during/after the walk:
 
 **You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.**
+hand-roll the HTML.** Validate the template exists and the named
+markers match before substituting; abort and surface any
+mismatch. See `docs/FRAMEWORK.md § Output Format → HTML
+rendering: validate and use the bundled template` for the
+canonical rule.
 
 1. Read the template at
    `${CLAUDE_PLUGIN_ROOT}/skills/anti-patterns/template.html`.
 2. Validate it contains the placeholders listed below; if any
-   are missing, abort.
+   are missing, abort with: *`template.html` missing required
+   markers — render aborted. `ANTI-PATTERNS.md` is unchanged.*
 3. Substitute:
    - `{{spades.project_slug}}`, `{{spades.last_reviewed}}`,
      `{{spades.rendered_at}}`, `{{spades.plugin_version}}`.

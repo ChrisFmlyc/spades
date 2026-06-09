@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 3.2.0
+version: 3.3.0
 ---
 
 # /spades:do
@@ -129,13 +129,19 @@ Source is the Plan's `title:` field. Apply the slug rules from
 5. Truncate at the last `-` ≤ 48 chars so the slug fits the
    `/repo:branch` length cap.
 
-Prefix the result with the work type:
+Prefix derivation is keyword-driven so re-runs are deterministic.
+Scan the Plan title (lowercased) in this order — first match wins:
 
-- `feat/` for additive code (new feature, new endpoint, new behaviour)
-- `fix/` for bug-fix Plans
-- `refactor/` for behaviour-preserving restructuring
-- Default to `feat/` if unclear, surfacing the assumption to the
-  human.
+1. Contains `fix`, `bug`, `regression`, or `hotfix` → `fix/`.
+2. Contains `refactor`, `restructure`, `cleanup`, or `rename` →
+   `refactor/`.
+3. Contains `doc`, `docs`, `readme`, or `comment` → `docs/`.
+4. Contains `chore`, `bump`, or `config` → `chore/`.
+5. Otherwise → `feat/`.
+
+If the title is too short or generic to match any keyword (≤ 2
+words AND no keyword hit), surface the assumption via
+`AskUserQuestion` listing the five prefixes; the human picks.
 
 Final branch name must satisfy `/repo:branch`'s regex:
 `^(feat|fix|chore|docs|refactor|rnd|hotfix)/[a-z0-9]([a-z0-9-]{0,48}[a-z0-9])?$`
