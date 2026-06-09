@@ -1,7 +1,7 @@
 ---
 name: review
 description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
-version: 3.1.3
+version: 3.2.0
 ---
 
 ## Pre-Flight
@@ -769,17 +769,38 @@ C) **Discuss further** — work through tension points before deciding.
 **Non-blocking.** The human can acknowledge the review and move on.
 The panel never gates approval or delivery — it informs.
 
-## Integration with /spades:approve
+## End-of-Skill Brief
 
-When invoked from `/spades:approve`:
+**HTML mode** — 3 lines, no body dump (the browser tab IS the
+review surface):
 
-1. `/spades:approve` presents the approval checklist with its own
-   assessments.
-2. Before asking for the approval decision, it offers:
-   "Want a panel review from an independent perspective?"
-3. If the human says yes, `/spades:approve` invokes this skill.
-4. After the merged report, synthesis, and user decision,
-   `/spades:approve` resumes with the approval decision.
+```
+✓ Review report: .spades/reviews/<target>-<date>.md
+○ .spades/reviews/<target>-<date>.html opened in browser
+Next: /spades:approve P-<id>   — apply or override findings
+```
+
+**CLI mode** — confirm the write, then print the merged report
+once as the review surface:
+
+```
+✓ Review report: .spades/reviews/<target>-<date>.md
+
+<merged report body>
+
+Next: /spades:approve P-<id>   — apply or override findings
+```
+
+## Relationship with /spades:approve
+
+`/spades:approve` no longer invokes `/spades:review` inline. The
+human runs each separately:
+
+1. `/spades:review S-<id>` or `/spades:review P-<id>` — runs the
+   panel, writes the report, exits.
+2. `/spades:approve P-<id>` — reads the existing review report (if
+   present) as additional context for the approval checklist, then
+   asks for the routing decision.
 
 The panel does NOT replace any part of the approval checklist. It
 supplements it.

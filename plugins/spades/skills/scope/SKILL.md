@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 3.1.4
+version: 3.2.0
 ---
 
 # /spades:scope
@@ -58,15 +58,15 @@ workflow is fine.
 
    - **`present`** → proceed.
    - **`missing`** → **hard gate**. Ask via `AskUserQuestion`:
-     - **Run `/spades:intent` now** *(Recommended)* — compose INTENT
-       before scoping. Invoke `/spades:intent` inline; once it
-       completes, resume here at Step 1.
+     - **Exit — run `/spades:intent` first** *(Recommended)* —
+       exit cleanly with: *"INTENT.md is missing. Run
+       `/spades:intent` to compose it, then re-run
+       `/spades:scope`."* No inline invocation.
      - **Override and proceed without INTENT** — only for
        throwaway / sandbox / prototype repos. Record the override
        in the new Scope's audit trail (see Step 7) with the line:
        `- YYYY-MM-DD: Scope created without INTENT.md (override).`
        Drift risk accepted by the human.
-     - **Abort** — exit, handle manually.
 
    Do not silently proceed if INTENT is missing. The cost of
    running `/spades:intent` is minutes; the cost of months of
@@ -240,15 +240,11 @@ Before finalising, verify:
 
 If any check fails, flag it and help the human fix before writing.
 
-## Step 6 — Optional Second Opinion
+## Step 6 — (no inline review)
 
-Before writing, offer (via `AskUserQuestion`):
-
-- **Yes, run `/spades:review`** on this Scope
-- **No, skip**
-
-If yes, invoke `/spades:review` in Scope Review mode. After the review,
-resume here and ask whether the human wants to adjust the Scope.
+`/spades:scope` does not invoke other skills inline. If the human
+wants a second opinion before planning, the end-of-skill brief
+suggests `/spades:review S-<slug>` as a follow-up command.
 
 ## Step 7 — Write the Scope
 
@@ -422,7 +418,8 @@ local file IS canonical. Nothing else to mirror.
 ✓ Linear Issue:  M-1234   (only when backend: linear)
 
 Next:
-  /spades:plan S-add-ai-helper-bot   — break this scope into plans
+  /spades:plan S-add-ai-helper-bot     — break this scope into plans
+  /spades:review S-add-ai-helper-bot   — optional second opinion before planning
 ```
 
 ## Edit Mode

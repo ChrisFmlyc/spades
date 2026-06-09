@@ -1,7 +1,7 @@
 ---
 name: intent
 description: Create or maintain INTENT.md, the project's durable statement of intent — the problem it solves, who it serves, what it does, what success looks like, and its non-goals. Use when someone says "set up INTENT.md", "capture our project intent", "what is this project for", "update the intent doc", "review our non-goals", or when INTENT.md is missing, still an unfilled template, or flagged stale. The human composes the intent; this skill structures and probes but never authors it.
-version: 4.0.1
+version: 4.1.0
 ---
 
 # SPADES Intent
@@ -339,6 +339,32 @@ review-form text` for the canonical line.
 preview is HTML, and only in HTML mode. In CLI mode this step is
 skipped entirely; the human reads `INTENT.md` from disk if they
 want to review the final assembled document.
+
+## End-of-Skill Brief
+
+The skill must terminate with a brief that confirms the write and
+points at follow-up commands. Branch on `review_format:`:
+
+**HTML mode** — 3 lines, no body dump (the browser tab IS the
+review surface):
+
+```
+✓ INTENT.md written (last reviewed YYYY-MM-DD)
+○ .spades/intent.html opened in browser
+Next: /spades:architecture · /spades:scope <title>
+```
+
+**CLI mode** — confirm the write, then print the assembled
+`INTENT.md` body once as the review surface (this is the only
+data dump and it happens here):
+
+```
+✓ INTENT.md written (last reviewed YYYY-MM-DD)
+
+<contents of INTENT.md>
+
+Next: /spades:architecture · /spades:scope <title>
+```
 
 ## Quality Checks
 

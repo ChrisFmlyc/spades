@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.1.3
+version: 3.2.0
 ---
 
 # /spades:ship
@@ -284,16 +284,11 @@ Rules:
 When `backend: linear`, mirror: sub-issue → "Done", parent Issue →
 "Done" (only if every sub-issue is `Done`).
 
-## Step 4 — Suggest a Learning
+## Step 4 — (no inline learn invocation)
 
-Most ships produce something worth remembering. Ask the human (via
-`AskUserQuestion`):
-
-- **Capture a learning** (recommended) — invokes `/spades:learn`
-- **Skip** — no learning this time
-
-If yes, hand off to `/spades:learn` with the plan ID as context. The
-learning will be tagged and stored under `.spades/learnings/`.
+`/spades:ship` does not invoke `/spades:learn` inline. Step 5's
+brief surfaces `/spades:learn` as a follow-up suggestion; the
+human runs it separately if there's something worth capturing.
 
 ## Step 5 — Confirm
 

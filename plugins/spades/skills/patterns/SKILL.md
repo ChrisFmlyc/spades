@@ -1,7 +1,7 @@
 ---
 name: patterns
 description: Create or maintain PATTERNS.md, the project's durable list of APPROVED patterns and conventions — code organisation, error handling, testing, naming. Use when someone says "set up PATTERNS.md", "document our conventions", "what patterns do we use", "update the patterns doc", or when PATTERNS.md is missing, still an unfilled template, or flagged stale. The human composes the patterns; this skill structures and probes but never authors it.
-version: 1.0.1
+version: 1.1.0
 ---
 
 # SPADES Patterns
@@ -288,3 +288,24 @@ during the walk — the Socratic conversation stays CLI; the
 
 `PATTERNS.md` itself stays Markdown in both modes — only the
 preview is HTML.
+
+## End-of-Skill Brief
+
+**HTML mode** — 3 lines, no body dump:
+
+```
+✓ PATTERNS.md written (last reviewed YYYY-MM-DD)
+○ .spades/patterns.html opened in browser
+Next: /spades:anti-patterns · /spades:scope <title>
+```
+
+**CLI mode** — confirm the write, then print the assembled
+`PATTERNS.md` body once as the review surface:
+
+```
+✓ PATTERNS.md written (last reviewed YYYY-MM-DD)
+
+<contents of PATTERNS.md>
+
+Next: /spades:anti-patterns · /spades:scope <title>
+```

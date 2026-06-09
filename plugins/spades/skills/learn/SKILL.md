@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 4.0.1
+version: 4.1.0
 ---
 
 # SPADES Learn
@@ -181,8 +181,30 @@ When invoked in the default mode:
      file path with "open this in your browser" if `OPEN_CMD` is
      empty.
    - The `.md` written above is unchanged — both files coexist.
-5. **Done.** The file is on disk. Private learnings live under
-   `.spades/learnings/private/` which is gitignored.
+5. **End-of-skill brief.** Branch on `review_format:`:
+
+   **HTML mode** — 3 lines, no body dump:
+
+   ```
+   ✓ Learning captured: YYYY-MM-DD-<slug>.md
+   ○ .spades/learnings/YYYY-MM-DD-<slug>.html opened in browser
+   Next: /spades:status — see what else is in flight
+   ```
+
+   **CLI mode** — confirm the write, then print the assembled
+   learning body once as the review surface:
+
+   ```
+   ✓ Learning captured: YYYY-MM-DD-<slug>.md
+
+   <contents of the learning .md>
+
+   Next: /spades:status — see what else is in flight
+   ```
+
+   Private learnings (`public_safe: false`) live under the
+   gitignored `.spades/learnings/private/` directory; the brief
+   notes the private path in place of the public one.
 
 ## Refresh flow (`--refresh`)
 
