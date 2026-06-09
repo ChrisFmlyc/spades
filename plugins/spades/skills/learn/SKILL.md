@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 4.0.0
+version: 4.0.1
 ---
 
 # SPADES Learn
@@ -181,12 +181,8 @@ When invoked in the default mode:
      file path with "open this in your browser" if `OPEN_CMD` is
      empty.
    - The `.md` written above is unchanged — both files coexist.
-5. **Exit cleanly.** The learning file is on disk. No bookkeeping
-   PR — the next `/spades:close` (or whatever PR you're naturally
-   building during normal flow) sweeps it up alongside its own
-   audit-trail commit. Private learnings live under the gitignored
-   `.spades/learnings/private/` directory and are not committed at
-   all.
+5. **Done.** The file is on disk. Private learnings live under
+   `.spades/learnings/private/` which is gitignored.
 
 ## Refresh flow (`--refresh`)
 
