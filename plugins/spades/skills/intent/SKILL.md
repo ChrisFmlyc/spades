@@ -1,7 +1,7 @@
 ---
 name: intent
 description: Create or maintain INTENT.md, the project's durable statement of intent — the problem it solves, who it serves, what it does, what success looks like, and its non-goals. Use when someone says "set up INTENT.md", "capture our project intent", "what is this project for", "update the intent doc", "review our non-goals", or when INTENT.md is missing, still an unfilled template, or flagged stale. The human composes the intent; this skill structures and probes but never authors it.
-version: 4.1.0
+version: 4.2.0
 ---
 
 # SPADES Intent
@@ -291,39 +291,39 @@ is NOT written — only `INTENT.md` exists.
 There is no Linear step — `INTENT.md` is a committed root
 document, not a tracker artefact.
 
-### Transient HTML preview (HTML mode only)
+### HTML mode — parallel render dispatch
 
 **Read `review_format:` from `.spades/config`.** When
-`review_format: html`, after the `INTENT.md` write succeeds:
+`review_format: html`, after the `INTENT.md` write succeeds,
+dispatch **two** `worker-html-intent` sub-agents in parallel per
+`docs/FRAMEWORK.md § worker-html-* — parallel HTML rendering`:
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-blocks below match the markers in the actual file before
-substituting; abort and surface any mismatch. See
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
-use the bundled template` for the canonical rule.
+- **Persistent**: `output_path = .spades/intent.html` (committed
+  alongside `INTENT.md`).
+- **Transient**: `output_path = .spades/.tmp/intent.html` (the
+  in-flight preview; gitignored).
 
-1. Read the template at
-   `${CLAUDE_PLUGIN_ROOT}/skills/intent/template.html`.
-2. Validate it contains the block markers listed below; if any are
-   missing, abort.
-3. Substitute placeholders per
-   `docs/FRAMEWORK.md § Output Format`:
-   - `{{spades.project_slug}}`, `{{spades.last_reviewed}}`,
-     `{{spades.rendered_at}}`, `{{spades.plugin_version}}`,
-     `{{spades.maturity_stage}}`.
-   - The prose sections render via direct substitutions:
-     `{{spades.problem_html}}`, `{{spades.what_it_does_html}}`,
-     `{{spades.success_html}}`, `{{spades.maturity_html}}`.
-   - `<!-- SPADES-BLOCK:users-items -->` — repeated once per bullet
-     under `## Users`. Per-item: `{{block.html}}`.
-   - `<!-- SPADES-BLOCK:non-goals-items -->` — repeated once per
-     bullet under `## Non-goals`. Per-item: `{{block.html}}`.
-4. Write to `.spades/.tmp/intent.html` (creating `.spades/.tmp/` if
-   missing — auto-gitignored by `/spades:setup` Step 5.5).
-5. Auto-open via the OPEN_CMD prelude
-   (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`) so the human
-   can review the refreshed intent in the B-style format.
+Both workers take the same inputs (identical content, different
+output paths):
+
+- `template_path`:
+  `${CLAUDE_PLUGIN_ROOT}/skills/intent/template.html`
+- `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
+  plugin_version, maturity_stage }`
+- `blocks`:
+  - `users-items` — one per bullet under `## Users`. Field: `html`.
+  - `non-goals-items` — one per bullet under `## Non-goals`. Field: `html`.
+- `prose_sections`: `{ problem_html, what_it_does_html,
+  success_html, maturity_html }`
+
+Required template markers:
+`<!-- SPADES-BLOCK:users-items -->`,
+`<!-- SPADES-BLOCK:non-goals-items -->`.
+
+The transient render is the in-flight preview the human reviews
+during the Socratic walk; the persistent render is the
+committed steady-state view. Two workers, one wave, fully
+parallel.
 
 **In HTML mode the open `.html` preview IS the review surface — do
 NOT also paste / summarise the assembled INTENT body to the CLI;

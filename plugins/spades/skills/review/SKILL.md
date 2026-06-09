@@ -1,7 +1,7 @@
 ---
 name: review
 description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
-version: 3.2.0
+version: 3.3.0
 ---
 
 ## Pre-Flight
@@ -654,56 +654,40 @@ write a file before the inline digest is printed.
   `<slug>-<date>-2.md`, then `-3`, and so on. Never overwrite an
   existing review file; each run is its own audit record.
 
-#### Additionally render the HTML (HTML mode only)
+#### Dispatch `worker-html-review` in parallel (HTML mode only)
 
-When `review_format: html`, after the `.md` above is written,
-render the HTML companion file. The `.md` is unchanged; the
-`.html` is **additive**.
+When `review_format: html`, dispatch `worker-html-review` per
+`docs/FRAMEWORK.md § worker-html-* — parallel HTML rendering` in
+the same wave as the `.md` write. No inline render.
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-blocks below match the markers in the actual file before
-substituting; abort and surface any mismatch. See
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
-use the bundled template` for the canonical rule.
+Worker inputs:
 
-- Read the template at
-  `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html`.
-- Validate it contains the block markers listed below; if any are
-  missing, abort.
-- Substitute placeholders per `docs/FRAMEWORK.md § Output Format`:
-  - Envelope values fill `{{spades.target_id}}`,
-    `{{spades.target_title}}`, `{{spades.mode}}` (Scope /
-    Plan / Full), `{{spades.verdict}}` (overall),
-    `{{spades.date}}`, `{{spades.dispatch_mode}}`.
-  - The envelope YAML block also goes verbatim into the
-    `<script type="application/yaml" id="spades-frontmatter">` tag.
-  - `<!-- SPADES-BLOCK:persona-cards -->` — repeated once per
-    persona (4 cards). Per-item: `{{block.persona}}`,
-    `{{block.summary_html}}`, `{{block.finding_count}}`.
-  - `<!-- SPADES-BLOCK:findings -->` — repeated once per merged
-    finding (every severity, ungated). Per-item: `{{block.severity}}`,
-    `{{block.confidence}}`, `{{block.category}}`, `{{block.persona}}`,
-    `{{block.message_html}}`, `{{block.refs}}`,
-    `{{block.also_flagged_by}}`.
-  - `<!-- SPADES-BLOCK:convergence-cards -->` — repeated once per
-    convergence cluster (groups where 2+ personas raised the same
-    underlying concern). Per-item: `{{block.label}}`,
-    `{{block.personas}}`, `{{block.severity}}`.
-  - The cross-model synthesis prose is a direct
-    `{{spades.synthesis_html}}` substitution, not a repeating block.
-- **Path:** `.spades/reviews/<slug>-<date>.html` with the same slug
-  rules. Collision rule applies identically: `<slug>-<date>-2.html`,
-  `-3`, etc.
-- Auto-open via the OPEN_CMD prelude
-  (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). **In HTML
-  mode, do NOT print the inline CLI digest** — the open `.html`
-  is the human's review surface. The terminal in HTML mode gets
-  only the short `✓ Review written: <path>` confirmation +
-  any conversational text. The full digest lives in the `.html`
-  (and the same content is in the `.md` for the AI / fallback
-  reading via `cat`).
-- The `.md` from the previous sub-step is unchanged — both files coexist.
+- `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html`
+- `output_path`: `.spades/reviews/<slug>-<date>.html` (same slug
+  + collision rules as the `.md`: `<slug>-<date>-2.html`, etc.)
+- `frontmatter`: `{ target_id, target_title, mode (Scope|Plan|Full),
+  verdict, date, dispatch_mode }` (also embedded verbatim in
+  `<script id="spades-frontmatter">`)
+- `blocks`:
+  - `persona-cards` — one per persona (4 cards). Fields:
+    `persona, summary_html, finding_count`.
+  - `findings` — one per merged finding (every severity,
+    ungated). Fields: `severity, confidence, category, persona,
+    message_html, refs, also_flagged_by`.
+  - `convergence-cards` — one per convergence cluster. Fields:
+    `label, personas, severity`.
+- `prose_sections`: `{ synthesis_html }` (cross-model synthesis).
+
+Required template markers:
+`<!-- SPADES-BLOCK:persona-cards -->`,
+`<!-- SPADES-BLOCK:findings -->`,
+`<!-- SPADES-BLOCK:convergence-cards -->`.
+
+In HTML mode, do NOT print the inline CLI digest — the open
+`.html` is the human's review surface. The terminal gets only
+the short `✓ Review written: <path>` confirmation + any
+conversational text. The full digest lives in the `.html`
+(and the same content is in the `.md` for AI / fallback reads).
 - **Contents:** the banner, the envelope, the section title, every
   persona's prose summary verbatim, **every** merged finding at every
   severity shown in full (the file is not tiered — it is the complete

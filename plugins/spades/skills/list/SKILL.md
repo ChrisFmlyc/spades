@@ -1,7 +1,7 @@
 ---
 name: list
 description: List active SPADES Scopes, optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades/config`.
-version: 3.1.3
+version: 3.2.0
 ---
 
 # /spades:list
@@ -253,38 +253,31 @@ behaviour.
 
 ### HTML mode (`review_format: html`)
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-blocks below match the markers in the actual file before
-substituting; abort and surface any mismatch. See
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
-use the bundled template` for the canonical rule.
+**Dispatch `worker-html-list` per
+`docs/FRAMEWORK.md § worker-html-* — parallel HTML rendering`.**
+No inline render.
 
-1. Read the template at
-   `${CLAUDE_PLUGIN_ROOT}/skills/list/template.html`.
-2. Validate it contains the block markers listed below; if any are
-   missing, abort.
-3. Substitute placeholders per
-   `docs/FRAMEWORK.md § Output Format`:
-   - `{{spades.project_slug}}`, `{{spades.filter_label}}`,
-     `{{spades.rendered_at}}`, `{{spades.plugin_version}}`.
-   - `<!-- SPADES-BLOCK:status-filters -->` — repeated once per
-     filter chip (one per status). Per-item: `{{block.label}}`,
-     `{{block.count}}`, `{{block.active}}` (boolean).
-   - `<!-- SPADES-BLOCK:scopes-rows -->` — repeated once per Scope
-     row (post-filter). Per-item: `{{block.id}}`, `{{block.title}}`,
-     `{{block.status}}`, `{{block.plans_breakdown}}` (the
-     `"2/4 shipped · 1 ready · 1 blocked"` string assembled from the
-     Step-1 buckets, with zero counts suppressed and suffixes ordered
-     `ready → in progress → blocked → draft → rejected`),
-     `{{block.blocked_warning_html}}` (empty string when no blocked
-     Plans; otherwise a `<span class="blocked-warning">…</span>`
-     containing the per-blocked-plan list — the CSS for this class is
-     in the template), `{{block.updated}}`, `{{block.flags}}` (any
-     other Step-3 quality flags).
-4. Write to `.spades/.tmp/list.html` (creating `.spades/.tmp/` if
-   missing — already auto-gitignored by `/spades:setup` Step 5.5).
-5. Auto-open via the OPEN_CMD prelude
-   (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the
-   file path with "open this in your browser" if `OPEN_CMD` is
-   empty. Do NOT also print the table to the terminal in HTML mode.
+Worker inputs:
+
+- `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/list/template.html`
+- `output_path`: `.spades/.tmp/list.html`
+- `frontmatter`: `{ project_slug, filter_label, rendered_at,
+  plugin_version }`
+- `blocks`:
+  - `status-filters` — one per status. Fields: `label, count,
+    active` (boolean).
+  - `scopes-rows` — one per Scope row (post-filter). Fields:
+    `id, title, status, plans_breakdown` (string like
+    `"2/4 shipped · 1 ready · 1 blocked"`, zero counts
+    suppressed, ordered `ready → in progress → blocked → draft
+    → rejected`), `blocked_warning_html` (empty string when no
+    blocked Plans; otherwise a `<span class="blocked-warning">…
+    </span>` containing the per-blocked-plan list — CSS in the
+    template), `updated, flags`.
+
+Required template markers: `<!-- SPADES-BLOCK:status-filters -->`,
+`<!-- SPADES-BLOCK:scopes-rows -->`.
+
+After the worker returns, the main agent prints a one-line brief
+(file path or fallback message). Never print the table to the
+terminal in HTML mode.
