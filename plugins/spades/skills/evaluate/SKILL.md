@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:do` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.4.1
+version: 3.5.0
 ---
 
 # /spades:evaluate
@@ -302,78 +302,65 @@ human knows the gate is here:
 
 Then proceed to Step 2.6.
 
-#### HTML mode
+#### HTML mode — page 1 dispatch
 
-After the verification plan is agreed (the audit-trail line above is
-written) BUT before any verification actually runs, render page 1
-and auto-open it. This gives the human a clear, structured view of
-the proposed verification plan to review.
+After the verification plan is agreed (the audit-trail line above
+is written) but before any verification runs, dispatch
+`worker-html-evaluation` per
+`docs/FRAMEWORK.md § worker-html-* — parallel HTML rendering`.
+No inline render.
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-blocks below match the markers in the actual file before
-substituting; abort and surface any mismatch. See
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
-use the bundled template` for the canonical rule.
+Worker inputs (page 1: `mode = plan`):
 
-1. **Read the template** at
-   `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html`.
-2. **Validate** it contains:
-   - `<!-- SPADES-BLOCK:verification-rows -->`
-   - `<!-- SPADES-BLOCK:audit-events -->`
+- `template_path`:
+  `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html`
+- `output_path`:
+  `.spades/evaluations/<plan_id_lower>-<YYYY-MM-DD>-plan.html`
+  (worker creates `.spades/evaluations/` if missing)
+- `frontmatter`:
+  ```
+  { mode: "plan",
+    brand_label: "Verification Plan",
+    h1_prefix: "Verification plan",
+    page_title: "Verification",
+    tagline: "Concrete verification steps to confirm this plan
+              is done. Each row shows the test, who runs it.
+              Verdicts populate when the evaluation completes
+              (Step 5).",
+    verdict: "PENDING",
+    verdict_class: "pending",
+    verdict_summary_html: "<p>Verification plan proposed —
+              awaiting your approval. Reject or edit at the
+              prompt in the CLI; otherwise the listed checks
+              will run next.</p>",
+    plan_id, plan_title, scope_id, scope_title,
+    evaluated, evaluator, plugin_version }
+  ```
+- `blocks`:
+  - `verification-rows` — one per verification step from the
+    just-written `Verification plan agreed:` audit-trail entry.
+    Fields: `step` (concrete action), `criterion_ref` (e.g.
+    `C1`, `Q1`), `verifier` (`AI`/`Human`/`Test`/`Lint`/`Manual`),
+    `verifier_class` (lowercase), `method` (exact command/path),
+    `verdict` (`PENDING`), `verdict_class` (`pending`),
+    `notes` (empty).
+  - `audit-events` — every Plan audit-trail entry whose `desc`
+    contains `Evaluation` or `Verification plan`, in
+    chronological order. Fields: `date, desc`.
 
-   Abort if either is missing.
-3. **Substitute placeholders** with `mode: plan` framing:
-   - `{{spades.mode}}` = `plan`
-   - `{{spades.brand_label}}` = `Verification Plan`
-   - `{{spades.h1_prefix}}` = `Verification plan`
-   - `{{spades.page_title}}` = `Verification`
-   - `{{spades.tagline}}` = `Concrete verification steps to confirm this plan is done. Each row shows the test, who runs it. Verdicts populate when the evaluation completes (Step 5).`
-   - `{{spades.verdict}}` = `PENDING`
-   - `{{spades.verdict_class}}` = `pending`
-   - `{{spades.verdict_summary_html}}` = `<p>Verification plan proposed — awaiting your approval. Reject or edit at the prompt in the CLI; otherwise the listed checks will run next.</p>`
-   - `{{spades.plan_id}}`, `{{spades.plan_title}}`,
-     `{{spades.scope_id}}`, `{{spades.scope_title}}`,
-     `{{spades.evaluated}}` (today's date),
-     `{{spades.evaluator}}` (from Step 1's routing —
-     `ai` / `human` / `hybrid`),
-     `{{spades.plugin_version}}`.
-   - `<!-- SPADES-BLOCK:verification-rows -->` — one row per
-     verification step from the audit-trail `Verification plan
-     agreed:` entry just written. Per-item:
-     - `{{block.step}}` — the **concrete verification action**
-       (e.g. *"Run the embedding benchmark"*, *"Visual check
-       wizard on iPad"*, *"Lint `src/auth/` with eslint"*,
-       *"Run integration suite"*). NOT the abstract criterion
-       text.
-     - `{{block.criterion_ref}}` — short criterion ID this row
-       verifies (e.g. `C1`, `C2`, `Q1`).
-     - `{{block.verifier}}` — `AI` / `Human` / `Test` / `Lint` /
-       `Manual` per the agreed plan.
-     - `{{block.verifier_class}}` — lowercase: `ai` / `human` /
-       `test` / `lint` / `manual`.
-     - `{{block.method}}` — the exact command / file path /
-       check description.
-     - `{{block.verdict}}` = `PENDING`.
-     - `{{block.verdict_class}}` = `pending`.
-     - `{{block.notes}}` = empty.
-   - `<!-- SPADES-BLOCK:audit-events -->` — every audit-trail
-     entry on the Plan whose `desc` contains `Evaluation` or
-     `Verification plan`, in chronological order. Per-item:
-     `{{block.date}}`, `{{block.desc}}`.
-4. **Write** to
-   `.spades/evaluations/<plan_id_lower>-<YYYY-MM-DD>-plan.html`
-   (creating `.spades/evaluations/` if missing).
-5. **Auto-open** via the OPEN_CMD prelude
-   (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print:
+Required template markers:
+`<!-- SPADES-BLOCK:verification-rows -->`,
+`<!-- SPADES-BLOCK:audit-events -->`.
 
-   ```
-   ○ Verification plan opened: .spades/evaluations/<plan-id>-<date>-plan.html
-   ○ Approve, edit, or reject below — then I'll run the checks.
-   ```
+After the worker returns, print the brief:
 
-Both branches then continue to Step 2.6 — the approve gate is
-identical between modes.
+```
+○ Verification plan opened: .spades/evaluations/<plan-id>-<date>-plan.html
+○ Approve, edit, or reject below — then I'll run the checks.
+```
+
+Both modes then continue to Step 2.6 — the approve gate is
+identical.
 
 ### Step 2.6 — Approve the verification plan (the gate)
 
@@ -559,65 +546,55 @@ unambiguous:
 ✓ Evaluation report above — verdict: <PASS|PARTIAL|FAIL>. Plan audit-trail line records the same verdict.
 ```
 
-#### HTML mode
+#### HTML mode — page 2 dispatch
 
-After the verdict is picked at Step 5 AND the human's rationale is
-captured, produce the completed evaluation report. Same template as
-page 1; different `mode` framing.
+After the verdict is picked at Step 5 AND the human's rationale
+is captured, dispatch `worker-html-evaluation` for page 2 in the
+same fan-out wave as the verdict's `worker-file-plan-evaluate`
+audit-trail update (see "Write the Verdict" below).
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.**
+Worker inputs (page 2: `mode = report`):
 
-1. **Read the template** at
-   `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html`.
-2. **Validate** it contains:
-   - `<!-- SPADES-BLOCK:verification-rows -->`
-   - `<!-- SPADES-BLOCK:audit-events -->`
+- `template_path`:
+  `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html`
+- `output_path`:
+  `.spades/evaluations/<plan_id_lower>-<YYYY-MM-DD>-report.html`
+  (note the `-report.html` suffix — distinct from page 1's
+  `-plan.html`)
+- `frontmatter`:
+  ```
+  { mode: "report",
+    brand_label: "Evaluation Report",
+    h1_prefix: "Evaluation report",
+    page_title: "Evaluation",
+    tagline: "All verdicts confirmed. The Plan's audit-trail
+              line is the authoritative record; this report is
+              the human's rich view.",
+    verdict: "PASS"|"PARTIAL"|"FAIL"  (picked at Step 5),
+    verdict_class: "pass"|"partial"|"fail",
+    verdict_summary_html: <one-paragraph rationale captured at
+              Step 5, HTML-escaped, wrapped in <p>>,
+    plan_id, plan_title, scope_id, scope_title,
+    evaluated, evaluator, plugin_version }
+  ```
+- `blocks`:
+  - `verification-rows` — same row set as page 1, with verdicts
+    and notes filled in from Steps 3/4 (AI rows) and Step 5
+    (human rows). Same field schema as page 1.
+  - `audit-events` — same selection logic as page 1.
 
-   Abort if either is missing.
-3. **Substitute placeholders** with `mode: report` framing:
-   - `{{spades.mode}}` = `report`
-   - `{{spades.brand_label}}` = `Evaluation Report`
-   - `{{spades.h1_prefix}}` = `Evaluation report`
-   - `{{spades.page_title}}` = `Evaluation`
-   - `{{spades.tagline}}` = `All verdicts confirmed. The Plan's audit-trail line on \`.spades/plans/<plan-id>.md\` is the authoritative record; this report is the human's rich view.`
-   - `{{spades.verdict}}` — `PASS` / `PARTIAL` / `FAIL`
-     (the verdict the human picked at Step 5).
-   - `{{spades.verdict_class}}` — `pass` / `partial` / `fail`.
-   - `{{spades.verdict_summary_html}}` — the one-paragraph
-     rationale captured at Step 5, HTML-escaped and wrapped in
-     `<p>` tags.
-   - `{{spades.plan_id}}`, `{{spades.plan_title}}`,
-     `{{spades.scope_id}}`, `{{spades.scope_title}}`,
-     `{{spades.evaluated}}` (today's date),
-     `{{spades.evaluator}}` (from Step 1's routing —
-     `ai` / `human` / `hybrid`),
-     `{{spades.plugin_version}}`.
-   - `<!-- SPADES-BLOCK:verification-rows -->` — same rows as
-     page 1, but with verdicts and notes filled in from the
-     audit-trail entries written during Steps 3 / 4 (AI rows)
-     and Step 5 (human rows). Per-item fields are the same as
-     page 1's row schema (`step`, `criterion_ref`, `verifier`,
-     `verifier_class`, `method`, `verdict`, `verdict_class`,
-     `notes`) — see Step 2.5 above for the full list.
-   - `<!-- SPADES-BLOCK:audit-events -->` — every audit-trail
-     entry on the Plan whose `desc` contains `Evaluation` or
-     `Verification plan`, in chronological order. Per-item:
-     `{{block.date}}`, `{{block.desc}}`.
-4. **Write** to
-   `.spades/evaluations/<plan_id_lower>-<YYYY-MM-DD>-report.html`
-   (note the `-report.html` suffix — distinct from page 1's
-   `-plan.html`).
-5. **Auto-open** via the OPEN_CMD prelude. Print:
+Required template markers: same as page 1.
 
-   ```
-   ○ Evaluation report opened: .spades/evaluations/<plan-id>-<date>-report.html
-   ○ Verdict: <PASS|PARTIAL|FAIL>. Audit-trail line on the Plan is authoritative.
-   ```
+After the worker returns, print the brief:
 
-Both pages now exist side by side: the pre-start verification
-plan (page 1) and the completed report (page 2). The human can
-compare them.
+```
+○ Evaluation report opened: .spades/evaluations/<plan-id>-<date>-report.html
+○ Verdict: <PASS|PARTIAL|FAIL>. Audit-trail line on the Plan is authoritative.
+```
+
+Both HTML pages now exist side by side: the pre-start
+verification plan (page 1, written at Step 2.5) and the
+completed report (page 2). The human can compare them.
 
 In CLI mode the audit-trail line written by the fan-out below is
 the only file artefact — no HTML pages are written. The CLI

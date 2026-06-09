@@ -1,7 +1,7 @@
 ---
 name: newproject
 description: Create a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.1.3
+version: 3.2.0
 ---
 
 # /spades:newproject
@@ -135,50 +135,35 @@ updated: YYYY-MM-DD
 <!-- /spades:list will populate this on demand; do not maintain by hand -->
 ```
 
-#### Step 3.B — Additionally render the HTML (HTML mode only)
+#### Step 3.B — HTML render is a parallel worker (HTML mode only)
 
-When `review_format: html`, after the `.md` in Step 3.A is
-written, render the HTML companion file. The `.md` is unchanged;
-the `.html` is **additive**.
+When `review_format: html`, the `.html` companion is rendered by
+`worker-html-project` dispatched in the same fan-out wave as
+`worker-file-project` (see fan-out table below). The skill body
+never renders HTML inline.
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-blocks below match the markers in the actual file before
-substituting; abort and surface any mismatch. See
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
-use the bundled template` for the canonical rule.
+Worker inputs:
 
-1. **Read the template** at
-   `${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html`.
-2. **Validate** it contains the block markers listed below; if any
-   are missing, abort.
-3. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
-   Format`:
-   - `{{spades.id}}`, `{{spades.title}}`, `{{spades.description}}`,
-     `{{spades.created}}`, `{{spades.updated}}`, and any additional
-     fields the template requires.
-   - The frontmatter YAML block also goes verbatim into the
-     `<script type="application/yaml" id="spades-frontmatter">` tag.
-   - `<!-- SPADES-BLOCK:repos-items -->` — repeated once per repo.
-     Per-item: `{{block.url}}`, `{{block.label}}`.
-   - `<!-- SPADES-BLOCK:owners-items -->` — repeated once per
-     owner. Per-item: `{{block.name}}`, `{{block.email|—}}`.
-   - `<!-- SPADES-BLOCK:status-filters -->` — repeated once per
-     status filter chip rendered in the Scopes section. Per-item:
-     `{{block.label}}`, `{{block.count}}`.
-   - `<!-- SPADES-BLOCK:scopes-rows -->` — repeated once per Scope
-     row in the embedded Scopes table. Per-item: `{{block.id}}`,
-     `{{block.title}}`, `{{block.status}}`, `{{block.plans}}`,
-     `{{block.updated}}`.
-   - `<!-- SPADES-BLOCK:audit-events -->` — repeated once per audit
-     entry in both the visible timeline and the
-     `<script type="application/yaml" id="spades-audit-trail">`
-     YAML block. Per-item: `{{block.date}}`, `{{block.desc}}`.
-4. **Write the rendered HTML** to `.spades/projects/<slug>.html`.
-5. **Auto-open** via the OPEN_CMD prelude
-   (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the file
-   path with "open this in your browser" if `OPEN_CMD` is empty.
-6. The `.md` from Step 3.A is unchanged — both files coexist.
+- `template_path`:
+  `${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html`
+- `output_path`: `.spades/projects/<slug>.html`
+- `frontmatter`: `{ id, title, description, created, updated, … }`
+  (also embedded verbatim in `<script id="spades-frontmatter">`)
+- `blocks`:
+  - `repos-items` — one per repo. Fields: `url, label`.
+  - `owners-items` — one per owner. Fields: `name, email|—`.
+  - `status-filters` — one per status filter chip in the
+    embedded Scopes section. Fields: `label, count`.
+  - `scopes-rows` — one per Scope row. Fields: `id, title,
+    status, plans, updated`.
+  - `audit-events` — one per audit entry. Fields: `date, desc`.
+
+Required template markers:
+`<!-- SPADES-BLOCK:repos-items -->`,
+`<!-- SPADES-BLOCK:owners-items -->`,
+`<!-- SPADES-BLOCK:status-filters -->`,
+`<!-- SPADES-BLOCK:scopes-rows -->`,
+`<!-- SPADES-BLOCK:audit-events -->`.
 
 ### When `backend: linear` — fan-out dispatch
 
@@ -189,7 +174,8 @@ multiple `Agent` tool calls** (`subagent_type: general-purpose`):
 
 | Sub-agent | Resource owned | Returns |
 |-----------|---------------|---------|
-| `worker-file-project` | `.spades/projects/<slug>.<ext>` — the local project file in the format chosen by Step 3.A/3.B (CLI → `.md`, HTML → render from sibling `template.html` + auto-open). The file is written **without** `linear_project_id` — the coordinator injects it post-dispatch. | `{ status: ok }` (or `fail` + `error`) |
+| `worker-file-project` | `.spades/projects/<slug>.md` — the canonical project `.md`. The file is written **without** `linear_project_id` — the coordinator injects it post-dispatch. | `{ status: ok }` (or `fail` + `error`) |
+| `worker-html-project` *(only when `review_format: html`)* | `.spades/projects/<slug>.html` — see Step 3.B for inputs. | `{ status: ok, path, opened }` |
 | `worker-linear-project` | Linear — create a Project with the given title and description on the team recorded in `.spades/config`'s `linear.team_id`. | `{ status: ok, linear_project_id: <uuid> }` (or `fail`) |
 
 The Linear sub-agent's prompt includes the Layer-2 freshness probe

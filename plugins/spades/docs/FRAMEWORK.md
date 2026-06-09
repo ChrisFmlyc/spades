@@ -1246,6 +1246,85 @@ acting on any of them. Then:
   failures, recommend manual recovery (the failed files may be
   partial-written; the human inspects and reverts as needed).
 
+### `worker-html-*` — parallel HTML rendering
+
+HTML rendering is slow (template I/O + placeholder substitution
++ file write + OPEN_CMD invocation), and it's a pure function of
+content the main agent already has. So it parallelises naturally
+with the `.md` write.
+
+**The rule:** whenever a skill produces both an `.md` and an
+`.html` artefact, the `.html` render is dispatched to a
+`worker-html-<artefact>` sub-agent in the same fan-out wave as
+the `.md` write. The main agent never renders HTML inline.
+
+**Contract:**
+
+- **Resource owned:** one `.html` file path (e.g.
+  `.spades/plans/P-foo-3HyD.html`).
+- **Inputs:**
+  - `template_path` — absolute path to
+    `${CLAUDE_PLUGIN_ROOT}/skills/<skill>/template.html`.
+  - `output_path` — absolute path to the destination `.html`.
+  - `frontmatter` — the YAML block (verbatim string for the
+    embedded `<script type="application/yaml">` tag) plus the
+    parsed key/value map for top-level placeholder substitution.
+  - `blocks` — repeating-block content (tags, audit-trail items,
+    user bullets, etc.) keyed by the `<!-- SPADES-BLOCK:* -->`
+    marker the template documents.
+  - `prose_sections` — direct substitutions like
+    `{{spades.problem_html}}`, keyed by section name.
+- **Behaviour:**
+  1. Read template; validate it contains every required marker
+     listed in the per-skill SKILL.md (abort if any missing).
+  2. Substitute placeholders and repeating blocks.
+  3. Write the output `.html`.
+  4. Invoke the OPEN_CMD prelude
+     (`§ OPEN_CMD detection prelude`). If `OPEN_CMD` is empty,
+     don't fail — return `opened: false`; the coordinator prints
+     the path with "open this in your browser".
+- **Returns:**
+  - `{ status: ok, path: "<output_path>", opened: true|false }`
+  - `{ status: fail, error: "<message>" }` on template-read,
+    marker-validation, or write failure. The `.md` written by
+    the paired `worker-file-*` is unaffected.
+
+**Dispatch pattern.** The skill body composes the final content
+(Socratic outcome, generated draft, structured report) and
+dispatches one wave with both workers in parallel:
+
+```
+Agent { type: general-purpose, prompt: worker-file-<x> spec }
+Agent { type: general-purpose, prompt: worker-html-<x> spec }
+[+ Agent { worker-linear-<x> } when backend: linear]
+```
+
+All workers return before the coordinator prints the brief.
+
+**Failure semantics:**
+
+- `worker-html-*` fail, `worker-file-*` ok → keep the `.md` (it
+  is canonical), surface the HTML error verbatim, suggest
+  re-running. Do NOT abort the rest of the wave.
+- Both file + html fail → abort, surface both errors.
+
+**Skills with no paired `.md`** (`status`, `list`): dispatch
+`worker-html-*` alone. The main agent uses the wave to do
+something useful in parallel (Linear drift probe, freshness
+check) rather than blocking on the render.
+
+**Skills that produce two HTML pages** (`evaluate`): each is its
+own dispatch wave. Wave 1 renders the evaluation plan; wave 2
+runs only after the human has executed verification, and renders
+the report. Each wave pairs `worker-file-evaluation` with
+`worker-html-evaluation`.
+
+**Skills that produce persistent + transient HTML** (`intent`,
+`architecture`, `patterns`, `anti-patterns`): two `.html` files
+(persistent under `.spades/<name>.html`, transient under
+`.spades/.tmp/<name>.html`). Same content, two output paths —
+dispatch as two parallel `worker-html-<skill>` sub-agents.
+
 ### Why this lives in FRAMEWORK.md
 
 The fan-out contract is something multiple skills participate in

@@ -1,7 +1,7 @@
 ---
 name: approve
 description: Present a SPADES Plan for human review against the approval checklist, then record the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`. The biggest risk in SPADES is a weak Approval gate.
-version: 3.1.1
+version: 3.2.0
 ---
 
 # /spades:approve
@@ -118,15 +118,14 @@ gets a deep review; granular low-risk tasks get a light one.
 
 ## Optional Second Opinion
 
-Before the decision step, offer (via `AskUserQuestion`):
+`/spades:approve` does not invoke other skills inline. After
+reading the Plan but before walking the checklist, surface this
+one-line hint to the human:
 
-- **Yes, run `/spades:review`** on this Scope + Plan
-- **No, skip**
+> *Want an independent review first? Exit `/spades:approve` and
+> run `/spades:review P-<id>`, then re-run `/spades:approve`.*
 
-If yes, invoke `/spades:review` in Full Review mode (Scope + Plan
-together). After the review, resume here.
-
-This is always optional and never replaces the checklist.
+Continue if the human declines; they can exit explicitly.
 
 ## Decision
 

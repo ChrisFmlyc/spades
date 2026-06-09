@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 4.0.1
+version: 4.1.0
 ---
 
 # /spades:setup
@@ -141,8 +141,10 @@ Once connected, re-run `/spades:setup` and pick Linear again.
 1. `AskUserQuestion`: which team? (list teams from probe).
 2. `AskUserQuestion`: which Linear Project? (list existing under
    the chosen team + *Create new Linear Project*).
-3. If *Create new* → invoke `/spades:newproject` inline.
-4. Record `team_id` + `project_id` for Step 3.
+3. If *Create new* → exit with: *"Run `/spades:newproject <slug>`
+   first to create the Linear Project, then re-run
+   `/spades:setup`."* No inline invocation.
+4. Otherwise, record `team_id` + `project_id` for Step 3.
 
 ### If Local was chosen
 
@@ -213,11 +215,12 @@ If `current_project` is set, print *"Currently active project:
   *Create a new project*.
 - No records → *Create a new project* is the only option.
 
-If *Create a new project* → invoke `/spades:newproject` inline;
-resume here with the new slug.
+If *Create a new project* → exit with: *"Run
+`/spades:newproject <slug>` first to create the project record,
+then re-run `/spades:setup`."* No inline invocation.
 
-Record the slug into `new_project` for Step 2.5's diff. Do **not**
-write `.spades/config` yet.
+Otherwise, record the chosen slug into `new_project` for Step
+2.5's diff. Do **not** write `.spades/config` yet.
 
 ## Step 2.5 — Diff & Confirm
 
@@ -694,15 +697,17 @@ Don't prompt; don't re-scaffold; don't invoke the skill.
 
 > *<filename> — how would you like to handle this?*
 >
-> - **Create / complete now** *(recommended for the first run)* —
->   invokes the facilitator skill inline. After it returns, Step
->   7 continues to the next file.
-> - **Scaffold an empty template** — write the inline template
->   the facilitator's SKILL.md documents. Doesn't invoke the
->   skill; no content questions.
-> - **Skip** — write nothing. The file stays missing. The
->   facilitator can be invoked later; other SPADES skills nudge
->   if absent.
+> - **Scaffold an empty template** *(recommended for the first
+>   run)* — write the inline template the facilitator's SKILL.md
+>   documents with `last_reviewed: <today>`. Doesn't ask content
+>   questions.
+> - **Skip** — write nothing. The file stays missing.
+
+Setup never invokes facilitator skills inline. After setup
+exits, the Step 9 brief lists the next-step commands
+(`/spades:intent`, `/spades:architecture`, `/spades:patterns`,
+`/spades:anti-patterns`) for the human to run when they want to
+fill the templates with real content.
 
 ### 7.D — Template content for "Scaffold empty"
 
@@ -742,9 +747,16 @@ changed; append `(unchanged)` for unchanged fields. Use `✓` done,
 ○ Skipped:        INTENT.md (re-run /spades:intent to scaffold)
 
 Next steps:
+  /spades:intent           — fill INTENT.md with real content
+  /spades:architecture     — fill ARCHITECTURE.md with real content
+  /spades:patterns         — fill PATTERNS.md with real content
+  /spades:anti-patterns    — fill ANTI-PATTERNS.md with real content
   /spades:newproject       — if you haven't created one yet
   /spades:scope <title>    — start a new Scope
 ```
+
+Suppress lines for files that are already Complete (Step 7.B);
+keep lines whose state is Scaffolded-but-unfilled or Missing.
 
 If Step 2.6 ran on *Skip migration*, the Migrated line becomes:
 

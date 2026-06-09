@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 4.0.1
+version: 4.2.0
 ---
 
 # SPADES Learn
@@ -137,52 +137,60 @@ When invoked in the default mode:
    - If `public_safe: true` → write `.spades/learnings/YYYY-MM-DD-<slug>.md`.
    - If `public_safe: false` → write `.spades/learnings/private/YYYY-MM-DD-<slug>.md`.
 
-   ##### Additionally render the HTML (HTML mode only)
+   ##### Dispatch `worker-html-learning` in parallel (HTML mode only)
 
-   When `review_format: html`, after the `.md` above is written,
-   render the HTML companion file. The `.md` is unchanged; the
-   `.html` is **additive**.
+   When `review_format: html`, dispatch the `.html` render via
+   `worker-html-learning` per
+   `docs/FRAMEWORK.md § worker-html-* — parallel HTML rendering`
+   in the same wave as the `.md` write (so the main agent never
+   blocks on template I/O). No inline render.
 
-   **You MUST render via the bundled `template.html`. Do NOT
-   hand-roll the HTML.** Validate the template exists and the named
-   blocks below match the markers in the actual file before
-   substituting; abort and surface any mismatch. See
-   `docs/FRAMEWORK.md § Output Format → HTML rendering: validate
-   and use the bundled template` for the canonical rule.
+   Worker inputs:
 
-   - Read the template at
-     `${CLAUDE_PLUGIN_ROOT}/skills/learn/template.html`.
-   - Validate it contains the block markers listed below; if any
-     are missing, abort.
-   - Substitute placeholders per `docs/FRAMEWORK.md § Output
-     Format`:
-     - Frontmatter values fill `{{spades.id}}`, `{{spades.title}}`,
-       `{{spades.area}}`, `{{spades.status}}`, `{{spades.created}}`,
-       `{{spades.public_safe}}`.
-     - The frontmatter YAML block also goes verbatim into the
-       `<script type="application/yaml" id="spades-frontmatter">` tag.
-     - `<!-- SPADES-BLOCK:tags-items -->` — repeated once per tag.
-       Per-item: `{{block.tag}}`.
-     - `<!-- SPADES-BLOCK:related-items -->` — repeated once per
-       related-link bullet. Per-item: `{{block.text}}`,
-       `{{block.href|}}`.
-     - `<!-- SPADES-BLOCK:audit-events -->` — repeated once per
-       audit entry in both the visible timeline and the
-       `<script type="application/yaml" id="spades-audit-trail">`
-       YAML block. Per-item: `{{block.date}}`, `{{block.desc}}`.
-     - The prose body sections (`What we learned`, `Why it matters
-       for future work`, etc.) are direct
-       `{{spades.<section>_html}}` substitutions, not repeating
-       blocks.
-   - If `public_safe: true` → write `.spades/learnings/YYYY-MM-DD-<slug>.html`.
-   - If `public_safe: false` → write `.spades/learnings/private/YYYY-MM-DD-<slug>.html`.
-   - Auto-open via OPEN_CMD
-     (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the
-     file path with "open this in your browser" if `OPEN_CMD` is
-     empty.
-   - The `.md` written above is unchanged — both files coexist.
-5. **Done.** The file is on disk. Private learnings live under
-   `.spades/learnings/private/` which is gitignored.
+   - `template_path`:
+     `${CLAUDE_PLUGIN_ROOT}/skills/learn/template.html`
+   - `output_path`:
+     `.spades/learnings/YYYY-MM-DD-<slug>.html` (public) or
+     `.spades/learnings/private/YYYY-MM-DD-<slug>.html` (private)
+   - `frontmatter`: `{ id, title, area, status, created,
+     public_safe }` (also embedded verbatim as the YAML in the
+     `<script id="spades-frontmatter">` tag)
+   - `blocks`:
+     - `tags-items` — one per tag. Field: `tag`.
+     - `related-items` — one per related-link bullet. Fields:
+       `text, href`.
+     - `audit-events` — one per audit entry. Fields:
+       `date, desc`.
+   - `prose_sections`: `{ what_we_learned_html, why_it_matters_html, ... }`
+
+   Required template markers:
+   `<!-- SPADES-BLOCK:tags-items -->`,
+   `<!-- SPADES-BLOCK:related-items -->`,
+   `<!-- SPADES-BLOCK:audit-events -->`.
+5. **End-of-skill brief.** Branch on `review_format:`:
+
+   **HTML mode** — 3 lines, no body dump:
+
+   ```
+   ✓ Learning captured: YYYY-MM-DD-<slug>.md
+   ○ .spades/learnings/YYYY-MM-DD-<slug>.html opened in browser
+   Next: /spades:status — see what else is in flight
+   ```
+
+   **CLI mode** — confirm the write, then print the assembled
+   learning body once as the review surface:
+
+   ```
+   ✓ Learning captured: YYYY-MM-DD-<slug>.md
+
+   <contents of the learning .md>
+
+   Next: /spades:status — see what else is in flight
+   ```
+
+   Private learnings (`public_safe: false`) live under the
+   gitignored `.spades/learnings/private/` directory; the brief
+   notes the private path in place of the public one.
 
 ## Refresh flow (`--refresh`)
 

@@ -1,7 +1,7 @@
 ---
 name: patterns
 description: Create or maintain PATTERNS.md, the project's durable list of APPROVED patterns and conventions — code organisation, error handling, testing, naming. Use when someone says "set up PATTERNS.md", "document our conventions", "what patterns do we use", "update the patterns doc", or when PATTERNS.md is missing, still an unfilled template, or flagged stale. The human composes the patterns; this skill structures and probes but never authors it.
-version: 1.0.1
+version: 1.2.0
 ---
 
 # SPADES Patterns
@@ -255,32 +255,28 @@ Then confirm what changed and remind the human that
 
 There is no Linear step.
 
-### Transient HTML preview (HTML mode only)
+### HTML mode — parallel render dispatch
 
-When `review_format: html`, during/after the section-by-section
-walk, also render a transient preview:
+When `review_format: html`, after `PATTERNS.md` is written,
+dispatch **two** `worker-html-patterns` sub-agents in parallel
+per `docs/FRAMEWORK.md § worker-html-* — parallel HTML
+rendering`:
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-markers match before substituting; abort and surface any
-mismatch. See `docs/FRAMEWORK.md § Output Format → HTML
-rendering: validate and use the bundled template` for the
-canonical rule.
+- **Persistent**: `output_path = .spades/patterns.html`.
+- **Transient**: `output_path = .spades/.tmp/patterns.html`.
 
-1. Read the template at
-   `${CLAUDE_PLUGIN_ROOT}/skills/patterns/template.html`.
-2. Validate it contains the placeholders listed below; if any
-   are missing, abort with: *`template.html` missing required
-   markers — render aborted. `PATTERNS.md` is unchanged.*
-3. Substitute:
-   - `{{spades.project_slug}}`, `{{spades.last_reviewed}}`,
-     `{{spades.rendered_at}}`, `{{spades.plugin_version}}`.
-   - The prose sections render via direct substitutions:
-     `{{spades.code_organisation_html}}`,
-     `{{spades.error_handling_html}}`,
-     `{{spades.testing_html}}`, `{{spades.naming_html}}`.
-4. Write to `.spades/.tmp/patterns.html`.
-5. Auto-open via the OPEN_CMD prelude.
+Both workers take the same inputs:
+
+- `template_path`:
+  `${CLAUDE_PLUGIN_ROOT}/skills/patterns/template.html`
+- `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
+  plugin_version }`
+- `prose_sections`: `{ code_organisation_html,
+  error_handling_html, testing_html, naming_html }`
+
+The worker validates the template placeholders and aborts with:
+*`template.html` missing required markers — render aborted.
+`PATTERNS.md` is unchanged.*
 
 In HTML mode the open `.html` preview IS the review surface
 during the walk — the Socratic conversation stays CLI; the
@@ -288,3 +284,24 @@ during the walk — the Socratic conversation stays CLI; the
 
 `PATTERNS.md` itself stays Markdown in both modes — only the
 preview is HTML.
+
+## End-of-Skill Brief
+
+**HTML mode** — 3 lines, no body dump:
+
+```
+✓ PATTERNS.md written (last reviewed YYYY-MM-DD)
+○ .spades/patterns.html opened in browser
+Next: /spades:anti-patterns · /spades:scope <title>
+```
+
+**CLI mode** — confirm the write, then print the assembled
+`PATTERNS.md` body once as the review surface:
+
+```
+✓ PATTERNS.md written (last reviewed YYYY-MM-DD)
+
+<contents of PATTERNS.md>
+
+Next: /spades:anti-patterns · /spades:scope <title>
+```

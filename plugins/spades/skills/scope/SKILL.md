@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 3.1.4
+version: 3.3.0
 ---
 
 # /spades:scope
@@ -58,15 +58,15 @@ workflow is fine.
 
    - **`present`** → proceed.
    - **`missing`** → **hard gate**. Ask via `AskUserQuestion`:
-     - **Run `/spades:intent` now** *(Recommended)* — compose INTENT
-       before scoping. Invoke `/spades:intent` inline; once it
-       completes, resume here at Step 1.
+     - **Exit — run `/spades:intent` first** *(Recommended)* —
+       exit cleanly with: *"INTENT.md is missing. Run
+       `/spades:intent` to compose it, then re-run
+       `/spades:scope`."* No inline invocation.
      - **Override and proceed without INTENT** — only for
        throwaway / sandbox / prototype repos. Record the override
        in the new Scope's audit trail (see Step 7) with the line:
        `- YYYY-MM-DD: Scope created without INTENT.md (override).`
        Drift risk accepted by the human.
-     - **Abort** — exit, handle manually.
 
    Do not silently proceed if INTENT is missing. The cost of
    running `/spades:intent` is minutes; the cost of months of
@@ -240,15 +240,11 @@ Before finalising, verify:
 
 If any check fails, flag it and help the human fix before writing.
 
-## Step 6 — Optional Second Opinion
+## Step 6 — (no inline review)
 
-Before writing, offer (via `AskUserQuestion`):
-
-- **Yes, run `/spades:review`** on this Scope
-- **No, skip**
-
-If yes, invoke `/spades:review` in Scope Review mode. After the review,
-resume here and ask whether the human wants to adjust the Scope.
+`/spades:scope` does not invoke other skills inline. If the human
+wants a second opinion before planning, the end-of-skill brief
+suggests `/spades:review S-<slug>` as a follow-up command.
 
 ## Step 7 — Write the Scope
 
@@ -329,54 +325,36 @@ linear_issue_id: <id>          # only when backend: linear AND synced
      /spades:ship. Do not edit by hand. -->
 ```
 
-### Step 7.B — Additionally render the HTML (HTML mode only)
+### Step 7.B — HTML render is a parallel worker (HTML mode only)
 
-When `review_format: html`, after the `.md` in Step 7.A is
-written, render the HTML companion file. The `.md` is unchanged;
-the `.html` is **additive**.
+When `review_format: html`, the `.html` companion is rendered by
+`worker-html-scope` dispatched in the same fan-out wave as
+`worker-file-scope` (see Step 8 below). The skill body never
+renders HTML inline.
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-blocks below match the markers in the actual file before
-substituting; abort and surface any mismatch. See
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
-use the bundled template` for the canonical rule.
+Worker inputs:
 
-1. **Read the template** at
-   `${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html`.
-2. **Validate** it contains the block markers listed below; if any
-   are missing, abort.
-3. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
-   Format`:
-   - Frontmatter values fill `{{spades.id}}`, `{{spades.title}}`,
-     `{{spades.status}}`, `{{spades.project}}`, `{{spades.type}}`,
-     `{{spades.priority}}`, `{{spades.origin}}`,
-     `{{spades.created}}`, `{{spades.updated}}`.
-   - The frontmatter YAML block also goes verbatim into the
-     `<script type="application/yaml" id="spades-frontmatter">` tag.
-   - `<!-- SPADES-BLOCK:acceptance-items -->` — repeated once per
-     bullet under `## Acceptance Criteria`. Per-item:
-     `{{block.text}}` (the criterion text), `{{block.checked}}`
-     (boolean flag).
-   - `<!-- SPADES-BLOCK:dependencies-items -->` — repeated once per
-     bullet under `## Dependencies`. Per-item: `{{block.text}}`.
-   - `<!-- SPADES-BLOCK:out-of-scope-items -->` — repeated once per
-     bullet under `## Out of Scope`. Per-item: `{{block.text}}`.
-   - `<!-- SPADES-BLOCK:audit-events -->` — repeated once per audit
-     trail entry, in both the visible timeline and the
-     `<script type="application/yaml" id="spades-audit-trail">`
-     YAML block. Per-item: `{{block.date}}`, `{{block.desc}}`.
-   - The prose body sections (`Statement of Intent`, `Constraints`,
-     `Context`, `Risk / Unknowns`, `Delivery Preference`) are
-     direct `{{spades.<section>_html}}` substitutions, not
-     repeating blocks.
-4. **Write the rendered HTML** to
-   `.spades/scopes/S-<description-slug>.html`.
-5. **Auto-open** the file via the OPEN_CMD prelude from
-   `docs/FRAMEWORK.md § OPEN_CMD detection prelude`. If the OS
-   detection returns empty, print the file path with "open this in
-   your browser". Never crash.
-6. The `.md` from Step 7.A is unchanged — both files coexist.
+- `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html`
+- `output_path`: `.spades/scopes/S-<description-slug>.html`
+- `frontmatter`: `{ id, title, status, project, type, priority,
+  origin, created, updated }` (also embedded verbatim in
+  `<script id="spades-frontmatter">`)
+- `blocks`:
+  - `acceptance-items` — one per `## Acceptance Criteria` bullet.
+    Fields: `text, checked` (boolean).
+  - `dependencies-items` — one per `## Dependencies` bullet.
+    Field: `text`.
+  - `out-of-scope-items` — one per `## Out of Scope` bullet.
+    Field: `text`.
+  - `audit-events` — one per audit-trail entry. Fields:
+    `date, desc`.
+- `prose_sections`: `{ statement_of_intent_html, constraints_html,
+  context_html, risk_unknowns_html, delivery_preference_html }`
+
+Required template markers: `<!-- SPADES-BLOCK:acceptance-items -->`,
+`<!-- SPADES-BLOCK:dependencies-items -->`,
+`<!-- SPADES-BLOCK:out-of-scope-items -->`,
+`<!-- SPADES-BLOCK:audit-events -->`.
 
 ## Step 8 — Backend Mirror (fan-out dispatch)
 
@@ -392,7 +370,8 @@ general-purpose`):
 
 | Sub-agent | Resource owned | Returns |
 |-----------|---------------|---------|
-| `worker-file-scope` | `.spades/scopes/S-<slug>.<ext>` — the scope file rendered per Step 7.A (CLI) or 7.B (HTML). Written **without** `linear_issue_id:` — the coordinator injects it post-dispatch. | `{ status: ok }` |
+| `worker-file-scope` | `.spades/scopes/S-<slug>.md` — the canonical scope `.md`. Written **without** `linear_issue_id:` — the coordinator injects it post-dispatch. | `{ status: ok }` |
+| `worker-html-scope` *(only when `review_format: html`)* | `.spades/scopes/S-<slug>.html` — see Step 7.B for inputs. | `{ status: ok, path, opened }` |
 | `worker-linear-scope` | Linear — create a parent Issue on the active Linear Project with title + description matching the Scope, status "Scoped". Includes the Layer-2 freshness probe. | `{ status: ok, linear_issue_id: "<id>" }` |
 
 After both return, the coordinator:
@@ -422,7 +401,8 @@ local file IS canonical. Nothing else to mirror.
 ✓ Linear Issue:  M-1234   (only when backend: linear)
 
 Next:
-  /spades:plan S-add-ai-helper-bot   — break this scope into plans
+  /spades:plan S-add-ai-helper-bot     — break this scope into plans
+  /spades:review S-add-ai-helper-bot   — optional second opinion before planning
 ```
 
 ## Edit Mode

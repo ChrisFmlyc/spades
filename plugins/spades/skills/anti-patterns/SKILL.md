@@ -1,7 +1,7 @@
 ---
 name: anti-patterns
 description: Create or maintain ANTI-PATTERNS.md, the project's durable list of things the codebase DELIBERATELY AVOIDS — runtime dependencies, hidden state, premature abstraction, and any other "we won't do X" rules. Use when someone says "set up ANTI-PATTERNS.md", "document what we don't do", "we should ban X", "we deliberately avoid Y", "what's forbidden here", "add an anti-pattern", "update the anti-patterns doc", "what shouldn't we do", or when ANTI-PATTERNS.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review. Also use proactively after a Plan rejection that traces to an unwritten prohibition. The human composes the prohibitions; this skill structures and probes but never authors it. SKIP when the human's intent is per-Plan risk capture (use the Plan's Risks & Assumptions section instead) or when documenting an APPROVED pattern (use /spades:patterns).
-version: 1.1.0
+version: 1.3.0
 ---
 
 # SPADES Anti-Patterns
@@ -272,32 +272,28 @@ Then confirm what changed and remind the human that
 
 There is no Linear step.
 
-### Transient HTML preview (HTML mode only)
+### HTML mode — parallel render dispatch
 
-When `review_format: html`, during/after the walk:
+When `review_format: html`, after `ANTI-PATTERNS.md` is written,
+dispatch **two** `worker-html-anti-patterns` sub-agents in
+parallel per `docs/FRAMEWORK.md § worker-html-* — parallel HTML
+rendering`:
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-markers match before substituting; abort and surface any
-mismatch. See `docs/FRAMEWORK.md § Output Format → HTML
-rendering: validate and use the bundled template` for the
-canonical rule.
+- **Persistent**: `output_path = .spades/anti-patterns.html`.
+- **Transient**: `output_path = .spades/.tmp/anti-patterns.html`.
 
-1. Read the template at
-   `${CLAUDE_PLUGIN_ROOT}/skills/anti-patterns/template.html`.
-2. Validate it contains the placeholders listed below; if any
-   are missing, abort with: *`template.html` missing required
-   markers — render aborted. `ANTI-PATTERNS.md` is unchanged.*
-3. Substitute:
-   - `{{spades.project_slug}}`, `{{spades.last_reviewed}}`,
-     `{{spades.rendered_at}}`, `{{spades.plugin_version}}`.
-   - Prose sections via direct substitutions:
-     `{{spades.runtime_deps_html}}`,
-     `{{spades.hidden_state_html}}`,
-     `{{spades.premature_abstraction_html}}`,
-     `{{spades.other_bans_html}}`.
-4. Write to `.spades/.tmp/anti-patterns.html`.
-5. Auto-open via the OPEN_CMD prelude.
+Both workers take the same inputs:
+
+- `template_path`:
+  `${CLAUDE_PLUGIN_ROOT}/skills/anti-patterns/template.html`
+- `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
+  plugin_version }`
+- `prose_sections`: `{ runtime_deps_html, hidden_state_html,
+  premature_abstraction_html, other_bans_html }`
+
+The worker validates the template placeholders and aborts with:
+*`template.html` missing required markers — render aborted.
+`ANTI-PATTERNS.md` is unchanged.*
 
 In HTML mode the open `.html` preview IS the review surface
 during the walk — the Socratic conversation stays CLI; the
@@ -306,3 +302,24 @@ HTML.
 
 `ANTI-PATTERNS.md` itself stays Markdown in both modes — only the
 preview is HTML.
+
+## End-of-Skill Brief
+
+**HTML mode** — 3 lines, no body dump:
+
+```
+✓ ANTI-PATTERNS.md written (last reviewed YYYY-MM-DD)
+○ .spades/anti-patterns.html opened in browser
+Next: /spades:scope <title>
+```
+
+**CLI mode** — confirm the write, then print the assembled
+`ANTI-PATTERNS.md` body once as the review surface:
+
+```
+✓ ANTI-PATTERNS.md written (last reviewed YYYY-MM-DD)
+
+<contents of ANTI-PATTERNS.md>
+
+Next: /spades:scope <title>
+```

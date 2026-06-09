@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generate a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 3.1.4
+version: 3.2.0
 ---
 
 # /spades:plan
@@ -282,67 +282,36 @@ linear_issue_id: <id>                            # only when backend: linear
      /spades:ship. Do not edit by hand. -->
 ```
 
-### Step 5.B — Additionally render the HTML (HTML mode only)
+### Step 5.B — HTML render is a parallel worker (HTML mode only)
 
-When `review_format: html`, after the `.md` in Step 5.A is
-written, render the HTML companion file. The `.md` is unchanged;
-the `.html` is **additive**.
+When `review_format: html`, the `.html` companion is rendered by
+`worker-html-plan` dispatched in the same fan-out wave as
+`worker-file-plan` (see Step 6 below). The skill body never
+renders HTML inline.
 
+Worker inputs:
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-blocks below match the markers in the actual file before
-substituting; abort and surface any mismatch. See
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
-use the bundled template` for the canonical rule.
+- `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html`
+- `output_path`: `.spades/plans/<filename>.html` (same slug as the `.md`)
+- `frontmatter`: `{ id, title, status, scope, deliverable_type,
+  delivery, depends_on, created, updated, … }` (also embedded
+  verbatim in `<script id="spades-frontmatter">`)
+- `blocks`:
+  - `tasks` — one card per task. Fields: `num, title_html,
+    posture, posture_short, effort, routing, depends_on,
+    description_html, approach_html, tests_html`.
+  - `risks-items` — one per `## Risks & Assumptions` bullet.
+    Field: `html`.
+  - `delivery-sequence` — one per step in `## Delivery Sequence`.
+    Field: `html`.
+  - `audit-events` — one per audit entry. Fields: `date, desc`.
+- `prose_sections`: `{ technical_approach_html,
+  testing_verification_html }`
 
-1. **Read the template** at
-   `${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html`.
-2. **Validate** it contains the block markers listed below; if any
-   are missing, abort.
-3. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
-   Format`:
-   - Frontmatter values fill `{{spades.id}}`, `{{spades.title}}`,
-     `{{spades.status}}`, `{{spades.scope}}`, `{{spades.deliverable_type}}`,
-     `{{spades.delivery}}`, `{{spades.depends_on}}`, `{{spades.created}}`,
-     `{{spades.updated}}`, and any others present in the template.
-   - The frontmatter YAML block also goes verbatim into the
-     `<script type="application/yaml" id="spades-frontmatter">` tag.
-   - `<!-- SPADES-BLOCK:tasks -->` — repeated once per task, one
-     card per task. Per-item fields: `{{block.num}}`,
-     `{{block.title_html}}`, `{{block.posture}}`,
-     `{{block.posture_short}}`, `{{block.effort}}`,
-     `{{block.routing}}`, `{{block.depends_on}}`,
-     `{{block.description_html}}`, `{{block.approach_html}}`,
-     `{{block.tests_html}}`.
-   - `<!-- SPADES-BLOCK:risks-items -->` — repeated once per
-     bullet under `## Risks & Assumptions`. Per-item:
-     `{{block.html}}`.
-   - `<!-- SPADES-BLOCK:delivery-sequence -->` — repeated once per
-     step in the `## Delivery Sequence` ordered list. Per-item:
-     `{{block.html}}`.
-   - `<!-- SPADES-BLOCK:audit-events -->` — repeated once per audit
-     trail entry, in both the visible timeline and the
-     `<script type="application/yaml" id="spades-audit-trail">`
-     YAML block. Per-item: `{{block.date}}`, `{{block.desc}}`.
-   - The prose body sections (`Technical Approach`, `Testing &
-     Verification`) are direct `{{spades.<section>_html}}`
-     substitutions, not repeating blocks.
-4. **Write the rendered HTML** to `.spades/plans/<filename>.html`
-   (same `<filename>` slug as CLI mode, only the extension changes).
-5. **Auto-open** the file:
-   ```bash
-   case "$(uname -s)" in
-     Darwin)  OPEN_CMD="open" ;;
-     Linux)   OPEN_CMD="xdg-open" ;;
-     MINGW*|MSYS*|CYGWIN*) OPEN_CMD="start" ;;
-     *)       OPEN_CMD="" ;;
-   esac
-   [ -n "$OPEN_CMD" ] && "$OPEN_CMD" ".spades/plans/<filename>.html"
-   ```
-   If `OPEN_CMD` is empty (unknown OS), print the file path with a
-   "open this in your browser" message. Never crash.
-6. The `.md` from Step 5.A is unchanged — both files coexist.
+Required template markers: `<!-- SPADES-BLOCK:tasks -->`,
+`<!-- SPADES-BLOCK:risks-items -->`,
+`<!-- SPADES-BLOCK:delivery-sequence -->`,
+`<!-- SPADES-BLOCK:audit-events -->`.
 
 ## Step 6 — Fan-out: scope-audit update + backend mirror
 
@@ -356,7 +325,8 @@ message with multiple `Agent` tool calls
 
 | Sub-agent | Resource owned | Returns |
 |-----------|---------------|---------|
-| `worker-file-plan` | `.spades/plans/P-<…>.<ext>` — the plan file rendered per Step 5.A (CLI) or 5.B (HTML). Written **without** `linear_issue_id:` — coordinator injects post-dispatch. | `{ status: ok }` |
+| `worker-file-plan` | `.spades/plans/P-<…>.md` — the canonical plan `.md`. Written **without** `linear_issue_id:` — coordinator injects post-dispatch. | `{ status: ok }` |
+| `worker-html-plan` *(only when `review_format: html`)* | `.spades/plans/P-<…>.html` — see Step 5.B for inputs. | `{ status: ok, path, opened }` |
 | `worker-file-scope-audit` | `.spades/scopes/S-<scope-slug>.<ext>` — update parent Scope frontmatter (`status: planning` if was `scoped`, `updated: <today>`) and append to the audit trail: `- YYYY-MM-DD: Plan drafted — P-<slug>-<suffix>`. | `{ status: ok }` |
 | `worker-linear-plan` *(only when `backend: linear`)* | Linear — create a sub-issue under the parent Scope Issue with title + description matching the Plan; apply labels `ai-planned` + `deliverable_type:<value>`. Includes the Layer-2 freshness probe. | `{ status: ok, linear_issue_id: "<id>" }` |
 

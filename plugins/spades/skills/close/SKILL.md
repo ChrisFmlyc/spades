@@ -1,7 +1,7 @@
 ---
 name: close
 description: The single conversational entry point for closing out a Plan, Scope, or Project. Asks the human what they're doing — finalise as shipped/done/archived (the happy path), reject (Plans only), or abandon (Scopes and Projects only). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging" — the skill figures out which flow applies.
-version: 4.3.2
+version: 4.4.0
 ---
 
 # /spades:close
@@ -693,15 +693,11 @@ When `backend: local`: nothing to mirror. Local mode's source of
 truth is the file on `main`, already updated by Step 4's bookkeeping
 merge.
 
-## Step 8 — Suggest a Learning
+## Step 8 — (no inline learn invocation)
 
-Same hand-off as `/spades:ship` Step 4. Ask via `AskUserQuestion`:
-
-- **Capture a learning** (recommended) — invokes `/spades:learn`
-- **Skip** — no learning this time
-
-If yes, hand off to `/spades:learn` with the plan ID as context. The
-learning will be tagged and stored under `.spades/learnings/`.
+`/spades:close` does not invoke `/spades:learn` inline. Step 9's
+brief surfaces `/spades:learn` as a follow-up suggestion; the
+human runs it separately if there's something worth capturing.
 
 ## Step 9 — Confirm
 

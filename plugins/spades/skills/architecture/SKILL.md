@@ -1,7 +1,7 @@
 ---
 name: architecture
 description: Create or maintain ARCHITECTURE.md, the project's durable statement of HOW the system is built — components, tech stack, data flow, security posture, operational posture. Use when someone says "set up ARCHITECTURE.md", "document our architecture", "what's our tech stack", "describe the system", "capture the components", "what's the data flow", "what's our threat model", "update the architecture doc", "refresh the architecture", "where does the data go", or when ARCHITECTURE.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review (architecture-strategist persona). Also use proactively after a major dependency change, new component introduction, or a Plan that exposes drift between the doc and reality. The human composes the architecture; this skill structures and probes but never authors it. SKIP when the human's intent is per-Plan technical approach (use the Plan's Technical Approach section instead), API-level documentation (use in-code docs / OpenAPI), or process conventions (use /spades:patterns).
-version: 1.0.0
+version: 1.2.0
 ---
 
 # SPADES Architecture
@@ -330,37 +330,28 @@ captured content as a self-contained block the human can scroll back
 to (don't re-emit only on demand). No file preview is rendered.
 Skip ahead to "Writing the File" once all sections are confirmed.
 
-#### HTML mode — transient preview
+#### HTML mode — parallel render dispatch
 
-When `review_format: html`, during/after the section-by-section
-walk, also render a transient preview:
+When `review_format: html`, after `ARCHITECTURE.md` is written,
+dispatch **two** `worker-html-architecture` sub-agents in
+parallel per
+`docs/FRAMEWORK.md § worker-html-* — parallel HTML rendering`:
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-blocks below match the markers in the actual file before
-substituting; abort and surface any mismatch. See
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate
-and use the bundled template` for the canonical rule.
+- **Persistent**: `output_path = .spades/architecture.html`.
+- **Transient**: `output_path = .spades/.tmp/architecture.html`.
 
-1. Read the template at
-   `${CLAUDE_PLUGIN_ROOT}/skills/architecture/template.html`.
-2. Validate it contains the block markers listed below; if any
-   are missing, abort.
-3. Substitute placeholders per
-   `docs/FRAMEWORK.md § Output Format`:
-   - `{{spades.project_slug}}`, `{{spades.last_reviewed}}`,
-     `{{spades.rendered_at}}`, `{{spades.plugin_version}}`.
-   - The prose sections render via direct substitutions:
-     `{{spades.overview_html}}`, `{{spades.tech_stack_html}}`,
-     `{{spades.components_html}}`, `{{spades.data_flow_html}}`,
-     `{{spades.security_html}}`, `{{spades.ops_html}}`.
-4. Write to `.spades/.tmp/architecture.html` (creating
-   `.spades/.tmp/` if missing — auto-gitignored by
-   `/spades:setup`).
-5. Auto-open via the OPEN_CMD prelude
-   (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`) so the
-   human can review the refreshed architecture in the B-style
-   format.
+Both workers take the same inputs:
+
+- `template_path`:
+  `${CLAUDE_PLUGIN_ROOT}/skills/architecture/template.html`
+- `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
+  plugin_version }`
+- `prose_sections`: `{ overview_html, tech_stack_html,
+  components_html, data_flow_html, security_html, ops_html }`
+
+No required block markers (this template uses prose-only
+substitutions; the worker still validates the
+`{{spades.<section>_html}}` placeholders are present).
 
 **In HTML mode the open `.html` preview IS the review surface
 during the walk — do NOT also paste the assembled
@@ -372,3 +363,24 @@ conversational. What must NOT go to the CLI in HTML mode is the
 
 `ARCHITECTURE.md` itself stays Markdown in both modes — only the
 preview is HTML.
+
+## End-of-Skill Brief
+
+**HTML mode** — 3 lines, no body dump:
+
+```
+✓ ARCHITECTURE.md written (last reviewed YYYY-MM-DD)
+○ .spades/architecture.html opened in browser
+Next: /spades:patterns · /spades:anti-patterns
+```
+
+**CLI mode** — confirm the write, then print the assembled
+`ARCHITECTURE.md` body once as the review surface:
+
+```
+✓ ARCHITECTURE.md written (last reviewed YYYY-MM-DD)
+
+<contents of ARCHITECTURE.md>
+
+Next: /spades:patterns · /spades:anti-patterns
+```
