@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generate a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 3.2.0
+version: 3.3.0
 ---
 
 # /spades:plan
@@ -192,14 +192,20 @@ For each task, declare:
 Tasks in recommended execution order, noting which can run in
 parallel.
 
-### Deliverable Type
+### Deliverable Type — handled mode-specifically
 
-Ask the human (via `AskUserQuestion`):
-- **`code`** — produces code merged via a PR (default for software work)
-- **`artefact`** — produces a tangible thing (document, dataset, config)
-- **`action`** — a one-off human action (server install, vendor call)
+`deliverable_type:` drives what `/spades:ship` does later.
 
-This drives what `/spades:ship` does later.
+- **CLI mode**: the full draft body was pasted to the terminal in
+  Step 4 with the AI's `deliverable_type:` choice visible. Ask the
+  human now via `AskUserQuestion` to confirm or change:
+  - **`code`** — produces code merged via a PR (default for software work)
+  - **`artefact`** — produces a tangible thing (document, dataset, config)
+  - **`action`** — a one-off human action (server install, vendor call)
+- **HTML mode**: the human has not seen the rendered artefact yet.
+  Default to `code` for the initial draft and **defer** the confirm
+  question to Step 5.x (after the worker dispatch opens the
+  `.html`). Do NOT ask `AskUserQuestion` here.
 
 ## Step 5 — Write the Plan File
 
@@ -312,6 +318,22 @@ Required template markers: `<!-- SPADES-BLOCK:tasks -->`,
 `<!-- SPADES-BLOCK:risks-items -->`,
 `<!-- SPADES-BLOCK:delivery-sequence -->`,
 `<!-- SPADES-BLOCK:audit-events -->`.
+
+### Step 5.C — Post-render deliverable_type confirm (HTML mode only)
+
+Now that the worker dispatch has rendered `.html` and the human
+has the browser tab open, ask via `AskUserQuestion`:
+
+- **`code`** *(default)* — produces code merged via a PR
+- **`artefact`** — produces a tangible thing (document, dataset, config)
+- **`action`** — a one-off human action (server install, vendor call)
+
+If the human picks something other than `code`, apply a targeted
+edit to the `.md` frontmatter (`deliverable_type:` field) and
+re-dispatch `worker-html-plan` so the `.html` re-renders with the
+corrected value.
+
+CLI mode already asked this in Step 4.
 
 ## Step 6 — Fan-out: scope-audit update + backend mirror
 
