@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:do` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.5.0
+version: 3.6.0
 ---
 
 # /spades:evaluate
@@ -481,9 +481,22 @@ or `awaiting human execution` line in the audit trail.
 
 4. Proceed to Step 5.
 
-### Step 5 — Compile the report and pick a verdict
+### Step 5 — Compile the report, auto-derive verdict + draft rationale
 
-Combine AI rows + Human rows into the standard report:
+Combine AI rows + Human rows into the standard report. Then
+**auto-derive** the overall verdict from the row outcomes (no
+AskUserQuestion yet):
+
+- Any row `FAIL` → overall `FAIL`.
+- All rows `PASS` → overall `PASS`.
+- Otherwise (any `PARTIAL`, or mix of `PASS` and `PARTIAL`) →
+  overall `PARTIAL`.
+
+**Draft a one-paragraph rationale** that summarises the row
+outcomes — what's the take-away the next reader should have?
+Keep it tight (2–3 sentences). The human can edit at Step 5.6.
+
+The full assembled report shape:
 
 ```markdown
 ## Evaluation: P-rag-pipeline-lookup-3HyD
@@ -510,48 +523,31 @@ Routing: hybrid (AI verified C1, C3, Q; Human verified C2, C4)
 
 ### Overall Verdict
 
-PARTIAL — C4 needs a follow-up.
+PARTIAL — C4 needs a follow-up. (AI-derived from row outcomes;
+human confirms at Step 5.6.)
 ```
 
-Ask the human via `AskUserQuestion`:
+### Step 5.5 — Render the report with the derived verdict
 
-1. **PASS — ready to ship**
-2. **PARTIAL — specific fixes needed** (capture them free-form;
-   they become new tasks on the Plan or a new dependent Plan)
-3. **FAIL — rework required** (discuss re-Plan vs re-Scope)
-
-The human owns the final verdict in every routing mode — even AI
-mode where AI proposed it.
-
-**Then capture a one-paragraph rationale.** After the verdict
-choice, ask free-form: *"In a sentence or two, why this verdict?
-What's the take-away the next reader should have?"* The reply
-becomes `{{spades.verdict_summary_html}}` in page 2's
-summary card. Trim and HTML-escape; keep `<p>` wrapping minimal.
-
-### Step 5.5 — Present the evaluation report
-
-**Read `review_format:` from `.spades/config` and branch.** Step 5
-picked the verdict and captured the rationale; this step presents
-the completed report as the closing review surface. Both modes have
-a Step 5.5 — only the surface differs.
+**Read `review_format:` from `.spades/config` and branch.** The
+verdict and rationale come from Step 5's auto-derivation (no human
+input yet). This step renders the report so the human reviews a
+COMPLETE artefact before approving at Step 5.6.
 
 #### CLI mode
 
-The report table emitted during Step 5 IS the closing report surface
-— leave it on screen. Print one anchor line so the verdict is
-unambiguous:
+Print the full compiled table (the Step 5 shape above) inline.
+Anchor the verdict line:
 
 ```
-✓ Evaluation report above — verdict: <PASS|PARTIAL|FAIL>. Plan audit-trail line records the same verdict.
+○ Verdict (proposed): <PASS|PARTIAL|FAIL>. Confirm or override below.
 ```
 
 #### HTML mode — page 2 dispatch
 
-After the verdict is picked at Step 5 AND the human's rationale
-is captured, dispatch `worker-html-evaluation` for page 2 in the
-same fan-out wave as the verdict's `worker-file-plan-evaluate`
-audit-trail update (see "Write the Verdict" below).
+Dispatch `worker-html-evaluation` for page 2 to render the report
+with the derived verdict + draft rationale. Wait for the worker
+to return + the browser tab to open before Step 5.6 fires.
 
 Worker inputs (page 2: `mode = report`):
 
@@ -585,21 +581,41 @@ Worker inputs (page 2: `mode = report`):
 
 Required template markers: same as page 1.
 
-After the worker returns, print the brief:
+After the worker returns, print:
 
 ```
 ○ Evaluation report opened: .spades/evaluations/<plan-id>-<date>-report.html
-○ Verdict: <PASS|PARTIAL|FAIL>. Audit-trail line on the Plan is authoritative.
+○ Verdict (proposed): <PASS|PARTIAL|FAIL>. Confirm or override below.
 ```
 
 Both HTML pages now exist side by side: the pre-start
 verification plan (page 1, written at Step 2.5) and the
-completed report (page 2). The human can compare them.
+proposed-verdict report (page 2). The human can compare them.
 
-In CLI mode the audit-trail line written by the fan-out below is
-the only file artefact — no HTML pages are written. The CLI
-surfaces emitted at Step 2.5 and Step 5.5 are the human's review
-record.
+In CLI mode the verdict-table emitted at Step 5.5 is the human's
+review surface; no HTML page is written.
+
+### Step 5.6 — Confirm the verdict (the gate)
+
+Now that the report is visible (browser tab open in HTML mode;
+compiled table on screen in CLI mode), ask via `AskUserQuestion`:
+
+1. **Confirm `<derived-verdict>`** — accept the proposed verdict
+   and rationale as drafted.
+2. **Override to PASS** *(only available if derived ≠ PASS)*
+3. **Override to PARTIAL** *(only available if derived ≠ PARTIAL)*
+4. **Override to FAIL** *(only available if derived ≠ FAIL)*
+5. **Edit rationale** — keep the verdict, ask free-form for the
+   rationale text, then re-render.
+
+If the human overrides verdict or edits rationale → apply targeted
+edit to the in-memory data and re-dispatch `worker-html-evaluation`
+to re-render page 2 (HTML mode) or re-emit the table (CLI mode).
+Loop back to this question after the re-render — never advance to
+"Write the Verdict" until the human picks **Confirm**.
+
+The human owns the final verdict in every routing mode — even AI
+mode where AI proposed it. Step 5.6 is the gate.
 
 ## Write the Verdict (fan-out dispatch)
 
