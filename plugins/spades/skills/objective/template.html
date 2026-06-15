@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<!-- SPADES template: objective v1.0.0 (matches plugin objective skill v1.0.0) -->
+<!--
+  Section blocks:
+    audit-events  — one per audit trail entry (uses {{block.date}}, {{block.desc}})
+  Placeholders:
+    {{spades.slug}} {{spades.title}} {{spades.project}} {{spades.status}}
+    {{spades.strategy_link}} {{spades.created}} {{spades.updated}}
+    {{spades.objective_html}} {{spades.backend}}
+    {{spades.linear_milestone_id}} {{spades.linear_issue_id}}
+    {{spades.plugin_version}} {{spades.rendered_at}}
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{spades.slug}} — SPADES Objective</title>
+<style>
+  :root {
+    --gold: #FFC107;
+    --gold-light: #FFDE59;
+    --gold-soft: #fff4cc;
+    --ink: #1a1a1a;
+    --panel: #ffffff;
+    --page: #fafafa;
+    --gray: #e8e8e8;
+    --gray-text: #5a5a5a;
+    --border: #d4d4d4;
+    --st-open:      #3b82f6;
+    --st-complete:  #047857;
+    --st-abandoned: #6b7280;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--page); color: var(--ink); font-size: 17.5px; line-height: 1.6; }
+  .layout { display: grid; grid-template-columns: 375px minmax(0, 1fr); min-height: 100vh; }
+  aside.sidebar { background: var(--panel); border-right: 1px solid var(--border); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .sidebar-header { background: var(--gold); padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--ink); }
+  .sidebar-header .brand { font-size: 0.72rem; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; }
+  .sidebar-header .id { font-family: ui-monospace, monospace; font-size: 0.92rem; margin-top: 0.4rem; word-break: break-all; }
+  .sidebar-section { padding: 1.25rem 1.4rem; border-bottom: 1px solid var(--gray); }
+  .sidebar-section h3 { font-size: 0.7rem; color: var(--gray-text); font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 0.85rem; }
+  .meta-row { display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; font-size: 0.92rem; gap: 0.5rem; }
+  .meta-row .key { color: var(--gray-text); }
+  .meta-row .val { font-weight: 500; text-align: right; word-break: break-all; }
+  .anchor-nav { padding: 0.5rem 0; }
+  .anchor-nav h3 { padding: 0 1.4rem; margin-bottom: 0.4rem; font-size: 0.7rem; color: var(--gray-text); font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; }
+  .anchor-nav a { display: block; padding: 0.55rem 1.4rem; color: var(--ink); text-decoration: none; font-size: 0.92rem; border-left: 3px solid transparent; }
+  .anchor-nav a:hover { background: var(--gold-light); border-left-color: var(--gold); }
+  main { padding: 3rem 4rem; min-width: 0; }
+  main h1 { font-size: 2.1rem; font-weight: 700; line-height: 1.2; margin-bottom: 0.5rem; }
+  .crumbs { font-family: ui-monospace, monospace; font-size: 0.85rem; color: var(--gray-text); margin-bottom: 0.5rem; }
+  section { margin-bottom: 2.5rem; scroll-margin-top: 1rem; }
+  section h2 { font-size: 0.88rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.85rem; color: var(--gray-text); border-bottom: 1px solid var(--border); padding-bottom: 0.55rem; }
+  section h2::before { content: ""; display: inline-block; width: 4px; height: 14px; background: var(--gold); margin-right: 0.5rem; vertical-align: middle; }
+  section p { margin-bottom: 0.8rem; }
+  code { font-family: ui-monospace, monospace; background: var(--gray); padding: 0.12rem 0.42rem; border-radius: 3px; font-size: 0.92em; }
+  .pill { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; color: white; }
+  .pill.open      { background: var(--st-open); }
+  .pill.complete  { background: var(--st-complete); }
+  .pill.abandoned { background: var(--st-abandoned); }
+  .audit-timeline { background: var(--panel); border: 1px solid var(--border); border-radius: 5px; padding: 1rem 1.5rem; }
+  .audit-timeline .event { padding: 0.6rem 0; padding-left: 1.5rem; border-left: 2px solid var(--gold); margin-left: 0.5rem; position: relative; }
+  .audit-timeline .event::before { content: ""; position: absolute; left: -6px; top: 0.85rem; width: 10px; height: 10px; border-radius: 50%; background: var(--gold); border: 2px solid white; box-shadow: 0 0 0 1px var(--ink); }
+  .audit-timeline .event .date { font-family: ui-monospace, monospace; font-size: 0.85rem; color: var(--gray-text); }
+  .audit-timeline .event .desc { font-size: 0.95rem; margin-top: 0.18rem; }
+  footer { padding: 1.2rem 4rem; color: var(--gray-text); font-size: 0.8rem; border-top: 1px solid var(--border); }
+  @media (min-width: 1600px) { main { padding: 3rem 6rem; } }
+  @media (min-width: 2200px) { main { padding: 3.5rem 8rem; } }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.sidebar { position: static; height: auto; border-right: none; border-bottom: 2px solid var(--gold); }
+    main { padding: 2rem 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<script type="application/yaml" id="spades-frontmatter">
+id: {{spades.slug}}
+title: "{{spades.title}}"
+project: {{spades.project}}
+status: {{spades.status}}
+strategy_link: {{spades.strategy_link}}
+created: {{spades.created}}
+updated: {{spades.updated}}
+linear_milestone_id: {{spades.linear_milestone_id}}
+linear_issue_id: {{spades.linear_issue_id}}
+</script>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">SPADES · Objective</div>
+        <div class="id">{{spades.slug}}</div>
+      </div>
+      <div class="sidebar-section">
+        <h3>Status</h3>
+        <span class="pill {{spades.status}}">{{spades.status}}</span>
+      </div>
+      <div class="sidebar-section">
+        <h3>Properties</h3>
+        <div class="meta-row"><span class="key">Project</span><span class="val">{{spades.project}}</span></div>
+        <div class="meta-row"><span class="key">Strategy link</span><span class="val">{{spades.strategy_link}}</span></div>
+        <div class="meta-row"><span class="key">Backend</span><span class="val">{{spades.backend}}</span></div>
+        <div class="meta-row"><span class="key">Created</span><span class="val">{{spades.created}}</span></div>
+        <div class="meta-row"><span class="key">Updated</span><span class="val">{{spades.updated}}</span></div>
+      </div>
+      <nav class="anchor-nav">
+        <h3>Sections</h3>
+        <a href="#objective">Objective</a>
+        <a href="#audit">Audit Trail</a>
+      </nav>
+    </aside>
+    <main>
+      <div class="crumbs">{{spades.project}} · objective · {{spades.slug}}</div>
+      <h1>{{spades.title}}</h1>
+
+      <section id="objective">
+        <h2>Objective</h2>
+        {{spades.objective_html}}
+      </section>
+
+      <section id="audit">
+        <h2>Audit Trail</h2>
+        <div class="audit-timeline">
+          <!-- SPADES-BLOCK:audit-events -->
+          <div class="event"><div class="date">{{block.date}}</div><div class="desc">{{block.desc}}</div></div>
+          <!-- SPADES-ENDBLOCK -->
+        </div>
+      </section>
+      <footer>SPADES · v{{spades.plugin_version}} · template: Objective · rendered {{spades.rendered_at}}</footer>
+    </main>
+  </div>
+<script type="application/yaml" id="spades-audit-trail">
+<!-- SPADES-BLOCK:audit-events -->
+- date: {{block.date}}
+  desc: "{{block.desc}}"
+<!-- SPADES-ENDBLOCK -->
+</script>
+</body>
+</html>

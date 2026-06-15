@@ -1,7 +1,7 @@
 ---
 name: status
 description: Show the current SPADES phase, progress, and dependency graph for active work. Use when someone asks "where are we", "what's the status", "show progress", or any question about current state. Renders the Plan dependency graph so the human can see which plans are unblocked vs waiting.
-version: 0.1.2
+version: 0.2.0
 ---
 
 # /spades-anywhere:status
@@ -44,6 +44,11 @@ modes — only the presentation changes.
 3. **Quick items.** Glob `.spades-anywhere/quick/Q-*.md`. Parse
    frontmatter for `title`, `type`, `status`, `evidence_ref`,
    `delivery`. Filter to the active project.
+4. **Objectives.** Glob `.spades-anywhere/objectives/O-*.md` for `open`
+   objectives in the active project. Parse `title`, `status`,
+   `strategy_link`. Objectives are a flat, independent track — they
+   have no plans, phases, or dependency graph (see
+   `docs/FRAMEWORK.md § Hierarchy → Objectives`).
 
 ### When `backend: linear`
 
@@ -60,10 +65,14 @@ modes — only the presentation changes.
    in step 4.
 3. **Quick items.** Glob `.spades-anywhere/quick/Q-*.md` for the
    active project — the marker file is canonical for both backends.
-4. **Drift probe.** For every Scope and Plan, compare the local
-   `status:` to the Linear workflow state type per
-   `docs/FRAMEWORK.md § Drift detection`. Record any mismatch into
-   a `drift:` list. If any Linear query failed, set
+4. **Objectives.** Glob `.spades-anywhere/objectives/O-*.md` for `open`
+   objectives in the active project (the local file is canonical for
+   both backends). Parse `title`, `status`, `strategy_link`.
+5. **Drift probe.** For every Scope, Plan, and Objective, compare the
+   local `status:` to the Linear workflow state type per
+   `docs/FRAMEWORK.md § Drift detection` (for an Objective, the
+   compared artefact is its sister `O-` tracking issue). Record any
+   mismatch into a `drift:` list. If any Linear query failed, set
    `drift_probe_status: skipped` instead. The probe is
    informational; it does not block rendering.
 
@@ -126,7 +135,19 @@ Fast-track items (no plans):
 |----|-------|------|----------|----------|-----|
 | Q-book-venue-deposit-7Mqz | Book Venue Deposit | errand | human | receipt photo | 3 days |
 | Q-send-thankyou-cards-4nKr | Send Thank-you Cards | errand | human | — | ⚠ 22 days |
+
+Objectives (independent strategic track):
+
+| Objective | Title | Status | Strategy link |
+|-----------|-------|--------|---------------|
+| O-q3-trust-launch | Q3 Trust Launch | open | roadmap-42 |
 ```
+
+The Objectives subsection appears only when at least one `open`
+Objective matches the active project. Objectives are independent of
+Scopes (see `docs/FRAMEWORK.md § Hierarchy → Objectives`) — they have
+no plans, phases, or dependency graph, so they render as a flat
+table, not in the per-Scope detail or the dependency graph.
 
 Quick items appear in their own subsection only when present. They
 have no Plan records. The marker file at

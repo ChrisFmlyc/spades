@@ -1,7 +1,7 @@
 ---
 name: close
-description: The single conversational entry point for closing out a Plan, Scope, or Project in spades-anywhere. Asks the human what they're doing — finalise as shipped/done/archived (the happy path), reject (Plans only), or abandon (Scopes and Projects only). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "we're not doing this", "abandon this scope", "reject this plan". The skill figures out which flow applies. No SCM, no PR — all close flows are pure metadata writes.
-version: 1.1.1
+description: The single conversational entry point for closing out a Plan, Scope, Project, or Objective in spades-anywhere. Asks the human what they're doing — finalise as shipped/done/archived/complete (the happy path), reject (Plans only), or abandon (Scopes, Projects, and Objectives). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "close O-…", "complete this objective", "we're not doing this", "abandon this scope", "reject this plan". The skill figures out which flow applies. No SCM, no PR — all close flows are pure metadata writes.
+version: 1.2.0
 ---
 
 # /spades-anywhere:close
@@ -11,7 +11,7 @@ close; **you ask them what kind of close it is** — pass, reject,
 or abandon — and you do the right thing based on the target type
 and their answer.
 
-Four close flows live in this skill:
+Five close flows live in this skill:
 
 1. **Pass** (happy path) — finalise the artefact's lifecycle.
    - Plan → `status: shipped` (requires `Shipped (artefact)` or
@@ -19,6 +19,9 @@ Four close flows live in this skill:
    - Scope → `status: done` (only when every child Plan is
      terminal; mixed-terminal rollup applies).
    - Project → `status: archived` (graceful sunset).
+   - Objective → `status: complete` (the team lead's **ungated**
+     judgement; no rollup, no gating, no cascade to Project or
+     Scopes — see `docs/FRAMEWORK.md § Hierarchy → Objectives`).
    - Quick item → `status: shipped` (the human confirms with
      evidence; the marker is updated with the actual action +
      evidence).
@@ -27,10 +30,10 @@ Four close flows live in this skill:
    `evaluating`, `shipping`). A Plan in `draft` doesn't need
    rejection — the menu offers *"leave in draft (no-op)"* instead.
    Requires a reason.
-3. **Abandon** — terminal walk-away on a container. Scope or
-   Project → `status: abandoned`. Plans cannot be abandoned (they
-   are attempts, not initiatives — see `docs/FRAMEWORK.md §
-   Terminal States`). Requires a reason.
+3. **Abandon** — terminal walk-away on a container or objective.
+   Scope, Project, or Objective → `status: abandoned`. Plans cannot
+   be abandoned (they are attempts, not initiatives — see
+   `docs/FRAMEWORK.md § Terminal States`). Requires a reason.
 4. **Drop** — quick-item bail. Quick item whose action was
    abandoned or didn't happen → delete the marker file. Quick
    items have no `rejected` / `abandoned` terminal status (per
@@ -43,6 +46,10 @@ no SCM; all flows are pure metadata writes (file edits + Linear
 mirror when applicable). The conversational shape is identical for
 process symmetry.
 
+Objectives use `complete` (not `done`) and have no `rejected` state —
+they are strategic statements, not attempts. Completing or abandoning
+an Objective is independent of its Project and of any Scope.
+
 Read `docs/FRAMEWORK.md` § Target Resolution, § Scope status
 rollup, and § Terminal States before running.
 
@@ -51,14 +58,17 @@ rollup, and § Terminal States before running.
 **Step 0 — Detect the target.**
 
 - If the human passed an explicit ID, resolve it by prefix:
-  `P-<slug>-<suffix>` → Plan; `S-<slug>` → Scope; `Q-<slug>-<suffix>`
-  → Quick item; bare slug that matches a
-  `.spades-anywhere/projects/<slug>.<ext>` → Project.
+  `P-<slug>-<suffix>` → Plan; `O-<slug>` → Objective; `S-<slug>` →
+  Scope; `Q-<slug>-<suffix>` → Quick item; bare slug that matches a
+  `.spades-anywhere/projects/<slug>.<ext>` → Project. (Resolve `O-`
+  before `S-`/`P-` to avoid mis-classifying an objective slug.)
 - If no ID was passed, ask via `AskUserQuestion`:
   - *Plan* → run the Plan picker (status filter: `approved`,
     `delivering`, `evaluating`, `shipping`).
   - *Scope* → run the Scope picker (status filter: any
     non-terminal).
+  - *Objective* → run the Objective picker (glob
+    `.spades-anywhere/objectives/O-*.md`, status filter: `open`).
   - *Quick item* → run the Quick-item picker (glob
     `.spades-anywhere/quick/Q-*.md`, status filter: `shipping`).
   - *Project* → run the Project picker (status filter: `active`).
@@ -100,6 +110,16 @@ For **Projects**:
 | `active` | *Pass — archive (graceful sunset)* / *Abandon* |
 | `archived` / `abandoned` | abort: *"Project `<slug>` is already `<status>`."* |
 
+For **Objectives**:
+
+| Objective status | Menu options |
+|---|---|
+| `open` | *Pass — mark complete (team-lead judgement; no gating)* / *Abandon* |
+| `complete` / `abandoned` | abort: *"Objective `<id>` is already `<status>`."* |
+
+Objectives are **ungated** on Pass — completion is the human's judgement,
+not a rollup. Objectives have no `rejected` option.
+
 **Step 2 — Capture a reason (Reject / Abandon only).**
 
 If the human picked *Reject* or *Abandon*, follow up with a
@@ -119,12 +139,16 @@ one."*
   below). Mixed-terminal aware.
 - *Pass* on a Project → continue to **Project Archive Flow** (new;
   see below).
+- *Pass* on an Objective → continue to **Objective Complete Flow**
+  (see below). Ungated.
 - *Reject* on a Plan → continue to **Plan Reject Flow** (new; see
   below).
 - *Abandon* on a Scope → continue to **Scope Abandonment Flow**
   (existing; below).
 - *Abandon* on a Project → continue to **Project Abandonment Flow**
   (existing; below).
+- *Abandon* on an Objective → continue to **Objective Abandonment
+  Flow** (see below).
 - Quick item (resolved at Step 0) → continue to **Quick Close
   Flow** (no Step 1 menu).
 
@@ -139,12 +163,18 @@ reason inline:
   Abandonment Flow.
 - `/spades-anywhere:close <project-slug> --abandon "reason"` — skip
   to Project Abandonment Flow.
+- `/spades-anywhere:close O-foo --abandon "reason"` — skip to
+  Objective Abandonment Flow.
+
+(Objective *completion* has no flag — it carries no reason; run
+`/spades-anywhere:close O-foo` and pick *Pass* from the menu.)
 
 Invalid flag/target combos abort:
 - `--abandon` with a Plan ID → *"Plans use `rejected`. Use
   `--reject "reason"` instead."*
-- `--reject` with a Scope or Project → *"Scopes and Projects use
-  `abandoned`. Use `--abandon "reason"` instead."*
+- `--reject` with a Scope, Project, or Objective → *"Scopes,
+  Projects, and Objectives use `abandoned` (and complete/done
+  gracefully), not `rejected`. Use `--abandon "reason"` instead."*
 - Either flag with no reason text → *"<flag> needs a reason. Re-run
   with `<flag> "reason text here"`."*
 
@@ -602,6 +632,88 @@ reason required.
 Next:
   /spades-anywhere:list --project <other>  — switch to a different project
 ```
+
+## Objective Complete Flow
+
+Reached when target is an Objective (`O-<slug>`) in `status: open` and the
+human picked *Pass*. This is the team lead's **ungated** judgement that the
+objective is reached. There is **no rollup, no gating on Scopes, and no
+cascade** — completing an Objective never changes the Project's status and
+never touches any Scope (see `docs/FRAMEWORK.md § Hierarchy → Objectives`).
+Pure metadata write — no SCM, no PR.
+
+### O1. Pre-Flight
+1. **Confirm setup + active project.** Read `.spades-anywhere/config`.
+   Abort otherwise.
+2. **Resolve the Objective.** Read
+   `.spades-anywhere/objectives/O-<slug>.<ext>`. Abort if missing. Refuse
+   if `status:` is already `complete` or `abandoned` (*"Objective `<id>` is
+   already `<status>`. Terminal means terminal."*). **Do NOT apply the
+   parent-status precondition** — Objectives are exempt on close
+   (independent of Project lifecycle).
+3. **Linear reconcile probe (when `backend: linear`).** If the sister `O-`
+   tracking issue is already `Done` in Linear (the team lead closed it
+   directly), note that this run is a reconcile — the local `.md` is being
+   brought into line with the already-recorded completion signal.
+4. **HTML mode** — auto-open the Objective's existing `.html` via the
+   OPEN_CMD prelude. Don't paste the Objective body to CLI.
+
+### O2. Edit the Objective file
+- Frontmatter `status:` → `complete`.
+- Frontmatter `updated:` → today's date.
+- Append to `## Audit Trail`:
+
+  ```markdown
+  - YYYY-MM-DD: Objective complete (team-lead judgement).
+  ```
+
+### O3. Linear (completion signal — when `backend: linear`)
+- Move the **sister `O-` tracking issue** → `Done`. This is the act that
+  marks the Objective/milestone complete — *that's how Linear knows*. (If
+  it was already `Done` per the O1 reconcile probe, leave it and just record
+  the comment.)
+- Post a comment on the sister issue: *"Objective complete (team-lead
+  judgement)."*
+- Do **not** touch the Project or any Scope.
+
+Apply the fan-out pattern from `docs/FRAMEWORK.md § Sub-agent Dispatch
+(Fan-Out)` if both local-file edit and Linear mirror need to happen.
+Failure semantics: local file is canonical; Linear failure is surfaced and
+retryable. When `backend: local`: nothing to mirror — the `.md` is the
+completion signal.
+
+### O4. Confirm
+```
+✓ Objective complete:  <O-id>
+✓ Linear:              sister O- issue Done; milestone complete   # omit when backend: local
+✓ Project:             unchanged (no cascade)
+✓ Scopes:              unchanged (independent)
+✓ Status:              complete
+
+Next:
+  /spades-anywhere:objective    — set the next objective for this project
+  /spades-anywhere:status       — review remaining active work
+```
+
+## Objective Abandonment Flow
+
+Reached when target is `O-<slug>` and the human picked *Abandon* (or
+invoked `/spades-anywhere:close O-foo --abandon "reason"`). Identical shape
+to the Objective Complete Flow with three differences:
+
+1. A **reason is required** (Step 2 of the conversational entry captures it,
+   or the `--abandon` flag carries it).
+2. Frontmatter `status:` → `abandoned`; audit line:
+   ```markdown
+   - YYYY-MM-DD: Objective abandoned. Reason: <reason>.
+   ```
+3. Linear mirror (when `backend: linear`): move the sister `O-` tracking
+   issue → `Cancelled` (team equivalent), apply label `spades:abandoned`,
+   and comment *"Objective abandoned. Reason: `<reason>`."* No cascade —
+   Project and Scopes unchanged.
+
+Refuse if already terminal (`complete`/`abandoned`). The parent-status
+precondition does not apply (Objectives are exempt on close).
 
 ## Scope Abandonment Flow
 

@@ -1,4 +1,4 @@
-# SPADES Framework v2.11.0
+# SPADES Framework v2.12.0
 
 SPADES is a human–AI operating model for engineering teams. It is
 backend-agnostic: artefacts can live in Linear (via the Linear MCP), on
@@ -62,6 +62,50 @@ Project (project-slug)             e.g. "closed-door-security-website"
 - **Plan** — a unit of executable work under a scope. Plans can depend
   on earlier plans within the same scope. Each plan is independently
   approvable, doable, evaluable, and shippable.
+
+### Objectives — an independent sibling of Scope
+
+A Project has a second, **independent** kind of child: the **Objective**
+(`O-<slug>`). Objectives and Scopes are parallel — neither is the parent
+of the other:
+
+```
+Project (project-slug)
+├── Objective (O-<slug>)        e.g. "O-q3-trust-launch"   ← independent
+└── Scope (S-<description>)      e.g. "S-add-ai-helper-bot"  ← unchanged
+    └── Plan (P-<description>-<id>)
+```
+
+An **Objective** is *a coherent strategic action associated with a
+project* — in the *Good Strategy / Bad Strategy* (Rumelt) sense of a
+coherent objective, close to the **Objective in OKRs** (though not tied to
+OKRs). SPADES does not own the strategy or roadmap (those live upstream);
+an Objective is the in-SPADES anchor that records *"this project has this
+strategic objective associated with it."*
+
+Rules that define an Objective (the full contract):
+
+- **Independent of Scopes.** An Objective never contains, requires,
+  attaches, or gates on a Scope. A Scope never belongs to an Objective.
+- **Optional and repeatable.** A Project may have zero, one, or many
+  Objectives over its lifetime. Not every project needs one.
+- **Always within a Project.** An Objective cannot exist standalone.
+- **Does not run the six-phase loop.** No plan / approve / do / evaluate /
+  ship. Its states are simply `open → complete | abandoned`.
+- **No cascade.** Completing or abandoning an Objective never changes the
+  Project's status and never touches any Scope. Equally, Project and Scope
+  lifecycle changes never touch an Objective.
+- **The human alone judges completion.** Completion is *ungated* — there is
+  no rollup and no derived state. The team lead decides it is done.
+- **Loose directional relationship to Scopes.** In principle, as Scopes are
+  completed the project moves *closer* to its Objective — but this is a
+  strategic, human-held intuition, not a mechanical link. A human may
+  record a contribution by setting a Scope's optional `strategy_link:` to
+  the Objective ID (e.g. `strategy_link: O-q3-trust-launch`); this is purely
+  documentary and adds no machinery.
+
+The minimal Objective record and its backend mapping are defined in
+§ ID Format, § .spades/ Local Layout, and § Backend Interface below.
 
 ### What sits above a Scope
 
@@ -178,6 +222,14 @@ from its filename), filesystem-safe, and stable.
 - Stored at: `.spades/scopes/S-<description-slug>.md`.
 - The frontmatter `title` preserves the human-readable name.
 
+### Objective ID
+- Form: `O-<description-slug>` — `O-` prefix plus the same slug grammar as
+  a Scope (`[a-z0-9-]{1,64}`, no leading hyphen, no `..`).
+- Stored at: `.spades/objectives/O-<description-slug>.md`.
+- The frontmatter `title` preserves the human-readable name. An Objective
+  is an independent sibling of a Scope (see § Hierarchy → Objectives), not a
+  parent or child of one.
+
 ### Plan ID
 - Form: `P-<description-slug>-<own-suffix>[-<dep-suffix>...]`.
 - `own-suffix` — 4-character base62 (`[A-Za-z0-9]{4}`), randomly minted
@@ -235,6 +287,7 @@ volume is high (plans, where the same description may recur).
 ├── config                                    # backend + active project
 ├── version                                   # framework version (2.0.0)
 ├── projects/<project-slug>.md                # project records
+├── objectives/O-<description-slug>.md        # objective records (independent of scopes)
 ├── scopes/S-<description-slug>.md            # scope records
 ├── plans/P-<desc-slug>-<suffix>[-<dep>...].md # plan records
 ├── quick/Q-<desc-slug>-<suffix>.md           # quick-path items (no Scope/Plan)
@@ -282,6 +335,35 @@ updated: 2026-05-29
 linear_project_id: <uuid>           # only if backend: linear
 ---
 ```
+
+### `.spades/objectives/O-<slug>.md` frontmatter
+
+```yaml
+---
+id: O-q3-trust-launch
+title: "Q3 Trust Launch"
+project: closed-door-security-website
+status: open | complete | abandoned
+strategy_link: <URL | ID | ref>   # optional, may be empty; the upstream
+                                   # roadmap/strategy item, or a fuller
+                                   # definition of the coherent objective
+created: 2026-05-29
+updated: 2026-05-29
+linear_milestone_id: <id>          # only if backend: linear and synced
+linear_issue_id: <id>              # the sister O- tracking issue; only if linear and synced
+---
+```
+
+The body is deliberately **minimal**: a single `## Objective` section
+holding the name plus a 2–4 sentence description of the coherent strategic
+action/outcome. No acceptance criteria, no target date, no owner, no
+priority — the strategy and roadmap already live upstream, and the Objective
+is the downstream anchor. `strategy_link` is the only optional pointer back
+to that upstream definition.
+
+In `local` mode this file is the whole Objective. In `linear` mode it is the
+canonical record mirrored to a milestone + sister issue (see § Backend
+Interface).
 
 ### `.spades/scopes/S-<slug>.md` frontmatter
 
@@ -368,6 +450,10 @@ their storage; skills don't need to know how.
 | `create_project(record)` | Create a project. Returns the project ID. |
 | `get_project(id)` | Fetch a project record. |
 | `list_projects()` | List all known projects. |
+| `create_objective(record)` | Create an objective. Returns the objective ID. |
+| `get_objective(id)` | Fetch an objective record. |
+| `list_objectives(filter)` | List objectives for the active project, filterable by status. |
+| `update_objective(id, fields)` | Update specified fields on an objective (e.g. `status`). |
 | `create_scope(record)` | Create a scope. Returns the scope ID. |
 | `get_scope(id)` | Fetch a scope record. |
 | `list_scopes(filter)` | List scopes for the active project, filterable by status/type. |
@@ -387,6 +473,12 @@ their storage; skills don't need to know how.
 
 **Linear driver** (`backend: linear`):
 - Project → Linear Project
+- Objective → a Linear **ProjectMilestone** (named `O-<slug>`) **plus one
+  sister tracking Issue** assigned to that milestone. The sister issue is
+  the "associated issue" a milestone needs — it is NOT a Scope. Its **Done**
+  state is the authoritative completion signal for the Objective; audit
+  comments (created/complete/abandoned) post to it. Both objects must exist;
+  a milestone alone is not a valid Objective.
 - Scope → parent Issue
 - Plan → sub-issue under the parent
 - `record_*` operations → comments on the parent issue
@@ -394,6 +486,8 @@ their storage; skills don't need to know how.
 
 **Local driver** (`backend: local`):
 - Reads and writes the files described under § .spades/ Local Layout
+- An Objective is just `.spades/objectives/O-<slug>.md` — no milestone, no
+  issue; `status: complete` is its completion signal
 - `record_*` operations append to the body of the relevant scope/plan
   under an `## Audit Trail` heading
 
@@ -527,17 +621,25 @@ refuse hard when this check fails — there is no override.
 |--------|--------------------|
 | Plan | Parent Scope; grandparent Project |
 | Scope | Parent Project |
+| Objective | Parent Project |
 | Project | (no ancestors — skip) |
 
 **The rule applies to:** `/spades:scope` (create and edit modes),
-`/spades:plan`, `/spades:approve`, `/spades:do`, `/spades:evaluate`,
-`/spades:ship`, and `/spades:close` on the **Pass** route.
+`/spades:objective` (create and edit modes — no new Objective under an
+abandoned/archived Project), `/spades:plan`, `/spades:approve`,
+`/spades:do`, `/spades:evaluate`, `/spades:ship`, and `/spades:close` on
+the **Pass** route (Plan ship and Scope rollup).
 
 **Exemptions:**
 
 - `/spades:close --abandon` and `/spades:close --reject` are the
   actions that *create* terminal status; they do not refuse based
   on their own outcome.
+- **Objective close flows** (`complete` and `abandon`) are exempt from the
+  parent-status check. An Objective is independent of the Project's
+  lifecycle (§ Hierarchy → Objectives), so the team lead may wrap up an
+  Objective even as its Project winds down. Only *creating/editing* an
+  Objective is gated on the Project being active.
 - `/spades:list` and `/spades:status` are read-only; they surface
   abandoned ancestors and their descendants (under the `all` filter)
   without refusing.
@@ -675,15 +777,23 @@ deliberately different meanings:
   Plan does NOT terminate the parent Scope — write another Plan and
   keep going.
 
-- **`abandoned`** (Scopes and Projects) — *"We're not doing this
-  initiative. Full stop, never."* A terminal walk-away on **the
-  whole thing**. Set by `/spades:close <target> --abandon "reason"`.
-  The reason text is required; abandoning an initiative without
-  recording why is exactly the audit-trail hole this framework
+- **`abandoned`** (Scopes, Projects, and Objectives) — *"We're not
+  doing this initiative. Full stop, never."* A terminal walk-away on
+  **the whole thing**. Set by `/spades:close <target> --abandon
+  "reason"`. The reason text is required; abandoning an initiative
+  without recording why is exactly the audit-trail hole this framework
   exists to prevent.
 
 - **`done`** (Scopes) / **`shipped`** (Plans) / **`archived`**
-  (Projects) — graceful completion. The artefact ran its arc.
+  (Projects) / **`complete`** (Objectives) — graceful completion. The
+  artefact ran its arc.
+
+Objectives have **no `rejected`** state (there is no approach to reject —
+an Objective is a strategic statement, not an attempt). Completing an
+Objective (`complete`) is the team lead's **ungated** judgement: it is not
+gated on any Scope, runs no rollup, and — like every Objective transition —
+has **no cascade** to the Project or to Scopes (and none reaches it). See
+§ Hierarchy → Objectives.
 
 Directional rule: `rejected → abandoned` is allowed (you rejected
 several Plans, then decided the whole Scope isn't worth doing →
@@ -1362,7 +1472,7 @@ make.
 
 #### What gets compared
 
-For each Plan, Scope, and Project surfaced by the skill:
+For each Objective, Plan, Scope, and Project surfaced by the skill:
 
 1. Read the local file's frontmatter `status:` value.
 2. Read the corresponding Linear artefact's **workflow state type**
@@ -1388,6 +1498,15 @@ For each Plan, Scope, and Project surfaced by the skill:
 | Project `active` | not `completed`/`canceled` |
 | Project `archived` | `completed` |
 | Project `abandoned` | `canceled` |
+| Objective `open` | sister issue not `completed`/`canceled` |
+| Objective `complete` | sister issue `completed` |
+| Objective `abandoned` | sister issue `canceled` |
+
+For an Objective, the compared Linear artefact is its **sister `O-`
+tracking issue** (the milestone has no workflow state of its own). If the
+team lead moved the sister issue to Done directly in Linear while the local
+file still reads `open`, the probe surfaces it and points at
+`/spades:close O-… ` to reconcile the local record.
 
 If Linear is in a workflow type that isn't in the expected set,
 that's drift.
