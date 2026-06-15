@@ -8,6 +8,39 @@ skill's SKILL.md changes). The consumer-repo marker block in
 `AGENTS.md` carries the plugin version via
 `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.0.0] — 2026-06-15
+
+**MAJOR** — Headline feature: Objectives (`O-`), a first-class
+strategic layer independent of Scopes. This release also reconciles
+the recorded plugin version with the manifest: `plugin.json` had
+advanced to `5.0.0` during the skill-isolation refactors while the
+CHANGELOG, `marketplace.json`, and `.spades/version` lagged at the
+3.x line — all are now aligned at `5.0.0`.
+
+An **Objective** is a coherent strategic action associated with a
+project (Rumelt / OKR-objective sense). It is an independent sibling
+of a Scope — never a parent or child, never attaches to or gates on a
+Scope. Objectives are optional, repeatable, and do not run the
+six-phase loop; their states are `open → complete | abandoned`.
+Completion is the team lead's ungated judgement and never cascades to
+the Project or any Scope. The record is minimal (name + 2–4 sentence
+description, optional `strategy_link`). In `linear` mode an Objective
+mirrors to a ProjectMilestone (`O-<slug>`) plus a sister tracking
+Issue whose Done state is the completion signal; in `local` mode it is
+just `.spades/objectives/O-<slug>.md`.
+
+- **New skill**: `/spades:objective` (create or edit) — version `1.0.0`.
+- **FRAMEWORK.md** (v2.11.0 → v2.12.0): Hierarchy → Objectives;
+  Objective ID; local-layout `objectives/`; objectives frontmatter
+  schema; backend ops (`create/get/list/update_objective`) + driver
+  mapping; Terminal states (`complete`, no `rejected`);
+  Target-Resolution ancestor row + objective-close exemption; Drift
+  status-type mapping.
+- Skills bumped: `objective` (new) 1.0.0, `close` 4.4.0 → 4.5.0
+  (Objective Complete + Abandonment flows), `list` 3.2.0 → 3.3.0,
+  `status` 3.2.0 → 3.3.0. AGENTS.md updated (skill table, hierarchy,
+  fan-out).
+
 ## [3.11.0] — 2026-06-06
 
 **MINOR** — Harden `/spades:close` against bad `gh pr view`

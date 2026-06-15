@@ -7,6 +7,30 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the plugin
 version via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
+## [0.10.0] — 2026-06-15
+
+**MINOR** — Mirror of `spades` v3.12.0: add Objectives (`O-`), a
+first-class strategic layer independent of Scopes.
+
+An **Objective** is a coherent strategic action associated with a
+project, an independent sibling of a Scope (never a parent/child,
+never gates on a Scope). Optional, repeatable, outside the six-phase
+loop; states `open → complete | abandoned`. Completion is the team
+lead's ungated judgement, no cascade. Minimal record (name + 2–4
+sentence description, optional `strategy_link`). In `linear` mode it
+mirrors to a ProjectMilestone (`O-<slug>`) plus a sister tracking
+Issue; in `local` mode it is just
+`.spades-anywhere/objectives/O-<slug>.md`. All close flows are pure
+metadata writes (no SCM, no PR), matching the rest of this plugin.
+
+- **New skill**: `/spades-anywhere:objective` (create or edit) — `1.0.0`.
+- **FRAMEWORK.md** (v0.1.0 → v0.2.0): Hierarchy → Objectives;
+  Objective ID; local-layout `objectives/`; objectives frontmatter;
+  backend ops + driver mapping; Terminal states; Target-Resolution
+  ancestor row + objective-close exemption; Drift status mapping.
+- Skills bumped: `objective` (new) 1.0.0, `close` 1.1.1 → 1.2.0,
+  `list` 0.1.2 → 0.2.0, `status` 0.1.2 → 0.2.0. AGENTS.md updated.
+
 ## [0.9.0] — 2026-06-06
 
 **MINOR** — Mirror of `spades` v3.10.0's parent-status precondition.

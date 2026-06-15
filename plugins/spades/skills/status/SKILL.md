@@ -1,7 +1,7 @@
 ---
 name: status
 description: Show the current SPADES phase, progress, and dependency graph for active work. Use when someone asks "where are we", "what's the status", "show progress", or any question about current state. Renders the Plan dependency graph so the human can see which plans are unblocked vs waiting.
-version: 3.2.0
+version: 3.3.0
 ---
 
 # /spades:status
@@ -43,6 +43,11 @@ modes — only the presentation changes.
 3. **Quick items.** Glob `.spades/quick/Q-*.md`. Parse frontmatter
    for `title`, `type`, `status`, `pr_url`, `delivery`. Filter to the
    active project.
+4. **Objectives.** Glob `.spades/objectives/O-*.md` for `open`
+   objectives in the active project. Parse `title`, `status`,
+   `strategy_link`. Objectives are a flat, independent track — they
+   have no plans, phases, or dependency graph; do not fold them into
+   the Scope detail.
 
 ### When `backend: linear`
 
@@ -58,12 +63,16 @@ modes — only the presentation changes.
    drift probe in step 4.
 3. **Quick items.** Glob `.spades/quick/Q-*.md` for the active
    project — the marker file is canonical for both backends.
-4. **Drift probe.** For every Scope and Plan, compare the local
-   `status:` to the Linear workflow state type per
-   `docs/FRAMEWORK.md § Drift detection`. Record any mismatch into
-   a `drift:` list. If any Linear query failed, set
-   `drift_probe_status: skipped` instead. The probe is
-   informational; it does not block rendering.
+4. **Objectives.** Glob `.spades/objectives/O-*.md` for `open`
+   objectives in the active project (the local file is canonical for
+   both backends).
+5. **Drift probe.** For every Scope, Plan, and Objective, compare the
+   local `status:` to the Linear workflow state type per
+   `docs/FRAMEWORK.md § Drift detection` (for an Objective, the
+   compared artefact is its sister `O-` tracking issue). Record any
+   mismatch into a `drift:` list. If any Linear query failed, set
+   `drift_probe_status: skipped` instead. The probe is informational;
+   it does not block rendering.
 
 ## Step 2 — Render the Per-Scope Detail
 
@@ -124,7 +133,19 @@ Fast-track items (no plans):
 |----|-------|------|----------|----------|-----|
 | Q-fix-broken-form-4nKr | Fix Broken Contact Form | bug | ai | merged (awaiting Done) | 2 days |
 | Q-tweak-footer-9XaZ | Tweak Footer Copy | tweak | human | closed (no merge) | ⚠ 18 days |
+
+Objectives (independent strategic track):
+
+| Objective | Title | Status | Strategy link |
+|-----------|-------|--------|---------------|
+| O-q3-trust-launch | Q3 Trust Launch | open | — |
 ```
+
+The Objectives subsection appears only when at least one `open`
+Objective matches the active project. Objectives are independent of
+Scopes (see `docs/FRAMEWORK.md § Hierarchy → Objectives`) — they have
+no plans, phases, or dependency graph. Mark complete via
+`/spades:close O-<id>`.
 
 Quick items appear in their own subsection only when present. They
 have no Plan records. The marker file at

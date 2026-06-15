@@ -24,19 +24,20 @@ work; the AI runs the loop around them.
 
 ## SPADES-Anywhere Skills (v0.6)
 
-The plugin ships 19 skills. Invoke them by their namespaced names:
+The plugin ships 20 skills. Invoke them by their namespaced names:
 
 | Skill | What it does |
 |-------|-------------|
 | `/spades-anywhere:setup` | Configure backend + scaffold the consumer project (re-runnable) |
 | `/spades-anywhere:newproject` | Create a new Project record |
+| `/spades-anywhere:objective` | Create or edit an Objective (`O-<description-slug>`) — a coherent strategic action associated with a project; independent of Scopes |
 | `/spades-anywhere:scope` | Create or edit a Scope (`S-<description-slug>`) |
 | `/spades-anywhere:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope |
 | `/spades-anywhere:approve` | Present a Plan for review; record routing (human / hybrid) |
 | `/spades-anywhere:do` | Mark the Plan as in-flight and restate the acceptance criteria back to the human — the human goes off and does the work |
 | `/spades-anywhere:evaluate` | Check delivered output against acceptance criteria (human verdict) |
 | `/spades-anywhere:ship` | Confirmation walk through the project's INTENT success criteria; record per-criterion evidence |
-| `/spades-anywhere:close` | Conversational close-out entry. Asks pass / reject / abandon based on target type. Pass = finalise (Plan → shipped, Scope → done, Project → archived). Reject (Plans) and Abandon (Scopes, Projects) require a reason. Pure metadata write — no bookkeeping PR, no merge SHA. |
+| `/spades-anywhere:close` | Conversational close-out entry. Asks pass / reject / abandon based on target type. Pass = finalise (Plan → shipped, Scope → done, Project → archived, Objective → complete). Reject (Plans) and Abandon (Scopes, Projects, Objectives) require a reason. Objective completion is ungated and has no cascade. Pure metadata write — no bookkeeping PR, no merge SHA. |
 | `/spades-anywhere:quick` | Fast-track for trivial human work — quick-item marker file (`.spades-anywhere/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades-anywhere:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades-anywhere:learn` | Capture a learning under `.spades-anywhere/learnings/` |
@@ -76,9 +77,17 @@ doubt, use the full loop.
 
 ```
 Project (a real-world initiative, a service area, a long-lived effort)
+├── Objective (O-<description-slug>) — a coherent strategic action; independent
 └── Scope (S-<description-slug>) — one outcome
     └── Plan (P-<description-slug>-<suffix>[-<dep>...]) — one unit of executable work
 ```
+
+A Project has **two independent kinds of child**: Objectives and Scopes.
+An Objective is *not* a parent or child of a Scope — they are parallel.
+Objectives are optional, repeatable, do not run the six-phase loop, and have
+states `open → complete | abandoned`. Completing/abandoning an Objective is
+ungated (team-lead judgement) and never cascades to the Project or any Scope.
+See `docs/FRAMEWORK.md § Hierarchy → Objectives` for the full contract.
 
 Plans can depend on prior plans within the same Scope. The dependency
 chain is encoded in the filename (each prior plan's 4-char suffix
@@ -281,7 +290,8 @@ Freshness`.
 ## Sub-agent Fan-Out
 
 Producing skills (`/spades-anywhere:newproject`,
-`/spades-anywhere:scope`, `/spades-anywhere:plan`) and writeback-heavy
+`/spades-anywhere:objective`, `/spades-anywhere:scope`,
+`/spades-anywhere:plan`) and writeback-heavy
 consumer skills (`/spades-anywhere:approve`,
 `/spades-anywhere:evaluate`) parallelize their Linear + local file
 work via sub-agent fan-out: one sub-agent per resource (one file, one

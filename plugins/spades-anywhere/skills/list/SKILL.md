@@ -1,7 +1,7 @@
 ---
 name: list
-description: List active SPADES Scopes, optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades-anywhere/config`.
-version: 0.1.2
+description: List active SPADES Scopes (and Objectives), optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "list objectives", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades-anywhere/config`.
+version: 0.2.0
 ---
 
 # /spades-anywhere:list
@@ -39,9 +39,13 @@ between modes.
    - `/spades-anywhere:list scoped` — only scoped
    - `/spades-anywhere:list delivering` — only delivering
    - `/spades-anywhere:list all` — include `done`, `rejected`, and
-     `abandoned`
+     `abandoned` (and, for Objectives, `complete` and `abandoned`)
    - `/spades-anywhere:list abandoned` — only abandoned Scopes and
      Projects
+
+   For the Objectives subsection: the default view shows `open`
+   objectives; `all` additionally includes `complete` and
+   `abandoned` objectives.
 
 ## Step 1 — Fetch
 
@@ -71,6 +75,12 @@ between modes.
    frontmatter; skip any whose `project:` doesn't match the active
    project filter. Read `status:`, `title:`, `type:`, `evidence_ref:`,
    `delivery:`. These render in their own subsection (Step 2 below).
+6. **Objectives.** Also glob `.spades-anywhere/objectives/O-*.md`. Parse
+   frontmatter; skip any whose `project:` doesn't match the active project
+   filter. Read `status:`, `title:`, `strategy_link:`. Apply the objective
+   status filter (default `open`; `all` adds `complete` and `abandoned`).
+   These render in their own subsection (Step 2 below). Objectives are
+   independent of Scopes — no plans, no phases, no dependency graph.
 
 ### When `backend: linear`
 
@@ -95,7 +105,17 @@ between modes.
 5. **Quick items.** Also glob `.spades-anywhere/quick/Q-*.md` for the
    active project — the marker file is canonical even in Linear mode;
    the Linear label `spades:quick` is a secondary signal.
-6. **Linear unreachable.** If any Linear query fails (timeout, auth,
+6. **Objectives.** Also glob `.spades-anywhere/objectives/O-*.md` for the
+   active project — the marker file is canonical even in Linear mode. Read
+   `status:`, `title:`, `strategy_link:`, `linear_issue_id:`. Apply the
+   objective status filter (default `open`; `all` adds `complete` and
+   `abandoned`). For each Objective with a `linear_issue_id`, also compare
+   the local `status:` against the **sister `O-` tracking issue**'s Linear
+   workflow state type in the drift probe (step 4): `open` ↔ not
+   `completed`/`canceled`, `complete` ↔ `completed`, `abandoned` ↔
+   `canceled` (per `docs/FRAMEWORK.md § Drift detection → Status-type
+   mapping`).
+7. **Linear unreachable.** If any Linear query fails (timeout, auth,
    404), skip the drift probe and continue with the local view.
    Hold a `drift_probe_status: skipped` flag for Step 3 to surface
    below the table.
@@ -148,6 +168,12 @@ where the human goes for that level of detail.
 | ID | Title | Type | Evidence |
 |----|-------|------|----------|
 | Q-book-venue-deposit-7Mqz | Book Venue Deposit | errand | receipt photo |
+
+### Objectives
+
+| Objective | Title | Status | Strategy link |
+|-----------|-------|--------|---------------|
+| O-q3-trust-launch | Q3 Trust Launch | open | roadmap-42 |
 ```
 
 The Quick items subsection renders only when at least one
@@ -155,6 +181,13 @@ The Quick items subsection renders only when at least one
 are work being done outside the Scope/Plan loop but still under
 the active project; they appear under the project's listing as
 their own category, distinct from Scopes.
+
+The **Objectives** subsection renders only when at least one
+`O-*` record matches the active project filter. Objectives are an
+independent sibling of a Scope (see `docs/FRAMEWORK.md § Hierarchy →
+Objectives`) — they are not Scopes and have no plans, phases, or
+dependency graph. The default view shows `open` objectives; `all`
+additionally includes `complete` and `abandoned`.
 
 ## Step 3 — Quality Flags
 

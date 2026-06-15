@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "SPADES Framework marketplace — two sister plugins: `spades` for coding harnesses (Claude Code, Cursor) and `spades-anywhere` for non-coding agents (Claude Desktop, ChatGPT, web/mobile). Same six-phase loop, same artefact shape, same backends; different runtimes.",
-    "version": "3.12.0"
+    "version": "5.0.0"
   },
   "plugins": [
     {
       "name": "spades",
       "source": "./plugins/spades",
-      "description": "Scope, Plan, Approve, Do, Evaluate, Ship — six-phase loop with a Project layer and pluggable backends (Linear MCP, local filesystem, more). 19 skills and 5 agents (4 reviewer personas + 1 researcher). Pure Markdown, no bash, no external setup.",
-      "version": "3.11.0",
+      "description": "Scope, Plan, Approve, Do, Evaluate, Ship — six-phase loop with a Project layer and pluggable backends (Linear MCP, local filesystem, more). 20 skills and 5 agents (4 reviewer personas + 1 researcher). Pure Markdown, no bash, no external setup.",
+      "version": "5.0.0",
       "author": {
         "name": "Chris Powell"
       },
@@ -30,7 +30,7 @@
       "name": "spades-anywhere",
       "source": "./plugins/spades-anywhere",
       "description": "SPADES for non-coding agents — same six-phase loop, same Linear/local backends, same HTML mode, but adapted for real-world human tasks rather than code work. Runs in Claude Desktop, ChatGPT, the Claude web app, and mobile clients. No SCM, no PR lifecycle.",
-      "version": "0.9.0",
+      "version": "0.10.0",
       "author": {
         "name": "Chris Powell"
       },

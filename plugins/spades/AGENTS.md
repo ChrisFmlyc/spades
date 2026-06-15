@@ -19,13 +19,14 @@ when working in it. Invoke them by their namespaced names:
 |-------|-------------|
 | `/spades:setup` | Configure backend + scaffold this repo (re-runnable) |
 | `/spades:newproject` | Create a new Project record |
+| `/spades:objective` | Create or edit an Objective (`O-<description-slug>`) — a coherent strategic action associated with a project; independent of Scopes |
 | `/spades:scope` | Create or edit a Scope (`S-<description-slug>`) |
 | `/spades:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope |
 | `/spades:approve` | Present a Plan for review; record routing (AI / human / hybrid) |
 | `/spades:do` | Execute an approved Plan, routed per the approval decision |
 | `/spades:evaluate` | Check delivered output against acceptance criteria |
 | `/spades:ship` | Open PR + review + merge (code) or record deliverable (artefact / action) |
-| `/spades:close` | Conversational close-out entry. Asks pass / reject / abandon based on target type. Pass = finalise (Plan → shipped, Scope → done, Project → archived). Reject (Plans) and Abandon (Scopes, Projects) require a reason. Opens a bookkeeping PR for any file change; run `/repo:sync` first. |
+| `/spades:close` | Conversational close-out entry. Asks pass / reject / abandon based on target type. Pass = finalise (Plan → shipped, Scope → done, Project → archived, Objective → complete). Reject (Plans) and Abandon (Scopes, Projects, Objectives) require a reason. Objective completion is ungated and has no cascade. Opens a bookkeeping PR for any file change; run `/repo:sync` first. |
 | `/spades:quick` | Fast-track for trivial work — quick-item marker file (`.spades/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |
@@ -57,6 +58,7 @@ When in doubt, use the full loop.
 
 ```
 Project (a repo, a service, a set of repos)
+├── Objective (O-<description-slug>) — a coherent strategic action; independent
 └── Scope (S-<description-slug>) — one outcome
     └── Plan (P-<description-slug>-<suffix>[-<dep>...]) — one unit of executable work
 ```
@@ -64,6 +66,13 @@ Project (a repo, a service, a set of repos)
 Plans can depend on prior plans within the same Scope. The dependency
 chain is encoded in the filename (each prior plan's 4-char suffix
 appended) and authoritatively in the `depends_on:` frontmatter field.
+
+A Project has **two independent kinds of child**: Objectives and Scopes.
+An Objective is *not* a parent or child of a Scope — they are parallel.
+Objectives are optional, repeatable, do not run the six-phase loop, and have
+states `open → complete | abandoned`. Completing/abandoning an Objective is
+the human's ungated judgement and never cascades to the Project or Scopes.
+See `docs/FRAMEWORK.md § Hierarchy → Objectives` for the full contract.
 
 ## Phase Rules
 
@@ -260,8 +269,8 @@ same abort message structure, same "do not proceed" semantics.
 
 ## Sub-agent Fan-Out
 
-Producing skills (`/spades:newproject`, `/spades:scope`,
-`/spades:plan`) and writeback-heavy consumer skills (`/spades:approve`,
+Producing skills (`/spades:newproject`, `/spades:objective`,
+`/spades:scope`, `/spades:plan`) and writeback-heavy consumer skills (`/spades:approve`,
 `/spades:evaluate`) parallelize their Linear + local file work via
 sub-agent fan-out: one sub-agent per resource (one file, one Linear
 operation), dispatched in a single tool-call wave, with the

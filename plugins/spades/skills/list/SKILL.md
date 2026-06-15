@@ -1,7 +1,7 @@
 ---
 name: list
-description: List active SPADES Scopes, optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades/config`.
-version: 3.2.0
+description: List active SPADES Scopes (and Objectives), optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "list objectives", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades/config`.
+version: 3.3.0
 ---
 
 # /spades:list
@@ -33,9 +33,13 @@ between modes.
    `shipping`). Accepted overrides:
    - `/spades:list scoped` — only scoped
    - `/spades:list delivering` — only delivering
-   - `/spades:list all` — include `done`, `rejected`, and
-     `abandoned`
+   - `/spades:list all` — include `done`, `rejected`, `abandoned`,
+     and (for Objectives) `complete`
    - `/spades:list abandoned` — only abandoned Scopes and Projects
+
+   For the Objectives subsection: the default view shows `open`
+   objectives; `all` additionally includes `complete` and
+   `abandoned`.
 
    **Default view excludes `abandoned` Scopes and their child Plans**
    (parent's terminal walk-away makes children irrelevant to active
@@ -70,6 +74,12 @@ between modes.
    frontmatter; skip any whose `project:` doesn't match the active
    project filter. Read `status:`, `title:`, `type:`, `pr_url:`,
    `delivery:`. These render in their own subsection (Step 2 below).
+6. **Objectives.** Also glob `.spades/objectives/O-*.md`. Parse
+   frontmatter; skip any whose `project:` doesn't match the active
+   project filter. Read `status:`, `title:`, `strategy_link:`. The
+   default view shows `open`; `all` includes `complete`/`abandoned`.
+   These render in their own subsection (Step 2 below). Objectives are
+   independent of Scopes — never fold them into the Scope tables.
 
 ### When `backend: linear`
 
@@ -95,7 +105,14 @@ between modes.
    project (the marker file is canonical even in Linear mode); the
    Linear label `spades:quick` is a secondary signal but not the
    primary source.
-6. **Linear unreachable.** If any Linear query fails (timeout, auth,
+6. **Objectives.** Also glob `.spades/objectives/O-*.md` for the
+   active project (the local file is canonical even in Linear mode).
+   Read `status:`, `title:`, `strategy_link:`. Include each
+   Objective's sister `O-` tracking issue in the drift probe (step 4):
+   the expected mapping is `open`→issue not completed/canceled,
+   `complete`→issue `completed`, `abandoned`→issue `canceled`
+   (per `docs/FRAMEWORK.md § Drift detection → Status-type mapping`).
+7. **Linear unreachable.** If any Linear query fails (timeout, auth,
    404), skip the drift probe and continue with the local view.
    Hold a `drift_probe_status: skipped` flag for Step 3 to surface
    below the table: *"Drift probe skipped — Linear unreachable.
@@ -149,6 +166,12 @@ human goes for that level of detail.
 | ID | Title | Type | Delivery | PR |
 |----|-------|------|----------|----|
 | Q-fix-broken-form-4nKr | Fix Broken Contact Form | bug | ai | merged |
+
+### Objectives
+
+| Objective | Title | Status | Strategy link |
+|-----------|-------|--------|---------------|
+| O-q3-trust-launch | Q3 Trust Launch | open | — |
 ```
 
 The Quick items subsection renders only when at least one
@@ -156,6 +179,14 @@ The Quick items subsection renders only when at least one
 are work being done outside the Scope/Plan loop but still under the
 active project; they appear under the project's listing as their
 own category, distinct from Scopes.
+
+The **Objectives** subsection renders only when at least one
+`O-*` record matches the active project filter. Objectives are an
+independent strategic track under the project (see `docs/FRAMEWORK.md
+§ Hierarchy → Objectives`) — they are not Scopes and have no plans,
+phases, or dependency graph. The default view shows `open` objectives;
+`/spades:list all` adds `complete` and `abandoned`. Render `—` for an
+empty `strategy_link`.
 
 ## Step 3 — Quality Flags
 
