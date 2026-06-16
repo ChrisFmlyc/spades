@@ -4,8 +4,25 @@ All notable changes to `spades-anywhere` are documented here.
 Versions follow [semver](https://semver.org/). Pre-1.0 versions
 signal that the public surface may iterate.
 
-The consumer-repo marker block in `AGENTS.md` carries the plugin
-version via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
+The consumer-repo marker block in `AGENTS.md` carries the **AGENTS.md
+version** via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
+
+## [0.11.0] — 2026-06-16
+
+- **minor**: Mirror of `spades` v5.1.0 — introduce a third version
+  level, `agents_version`, an independent semver for `AGENTS.md` pinned
+  in `.spades-anywhere/version`. The consumer-repo marker now carries
+  the AGENTS.md version instead of the plugin version, so a consumer's
+  rules read as stale only when the rules themselves change. Rewrites
+  AGENTS.md § Versioning (two levels → three) and updates
+  `/spades-anywhere:setup` to stamp the marker with `agents_version`
+  and write both pins into the consumer's `.spades-anywhere/version`.
+- **fix**: Remove a stray `.spades/version` pin file (a scaffolding
+  leftover, stuck at `0.9.0`) and correct the AGENTS.md § Versioning
+  table that pointed at it; the canonical pin lives in
+  `.spades-anywhere/version`.
+- Skills bumped: `setup` 0.2.0 → 0.3.0
+- AGENTS.md: introduced at `agents_version=1.0.0`
 
 ## [0.10.0] — 2026-06-15
 
