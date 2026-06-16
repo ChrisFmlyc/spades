@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 4.1.0
+version: 4.2.0
 ---
 
 # /spades:setup
@@ -369,11 +369,14 @@ blank fields the human still depends on.
 ## Step 4 — Write `.spades/version`
 
 Read the plugin version from
-`${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` `"version"` and
-write:
+`${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` `"version"` and the
+AGENTS.md version from `${CLAUDE_PLUGIN_ROOT}/.spades/version`
+(`agents_version=`), then write both into the consumer's
+`.spades/version`:
 
 ```
 spades_version=<plugin-version>
+agents_version=<agents-version>
 ```
 
 Idempotent — overwrite is fine.
@@ -411,10 +414,13 @@ Append-only — never rewrite or reorder the rest of `.gitignore`.
 If `AGENTS.md` doesn't exist at the repo root, create it with one
 line `# AGENTS.md` + blank line.
 
-Insert or replace the block between these markers:
+Insert or replace the block between these markers, stamping the
+**AGENTS.md version** (`agents_version` from `.spades/version`) — not
+the plugin version — so the marker only signals stale when the rules
+themselves changed:
 
 ```markdown
-<!-- SPADES-FRAMEWORK-START v<plugin-version> -->
+<!-- SPADES-FRAMEWORK-START v<agents-version> -->
 …the content below…
 <!-- SPADES-FRAMEWORK-END -->
 ```
@@ -652,10 +658,12 @@ under git's expectation that they will be committed.
 
 Every PR to the SPADES plugin must bump the plugin version. Per-skill
 versions in the plugin's own SKILL.md frontmatter bump only when that
-skill's body changes. Consumer repos don't carry their own version —
-the plugin version in the marker block above (`vX.Y.Z`) tells you
-which framework version your AGENTS.md was last stamped against;
-re-running `/spades:setup` after a plugin upgrade re-stamps it.
+skill's body changes, and the **AGENTS.md version** bumps only when the
+operating rules change. The marker block above (`vX.Y.Z`) carries the
+AGENTS.md version — it tells you which version of the rules your
+AGENTS.md was last stamped against, and only reads as stale when those
+rules actually changed (not on every unrelated plugin upgrade).
+Re-running `/spades:setup` re-stamps it.
 
 Choose major / minor / patch by semver. When in doubt, lean higher.
 
@@ -741,8 +749,8 @@ changed; append `(unchanged)` for unchanged fields. Use `✓` done,
 ✓ Migrated:       1 project, 3 scopes, 11 plans → Linear      # only if Step 2.6 walked
                   (4 learnings stayed local by design)
 ✓ Config:         .spades/config
-✓ Version:        <plugin-version>
-✓ Updated:        AGENTS.md (marker block re-stamped from v2.0.0 → v<plugin-version>)
+✓ Version:        plugin <plugin-version>, rules <agents-version>
+✓ Updated:        AGENTS.md (marker block re-stamped from v2.0.0 → v<agents-version>)
 ✓ Created:        ARCHITECTURE.md, PATTERNS.md, ANTI-PATTERNS.md  (templates)
 ○ Skipped:        INTENT.md (re-run /spades:intent to scaffold)
 

@@ -342,27 +342,50 @@ for the full contract drivers must satisfy.
 
 ## Versioning
 
-Every PR to this plugin **must** bump the plugin version. Per-skill
-versions bump only when that skill's body or frontmatter changes.
+Every PR to this plugin **must** bump the plugin version. The
+component versions (per-skill and AGENTS.md) bump only when that
+component's own content changes.
 
-### Two levels of versioning
+### The principle
+
+The plugin version is the umbrella: **if anything inside the plugin
+changes, the plugin version bumps.** A change to a skill, a change to
+`AGENTS.md`, a change to `docs/`, a metadata tweak — any of them forces
+a plugin bump. The component versions are narrower: each bumps **only**
+when its own content changes. A component change always implies a
+plugin bump; a plugin bump does not imply any given component changed.
+
+This is what makes consumer updates work: the plugin updater dedups by
+version string, so an unchanged plugin version after a real change
+means the update is silently skipped and never reaches anyone.
+
+### Three levels of versioning
 
 - **Plugin version** — declared in
   `plugins/spades-anywhere/.claude-plugin/plugin.json`, mirrored in
   `.claude-plugin/marketplace.json` (both the marketplace
   `metadata.version` and the plugin entry's `version`), and pinned
-  in `plugins/spades-anywhere/.spades/version` as
-  `spades_anywhere_version=X.Y.Z`. All four values must match.
+  in `plugins/spades-anywhere/.spades-anywhere/version` as
+  `spades_anywhere_version=X.Y.Z`. All four values must match. Bumps
+  on **every** merged PR.
 - **Skill version** — declared as a `version:` field in each skill's
   frontmatter (`plugins/spades-anywhere/skills/<name>/SKILL.md`).
-  Bumps only when that skill's body, frontmatter, or behaviour
+  Bumps **only** when that skill's body, frontmatter, or behaviour
   changes.
+- **AGENTS.md version** — the operating rules are themselves a
+  versioned, consumer-facing unit. Pinned in
+  `plugins/spades-anywhere/.spades-anywhere/version` as
+  `agents_version=X.Y.Z`, and stamped into the consumer-repo marker
+  (`<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`) by
+  `/spades-anywhere:setup`. Bumps **only** when the rules consumers
+  carry change. Because the marker tracks the AGENTS.md version (not
+  the plugin version), a consumer's block reads as stale only when the
+  rules they hold actually moved — not on every unrelated plugin PR.
 
-The plugin version bumps on **every** merged PR — even a one-line
-README fix or a docs nudge. A skill's `version:` bumps **only** if
-that skill's SKILL.md changed in the PR. So a PR that touches three
-skills bumps those three skills plus the plugin; a PR that only
-touches `docs/FRAMEWORK.md` bumps only the plugin.
+So a PR that touches three skills bumps those three skills plus the
+plugin; a PR that edits `AGENTS.md` bumps `agents_version` plus the
+plugin; a PR that only touches `docs/FRAMEWORK.md` bumps only the
+plugin.
 
 ### Choosing major / minor / patch
 
@@ -399,9 +422,10 @@ the plugin to bump major.
 |-------|------|
 | `plugins/spades-anywhere/.claude-plugin/plugin.json` `"version"` | Plugin |
 | `.claude-plugin/marketplace.json` `metadata.version` + plugins[*].`version` for the `spades-anywhere` entry | Plugin (mirror — must match) |
-| `plugins/spades-anywhere/.spades/version` (`spades_anywhere_version=X.Y.Z`) | Plugin pin |
+| `plugins/spades-anywhere/.spades-anywhere/version` (`spades_anywhere_version=X.Y.Z`) | Plugin pin |
+| `plugins/spades-anywhere/.spades-anywhere/version` (`agents_version=X.Y.Z`) | AGENTS.md pin (canonical) |
 | `plugins/spades-anywhere/skills/<name>/SKILL.md` frontmatter `version:` | Per-skill |
-| Consumer AGENTS.md marker block (`<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`) | Plugin (consumer-facing) |
+| Consumer AGENTS.md marker block (`<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`) | AGENTS.md version (consumer-facing) |
 
 ### CHANGELOG
 

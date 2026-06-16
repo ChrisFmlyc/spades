@@ -4,9 +4,27 @@ All notable changes to the SPADES Framework are documented here.
 Versions follow [semver](https://semver.org/) at the plugin level
 (see `AGENTS.md` § Versioning for the policy: every merged PR bumps
 the plugin version; per-skill `version:` fields bump only when that
-skill's SKILL.md changes). The consumer-repo marker block in
-`AGENTS.md` carries the plugin version via
-`<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
+skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
+changes). The consumer-repo marker block in `AGENTS.md` carries the
+**AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
+
+## [5.1.0] — 2026-06-16
+
+- **minor**: Introduce a third version level — `agents_version`, an
+  independent semver for `AGENTS.md` pinned in `.spades/version`. The
+  consumer-repo marker block now carries the AGENTS.md version instead
+  of the plugin version, so a consumer's rules read as stale only when
+  the rules themselves change, not on every unrelated plugin PR.
+  Rewrites AGENTS.md § Versioning (two levels → three) and updates
+  `/spades:setup` to stamp the marker with `agents_version` and to
+  write both pins into the consumer's `.spades/version`.
+- **fix**: Reconcile the plugin version that the v5.0.0 PR (#55, the
+  Objectives feature) left un-bumped — it shipped a new `objective`
+  skill but kept the plugin at 5.0.0, so the updater treated installs
+  as current and the skill never reached anyone. Bumping to 5.1.0 makes
+  the Objectives feature actually install.
+- Skills bumped: `setup` 4.1.0 → 4.2.0
+- AGENTS.md: introduced at `agents_version=2.1.0`
 
 ## [5.0.0] — 2026-06-15
 
