@@ -1,7 +1,7 @@
 ---
 name: review
 description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades-anywhere:approve. Non-blocking — informs the human but never gates shipping.
-version: 0.1.2
+version: 0.2.0
 ---
 
 ## Pre-Flight

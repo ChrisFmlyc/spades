@@ -304,6 +304,9 @@ that need to verify post-merge state (`/spades:close`) invoke
 `/repo:sync` directly. The dependency is **one-directional**:
 SPADES → `repo`, never the reverse.
 
+Before any commit or `/spades:ship` that touches `plugins/spades/`, run
+the § Versioning release gate (version bump + changed skills + CHANGELOG).
+
 ### If you don't have a git repo yet
 
 Running SPADES in a directory that isn't a git repo? Run
@@ -341,6 +344,27 @@ full contract drivers must satisfy.
 Every PR to this plugin **must** bump the plugin version. The
 component versions (per-skill and AGENTS.md) bump only when that
 component's own content changes.
+
+### 🚦 Release gate — the version bump is part of the change
+
+**IMPORTANT — YOU MUST complete this before any commit that touches
+`plugins/spades/`.** Stop and write out these four lines with a real
+`old → new` (or an explicit "n/a") filled in for each. If you cannot
+fill one in, the change is not ready to commit:
+
+```
+[ ] plugin version  X.Y.Z → X.Y.Z   (plugin.json + marketplace ×2 + .spades/version — all four)
+[ ] skills bumped   <name> a.b.c → a.b.c, …   (every skill dir with ANY changed file, incl. template.html)
+[ ] agents_version  X.Y.Z → X.Y.Z   (only if AGENTS.md changed; else n/a)
+[ ] CHANGELOG entry added under the new plugin version
+```
+
+The bump is not a follow-up PR; an unbumped version is silently deduped
+by the updater and reaches **no one**. This forced check exists because
+PR #57 redesigned all 26 skill templates, bumped nothing, and CI stayed
+green — so the redesign never installed. CI verifies only that a
+`version:` field *exists*, never that a change *bumped* it, so this gate
+is the only thing covering that gap. Do not skip it because CI is green.
 
 ### The principle
 
@@ -566,6 +590,11 @@ history records the delete. The same applies to
 - Combine multiple Scopes into one delivery without human agreement
 - Write a `CLAUDE.md` (or any other per-vendor agent file) — AGENTS.md
   is the only file SPADES maintains in consumer repos
+- **Commit or ship a change under `plugins/spades/` without bumping the
+  plugin version** (and every changed skill, and a CHANGELOG entry) —
+  run the § Versioning release gate. An unbumped version is deduped by
+  the updater and reaches no one; this is the single most-missed rule in
+  the repo.
 
 <!--
   Framework-repo note: this file is the canonical SPADES agent

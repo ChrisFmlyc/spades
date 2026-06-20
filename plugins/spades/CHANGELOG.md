@@ -8,6 +8,32 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.2.0] — 2026-06-20
+
+- **minor**: Reconcile the version that PR #57 (the cockpit HTML-template
+  redesign) left un-bumped. #57 redesigned every skill's `template.html`
+  to the dark "cockpit" design and wired the skills to feed new fields
+  (objective banner, structured component/rule/ban cards, review-echo
+  state, trivial counts), but shipped at 5.1.0 — so the updater treated
+  installs as current and the redesign never reached anyone. The change
+  is additive (new optional frontmatter fields with `|default`
+  fallbacks, new render scalars; the static render contract is
+  preserved), hence minor. Bumping to 5.2.0 makes the redesign install.
+- Skills bumped: `anti-patterns` 1.3.0 → 1.4.0, `architecture` 1.2.0 →
+  1.3.0, `evaluate` 3.6.0 → 3.7.0, `intent` 4.2.0 → 4.3.0, `learn`
+  4.2.0 → 4.3.0, `list` 3.3.0 → 3.4.0, `newproject` 3.2.0 → 3.3.0,
+  `objective` 1.0.0 → 1.1.0, `patterns` 1.2.0 → 1.3.0, `plan` 3.3.0 →
+  3.4.0, `review` 3.3.0 → 3.4.0, `scope` 3.3.0 → 3.4.0, `status` 3.3.0
+  → 3.4.0
+- **minor (AGENTS.md)**: Make the version-bump rule hard to miss after
+  the #57 miss, using Anthropic's own instruction-adherence guidance
+  (sparing `IMPORTANT`/`YOU MUST` emphasis, conciseness, point-of-use
+  repetition, a forced self-check). § Versioning now leads with a
+  **release gate** the agent must fill in (`old → new` per line) before
+  any commit touching the plugin; a one-line hard rule is added to
+  "What You Must Never Do"; and a point-of-use reminder sits in the git
+  operations section. `agents_version` 2.1.0 → 2.2.0.
+
 ## [5.1.0] — 2026-06-16
 
 - **minor**: Introduce a third version level — `agents_version`, an
