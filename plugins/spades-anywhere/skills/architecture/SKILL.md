@@ -1,7 +1,7 @@
 ---
 name: architecture
 description: Create or maintain ARCHITECTURE.md, the project's durable statement of HOW the work is structured — stages, stakeholders, cadence, tools, constraints. Use when someone says "set up ARCHITECTURE.md", "document our process", "what stages does this work move through", "who's involved at each stage", "what's our cadence", "what tools do we use", "what are our hard constraints", "update the architecture doc", "refresh the operating model", or when ARCHITECTURE.md is missing, still an unfilled template, or flagged stale by /spades-anywhere:plan, /spades-anywhere:approve, or /spades-anywhere:review. Also use proactively after a stakeholder change, tool migration, or cadence revision that exposes drift between the doc and reality. The human composes the architecture; this skill structures and probes but never authors it. SKIP when the human's intent is per-Scope acceptance criteria (use /spades-anywhere:scope instead) or process conventions / quality bar (use /spades-anywhere:patterns).
-version: 1.0.0
+version: 1.1.0
 ---
 
 # SPADES-anywhere Architecture

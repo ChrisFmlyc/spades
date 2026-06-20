@@ -1,7 +1,7 @@
 ---
 name: patterns
 description: Create or maintain PATTERNS.md, the project's durable list of APPROVED conventions for how this work is run — process conventions, communication, decision making, quality bar. Use when someone says "set up PATTERNS.md", "document our process conventions", "how do we run this kind of work", "update the patterns doc", or when PATTERNS.md is missing, still an unfilled template, or flagged stale. The human composes the patterns; this skill structures and probes but never authors it.
-version: 1.0.0
+version: 1.1.0
 ---
 
 # SPADES-anywhere Patterns

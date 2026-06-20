@@ -8,6 +8,29 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.2.0] — 2026-06-20
+
+- **minor**: Reconcile the version that PR #57 (the cockpit HTML-template
+  redesign) left un-bumped. #57 redesigned every skill's `template.html`
+  to the dark "cockpit" design and wired the skills to feed new fields
+  (objective banner, structured component/rule/ban cards, review-echo
+  state, trivial counts), but shipped at 5.1.0 — so the updater treated
+  installs as current and the redesign never reached anyone. The change
+  is additive (new optional frontmatter fields with `|default`
+  fallbacks, new render scalars; the static render contract is
+  preserved), hence minor. Bumping to 5.2.0 makes the redesign install.
+- Skills bumped: `anti-patterns` 1.3.0 → 1.4.0, `architecture` 1.2.0 →
+  1.3.0, `evaluate` 3.6.0 → 3.7.0, `intent` 4.2.0 → 4.3.0, `learn`
+  4.2.0 → 4.3.0, `list` 3.3.0 → 3.4.0, `newproject` 3.2.0 → 3.3.0,
+  `objective` 1.0.0 → 1.1.0, `patterns` 1.2.0 → 1.3.0, `plan` 3.3.0 →
+  3.4.0, `review` 3.3.0 → 3.4.0, `scope` 3.3.0 → 3.4.0, `status` 3.3.0
+  → 3.4.0
+- **minor (AGENTS.md)**: Add a scannable **release gate** at the top of
+  § Versioning (four merge-blocking checks) and an **Enforcement**
+  subsection documenting that CI only checks version *presence*, not
+  *bump-on-change* — naming the bump-on-change guard to build. This is
+  the process fix for the #57 miss. `agents_version` 2.1.0 → 2.2.0.
+
 ## [5.1.0] — 2026-06-16
 
 - **minor**: Introduce a third version level — `agents_version`, an
