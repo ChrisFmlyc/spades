@@ -1,39 +1,41 @@
 <!DOCTYPE html>
-<!-- SPADES template: evaluate v1.2.0 (matches plugin v3.5.0) -->
+<!-- SPADES template: evaluate v2.0.0 (matches plugin v3.6.0) -->
 <!--
-  This template renders TWO distinct pages from the same file:
+  ONE file renders TWO pages, driven by {{spades.mode}}:
+    1. mode: plan   — verification plan (verdicts all PENDING),
+                      written before tests run; human approves it.
+    2. mode: report — evaluation report (verdicts filled in),
+                      written after the human confirms the verdict.
+  "Cockpit" redesign — dark command deck.
 
-    1. PAGE 1 — Verification plan (mode: plan)
-       Written at Step 1.5, before any verification runs. Shows the
-       proposed verification rows (all verdicts: pending). The human
-       reviews this page and approves it at Step 1.6 before any tests
-       fire.
+  Mode-driven scalars (skill sets these per mode so one template
+  serves both pages):
+    mode, brand_label, h1_prefix, tagline, page_title,
+    verdict, verdict_class
 
-    2. PAGE 2 — Evaluation report (mode: report)
-       Written at Step 5.5, after the human has confirmed the verdict
-       + summary rationale. Shows the same rows with verdicts filled
-       in and the aggregate verdict pill in the sidebar.
+  RENDER CONTRACT (string substitution + block repetition)
 
-  {{spades.mode}} drives the differences between the two pages —
-  sidebar brand label, H1 prefix, tagline, browser title.
+  Scalars carried over from v1:
+    plan_id, plan_title, scope_id, scope_title, evaluated,
+    evaluator, verdict_summary_html, plugin_version
+  Optional (|default): project (|—)
+  NEW decision-deck tally scalars (|0 fallback — 0 in plan mode,
+  filled in report mode):
+    pass_count, partial_count, fail_count
 
-  Section blocks:
-    verification-rows — one per verification step
-    audit-events      — every Evaluation* line from the Plan's audit trail
+  Required repeating blocks (worker validates these markers — unchanged
+  field names from v1):
+    verification-rows — step, criterion_ref, verifier, verifier_class,
+                        method, verdict, verdict_class, notes
+    audit-events      — date, desc
 
-  Verification-row fields:
-    {{block.step}}              — the concrete verification action ("Run npm test", "Eyes-on on iPad")
-    {{block.criterion_ref}}     — short link back to the criterion this row verifies (e.g. "C1", "Q")
-    {{block.verifier}}          — who/what checks it: AI | Human | Test | Lint | Manual
-    {{block.verifier_class}}    — ai | human | test | lint | manual (CSS hook)
-    {{block.method}}            — how it was checked (test name, file path, "Eyes-on", etc.)
-    {{block.verdict}}           — PASS | FAIL | PARTIAL | NA | PENDING
-    {{block.verdict_class}}     — pass | fail | partial | na | pending (CSS hook)
-    {{block.notes}}             — short notes / evidence (empty on page 1)
+  Optional repeating block (0 or 1 — renders nothing when unfed):
+    objective-banner  — id, title
 
-  Audit-event fields:
-    {{block.date}}
-    {{block.desc}}
+  {{block.verifier_class}}, {{block.verdict_class}} and
+  {{spades.verdict_class}} are substituted as CSS classes so badges /
+  pills self-colour. The FAIL deck number neutralises when the overall
+  verdict_class is pass/pending (CSS, no extra data).
 -->
 <html lang="en">
 <head>
@@ -42,95 +44,130 @@
 <title>{{spades.page_title}} · {{spades.plan_id}}</title>
 <style>
   :root {
-    --gold: #FFC107;
-    --gold-light: #FFDE59;
-    --gold-soft: #fff4cc;
-    --ink: #1a1a1a;
-    --panel: #ffffff;
-    --page: #fafafa;
-    --gray: #e8e8e8;
-    --gray-text: #5a5a5a;
-    --border: #d4d4d4;
-    --verdict-pass:    #FFC107;
-    --verdict-partial: #FFDE59;
-    --verdict-fail:    #dc2626;
-    --verdict-na:      #6b7280;
-    --verdict-pending: #d4d4d4;
-    --verifier-ai:     #3b82f6;
-    --verifier-human:  #FFC107;
-    --verifier-test:   #16a34a;
-    --verifier-lint:   #8b5cf6;
-    --verifier-manual: #6b7280;
+    --bg: #0b0e14; --bg-bar: #0d1117; --panel: #141a23; --panel-2: #1b2330;
+    --panel-inset: #11161f; --border: #263041; --hair: #161d28;
+    --ink: #e6edf3; --ink-soft: #c3cdd9; --ink-strong: #dbe3ec;
+    --muted: #8b98ab; --muted-2: #6b7688; --muted-3: #5f6b7e;
+    --lime: #c3f73a; --teal: #38e8e0; --amber: #ff9f1c; --red: #ff4d4d; --green: #3ddc84;
+    --vd-pass: #3ddc84; --vd-partial: #ffb454; --vd-fail: #ff7a7a; --vd-na: #aab4c4; --vd-pending: #8b98ab;
+    --vf-ai: #5fb0ff; --vf-human: #ffce6b; --vf-test: #3ddc84; --vf-lint: #a78bfa; --vf-manual: #aab4c4;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--page); color: var(--ink); font-size: 17.5px; line-height: 1.6; }
-  .layout { display: grid; grid-template-columns: 375px minmax(0, 1fr); min-height: 100vh; }
-  aside.sidebar { background: var(--panel); border-right: 1px solid var(--border); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
-  .sidebar-header { background: var(--gold); padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--ink); }
-  .sidebar-header .brand { font-size: 0.72rem; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; }
-  .sidebar-header .id { font-family: ui-monospace, monospace; font-size: 0.85rem; margin-top: 0.4rem; word-break: break-all; }
-  .sidebar-section { padding: 1.25rem 1.4rem; border-bottom: 1px solid var(--gray); }
-  .sidebar-section h3 { font-size: 0.7rem; color: var(--gray-text); font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 0.85rem; }
-  .meta-row { display: flex; justify-content: space-between; align-items: center; padding: 0.35rem 0; font-size: 0.92rem; gap: 0.5rem; }
-  .meta-row .key { color: var(--gray-text); }
-  .meta-row .val { font-weight: 500; text-align: right; word-break: break-all; }
-  .verdict-block { display: flex; flex-direction: column; gap: 0.5rem; }
-  .verdict { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.95rem; border-radius: 4px; font-size: 1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.4px; align-self: flex-start; }
-  .verdict.pass    { background: var(--verdict-pass); color: var(--ink); }
-  .verdict.partial { background: var(--verdict-partial); color: var(--ink); }
-  .verdict.fail    { background: var(--verdict-fail); color: #fff; }
-  .verdict.pending { background: var(--verdict-pending); color: var(--ink); }
-  .anchor-nav { padding: 0.5rem 0; }
-  .anchor-nav h3 { padding: 0 1.4rem; margin-bottom: 0.4rem; font-size: 0.7rem; color: var(--gray-text); font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; }
-  .anchor-nav a { display: block; padding: 0.55rem 1.4rem; color: var(--ink); text-decoration: none; font-size: 0.92rem; border-left: 3px solid transparent; }
-  .anchor-nav a:hover { background: var(--gold-light); border-left-color: var(--gold); }
-  main { padding: 3rem 4rem; min-width: 0; }
-  main h1 { font-size: 2rem; font-weight: 700; line-height: 1.2; margin-bottom: 0.5rem; }
-  .crumbs { font-family: ui-monospace, monospace; font-size: 0.85rem; color: var(--gray-text); margin-bottom: 0.5rem; }
-  .crumbs .sep { margin: 0 0.5rem; color: var(--border); }
-  .tagline { color: var(--gray-text); font-size: 1rem; margin: 0.5rem 0 2.5rem; }
-  section { margin-bottom: 2.5rem; scroll-margin-top: 1rem; }
-  section > h2 { font-size: 0.88rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.85rem; color: var(--gray-text); border-bottom: 1px solid var(--border); padding-bottom: 0.55rem; }
-  section > h2::before { content: ""; display: inline-block; width: 4px; height: 14px; background: var(--gold); margin-right: 0.5rem; vertical-align: middle; }
-  .summary-card { background: var(--gold-soft); border-left: 4px solid var(--gold); border-radius: 5px; padding: 1.1rem 1.4rem; font-size: 0.97rem; }
-  table.verification { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
-  table.verification thead { background: var(--gold-soft); }
-  table.verification th { text-align: left; padding: 0.7rem 0.95rem; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gray-text); border-bottom: 1px solid var(--border); }
-  table.verification td { padding: 0.85rem 0.95rem; font-size: 0.94rem; vertical-align: top; border-bottom: 1px solid var(--gray); }
-  table.verification tr:last-child td { border-bottom: none; }
-  .row-criterion { font-weight: 500; }
-  .row-method { color: var(--gray-text); font-family: ui-monospace, monospace; font-size: 0.86rem; }
-  .row-notes { color: var(--gray-text); font-size: 0.88rem; }
-  .row-verdict { white-space: nowrap; }
-  .v-badge { display: inline-block; padding: 0.18rem 0.6rem; border-radius: 3px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-  .v-badge.pass    { background: var(--verdict-pass); color: var(--ink); }
-  .v-badge.partial { background: var(--verdict-partial); color: var(--ink); }
-  .v-badge.fail    { background: var(--verdict-fail); color: #fff; }
-  .v-badge.na      { background: var(--verdict-na); color: #fff; }
-  .v-badge.pending { background: var(--verdict-pending); color: var(--ink); font-style: italic; }
-  .row-step      { font-weight: 500; }
-  .row-step .criterion-ref { color: var(--gray-text); font-size: 0.78rem; font-family: ui-monospace, monospace; margin-left: 0.5rem; }
-  .by-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.18rem 0.55rem; border-radius: 3px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
-  .by-badge::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.85; }
-  .by-badge.ai     { background: var(--verifier-ai);     color: #fff; }
-  .by-badge.human  { background: var(--verifier-human);  color: var(--ink); }
-  .by-badge.test   { background: var(--verifier-test);   color: #fff; }
-  .by-badge.lint   { background: var(--verifier-lint);   color: #fff; }
-  .by-badge.manual { background: var(--verifier-manual); color: #fff; }
-  .row-by { white-space: nowrap; }
-  ul.timeline { list-style: none; padding: 0; }
-  ul.timeline li { padding: 0.5rem 0 0.5rem 1.4rem; border-left: 2px solid var(--border); margin-left: 0.5rem; position: relative; font-size: 0.94rem; }
-  ul.timeline li::before { content: ""; position: absolute; left: -6px; top: 0.85rem; width: 10px; height: 10px; background: var(--gold); border-radius: 50%; border: 2px solid var(--panel); }
-  ul.timeline .t-date { font-family: ui-monospace, monospace; font-size: 0.85rem; color: var(--gray-text); margin-right: 0.6rem; }
-  code { font-family: ui-monospace, monospace; background: var(--gray); padding: 0.12rem 0.42rem; border-radius: 3px; font-size: 0.92em; }
-  footer { padding: 1.2rem 4rem; color: var(--gray-text); font-size: 0.8rem; border-top: 1px solid var(--border); }
-  @media (min-width: 1600px) { main { padding: 3rem 6rem; } }
-  @media (min-width: 2200px) { main { padding: 3.5rem 8rem; } }
+  body { background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif; font-size: 16px; line-height: 1.55; }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-thumb { background: #2b3647; border-radius: 6px; }
+  *::-webkit-scrollbar-track { background: var(--bg); }
+  a { color: inherit; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+  code { font-family: ui-monospace, Menlo, monospace; background: var(--panel-2); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
+
+  /* COMMAND BAR */
+  header.cmd { position: sticky; top: 0; z-index: 20; background: var(--bg-bar); border-bottom: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+  header.cmd .wrap { padding-top: 14px; padding-bottom: 14px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .spade { width: 26px; display: flex; align-items: center; justify-content: center; color: var(--lime); font-size: 22px; line-height: 1; }
+  .brand .kicker { font-size: 10px; letter-spacing: 2.5px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+  .brand .id { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .spacer { flex: 1; }
+  /* verdict pill */
+  .vpill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 16px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; background: rgba(139,152,171,0.14); color: var(--vd-pending); }
+  .vpill::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+  .vpill.pass    { background: rgba(61,220,132,0.14); color: var(--vd-pass); }
+  .vpill.partial { background: rgba(255,159,28,0.14); color: var(--vd-partial); }
+  .vpill.fail    { background: rgba(255,77,77,0.14);  color: var(--vd-fail); }
+  .vpill.pending { background: rgba(139,152,171,0.14); color: var(--vd-pending); }
+
+  /* OBJECTIVE BANNER */
+  .objbar { background: rgba(56,232,224,0.06); border-bottom: 1px solid var(--panel-2); }
+  .objbar .wrap { padding-top: 11px; padding-bottom: 11px; display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
+  .objbar .tag { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; letter-spacing: 1.5px; font-weight: 700; color: var(--teal); white-space: nowrap; }
+  .objbar .tag .gem { width: 15px; height: 15px; border: 1.5px solid var(--teal); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; line-height: 1; }
+  .objbar .oid { font-family: ui-monospace, Menlo, monospace; font-size: 13px; font-weight: 700; color: #5fe0d8; }
+  .objbar .sep { color: #2b3647; }
+  .objbar .otitle { font-size: 14px; color: var(--ink-soft); }
+
+  /* DECISION DECK */
+  .deck { border-bottom: 1px solid var(--panel-2); background: radial-gradient(1200px 200px at 20% -40%, rgba(195,247,58,0.06), transparent); }
+  .deck .wrap { padding-top: 28px; padding-bottom: 26px; }
+  .deck h1 { font-size: 30px; line-height: 1.15; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .deck .lede { color: var(--muted); font-size: 15px; margin-bottom: 20px; }
+  .deck-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .stat .lbl { font-size: 11px; letter-spacing: 1.5px; color: var(--muted); font-weight: 700; }
+  .stat .n { font-size: 30px; font-weight: 800; font-family: ui-monospace, monospace; line-height: 1.1; color: var(--ink); }
+  .stat .note { font-size: 12px; color: var(--muted-2); }
+  .stat.pass .n { color: var(--green); }
+  .stat.partial .n { color: var(--amber); }
+  .stat.fail .n { color: var(--red); }
+  .deck.v-pass .stat.fail .n, .deck.v-pending .stat.fail .n { color: var(--ink); }
+
+  /* BODY GRID */
+  .body { display: grid; grid-template-columns: 268px minmax(0,1fr); gap: 32px; align-items: start; padding-top: 28px; padding-bottom: 60px; }
+  aside.rail { position: sticky; top: 86px; display: flex; flex-direction: column; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .card .hd { font-size: 11px; letter-spacing: 1.5px; color: var(--muted); font-weight: 700; margin-bottom: 12px; }
+  .prop { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--panel-2); font-size: 13px; }
+  .prop:last-child { border-bottom: none; }
+  .prop .k { color: var(--muted-2); }
+  .prop .v { color: #cbd5e1; font-weight: 600; text-align: right; font-family: ui-monospace, monospace; font-size: 12px; word-break: break-all; }
+  .key-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12.5px; color: #aab4c4; }
+  .key-sq { width: 9px; height: 9px; border-radius: 3px; }
+  nav.toc { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
+  nav.toc a { display: block; padding: 9px 12px; text-decoration: none; font-size: 13px; border-radius: 7px; color: #aab4c4; transition: color .15s, background .15s; }
+  nav.toc a:hover { color: var(--lime); }
+  nav.toc a.active { color: var(--lime); background: rgba(195,247,58,0.08); }
+
+  main { min-width: 0; }
+  section { margin-bottom: 30px; scroll-margin-top: 86px; }
+  section > h2 { font-size: 12px; letter-spacing: 2px; color: var(--muted); font-weight: 700; margin-bottom: 12px; text-transform: uppercase; }
+
+  /* SUMMARY */
+  .prose { background: var(--panel-inset); border: 1px solid var(--panel-2); border-left: 3px solid var(--vd-pending); border-radius: 10px; padding: 18px 20px; color: var(--ink-soft); font-size: 15px; }
+  .prose.v-pass { border-left-color: var(--vd-pass); }
+  .prose.v-partial { border-left-color: var(--vd-partial); }
+  .prose.v-fail { border-left-color: var(--vd-fail); }
+  .prose.v-pending { border-left-color: var(--vd-pending); }
+  .prose p { margin-bottom: 0.7rem; } .prose p:last-child { margin-bottom: 0; }
+
+  /* VERIFICATION TABLE */
+  .vtable { background: var(--panel); border: 1px solid var(--border); border-radius: 11px; overflow: hidden; }
+  .vhead, .vrow { display: grid; grid-template-columns: 1fr 100px 160px 100px; gap: 0; align-items: center; }
+  .vhead { padding: 11px 16px; background: var(--panel-inset); border-bottom: 1px solid var(--border); font-size: 11px; letter-spacing: 1px; color: var(--muted-2); font-weight: 700; }
+  .vrow { padding: 13px 16px; border-bottom: 1px solid var(--panel-2); }
+  .vrow:last-child { border-bottom: none; }
+  .vrow .step { font-size: 14px; color: var(--ink-strong); padding-right: 12px; }
+  .vrow .step .ref { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted-3); margin-left: 6px; }
+  .vrow .step .notes { display: block; font-size: 12.5px; color: var(--muted-2); margin-top: 4px; }
+  .vrow .method { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); padding-right: 10px; }
+  .by-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 5px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+  .by-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .by-badge.ai     { background: rgba(95,176,255,0.16);  color: var(--vf-ai); }
+  .by-badge.human  { background: rgba(255,206,107,0.16); color: var(--vf-human); }
+  .by-badge.test   { background: rgba(61,220,132,0.16);  color: var(--vf-test); }
+  .by-badge.lint   { background: rgba(167,139,250,0.16); color: var(--vf-lint); }
+  .by-badge.manual { background: rgba(139,152,171,0.16); color: var(--vf-manual); }
+  .v-badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+  .v-badge.pass    { background: rgba(61,220,132,0.16); color: var(--vd-pass); }
+  .v-badge.partial { background: rgba(255,159,28,0.16); color: var(--vd-partial); }
+  .v-badge.fail    { background: rgba(255,77,77,0.16);  color: var(--vd-fail); }
+  .v-badge.na      { background: rgba(139,152,171,0.16); color: var(--vd-na); }
+  .v-badge.pending { background: rgba(139,152,171,0.12); color: var(--vd-pending); font-style: italic; }
+
+  /* AUDIT */
+  .audit-row { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--panel-2); }
+  .audit-row:last-child { border-bottom: none; }
+  .audit-row .date { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-2); }
+  .audit-row .desc { font-size: 14px; color: var(--ink-soft); }
+
+  footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--panel-2); font-family: ui-monospace, monospace; font-size: 11px; color: #4f5a6b; }
+
   @media (max-width: 900px) {
-    .layout { grid-template-columns: 1fr; }
-    aside.sidebar { position: static; height: auto; border-right: none; border-bottom: 2px solid var(--gold); }
-    main { padding: 2rem 1.5rem; }
-    table.verification th:nth-child(3), table.verification td:nth-child(3) { display: none; }
+    .body { grid-template-columns: 1fr; }
+    aside.rail { position: static; }
+    .deck-grid { grid-template-columns: 1fr; }
+    .vhead, .vrow { grid-template-columns: 1fr 90px 90px; }
+    .vhead span:nth-child(3), .vrow .method { display: none; }
+    .wrap { padding: 0 18px; }
   }
 </style>
 </head>
@@ -146,78 +183,142 @@ evaluator: {{spades.evaluator}}
 verdict: {{spades.verdict}}
 plugin_version: {{spades.plugin_version}}
 </script>
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="brand">SPADES · {{spades.brand_label}}</div>
-        <div class="id">{{spades.plan_id}} · {{spades.evaluated}}</div>
-      </div>
-      <div class="sidebar-section">
-        <h3>Verdict</h3>
-        <div class="verdict-block">
-          <span class="verdict {{spades.verdict_class}}">{{spades.verdict}}</span>
+
+  <!-- COMMAND BAR -->
+  <header class="cmd">
+    <div class="wrap">
+      <div class="brand">
+        <div class="spade">&#9824;</div>
+        <div style="min-width:0;">
+          <div class="kicker">SPADES · {{spades.brand_label}}</div>
+          <div class="id">{{spades.plan_id}}</div>
         </div>
       </div>
-      <div class="sidebar-section">
-        <h3>Target</h3>
-        <div class="meta-row"><span class="key">Plan</span><span class="val">{{spades.plan_id}}</span></div>
-        <div class="meta-row"><span class="key">Scope</span><span class="val">{{spades.scope_id}}</span></div>
-        <div class="meta-row"><span class="key">Evaluator</span><span class="val">{{spades.evaluator}}</span></div>
-        <div class="meta-row"><span class="key">Evaluated</span><span class="val">{{spades.evaluated}}</span></div>
+      <div class="spacer"></div>
+      <span class="vpill {{spades.verdict_class}}">{{spades.verdict}}</span>
+    </div>
+  </header>
+
+  <!-- OBJECTIVE BANNER (0 or 1 — renders only when the work rolls up to an O- objective) -->
+  <!-- SPADES-BLOCK:objective-banner -->
+  <div class="objbar">
+    <div class="wrap">
+      <span class="tag"><span class="gem">&#9671;</span> OBJECTIVE</span>
+      <span class="oid">{{block.id}}</span>
+      <span class="sep">│</span>
+      <span class="otitle">{{block.title}}</span>
+    </div>
+  </div>
+  <!-- SPADES-ENDBLOCK -->
+
+  <!-- DECISION DECK -->
+  <div class="deck v-{{spades.verdict_class}}">
+    <div class="wrap">
+      <h1>{{spades.h1_prefix}}: {{spades.plan_title}}</h1>
+      <p class="lede">{{spades.tagline}}</p>
+      <div class="deck-grid">
+        <div class="stat pass"><div class="lbl">PASS</div><div class="n">{{spades.pass_count|0}}</div><div class="note">criteria met</div></div>
+        <div class="stat partial"><div class="lbl">PARTIAL</div><div class="n">{{spades.partial_count|0}}</div><div class="note">met with caveats</div></div>
+        <div class="stat fail"><div class="lbl">FAIL</div><div class="n">{{spades.fail_count|0}}</div><div class="note">criteria missed</div></div>
       </div>
-      <nav class="anchor-nav">
-        <h3>Sections</h3>
-        <a href="#summary">Verdict Summary</a>
-        <a href="#verification">Verification Plan</a>
-        <a href="#audit">Audit Timeline</a>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="wrap body">
+
+    <!-- META RAIL -->
+    <aside class="rail">
+      <div class="card">
+        <div class="hd">PROPERTIES</div>
+        <div class="prop"><span class="k">Project</span><span class="v">{{spades.project|—}}</span></div>
+        <div class="prop"><span class="k">Plan</span><span class="v">{{spades.plan_id}}</span></div>
+        <div class="prop"><span class="k">Scope</span><span class="v">{{spades.scope_id}}</span></div>
+        <div class="prop"><span class="k">Evaluator</span><span class="v">{{spades.evaluator}}</span></div>
+        <div class="prop"><span class="k">Evaluated</span><span class="v">{{spades.evaluated}}</span></div>
+      </div>
+      <div class="card">
+        <div class="hd">VERIFIER KEY</div>
+        <div class="key-row"><span class="key-sq" style="background:var(--vf-ai);"></span>AI — model-checked</div>
+        <div class="key-row"><span class="key-sq" style="background:var(--vf-human);"></span>Human — eyes-on</div>
+        <div class="key-row"><span class="key-sq" style="background:var(--vf-test);"></span>Test — automated suite</div>
+        <div class="key-row"><span class="key-sq" style="background:var(--vf-lint);"></span>Lint — static analysis</div>
+        <div class="key-row"><span class="key-sq" style="background:var(--vf-manual);"></span>Manual — by hand</div>
+      </div>
+      <nav class="toc">
+        <a href="#summary" class="active">Verdict summary</a>
+        <a href="#verification">Verification steps</a>
+        <a href="#audit">Audit timeline</a>
       </nav>
     </aside>
-    <main>
-      <div class="crumbs">{{spades.scope_id}}<span class="sep">›</span>{{spades.plan_id}}<span class="sep">›</span>evaluate · {{spades.mode}}</div>
-      <h1>{{spades.h1_prefix}}: {{spades.plan_title}}</h1>
-      <p class="tagline">{{spades.tagline}}</p>
 
+    <!-- MAIN -->
+    <main>
       <section id="summary">
-        <h2>Verdict Summary</h2>
-        <div class="summary-card">{{spades.verdict_summary_html}}</div>
+        <h2>Verdict summary</h2>
+        <div class="prose v-{{spades.verdict_class}}">{{spades.verdict_summary_html}}</div>
       </section>
 
       <section id="verification">
-        <h2>Verification Steps</h2>
-        <table class="verification">
-          <thead>
-            <tr><th>Verification step</th><th>By</th><th>Method</th><th>Verdict</th><th>Notes</th></tr>
-          </thead>
-          <tbody>
-            <!-- SPADES-BLOCK:verification-rows -->
-            <tr>
-              <td class="row-step">{{block.step}}<span class="criterion-ref">{{block.criterion_ref}}</span></td>
-              <td class="row-by"><span class="by-badge {{block.verifier_class}}">{{block.verifier}}</span></td>
-              <td class="row-method">{{block.method}}</td>
-              <td class="row-verdict"><span class="v-badge {{block.verdict_class}}">{{block.verdict}}</span></td>
-              <td class="row-notes">{{block.notes}}</td>
-            </tr>
-            <!-- SPADES-ENDBLOCK -->
-          </tbody>
-        </table>
+        <h2>Verification steps</h2>
+        <div class="vtable">
+          <div class="vhead"><span>STEP</span><span>BY</span><span>METHOD</span><span>VERDICT</span></div>
+          <!-- SPADES-BLOCK:verification-rows -->
+          <div class="vrow">
+            <span class="step">{{block.step}}<span class="ref">{{block.criterion_ref}}</span><span class="notes">{{block.notes}}</span></span>
+            <span><span class="by-badge {{block.verifier_class}}">{{block.verifier}}</span></span>
+            <span class="method">{{block.method}}</span>
+            <span><span class="v-badge {{block.verdict_class}}">{{block.verdict}}</span></span>
+          </div>
+          <!-- SPADES-ENDBLOCK -->
+        </div>
       </section>
 
       <section id="audit">
-        <h2>Audit Timeline</h2>
-        <ul class="timeline">
+        <h2>Audit timeline</h2>
+        <div class="card" style="padding: 4px 18px;">
           <!-- SPADES-BLOCK:audit-events -->
-          <li><span class="t-date">{{block.date}}</span>{{block.desc}}</li>
+          <div class="audit-row">
+            <span class="date">{{block.date}}</span>
+            <span class="desc">{{block.desc}}</span>
+          </div>
           <!-- SPADES-ENDBLOCK -->
-        </ul>
-        <script type="application/yaml" id="spades-audit-trail">
-          <!-- SPADES-BLOCK:audit-events -->
-- date: {{block.date}}
-  desc: {{block.desc}}
-          <!-- SPADES-ENDBLOCK -->
-        </script>
+        </div>
       </section>
-      <footer>SPADES · v{{spades.plugin_version}} · template: Evaluate ({{spades.mode}}) · rendered {{spades.evaluated}} · audit-trail line on the Plan is authoritative</footer>
+
+      <footer>SPADES · v{{spades.plugin_version}} · template: Evaluate ({{spades.mode}}) / Cockpit · audit-trail line on the Plan is authoritative · rendered {{spades.evaluated}}</footer>
     </main>
   </div>
+
+<script>
+  // Lightweight scroll-spy for the section nav.
+  (function () {
+    var ids = ["summary", "verification", "audit"];
+    var links = {};
+    ids.forEach(function (id) {
+      var a = document.querySelector('nav.toc a[href="#' + id + '"]');
+      if (a) links[id] = a;
+    });
+    function onScroll() {
+      var marker = window.innerHeight * 0.28, current = ids[0];
+      ids.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= marker) current = id;
+      });
+      var doc = document.documentElement;
+      if (window.innerHeight + window.scrollY >= doc.scrollHeight - 4) current = ids[ids.length - 1];
+      ids.forEach(function (id) { if (links[id]) links[id].classList.toggle("active", id === current); });
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    onScroll();
+  })();
+</script>
+<script type="application/yaml" id="spades-audit-trail">
+<!-- SPADES-BLOCK:audit-events -->
+- date: {{block.date}}
+  desc: "{{block.desc}}"
+<!-- SPADES-ENDBLOCK -->
+</script>
 </body>
 </html>

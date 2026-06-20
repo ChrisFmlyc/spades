@@ -231,10 +231,25 @@ hand-roll the HTML.**
 3. Substitute:
    - `{{spades.project_slug}}`, `{{spades.last_reviewed}}`,
      `{{spades.rendered_at}}`, `{{spades.plugin_version}}`.
+   - Deck scalars: `{{spades.cadence}}` (from ARCHITECTURE.md
+     frontmatter; falls back to `—`), `{{spades.stages_count}}` =
+     number of `stages` items, `{{spades.stakeholders_count}}` =
+     number of `stakeholders` items.
    - The prose sections via direct substitutions:
-     `{{spades.overview_html}}`, `{{spades.stages_html}}`,
-     `{{spades.stakeholders_html}}`, `{{spades.cadence_html}}`,
+     `{{spades.overview_html}}`, `{{spades.cadence_html}}`,
      `{{spades.tools_html}}`, `{{spades.constraints_html}}`.
+   - Repeating blocks:
+     - `stages` — one per workflow stage. Fields: `name, desc`.
+     - `stakeholders` — one per stakeholder/role. Fields: `name, role`.
+     - `objective-banner` — 0 or 1 item; per
+       `docs/FRAMEWORK.md § Objective banner` (the project's sole
+       `open` Objective `{ id, title }` when exactly one exists, else
+       an empty list → banner hidden).
+   Required markers: `<!-- SPADES-BLOCK:stages -->`,
+   `<!-- SPADES-BLOCK:stakeholders -->`.
+   Capture Stages as discrete items (`### <name>` + one-line desc) and
+   Stakeholders as `<name> — <role>`, plus `cadence` in the frontmatter,
+   so these substitutions are reliable.
 4. Write to `.spades-anywhere/.tmp/architecture.html`.
 5. Auto-open via the OPEN_CMD prelude.
 

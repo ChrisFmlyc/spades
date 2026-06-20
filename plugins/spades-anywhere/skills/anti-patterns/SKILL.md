@@ -193,14 +193,25 @@ hand-roll the HTML.**
 
 1. Read the template at
    `${CLAUDE_PLUGIN_ROOT}/skills/anti-patterns/template.html`.
-2. Validate placeholders; abort if any missing.
+2. Validate markers; abort if any of the four required `*-bans`
+   blocks are missing.
 3. Substitute:
-   - `{{spades.project_slug}}`, `{{spades.last_reviewed}}`,
-     `{{spades.rendered_at}}`, `{{spades.plugin_version}}`.
-   - Prose sections: `{{spades.process_html}}`,
-     `{{spades.communication_html}}`, `{{spades.tools_html}}`,
-     `{{spades.other_bans_html}}`.
+   - Scalars: `{{spades.project_slug}}`,
+     `{{spades.last_reviewed}}`, `{{spades.rendered_at}}`,
+     `{{spades.plugin_version}}`, and `{{spades.ban_count}}`
+     (total documented bans across all four sections).
+   - The four per-section ban blocks (`communication-bans`,
+     `process-bans`, `tools-bans`, `other-bans-bans`) — one item
+     per ban, each with fields `title`, `why_html`, `instead_html`.
+   - `objective-banner` (0 or 1 item — feed one `{id, title}` only
+     when the project rolls up to an O- objective, else feed none).
+   - Authoring: capture each ban as a discrete item — short title,
+     why it's banned, what to do instead.
 4. Write to `.spades-anywhere/.tmp/anti-patterns.html`.
 5. Auto-open via the OPEN_CMD prelude.
+
+**Required markers:** the four `*-bans` blocks —
+`communication-bans`, `process-bans`, `tools-bans`,
+`other-bans-bans`.
 
 `ANTI-PATTERNS.md` itself stays Markdown in both modes.

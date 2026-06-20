@@ -339,9 +339,15 @@ Worker inputs:
 - `frontmatter`: `{ id, title, status, project, type, priority,
   origin, created, updated }` (also embedded verbatim in
   `<script id="spades-frontmatter">`)
+- `criteria_count` *(scalar)*: the number of acceptance criteria —
+  the count of `acceptance-items`. Drives the deck.
 - `blocks`:
   - `acceptance-items` — one per `## Acceptance Criteria` bullet.
     Fields: `text, checked` (boolean).
+  - `objective-banner` — 0 or 1 item, fields `{ id, title }`, per
+    `docs/FRAMEWORK.md § Objective banner`. Resolve from this
+    Scope's `strategy_link` (only when it matches an existing
+    `O-<slug>` objective file); else pass `[]`.
   - `dependencies-items` — one per `## Dependencies` bullet.
     Field: `text`.
   - `out-of-scope-items` — one per `## Out of Scope` bullet.

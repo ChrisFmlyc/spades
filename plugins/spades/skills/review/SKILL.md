@@ -455,6 +455,13 @@ Required fields:
   literally the length of the final merged list, counted after
   convergence merging. Do not estimate.
 
+**When the review target is a Plan, stamp the panel tally onto that
+Plan** so the Plan page can echo it — write `panel_blocking`,
+`panel_major`, `panel_minor` (the counts of merged findings by
+severity) into the Plan's frontmatter. This is the review writing to
+the artefact it reviewed; not a cross-skill call. The Plan template
+reads these; absent → it shows `not run`.
+
 The v1.1 envelope carried a sixth field,
 `findings_filtered_low_confidence`, counting findings dropped by the
 merge-side confidence filter. v2.0.0 removes both the filter and the
@@ -666,9 +673,16 @@ Worker inputs:
 - `output_path`: `.spades/reviews/<slug>-<date>.html` (same slug
   + collision rules as the `.md`: `<slug>-<date>-2.html`, etc.)
 - `frontmatter`: `{ target_id, target_title, mode (Scope|Plan|Full),
-  verdict, date, dispatch_mode }` (also embedded verbatim in
-  `<script id="spades-frontmatter">`)
+  verdict, date, dispatch_mode, project }` (also embedded verbatim in
+  `<script id="spades-frontmatter">`). `project` is the active project
+  slug (from `.spades/config`) for the properties rail; optional.
 - `blocks`:
+  - `objective-banner` — 0 or 1 item `{ id, title }` per
+    `docs/FRAMEWORK.md § Objective banner`. Resolve from the
+    reviewed target's `strategy_link` (a Scope's, or a Plan's parent
+    Scope's), counting it ONLY when it matches an existing
+    `.spades/objectives/O-<slug>.md` file — then pass
+    `[{ id, title }]` (title read from that file); otherwise `[]`.
   - `persona-cards` — one per persona (4 cards). Fields:
     `persona, summary_html, finding_count`.
   - `findings` — one per merged finding (every severity,

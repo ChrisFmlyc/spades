@@ -311,6 +311,22 @@ use the bundled template` for the canonical rule.
      `{{spades.updated}}`, and any others present in the template.
    - The frontmatter YAML block also goes verbatim into the
      `<script type="application/yaml" id="spades-frontmatter">` tag.
+   - `{{spades.routing_ai}}`, `{{spades.routing_hybrid}}`,
+     `{{spades.routing_human}}` — counts of the Plan's tasks by
+     their `routing` field.
+   - `{{spades.panel_blockers}}`, `{{spades.panel_findings}}` —
+     review-echo scalars, both defaulting to the literal string
+     `not run`. Fill these ONLY from a prior
+     `/spades-anywhere:review` of this Plan that stamped its panel
+     counts onto the Plan (frontmatter keys, e.g. `panel_blocking` /
+     `panel_major` / `panel_minor`). When those keys are absent,
+     emit `not run` (NEVER `0`). `panel_blockers` = the blocking
+     count; `panel_findings` = `"<major> / <minor>"`.
+   - `<!-- SPADES-BLOCK:objective-banner -->` — repeated 0 or 1
+     times, per `docs/FRAMEWORK.md § Objective banner`. Per-item:
+     `{{block.id}}`, `{{block.title}}`. Inherit from this Plan's
+     Scope's `strategy_link` resolution (only when it matches an
+     existing `O-<slug>` objective file); else emit nothing (`[]`).
    - `<!-- SPADES-BLOCK:tasks -->` — repeated once per task, one
      card per task. Per-item fields: `{{block.num}}`,
      `{{block.title_html}}`, `{{block.posture}}`,

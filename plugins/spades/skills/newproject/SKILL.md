@@ -147,9 +147,15 @@ Worker inputs:
 - `template_path`:
   `${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html`
 - `output_path`: `.spades/projects/<slug>.html`
-- `frontmatter`: `{ id, title, description, created, updated, … }`
-  (also embedded verbatim in `<script id="spades-frontmatter">`)
+- `frontmatter`: `{ id, title, description, created, updated,
+  status, … }` — `status` is optional (the project's status; the
+  template defaults it to `active`). Also embedded verbatim in
+  `<script id="spades-frontmatter">`.
 - `blocks`:
+  - `objective-banner` — 0 or 1 item per
+    `docs/FRAMEWORK.md § Objective banner`. Pass the project's sole
+    `open` Objective `{ id, title }` when EXACTLY ONE exists in
+    `.spades/objectives/`, else `[]`.
   - `repos-items` — one per repo. Fields: `url, label`.
   - `owners-items` — one per owner. Fields: `name, email|—`.
   - `status-filters` — one per status filter chip in the
@@ -159,6 +165,7 @@ Worker inputs:
   - `audit-events` — one per audit entry. Fields: `date, desc`.
 
 Required template markers:
+`<!-- SPADES-BLOCK:objective-banner -->`,
 `<!-- SPADES-BLOCK:repos-items -->`,
 `<!-- SPADES-BLOCK:owners-items -->`,
 `<!-- SPADES-BLOCK:status-filters -->`,

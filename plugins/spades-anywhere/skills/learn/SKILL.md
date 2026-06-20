@@ -160,9 +160,15 @@ When invoked in the default mode:
      Format`:
      - Frontmatter values fill `{{spades.id}}`, `{{spades.title}}`,
        `{{spades.area}}`, `{{spades.status}}`, `{{spades.created}}`,
-       `{{spades.public_safe}}`.
+       `{{spades.public_safe}}`, `{{spades.project}}` (optional —
+       the active project slug, for the rail).
      - The frontmatter YAML block also goes verbatim into the
        `<script type="application/yaml" id="spades-frontmatter">` tag.
+     - `<!-- SPADES-BLOCK:objective-banner -->` — 0 or 1 item per
+       `docs/FRAMEWORK.md § Objective banner`. Pass the project's
+       sole `open` Objective `{{block.id}}`, `{{block.title}}` when
+       EXACTLY ONE exists in `.spades-anywhere/objectives/`, else
+       `[]`.
      - `<!-- SPADES-BLOCK:tags-items -->` — repeated once per tag.
        Per-item: `{{block.tag}}`.
      - `<!-- SPADES-BLOCK:related-items -->` — repeated once per

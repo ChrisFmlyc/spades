@@ -97,7 +97,9 @@ This skill is distinct from its neighbours:
 ## Inline ANTI-PATTERNS.md Template
 
 When this skill needs to scaffold a fresh `ANTI-PATTERNS.md`,
-use exactly this shape:
+use exactly this shape. Capture each ban as a discrete item with a
+short title, why it's banned, and what to do instead — the renderer
+turns each into a card and counts them.
 
 ```markdown
 ---
@@ -288,8 +290,20 @@ Both workers take the same inputs:
   `${CLAUDE_PLUGIN_ROOT}/skills/anti-patterns/template.html`
 - `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
   plugin_version }`
-- `prose_sections`: `{ runtime_deps_html, hidden_state_html,
-  premature_abstraction_html, other_bans_html }`
+- `blocks`:
+  - `runtime-deps-bans`, `hidden-state-bans`,
+    `premature-abstraction-bans`, `other-bans-bans` — one card per
+    ban under that `##` section. Fields: `title`, `why_html`,
+    `instead_html`. Derived by splitting the section's entries: each
+    is a ban with a short title, a why, and an "instead".
+  - `objective-banner` — 0 or 1; per
+    `docs/FRAMEWORK.md § Objective banner`.
+- `ban_count` (scalar): total bans across the four sections.
+
+Required markers the worker checks for: the four
+`<!-- SPADES-BLOCK:*-bans -->` blocks
+(`runtime-deps-bans`, `hidden-state-bans`,
+`premature-abstraction-bans`, `other-bans-bans`).
 
 The worker validates the template placeholders and aborts with:
 *`template.html` missing required markers — render aborted.

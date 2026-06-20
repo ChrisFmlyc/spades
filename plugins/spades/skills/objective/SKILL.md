@@ -171,6 +171,28 @@ When `review_format: html`, render the `.html` companion from
 `.spades/objectives/O-<slug>.html` and auto-open it via the OPEN_CMD
 prelude (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`).
 
+Worker inputs (this Objective page has **no** `objective-banner` — it
+*is* the objective; do not add one):
+
+- `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/objective/template.html`
+- `output_path`: `.spades/objectives/O-<slug>.html`
+- `frontmatter`: `{ id, title, project, status, strategy_link,
+  created, updated }` (also embedded verbatim in
+  `<script id="spades-frontmatter">`)
+- `linked_count` *(scalar)*: the number of Scopes that contribute to
+  THIS objective — the count of `linked-scopes` (see below). Drives
+  the deck.
+- `blocks`:
+  - `linked-scopes` — one per Scope whose `strategy_link` matches this
+    objective's `O-<slug>` id. Resolve by scanning the peer scope
+    files `.spades/scopes/*.md`; a Scope is linked when its
+    `strategy_link` frontmatter equals `O-<slug>`. Fields:
+    `id, title, status`. Empty list when none.
+  - `audit-events` — one per audit-trail entry. Fields: `date, desc`.
+
+Required template markers: `<!-- SPADES-BLOCK:linked-scopes -->`,
+`<!-- SPADES-BLOCK:audit-events -->`.
+
 ### When `backend: linear` — fan-out dispatch
 
 Apply the fan-out pattern from `docs/FRAMEWORK.md § Sub-agent Dispatch

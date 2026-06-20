@@ -333,10 +333,21 @@ Worker inputs (page 1: `mode = plan`):
               awaiting your approval. Reject or edit at the
               prompt in the CLI; otherwise the listed checks
               will run next.</p>",
+    pass_count: 0, partial_count: 0, fail_count: 0,
     plan_id, plan_title, scope_id, scope_title,
-    evaluated, evaluator, plugin_version }
+    project, evaluated, evaluator, plugin_version }
   ```
+  In `mode: plan` (pre-verification) `pass_count` / `partial_count`
+  / `fail_count` are `0` — no verdicts exist yet, so the deck shows
+  the |default. `project` is the active project slug (from
+  `.spades/config`) for the properties rail; optional.
 - `blocks`:
+  - `objective-banner` — 0 or 1 item `{ id, title }` per
+    `docs/FRAMEWORK.md § Objective banner`. Resolve from the
+    evaluated Plan's parent Scope's `strategy_link`, counting it
+    ONLY when it matches an existing
+    `.spades/objectives/O-<slug>.md` file — then pass
+    `[{ id, title }]` (title read from that file); otherwise `[]`.
   - `verification-rows` — one per verification step from the
     just-written `Verification plan agreed:` audit-trail entry.
     Fields: `step` (concrete action), `criterion_ref` (e.g.
@@ -570,10 +581,19 @@ Worker inputs (page 2: `mode = report`):
     verdict_class: "pass"|"partial"|"fail",
     verdict_summary_html: <one-paragraph rationale captured at
               Step 5, HTML-escaped, wrapped in <p>>,
+    pass_count, partial_count, fail_count,
     plan_id, plan_title, scope_id, scope_title,
-    evaluated, evaluator, plugin_version }
+    project, evaluated, evaluator, plugin_version }
   ```
+  `pass_count` / `partial_count` / `fail_count` are the counts of
+  the `verification-rows` by their `verdict` (PASS / PARTIAL /
+  FAIL). `project` is the active project slug (from
+  `.spades/config`) for the properties rail; optional.
 - `blocks`:
+  - `objective-banner` — same resolution as page 1: 0 or 1 item
+    `{ id, title }` per `docs/FRAMEWORK.md § Objective banner`,
+    resolved from the evaluated Plan's parent Scope's
+    `strategy_link`, else `[]`.
   - `verification-rows` — same row set as page 1, with verdicts
     and notes filled in from Steps 3/4 (AI rows) and Step 5
     (human rows). Same field schema as page 1.

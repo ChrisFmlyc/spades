@@ -1,117 +1,259 @@
 <!DOCTYPE html>
-<!-- SPADES template: list v1.1.0 (matches plugin v3.0.3) -->
-<!-- Transient list page. Section block: scopes-rows (same shape as project's). -->
+<!-- SPADES template: list v2.0.0 (matches plugin v3.6.0) -->
+<!--
+  Transient scope-list page (.spades/.tmp/list.html). "Cockpit"
+  redesign — dark command deck. Re-rendered each /spades:list.
+
+  RENDER CONTRACT (string substitution + block repetition)
+  Field names follow the CURRENT SKILL.md worker spec (§ HTML mode).
+
+  Scalars (frontmatter): project_slug, filter_label (|all), total,
+    rendered_at, plugin_version
+  NEW decision-deck scalars (optional — |default fallback):
+    in_flight_count (|—), done_count (|—)
+
+  Required repeating blocks (worker validates BOTH markers):
+    status-filters — label, count, active   (rendered as the rail's
+                     "BY PHASE" list; the design has no filter bar)
+    scopes-rows    — id, title, status, plans_breakdown,
+                     blocked_warning_html, updated, flags
+
+  Optional repeating block (0 or 1 — renders nothing when unfed):
+    objective-banner — id, title
+
+  {{block.status}} and the phase label are substituted as CSS classes
+  (.pill.<status>, .ph-<label>) so pills / dots self-colour.
+-->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SPADES Scopes · {{spades.project_slug}}</title>
 <style>
-  :root { --gold: #FFC107; --gold-light: #FFDE59; --gold-soft: #fff4cc; --ink: #1a1a1a; --panel: #ffffff; --page: #fafafa; --gray: #e8e8e8; --gray-text: #5a5a5a; --border: #d4d4d4; --st-scoped: #6b7280; --st-planning: #f59e0b; --st-approval: #f97316; --st-delivering: #3b82f6; --st-evaluating: #8b5cf6; --st-shipping: #06b6d4; --st-shipped: #10b981; --st-done: #047857; --st-rejected: #ef4444; --st-abandoned: #78716c; }
+  :root {
+    --bg: #0b0e14; --bg-bar: #0d1117; --panel: #141a23; --panel-2: #1b2330;
+    --panel-inset: #11161f; --border: #263041; --hair: #161d28;
+    --ink: #e6edf3; --ink-soft: #c3cdd9; --ink-strong: #dbe3ec;
+    --muted: #8b98ab; --muted-2: #6b7688; --muted-3: #5f6b7e;
+    --lime: #c3f73a; --teal: #38e8e0; --amber: #ff9f1c; --red: #ff4d4d; --red-soft: #ff7a7a; --green: #3ddc84;
+    --st-scoped: #aab4c4; --st-planning: #ffb454; --st-approval: #ffb454;
+    --st-delivering: #5fb0ff; --st-evaluating: #c4b1fb; --st-shipping: #5fe0d8;
+    --st-shipped: #3ddc84; --st-done: #3ddc84; --st-rejected: #ff7a7a; --st-abandoned: #aab4c4;
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; background: var(--page); color: var(--ink); font-size: 17.5px; line-height: 1.6; }
-  .layout { display: grid; grid-template-columns: 375px minmax(0, 1fr); min-height: 100vh; }
-  aside.sidebar { background: var(--panel); border-right: 1px solid var(--border); position: sticky; top: 0; height: 100vh; overflow-y: auto; }
-  .sidebar-header { background: var(--gold); padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--ink); }
-  .sidebar-header .brand { font-size: 0.72rem; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; }
-  .sidebar-header .id { font-family: ui-monospace, monospace; font-size: 0.92rem; margin-top: 0.4rem; }
-  .sidebar-section { padding: 1.25rem 1.4rem; border-bottom: 1px solid var(--gray); }
-  .sidebar-section h3 { font-size: 0.7rem; color: var(--gray-text); font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 0.85rem; }
-  .meta-row { display: flex; justify-content: space-between; padding: 0.35rem 0; font-size: 0.92rem; }
-  .meta-row .key { color: var(--gray-text); }
-  .meta-row .val { font-weight: 500; }
-  main { padding: 3rem 4rem; min-width: 0; }
-  main h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
-  .crumbs { font-family: ui-monospace, monospace; font-size: 0.85rem; color: var(--gray-text); margin-bottom: 0.5rem; }
-  .tagline { color: var(--gray-text); font-size: 1rem; margin: 0.5rem 0 2.5rem; }
-  section { margin-bottom: 2.5rem; }
-  section h2 { font-size: 0.88rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.85rem; color: var(--gray-text); border-bottom: 1px solid var(--border); padding-bottom: 0.55rem; }
-  section h2::before { content: ""; display: inline-block; width: 4px; height: 14px; background: var(--gold); margin-right: 0.5rem; vertical-align: middle; }
-  .filter-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
-  .filter-btn { padding: 0.35rem 0.8rem; border: 1px solid var(--border); background: var(--panel); border-radius: 4px; font-size: 0.85rem; cursor: pointer; color: var(--ink); font-family: inherit; }
-  .filter-btn:hover { border-color: var(--gold); }
-  .filter-btn.active { background: var(--gold); border-color: var(--gold); font-weight: 600; }
-  table.scopes { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
-  table.scopes thead { background: var(--gray); }
-  table.scopes th { text-align: left; padding: 0.7rem 1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--gray-text); }
-  table.scopes td { padding: 0.85rem 1rem; border-top: 1px solid var(--gray); font-size: 0.95rem; }
-  table.scopes tr:hover td { background: var(--gold-soft); }
-  table.scopes td.id { font-family: ui-monospace, monospace; font-size: 0.88rem; color: var(--gray-text); }
-  table.scopes td a { color: var(--ink); text-decoration: none; font-weight: 500; }
-  .pill { display: inline-flex; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; color: white; }
-  .pill.scoped { background: var(--st-scoped); } .pill.planning { background: var(--st-planning); } .pill.approval { background: var(--st-approval); }
-  .pill.delivering { background: var(--st-delivering); } .pill.evaluating { background: var(--st-evaluating); } .pill.shipping { background: var(--st-shipping); }
-  .pill.shipped { background: var(--st-shipped); } .pill.done { background: var(--st-done); } .pill.rejected { background: var(--st-rejected); } .pill.abandoned { background: var(--st-abandoned); }
-  .blocked-warning { display: block; margin-top: 0.35rem; padding: 0.35rem 0.6rem; background: #fef2f2; border-left: 3px solid var(--st-rejected); border-radius: 3px; font-size: 0.82rem; color: var(--ink); }
-  .blocked-warning strong { color: var(--st-rejected); margin-right: 0.3rem; }
-  .blocked-warning ul { margin: 0.2rem 0 0 1rem; padding: 0; }
-  .blocked-warning li { font-family: ui-monospace, monospace; font-size: 0.78rem; }
-  footer { padding: 1.2rem 4rem; color: var(--gray-text); font-size: 0.8rem; border-top: 1px solid var(--border); }
-  /* Wide-screen: bump padding so prose doesn't run edge to edge while main column still flexes. */
-  @media (min-width: 1600px) { main { padding: 3rem 6rem; } }
-  @media (min-width: 2200px) { main { padding: 3.5rem 8rem; } }
+  body { background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif; font-size: 16px; line-height: 1.55; }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-thumb { background: #2b3647; border-radius: 6px; }
+  *::-webkit-scrollbar-track { background: var(--bg); }
+  a { color: inherit; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+  code { font-family: ui-monospace, Menlo, monospace; background: var(--panel-2); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
 
-  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } aside.sidebar { position: static; height: auto; border-right: none; border-bottom: 2px solid var(--gold); } main { padding: 2rem 1.5rem; } }
+  /* COMMAND BAR */
+  header.cmd { position: sticky; top: 0; z-index: 20; background: var(--bg-bar); border-bottom: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+  header.cmd .wrap { padding-top: 14px; padding-bottom: 14px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .spade { width: 26px; display: flex; align-items: center; justify-content: center; color: var(--lime); font-size: 22px; line-height: 1; }
+  .brand .kicker { font-size: 10px; letter-spacing: 2.5px; color: var(--muted); font-weight: 700; }
+  .brand .id { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .spacer { flex: 1; }
+  .chip { display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: rgba(139,152,171,0.1); border: 1px solid rgba(139,152,171,0.3); }
+  .chip span { font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700; color: #aab4c4; }
+
+  /* OBJECTIVE BANNER */
+  .objbar { background: rgba(56,232,224,0.06); border-bottom: 1px solid var(--panel-2); }
+  .objbar .wrap { padding-top: 11px; padding-bottom: 11px; display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
+  .objbar .tag { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; letter-spacing: 1.5px; font-weight: 700; color: var(--teal); white-space: nowrap; }
+  .objbar .tag .gem { width: 15px; height: 15px; border: 1.5px solid var(--teal); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; line-height: 1; }
+  .objbar .oid { font-family: ui-monospace, Menlo, monospace; font-size: 13px; font-weight: 700; color: #5fe0d8; }
+  .objbar .sep { color: #2b3647; }
+  .objbar .otitle { font-size: 14px; color: var(--ink-soft); }
+
+  /* DECISION DECK */
+  .deck { border-bottom: 1px solid var(--panel-2); background: radial-gradient(1200px 200px at 20% -40%, rgba(195,247,58,0.06), transparent); }
+  .deck .wrap { padding-top: 28px; padding-bottom: 26px; }
+  .deck h1 { font-size: 30px; line-height: 1.15; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .deck .lede { color: var(--muted); font-size: 15px; margin-bottom: 20px; }
+  .deck-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .stat .lbl { font-size: 11px; letter-spacing: 1.5px; color: var(--muted); font-weight: 700; }
+  .stat .n { font-size: 30px; font-weight: 800; font-family: ui-monospace, monospace; line-height: 1.1; color: var(--ink); }
+  .stat .note { font-size: 12px; color: var(--muted-2); }
+  .stat.inflight .n { color: var(--amber); }
+  .stat.done .n { color: var(--green); }
+
+  /* BODY GRID */
+  .body { display: grid; grid-template-columns: 268px minmax(0,1fr); gap: 32px; align-items: start; padding-top: 28px; padding-bottom: 60px; }
+  aside.rail { position: sticky; top: 86px; display: flex; flex-direction: column; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .card .hd { font-size: 11px; letter-spacing: 1.5px; color: var(--muted); font-weight: 700; margin-bottom: 12px; }
+  .phase-row { display: flex; align-items: center; gap: 9px; padding: 5px 0; font-size: 13px; }
+  .phase-row .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .phase-row .dot.ph-scoped { background: var(--st-scoped); }
+  .phase-row .dot.ph-planning { background: var(--st-planning); }
+  .phase-row .dot.ph-delivering { background: var(--st-delivering); }
+  .phase-row .dot.ph-evaluating { background: var(--st-evaluating); }
+  .phase-row .dot.ph-shipping { background: var(--st-shipping); }
+  .phase-row .dot.ph-shipped { background: var(--st-shipped); }
+  .phase-row .dot.ph-done { background: var(--st-done); }
+  .phase-row .dot.ph-rejected { background: var(--st-rejected); }
+  .phase-row .lbl { color: var(--ink-soft); flex: 1; text-transform: capitalize; }
+  .phase-row .c { font-family: ui-monospace, monospace; color: var(--muted); font-size: 12px; }
+  .filter-card .fr { font-size: 13px; color: var(--muted-2); margin-bottom: 4px; }
+  .filter-card .fr:last-child { margin-bottom: 0; }
+  .filter-card .fr .lime { color: var(--lime); font-family: ui-monospace, monospace; }
+  .filter-card .fr .val { color: #cbd5e1; font-family: ui-monospace, monospace; }
+
+  main { min-width: 0; }
+  section { margin-bottom: 30px; scroll-margin-top: 86px; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  .sec-head h2 { font-size: 12px; letter-spacing: 2px; color: var(--muted); font-weight: 700; margin: 0; text-transform: uppercase; }
+  .sec-head .hint { font-size: 12px; color: var(--muted-2); font-family: ui-monospace, monospace; }
+
+  /* SCOPES TABLE */
+  .scopes { background: var(--panel); border: 1px solid var(--border); border-radius: 11px; overflow: hidden; }
+  .scope-head { display: grid; grid-template-columns: 1fr 120px 210px 96px; gap: 0; align-items: center; padding: 11px 16px; background: var(--panel-inset); border-bottom: 1px solid var(--border); font-size: 11px; letter-spacing: 1px; color: var(--muted-2); font-weight: 700; }
+  .scope-row { padding: 13px 16px; border-bottom: 1px solid var(--panel-2); }
+  .scope-row:last-child { border-bottom: none; }
+  .scope-row:hover { background: rgba(195,247,58,0.03); }
+  /* the main line is the grid; blocked-warning sits full-width beneath it */
+  .scope-main { display: grid; grid-template-columns: 1fr 120px 210px 96px; gap: 0; align-items: start; }
+  .scope-row .sid { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .scope-row .stitle { font-size: 14px; color: var(--ink-strong); font-weight: 500; margin-top: 2px; }
+  .scope-row .flags { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted-3); margin-top: 3px; }
+  .scope-row .st { padding-top: 1px; }
+  .scope-row .plans { font-family: ui-monospace, monospace; font-size: 12px; color: #9aa6b4; padding-right: 10px; }
+  .scope-row .upd { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-2); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.scoped     { background: rgba(139,152,171,0.15); color: var(--st-scoped); }
+  .pill.planning   { background: rgba(255,159,28,0.14);  color: var(--st-planning); }
+  .pill.approval   { background: rgba(255,159,28,0.14);  color: var(--st-approval); }
+  .pill.delivering { background: rgba(56,160,255,0.14);  color: var(--st-delivering); }
+  .pill.evaluating { background: rgba(167,139,250,0.14); color: var(--st-evaluating); }
+  .pill.shipping   { background: rgba(56,232,224,0.14);  color: var(--st-shipping); }
+  .pill.shipped    { background: rgba(61,220,132,0.14);  color: var(--st-shipped); }
+  .pill.done       { background: rgba(61,220,132,0.14);  color: var(--st-done); }
+  .pill.rejected   { background: rgba(255,77,77,0.14);   color: var(--st-rejected); }
+  .pill.abandoned  { background: rgba(139,152,171,0.15); color: var(--st-abandoned); }
+  /* blocked_warning_html payload (emitted by the worker) — full-width, beneath the scope's main line */
+  .blocked-warning { display: block; margin-top: 9px; padding: 8px 12px; background: rgba(255,77,77,0.08); border-left: 3px solid var(--red); border-radius: 5px; font-size: 12px; color: var(--ink-soft); }
+  .blocked-warning strong { color: var(--red-soft); margin-right: 0.3rem; }
+  .blocked-warning ul { margin: 0.2rem 0 0 1rem; padding: 0; }
+  .blocked-warning li { font-family: ui-monospace, monospace; font-size: 11.5px; }
+
+  footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--panel-2); font-family: ui-monospace, monospace; font-size: 11px; color: #4f5a6b; }
+
+  @media (max-width: 900px) {
+    .body { grid-template-columns: 1fr; }
+    aside.rail { position: static; }
+    .deck-grid { grid-template-columns: 1fr; }
+    .scope-head, .scope-main { grid-template-columns: 1fr 110px; }
+    .scope-head span:nth-child(3), .scope-head span:nth-child(4),
+    .scope-main .plans, .scope-main .upd { display: none; }
+    .wrap { padding: 0 18px; }
+  }
 </style>
 </head>
 <body>
 <script type="application/yaml" id="spades-frontmatter">
 project: {{spades.project_slug}}
-filter: {{spades.filter|all}}
+filter: {{spades.filter_label|all}}
 total: {{spades.total}}
 rendered_at: {{spades.rendered_at}}
 </script>
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="brand">SPADES · List</div>
-        <div class="id">{{spades.project_slug}}</div>
+
+  <!-- COMMAND BAR -->
+  <header class="cmd">
+    <div class="wrap">
+      <div class="brand">
+        <div class="spade">&#9824;</div>
+        <div style="min-width:0;">
+          <div class="kicker">SPADES · LIST · TRANSIENT VIEW</div>
+          <div class="id">{{spades.project_slug}}</div>
+        </div>
       </div>
-      <div class="sidebar-section">
-        <h3>Filter</h3>
-        <div class="meta-row"><span class="key">Phase</span><span class="val">{{spades.filter|all}}</span></div>
-        <div class="meta-row"><span class="key">Total</span><span class="val">{{spades.total}} scopes</span></div>
+      <div class="spacer"></div>
+      <div class="chip"><span>re-renders each /spades:list</span></div>
+    </div>
+  </header>
+
+  <!-- OBJECTIVE BANNER (0 or 1 — renders only when the project rolls up to an O- objective) -->
+  <!-- SPADES-BLOCK:objective-banner -->
+  <div class="objbar">
+    <div class="wrap">
+      <span class="tag"><span class="gem">&#9671;</span> OBJECTIVE</span>
+      <span class="oid">{{block.id}}</span>
+      <span class="sep">│</span>
+      <span class="otitle">{{block.title}}</span>
+    </div>
+  </div>
+  <!-- SPADES-ENDBLOCK -->
+
+  <!-- DECISION DECK -->
+  <div class="deck">
+    <div class="wrap">
+      <h1>Active scopes</h1>
+      <p class="lede">Every scope under <code>{{spades.project_slug}}</code>, with its plan roll-up. A read-only snapshot — re-rendered each time you run <code>/spades:list</code>.</p>
+      <div class="deck-grid">
+        <div class="stat"><div class="lbl">TOTAL</div><div class="n">{{spades.total}}</div><div class="note">scopes</div></div>
+        <div class="stat inflight"><div class="lbl">IN FLIGHT</div><div class="n">{{spades.in_flight_count|—}}</div><div class="note">delivering / shipping</div></div>
+        <div class="stat done"><div class="lbl">DONE</div><div class="n">{{spades.done_count|—}}</div><div class="note">shipped out</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="wrap body">
+
+    <!-- META RAIL -->
+    <aside class="rail">
+      <div class="card">
+        <div class="hd">BY PHASE</div>
+        <!-- SPADES-BLOCK:status-filters -->
+        <div class="phase-row">
+          <span class="dot ph-{{block.label}}"></span>
+          <span class="lbl">{{block.label}}</span>
+          <span class="c">{{block.count}}</span>
+        </div>
+        <!-- SPADES-ENDBLOCK -->
+      </div>
+      <div class="card filter-card">
+        <div class="hd">FILTER</div>
+        <div class="fr">Phase: <span class="lime">{{spades.filter_label|all}}</span></div>
+        <div class="fr">Total: <span class="val">{{spades.total}} scopes</span></div>
       </div>
     </aside>
+
+    <!-- MAIN -->
     <main>
-      <div class="crumbs">list · {{spades.project_slug}} · rendered {{spades.rendered_at}}</div>
-      <h1>Active Scopes</h1>
-      <p class="tagline">Filter: <code>{{spades.filter|all}}</code>. Transient page — re-renders each time you run <code>/spades:list</code>.</p>
-      <section>
-        <h2>Scopes ({{spades.total}})</h2>
-        <div class="filter-bar" id="scope-filter">
-          <button class="filter-btn active" data-filter="all">All ({{spades.total}})</button>
-          <!-- SPADES-BLOCK:status-filters -->
-          <button class="filter-btn" data-filter="{{block.status}}">{{block.status_label}} ({{block.count}})</button>
+      <section id="scopes">
+        <div class="sec-head">
+          <h2>Scopes ({{spades.total}})</h2>
+          <span class="hint">most recently updated first</span>
+        </div>
+        <div class="scopes">
+          <div class="scope-head"><span>SCOPE</span><span>STATUS</span><span>PLANS</span><span>UPDATED</span></div>
+          <!-- SPADES-BLOCK:scopes-rows -->
+          <div class="scope-row">
+            <div class="scope-main">
+              <div style="min-width:0; padding-right:12px;">
+                <div class="sid">{{block.id}}</div>
+                <div class="stitle">{{block.title}}</div>
+                <div class="flags">{{block.flags}}</div>
+              </div>
+              <span class="st"><span class="pill {{block.status}}">{{block.status}}</span></span>
+              <span class="plans">{{block.plans_breakdown}}</span>
+              <span class="upd">{{block.updated}}</span>
+            </div>
+            {{block.blocked_warning_html}}
+          </div>
           <!-- SPADES-ENDBLOCK -->
         </div>
-        <table class="scopes">
-          <thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Plans</th><th>Updated</th></tr></thead>
-          <tbody id="scope-tbody">
-            <!-- SPADES-BLOCK:scopes-rows -->
-            <tr data-status="{{block.status}}">
-              <td class="id">{{block.id}}</td>
-              <td><a href="{{block.href}}">{{block.title}}</a></td>
-              <td><span class="pill {{block.status}}">{{block.status}}</span></td>
-              <td>{{block.plans_breakdown}}{{block.blocked_warning_html}}</td>
-              <td>{{block.updated}}</td>
-            </tr>
-            <!-- SPADES-ENDBLOCK -->
-          </tbody>
-        </table>
       </section>
-      <footer>SPADES · v{{spades.plugin_version}} · template: List (transient) · rendered {{spades.rendered_at}}</footer>
+
+      <footer>SPADES · v{{spades.plugin_version}} · template: List (transient) / Cockpit · rendered {{spades.rendered_at}}</footer>
     </main>
   </div>
-<script>
-  const btns = document.querySelectorAll('#scope-filter .filter-btn');
-  const rows = document.querySelectorAll('#scope-tbody tr');
-  btns.forEach(b => b.addEventListener('click', () => {
-    btns.forEach(x => x.classList.remove('active'));
-    b.classList.add('active');
-    const f = b.dataset.filter;
-    rows.forEach(r => { r.style.display = (f === 'all' || r.dataset.status === f) ? '' : 'none'; });
-  }));
-</script>
 </body>
 </html>

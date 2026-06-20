@@ -153,9 +153,14 @@ When invoked in the default mode:
      `.spades/learnings/YYYY-MM-DD-<slug>.html` (public) or
      `.spades/learnings/private/YYYY-MM-DD-<slug>.html` (private)
    - `frontmatter`: `{ id, title, area, status, created,
-     public_safe }` (also embedded verbatim as the YAML in the
-     `<script id="spades-frontmatter">` tag)
+     public_safe, project }` — `project` is optional (the active
+     project slug, for the rail). Also embedded verbatim as the
+     YAML in the `<script id="spades-frontmatter">` tag.
    - `blocks`:
+     - `objective-banner` — 0 or 1 item per
+       `docs/FRAMEWORK.md § Objective banner`. Pass the project's
+       sole `open` Objective `{ id, title }` when EXACTLY ONE
+       exists in `.spades/objectives/`, else `[]`.
      - `tags-items` — one per tag. Field: `tag`.
      - `related-items` — one per related-link bullet. Fields:
        `text, href`.
@@ -164,6 +169,7 @@ When invoked in the default mode:
    - `prose_sections`: `{ what_we_learned_html, why_it_matters_html, ... }`
 
    Required template markers:
+   `<!-- SPADES-BLOCK:objective-banner -->`,
    `<!-- SPADES-BLOCK:tags-items -->`,
    `<!-- SPADES-BLOCK:related-items -->`,
    `<!-- SPADES-BLOCK:audit-events -->`.

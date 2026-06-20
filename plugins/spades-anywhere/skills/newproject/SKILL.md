@@ -157,10 +157,15 @@ use the bundled template` for the canonical rule.
 3. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
    Format`:
    - `{{spades.id}}`, `{{spades.title}}`, `{{spades.description}}`,
-     `{{spades.created}}`, `{{spades.updated}}`, and any additional
-     fields the template requires.
+     `{{spades.created}}`, `{{spades.updated}}`, `{{spades.status}}`
+     (optional — the project's status; the template defaults it to
+     `active`), and any additional fields the template requires.
    - The frontmatter YAML block also goes verbatim into the
      `<script type="application/yaml" id="spades-frontmatter">` tag.
+   - `<!-- SPADES-BLOCK:objective-banner -->` — 0 or 1 item per
+     `docs/FRAMEWORK.md § Objective banner`. Pass the project's
+     sole `open` Objective `{{block.id}}`, `{{block.title}}` when
+     EXACTLY ONE exists in `.spades-anywhere/objectives/`, else `[]`.
    - `<!-- SPADES-BLOCK:repos-items -->` — repeated once per repo.
      Per-item: `{{block.url}}`, `{{block.label}}`.
    - `<!-- SPADES-BLOCK:owners-items -->` — repeated once per
