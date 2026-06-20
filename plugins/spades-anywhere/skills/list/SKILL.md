@@ -299,7 +299,14 @@ use the bundled template` for the canonical rule.
 3. Substitute placeholders per
    `docs/FRAMEWORK.md § Output Format`:
    - `{{spades.project_slug}}`, `{{spades.filter_label}}`,
-     `{{spades.rendered_at}}`, `{{spades.plugin_version}}`.
+     `{{spades.rendered_at}}`, `{{spades.plugin_version}}`,
+     `{{spades.in_flight_count}}` (number of Scopes in delivering /
+     shipping phases), `{{spades.done_count}}` (number of Scopes
+     that are done). These two drive the deck.
+   - `<!-- SPADES-BLOCK:objective-banner -->` — 0 or 1 item per
+     `docs/FRAMEWORK.md § Objective banner`. Pass the project's
+     sole `open` Objective `{{block.id}}`, `{{block.title}}` when
+     EXACTLY ONE exists in `.spades-anywhere/objectives/`, else `[]`.
    - `<!-- SPADES-BLOCK:status-filters -->` — repeated once per
      filter chip (one per status). Per-item: `{{block.label}}`,
      `{{block.count}}`, `{{block.active}}` (boolean).

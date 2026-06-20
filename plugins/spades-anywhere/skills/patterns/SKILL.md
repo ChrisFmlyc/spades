@@ -180,11 +180,24 @@ hand-roll the HTML.**
    `${CLAUDE_PLUGIN_ROOT}/skills/patterns/template.html`.
 2. Validate placeholders; abort if any missing.
 3. Substitute:
-   - `{{spades.project_slug}}`, `{{spades.last_reviewed}}`,
-     `{{spades.rendered_at}}`, `{{spades.plugin_version}}`.
-   - Prose sections: `{{spades.process_html}}`,
-     `{{spades.communication_html}}`,
-     `{{spades.decisions_html}}`, `{{spades.quality_html}}`.
+   - Scalars: `{{spades.project_slug}}`,
+     `{{spades.last_reviewed}}`, `{{spades.rendered_at}}`,
+     `{{spades.plugin_version}}`, and `{{spades.rule_count}}`
+     (total number of documented conventions across all four
+     sections).
+   - Rule blocks — one card per convention bullet, each with
+     fields `title` (the bold short title) and `text_html` (the
+     explanation): `communication-rules`, `decisions-rules`,
+     `process-rules`, `quality-rules`.
+   - Optional `objective-banner` block (0 or 1 — feed one item
+     `{ id, title }` only when the project rolls up to an
+     O- objective; omit otherwise).
+   - **Authoring:** one bullet per convention, bold the short
+     title: `- **Title.** explanation.` — the title before the
+     first period becomes `title`, the rest becomes `text_html`.
+   - **Required markers:** the four `*-rules` blocks
+     (`communication-rules`, `decisions-rules`, `process-rules`,
+     `quality-rules`).
 4. Write to `.spades-anywhere/.tmp/patterns.html`.
 5. Auto-open via the OPEN_CMD prelude.
 

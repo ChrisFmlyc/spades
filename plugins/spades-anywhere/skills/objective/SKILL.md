@@ -170,10 +170,31 @@ that is `/spades-anywhere:close`'s job.
 When `review_format: html`, render the `.html` companion from
 `${CLAUDE_PLUGIN_ROOT}/skills/objective/template.html` to
 `.spades-anywhere/objectives/O-<slug>.html` and auto-open it via the
-OPEN_CMD prelude (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). The
-template fills the `audit-events` block; validate it exists per
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and use the
-bundled template`.
+OPEN_CMD prelude (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`).
+Validate the template exists and the named blocks below match the markers
+in the actual file per `docs/FRAMEWORK.md § Output Format → HTML
+rendering: validate and use the bundled template`; abort on any mismatch.
+
+Substitute placeholders (this Objective page has **no**
+`objective-banner` — it *is* the objective; do not add one):
+
+- Frontmatter values fill `{{spades.id}}`, `{{spades.title}}`,
+  `{{spades.project}}`, `{{spades.status}}`,
+  `{{spades.strategy_link}}`, `{{spades.created}}`,
+  `{{spades.updated}}`.
+- `{{spades.linked_count}}` — the number of Scopes that contribute to
+  THIS objective (the count of `linked-scopes` below). Drives the deck.
+- `<!-- SPADES-BLOCK:linked-scopes -->` — repeated once per Scope whose
+  `strategy_link` matches this objective's `O-<slug>` id. Resolve by
+  scanning the peer scope files `.spades-anywhere/scopes/*.md`; a Scope
+  is linked when its `strategy_link` frontmatter equals `O-<slug>`.
+  Per-item: `{{block.id}}`, `{{block.title}}`, `{{block.status}}`.
+  Empty list when none.
+- `<!-- SPADES-BLOCK:audit-events -->` — repeated once per audit-trail
+  entry. Per-item: `{{block.date}}`, `{{block.desc}}`.
+
+Required template markers: `<!-- SPADES-BLOCK:linked-scopes -->`,
+`<!-- SPADES-BLOCK:audit-events -->`.
 
 ### When `backend: linear` — fan-out dispatch
 

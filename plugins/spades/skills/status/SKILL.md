@@ -234,6 +234,10 @@ Worker inputs:
   `.spades/.tmp/` if missing — auto-gitignored by setup Step 5.5)
 - `frontmatter`: `{ project_slug, rendered_at, plugin_version }`
 - `blocks`:
+  - `objective-banner` — 0 or 1 item per
+    `docs/FRAMEWORK.md § Objective banner`. Pass the project's sole
+    `open` Objective `{ id, title }` when EXACTLY ONE exists in
+    `.spades/objectives/`, else `[]`.
   - `ready-items` — Plans in `Ready (unblocked)`. Fields:
     `id, title, status, href`.
   - `in-flight-items` — Plans currently `delivering` /
@@ -245,7 +249,8 @@ Worker inputs:
     status, depends_on`.
 
 Required template markers (worker validates and aborts on
-mismatch): `<!-- SPADES-BLOCK:ready-items -->`,
+mismatch): `<!-- SPADES-BLOCK:objective-banner -->`,
+`<!-- SPADES-BLOCK:ready-items -->`,
 `<!-- SPADES-BLOCK:in-flight-items -->`,
 `<!-- SPADES-BLOCK:blocked-items -->`,
 `<!-- SPADES-BLOCK:plan-nodes -->`.

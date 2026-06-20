@@ -293,8 +293,15 @@ Worker inputs:
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/list/template.html`
 - `output_path`: `.spades/.tmp/list.html`
 - `frontmatter`: `{ project_slug, filter_label, rendered_at,
-  plugin_version }`
+  plugin_version, in_flight_count, done_count }` —
+  `in_flight_count` is the number of Scopes in delivering /
+  shipping phases; `done_count` is the number of Scopes that are
+  done. (These drive the deck.)
 - `blocks`:
+  - `objective-banner` — 0 or 1 item per
+    `docs/FRAMEWORK.md § Objective banner`. Pass the project's sole
+    `open` Objective `{ id, title }` when EXACTLY ONE exists in
+    `.spades/objectives/`, else `[]`.
   - `status-filters` — one per status. Fields: `label, count,
     active` (boolean).
   - `scopes-rows` — one per Scope row (post-filter). Fields:
@@ -306,7 +313,9 @@ Worker inputs:
     </span>` containing the per-blocked-plan list — CSS in the
     template), `updated, flags`.
 
-Required template markers: `<!-- SPADES-BLOCK:status-filters -->`,
+Required template markers:
+`<!-- SPADES-BLOCK:objective-banner -->`,
+`<!-- SPADES-BLOCK:status-filters -->`,
 `<!-- SPADES-BLOCK:scopes-rows -->`.
 
 After the worker returns, the main agent prints a one-line brief

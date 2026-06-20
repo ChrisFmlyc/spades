@@ -467,6 +467,13 @@ Required fields:
   literally the length of the final merged list, counted after
   convergence merging. Do not estimate.
 
+**When the review target is a Plan, stamp the panel tally onto that
+Plan** so the Plan page can echo it — write `panel_blocking`,
+`panel_major`, `panel_minor` (the counts of merged findings by
+severity) into the Plan's frontmatter. This is the review writing to
+the artefact it reviewed; not a cross-skill call. The Plan template
+reads these; absent → it shows `not run`.
+
 The v1.1 envelope carried a sixth field,
 `findings_filtered_low_confidence`, counting findings dropped by the
 merge-side confidence filter. v2.0.0 removes both the filter and the
@@ -688,9 +695,18 @@ use the bundled template` for the canonical rule.
   - Envelope values fill `{{spades.target_id}}`,
     `{{spades.target_title}}`, `{{spades.mode}}` (Scope / Plan /
     Full), `{{spades.verdict}}` (overall), `{{spades.date}}`,
-    `{{spades.dispatch_mode}}`.
+    `{{spades.dispatch_mode}}`, `{{spades.project}}` (the active
+    project slug from `.spades-anywhere/config`, for the properties
+    rail; optional).
   - The envelope YAML block also goes verbatim into the
     `<script type="application/yaml" id="spades-frontmatter">` tag.
+  - `<!-- SPADES-BLOCK:objective-banner -->` — 0 or 1 item
+    `{{block.id}}`, `{{block.title}}` per `docs/FRAMEWORK.md §
+    Objective banner`. Resolve from the reviewed target's
+    `strategy_link` (a Scope's, or a Plan's parent Scope's),
+    counting it ONLY when it matches an existing
+    `.spades-anywhere/objectives/O-<slug>.md` file — then pass
+    `[{ id, title }]` (title read from that file); otherwise `[]`.
   - `<!-- SPADES-BLOCK:persona-cards -->` — repeated once per
     persona (4 cards: scope-guardian, architecture-strategist,
     security-lens, adversarial-reviewer). Per-item:

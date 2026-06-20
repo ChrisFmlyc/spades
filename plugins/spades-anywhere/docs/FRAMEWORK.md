@@ -1392,6 +1392,33 @@ fan-out table (one sub-agent per resource) and reference this
 section's contract. The dispatch-mode reporting, freshness probe,
 and failure semantics are inherited.
 
+### Objective banner
+
+Most HTML templates carry an optional `objective-banner` repeating
+block (0 or 1 item, fields `id, title`). It renders the single `O-`
+Objective a piece of work rolls up to, as a documentary
+cross-reference (it never gates anything).
+
+**Always pass this block** — an empty list `[]` when there is no
+objective — so the `<!-- SPADES-BLOCK:objective-banner -->` marker
+strips cleanly. A block the worker is never told about may otherwise
+leave a literal placeholder; passing `[]` guarantees it renders
+nothing.
+
+How a skill fills it:
+
+- **Scope, Plan, Review, Evaluate** — resolve from the artefact's
+  `strategy_link` (Plan/Review/Evaluate inherit their Scope's). That
+  field is a free-form string, so it counts as an objective link ONLY
+  when it matches an existing `.spades-anywhere/objectives/O-<slug>.md`
+  file. When it resolves, pass `[{ id, title }]` (title read from the
+  objective file); otherwise pass `[]`.
+- **Project-level views/docs** (`status`, `list`, `intent`,
+  `architecture`, `patterns`, `anti-patterns`, `newproject`,
+  `learn`) — pass the project's sole `open` Objective `{ id, title }`
+  when EXACTLY ONE exists in `.spades-anywhere/objectives/`, else `[]`.
+- **`objective`** — no banner (the page IS the objective).
+
 ### Drift detection (active probe in `/list` and `/status`)
 
 The failure semantics above handle the cases SPADES knows about — a

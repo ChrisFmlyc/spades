@@ -125,6 +125,10 @@ Leave the placeholder comments in place if the human picks
 "start blank" — they're the prompts that walk them through
 filling each section.
 
+Write one bullet per convention, bolding the rule's short title:
+`- **Title.** explanation.` — the renderer turns each into a card
+and counts them.
+
 ## Where PATTERNS.md Lives
 
 `PATTERNS.md` lives at the **repository root**, alongside
@@ -271,8 +275,24 @@ Both workers take the same inputs:
   `${CLAUDE_PLUGIN_ROOT}/skills/patterns/template.html`
 - `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
   plugin_version }`
-- `prose_sections`: `{ code_organisation_html,
-  error_handling_html, testing_html, naming_html }`
+- `prose_sections`: `{}` — the four convention sections are now
+  structured rule blocks (see `blocks` below), not prose HTML.
+- `blocks`:
+  - `code-organisation-rules`, `error-handling-rules`,
+    `testing-rules`, `naming-rules` — one card per convention
+    under that `##` section. Fields: `title`, `text_html`. Derived
+    by splitting the section's bullets: each bullet is
+    `- **Title.** body` → `title` = the bold lead, `text_html` =
+    the rest.
+  - `objective-banner` (0 or 1; per `docs/FRAMEWORK.md § Objective
+    banner` — the project's sole open objective if exactly one,
+    else empty).
+- `rule_count`: total rule items across the four sections.
+
+Required template markers: the four
+`<!-- SPADES-BLOCK:*-rules -->` markers
+(`code-organisation-rules`, `error-handling-rules`,
+`testing-rules`, `naming-rules`).
 
 The worker validates the template placeholders and aborts with:
 *`template.html` missing required markers — render aborted.

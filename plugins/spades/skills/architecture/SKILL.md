@@ -97,6 +97,8 @@ exactly this shape — never copy from an external template file:
 ```markdown
 ---
 last_reviewed: YYYY-MM-DD
+runtime:   # primary platform, e.g. "Node 22 / Fastify"
+datastore: # system of record, e.g. "PostgreSQL 16"
 ---
 
 # Architecture
@@ -115,9 +117,14 @@ last_reviewed: YYYY-MM-DD
 
 ## Components
 
-<!-- Major components and their responsibilities. Don't list
-     every module; list the things a new engineer needs to know
-     exist. -->
+<!-- One `### <name> — <tech>` heading per major component, then a
+     one-line responsibility under it. List the things a new
+     engineer needs to know exist, not every module. The renderer
+     turns each into a card and counts them. -->
+
+### Component name — tech
+
+<!-- What this component is responsible for. -->
 
 ## Data Flow
 
@@ -146,7 +153,7 @@ filling each section.
 `INTENT.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`. This skill reads
 and writes `./ARCHITECTURE.md` in the current project. It is a
 plain Markdown file with a small YAML frontmatter block
-(`last_reviewed`).
+(`last_reviewed`, plus optional `runtime` and `datastore`).
 
 ## Modes
 
@@ -236,7 +243,11 @@ running, not what was planned.
 ### 3. Components
 Major components and their responsibilities. Don't list every
 file; list the things a new engineer needs to know exist. Five
-to ten is normal.
+to ten is normal. Capture each as a discrete `### <name> — <tech>`
+sub-heading with a one-line responsibility, so the renderer can
+show one card per component and report the count. Also confirm the
+`runtime` and `datastore` frontmatter keys (primary platform,
+system of record) while here — they drive the page's deck.
 
 ### 4. Data Flow
 How information moves through the system. Where does data enter,
@@ -345,13 +356,26 @@ Both workers take the same inputs:
 - `template_path`:
   `${CLAUDE_PLUGIN_ROOT}/skills/architecture/template.html`
 - `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
-  plugin_version }`
+  plugin_version, runtime, datastore }` (`runtime` and `datastore`
+  are read from `ARCHITECTURE.md`'s own frontmatter — the primary
+  platform and system of record. Omit a key when not stated; the
+  template falls back to `—`.)
 - `prose_sections`: `{ overview_html, tech_stack_html,
-  components_html, data_flow_html, security_html, ops_html }`
+  data_flow_html, security_html, ops_html }` (Components is no longer
+  prose — see `blocks` below.)
+- `scalars`: `{ components_count }` = the number of `components`
+  items (omit → template shows `—`).
+- `blocks`:
+  - `components` — one per component under `## Components`. Fields:
+    `name, tech, desc`. The template renders each as a card.
+  - `objective-banner` — 0 or 1 item; see
+    `docs/FRAMEWORK.md § Objective banner`. For a project-level doc,
+    pass the project's sole `open` Objective `{ id, title }` when
+    exactly one exists, else an empty list (banner hidden).
 
-No required block markers (this template uses prose-only
-substitutions; the worker still validates the
-`{{spades.<section>_html}}` placeholders are present).
+Required template marker: `<!-- SPADES-BLOCK:components -->`. The
+worker also validates the `{{spades.<section>_html}}` placeholders
+are present.
 
 **In HTML mode the open `.html` preview IS the review surface
 during the walk — do NOT also paste the assembled

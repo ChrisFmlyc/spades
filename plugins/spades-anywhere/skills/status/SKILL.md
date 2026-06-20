@@ -235,13 +235,17 @@ use the bundled template` for the canonical rule.
 
 1. Read the template at
    `${CLAUDE_PLUGIN_ROOT}/skills/status/template.html`.
-2. Validate it contains the four block markers listed below; if
+2. Validate it contains the five block markers listed below; if
    any are missing, abort.
 3. Substitute placeholders per
    `docs/FRAMEWORK.md § Output Format`:
    - `{{spades.project_slug}}`, `{{spades.rendered_at}}`,
      `{{spades.plugin_version}}` substituted into the header,
      footer, and sidebar.
+   - `<!-- SPADES-BLOCK:objective-banner -->` — 0 or 1 item per
+     `docs/FRAMEWORK.md § Objective banner`. Pass the project's
+     sole `open` Objective `{{block.id}}`, `{{block.title}}` when
+     EXACTLY ONE exists in `.spades-anywhere/objectives/`, else `[]`.
    - `<!-- SPADES-BLOCK:ready-items -->` — repeated once per Plan
      in `Ready (unblocked)` state. Per-item fields:
      `{{block.id}}`, `{{block.title}}`, `{{block.status}}`,

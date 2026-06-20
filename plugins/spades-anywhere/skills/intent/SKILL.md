@@ -323,6 +323,10 @@ use the bundled template` for the canonical rule.
    - `{{spades.project_slug}}`, `{{spades.last_reviewed}}`,
      `{{spades.rendered_at}}`, `{{spades.plugin_version}}`,
      `{{spades.maturity_stage}}`.
+   - `{{spades.users_count}}` — the number of `users-items` (bullets
+     under `## Users`). Drives the deck.
+   - `{{spades.non_goals_count}}` — the number of `non-goals-items`
+     (bullets under `## Non-goals`). Drives the deck.
    - The prose sections render via direct substitutions:
      `{{spades.problem_html}}`, `{{spades.what_it_does_html}}`,
      `{{spades.success_html}}`, `{{spades.maturity_html}}`.
@@ -330,6 +334,12 @@ use the bundled template` for the canonical rule.
      under `## Users`. Per-item: `{{block.html}}`.
    - `<!-- SPADES-BLOCK:non-goals-items -->` — repeated once per
      bullet under `## Non-goals`. Per-item: `{{block.html}}`.
+   - `<!-- SPADES-BLOCK:objective-banner -->` — repeated 0 or 1
+     times, per `docs/FRAMEWORK.md § Objective banner`. Per-item:
+     `{{block.id}}`, `{{block.title}}`. For this project-level doc,
+     pass the project's sole `open` Objective when EXACTLY ONE exists
+     (scan `.spades-anywhere/objectives/*.md` for the active project);
+     else emit nothing (`[]`).
 4. Write to `.spades-anywhere/.tmp/intent.html` (creating
    `.spades-anywhere/.tmp/` if missing — auto-gitignored by
    `/spades-anywhere:setup` Step 5.5).

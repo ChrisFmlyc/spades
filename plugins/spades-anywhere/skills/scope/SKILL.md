@@ -357,9 +357,16 @@ use the bundled template` for the canonical rule.
      `{{spades.created}}`, `{{spades.updated}}`.
    - The frontmatter YAML block also goes verbatim into the
      `<script type="application/yaml" id="spades-frontmatter">` tag.
+   - `{{spades.criteria_count}}` — the number of acceptance criteria
+     (the count of `acceptance-items`). Drives the deck.
    - `<!-- SPADES-BLOCK:acceptance-items -->` — repeated once per
      bullet under `## Acceptance Criteria`. Per-item:
      `{{block.text}}`, `{{block.checked}}`.
+   - `<!-- SPADES-BLOCK:objective-banner -->` — repeated 0 or 1
+     times, per `docs/FRAMEWORK.md § Objective banner`. Per-item:
+     `{{block.id}}`, `{{block.title}}`. Resolve from this Scope's
+     `strategy_link` (only when it matches an existing `O-<slug>`
+     objective file); else emit nothing (`[]`).
    - `<!-- SPADES-BLOCK:dependencies-items -->` — repeated once per
      bullet under `## Dependencies`. Per-item: `{{block.text}}`.
    - `<!-- SPADES-BLOCK:out-of-scope-items -->` — repeated once per

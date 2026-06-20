@@ -197,12 +197,26 @@ file remains the canonical record.
       - `{{spades.verdict}}` = `PENDING`
       - `{{spades.verdict_class}}` = `pending`
       - `{{spades.verdict_summary_html}}` = `<p>Walk-through not started yet. The completed report appears at Step 2.5 once you've answered each criterion.</p>`
+      - `{{spades.pass_count}}` = `0`, `{{spades.partial_count}}` =
+        `0`, `{{spades.fail_count}}` = `0` — in `mode: plan`
+        (pre-verification) no verdicts exist yet, so the deck shows
+        the |default.
       - `{{spades.plan_id}}`, `{{spades.plan_title}}`,
         `{{spades.scope_id}}`, `{{spades.scope_title}}`,
+        `{{spades.project}}` (the active project slug from
+        `.spades-anywhere/config`, for the properties rail;
+        optional),
         `{{spades.evaluated}}` (today's date),
         `{{spades.evaluator}}` = `human` (always in
         spades-anywhere),
         `{{spades.plugin_version}}`.
+      - `<!-- SPADES-BLOCK:objective-banner -->` — 0 or 1 item
+        `{{block.id}}`, `{{block.title}}` per `docs/FRAMEWORK.md §
+        Objective banner`. Resolve from the evaluated Plan's parent
+        Scope's `strategy_link`, counting it ONLY when it matches an
+        existing `.spades-anywhere/objectives/O-<slug>.md` file —
+        then pass `[{ id, title }]` (title read from that file);
+        otherwise `[]`.
       - `<!-- SPADES-BLOCK:verification-rows -->` — one row per
         acceptance criterion from the parent Scope. Per-item:
         - `{{block.step}}` — the criterion text rephrased as a
@@ -336,11 +350,21 @@ hand-roll the HTML.**
    - `{{spades.verdict_summary_html}}` — the one-paragraph
      rationale captured at Step 2, HTML-escaped and wrapped in
      `<p>` tags.
+   - `{{spades.pass_count}}`, `{{spades.partial_count}}`,
+     `{{spades.fail_count}}` — the counts of the
+     `verification-rows` by their `verdict` (PASS / PARTIAL /
+     FAIL), from Step 1's per-criterion walk.
    - `{{spades.plan_id}}`, `{{spades.plan_title}}`,
      `{{spades.scope_id}}`, `{{spades.scope_title}}`,
+     `{{spades.project}}` (the active project slug from
+     `.spades-anywhere/config`, for the properties rail; optional),
      `{{spades.evaluated}}` (today's date),
      `{{spades.evaluator}}` = `human` (always),
      `{{spades.plugin_version}}`.
+   - `<!-- SPADES-BLOCK:objective-banner -->` — same resolution as
+     page 1: 0 or 1 item `{{block.id}}`, `{{block.title}}` per
+     `docs/FRAMEWORK.md § Objective banner`, resolved from the
+     evaluated Plan's parent Scope's `strategy_link`, else `[]`.
    - `<!-- SPADES-BLOCK:verification-rows -->` — same rows as
      page 1, now with verdicts filled in from Step 1's
      per-criterion walk. Per-item:

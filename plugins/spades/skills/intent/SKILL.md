@@ -310,9 +310,17 @@ output paths):
   `${CLAUDE_PLUGIN_ROOT}/skills/intent/template.html`
 - `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
   plugin_version, maturity_stage }`
+- `users_count` *(scalar)*: the number of `users-items`. Drives the deck.
+- `non_goals_count` *(scalar)*: the number of `non-goals-items`. Drives
+  the deck.
 - `blocks`:
   - `users-items` — one per bullet under `## Users`. Field: `html`.
   - `non-goals-items` — one per bullet under `## Non-goals`. Field: `html`.
+  - `objective-banner` — 0 or 1 item, fields `{ id, title }`, per
+    `docs/FRAMEWORK.md § Objective banner`. For this project-level
+    doc, pass the project's sole `open` Objective when EXACTLY ONE
+    exists (scan `.spades/objectives/*.md` for the active project);
+    else pass `[]`.
 - `prose_sections`: `{ problem_html, what_it_does_html,
   success_html, maturity_html }`
 

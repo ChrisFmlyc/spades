@@ -302,10 +302,23 @@ Worker inputs:
 - `frontmatter`: `{ id, title, status, scope, deliverable_type,
   delivery, depends_on, created, updated, … }` (also embedded
   verbatim in `<script id="spades-frontmatter">`)
+- `routing_ai`, `routing_hybrid`, `routing_human` *(scalars)*:
+  counts of the Plan's tasks by their `routing` field.
+- `panel_blockers`, `panel_findings` *(review-echo scalars)*: both
+  default to the literal string `not run`. Fill these ONLY from a
+  prior `/spades:review` of this Plan that stamped its panel counts
+  onto the Plan (frontmatter keys, e.g. `panel_blocking` /
+  `panel_major` / `panel_minor`). When those keys are absent, emit
+  `not run` (NEVER `0`). `panel_blockers` = the blocking count;
+  `panel_findings` = `"<major> / <minor>"`.
 - `blocks`:
   - `tasks` — one card per task. Fields: `num, title_html,
     posture, posture_short, effort, routing, depends_on,
     description_html, approach_html, tests_html`.
+  - `objective-banner` — 0 or 1 item, fields `{ id, title }`, per
+    `docs/FRAMEWORK.md § Objective banner`. Inherit from this
+    Plan's Scope's `strategy_link` resolution (only when it matches
+    an existing `O-<slug>` objective file); else pass `[]`.
   - `risks-items` — one per `## Risks & Assumptions` bullet.
     Field: `html`.
   - `delivery-sequence` — one per step in `## Delivery Sequence`.
