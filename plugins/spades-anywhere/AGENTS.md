@@ -346,41 +346,26 @@ Every PR to this plugin **must** bump the plugin version. The
 component versions (per-skill and AGENTS.md) bump only when that
 component's own content changes.
 
-### Release gate — do not merge a PR without all of these
+### 🚦 Release gate — the version bump is part of the change
 
-The bump is **part of the change, not a follow-up.** Before a PR
-merges, confirm every item:
+**IMPORTANT — YOU MUST complete this before any commit that touches
+`plugins/spades-anywhere/`.** Stop and write out these four lines with a
+real `old → new` (or an explicit "n/a") filled in for each. If you
+cannot fill one in, the change is not ready to commit:
 
-1. **Plugin version bumped.** If *any* file under
-   `plugins/spades-anywhere/` changed, the plugin version moved — in
-   **all four** locations (see "Where versions live"). No exceptions: a
-   one-word doc fix still bumps. An unchanged version after a real
-   change is silently deduped by the updater and reaches **no one**.
-2. **Every changed skill bumped.** A skill counts as changed if its
-   `SKILL.md`, its `template.html`, or any other file in its directory
-   changed — a template-only edit still bumps the skill's `version:`.
-3. **AGENTS.md change ⇒ `agents_version` bumped** (plus the plugin).
-4. **CHANGELOG entry added** under the new plugin version, listing the
-   skills bumped (or "Skills bumped: none").
+```
+[ ] plugin version  X.Y.Z → X.Y.Z   (plugin.json + marketplace ×2 + .spades-anywhere/version — all four)
+[ ] skills bumped   <name> a.b.c → a.b.c, …   (every skill dir with ANY changed file, incl. template.html)
+[ ] agents_version  X.Y.Z → X.Y.Z   (only if AGENTS.md changed; else n/a)
+[ ] CHANGELOG entry added under the new plugin version
+```
 
-This gate exists because the rule below is easy to forget: PR #57
-redesigned all 26 skill templates and shipped at the unchanged plugin
-version — the updater deduped it and no consumer ever received the
-redesign. A green CI run does **not** mean the bump happened (see
-Enforcement).
-
-### Enforcement
-
-CI's `lint-skill-frontmatter.sh` checks only that each skill *has* a
-valid `version:` — it does **not** verify that a change bumped
-anything, so a PR can touch every file and bump nothing while CI stays
-green. The durable guard is a **bump-on-change check** that, on a PR,
-diffs against the merge base and fails when: plugin files changed
-without a plugin-version bump; a skill directory changed without that
-skill's `version:` bump; the four plugin-version locations disagree; or
-no CHANGELOG entry was added for the new version. Until that check
-runs, the release gate above is manual and the reviewer owns it — so
-review it explicitly on every PR.
+The bump is not a follow-up PR; an unbumped version is silently deduped
+by the updater and reaches **no one**. This forced check exists because
+PR #57 redesigned all 26 skill templates, bumped nothing, and CI stayed
+green — so the redesign never installed. CI verifies only that a
+`version:` field *exists*, never that a change *bumped* it, so this gate
+is the only thing covering that gap. Do not skip it because CI is green.
 
 ### The principle
 
@@ -632,6 +617,11 @@ records the delete. The same applies to `spades/quick/Q-<id>.md`.
 - Write a `CLAUDE.md` (or any other per-vendor agent file) —
   AGENTS.md is the only file `spades-anywhere` maintains in consumer
   projects
+- **Commit or merge a change under `plugins/spades-anywhere/` without
+  bumping the plugin version** (and every changed skill, and a CHANGELOG
+  entry) — run the § Versioning release gate. An unbumped version is
+  deduped by the updater and reaches no one; this is the single
+  most-missed rule in the repo.
 
 <!--
   Framework-repo note: this file is the canonical spades-anywhere

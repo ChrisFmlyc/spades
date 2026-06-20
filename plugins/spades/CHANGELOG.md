@@ -25,11 +25,14 @@ changes). The consumer-repo marker block in `AGENTS.md` carries the
   `objective` 1.0.0 → 1.1.0, `patterns` 1.2.0 → 1.3.0, `plan` 3.3.0 →
   3.4.0, `review` 3.3.0 → 3.4.0, `scope` 3.3.0 → 3.4.0, `status` 3.3.0
   → 3.4.0
-- **minor (AGENTS.md)**: Add a scannable **release gate** at the top of
-  § Versioning (four merge-blocking checks) and an **Enforcement**
-  subsection documenting that CI only checks version *presence*, not
-  *bump-on-change* — naming the bump-on-change guard to build. This is
-  the process fix for the #57 miss. `agents_version` 2.1.0 → 2.2.0.
+- **minor (AGENTS.md)**: Make the version-bump rule hard to miss after
+  the #57 miss, using Anthropic's own instruction-adherence guidance
+  (sparing `IMPORTANT`/`YOU MUST` emphasis, conciseness, point-of-use
+  repetition, a forced self-check). § Versioning now leads with a
+  **release gate** the agent must fill in (`old → new` per line) before
+  any commit touching the plugin; a one-line hard rule is added to
+  "What You Must Never Do"; and a point-of-use reminder sits in the git
+  operations section. `agents_version` 2.1.0 → 2.2.0.
 
 ## [5.1.0] — 2026-06-16
 
