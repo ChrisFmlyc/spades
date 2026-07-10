@@ -7,6 +7,27 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the **AGENTS.md
 version** via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
+## [0.13.0] — 2026-07-10
+
+- **minor**: Harden the bootstrap ordering against a `setup ⇄
+  newproject` deadlock, mirroring the sister `spades` plugin's fix.
+  Setup already invoked `/spades-anywhere:newproject` inline, but it
+  wrote `.spades-anywhere/config` *after* the inline call — so
+  newproject's Step 4 ("set `project:` in config") had no config to
+  update, and newproject's own precondition ("config must exist")
+  could abort the very call setup was making. `/spades-anywhere:setup`
+  now writes config **first** (with `project:` unset), then invokes
+  `/spades-anywhere:newproject` inline (new Step 3.5) to fill it in.
+  newproject's precondition is reframed as "a config with a backend
+  exists" and is one-directional (standalone-with-no-config →
+  "run `/spades-anywhere:setup` first"; setup then creates the
+  project itself). No git/`repo:init` edge here — `spades-anywhere`
+  has no git prerequisite. Canonical DAG documented in
+  `docs/FRAMEWORK.md § Bootstrap Order`. Consumer AGENTS.md rules
+  unchanged, so `agents_version` stays 1.1.0.
+- Skills bumped: `setup` 0.3.0 → 0.4.0, `newproject` 0.2.0 → 0.3.0.
+  FRAMEWORK.md doc version 0.2.0 → 0.3.0.
+
 ## [0.12.0] — 2026-06-20
 
 - **minor**: Reconcile the version that PR #57 (the cockpit HTML-template

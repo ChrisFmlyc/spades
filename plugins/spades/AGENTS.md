@@ -309,19 +309,26 @@ the § Versioning release gate (version bump + changed skills + CHANGELOG).
 
 ### If you don't have a git repo yet
 
-Running SPADES in a directory that isn't a git repo? Run
-`/repo:init` first, then re-invoke `/spades:setup`. SPADES expects
-an initialised repo — it scaffolds files under git's expectation
-that they will be committed (`AGENTS.md`, `ARCHITECTURE.md`,
-`.spades/config`, etc.).
+Running SPADES in a directory that isn't a git repo? `/spades:setup`
+runs `/repo:init` **for you, inline**, as its first prerequisite —
+you don't run it by hand or re-invoke setup afterwards. Setup is the
+single entry point and drives its prerequisites (a one-directional
+`setup → repo:init` edge; see `docs/FRAMEWORK.md § Bootstrap Order`).
+SPADES expects an initialised repo — it scaffolds files under git's
+expectation that they will be committed (`AGENTS.md`,
+`ARCHITECTURE.md`, `.spades/config`, etc.) — so setup guarantees the
+repo exists before it scaffolds.
 
 ### Why this rule
 
 SPADES is the **implementation framework**; the `repo` plugin is the
-**git-discipline framework**. Each owns its concern. Mixing them —
-e.g. a SPADES skill that runs `git init` inline, or one that
-hand-rolls a post-merge cleanup — splits ownership and risks the two
-plugins drifting out of agreement. Always defer.
+**git-discipline framework**. Each owns its concern. "Defer" means
+SPADES never *reimplements* git logic — running `/repo:init` inline
+still defers (it calls the repo plugin rather than hand-rolling `git
+init`); what it doesn't do is make the human perform the hand-off.
+Mixing ownership the wrong way — a SPADES skill that runs `git init`
+itself, or hand-rolls a post-merge cleanup — splits ownership and
+risks the two plugins drifting out of agreement. Always defer.
 
 ## Backend
 

@@ -8,6 +8,40 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.3.0] — 2026-07-10
+
+- **minor**: Break the `setup ⇄ repo:init ⇄ newproject` bootstrap
+  deadlock. Running `/spades:setup` in a fresh, empty directory used
+  to bounce the human between three skills with no valid starting
+  point: setup aborted to `/repo:init` ("run it first, then re-invoke
+  setup"), setup exited to `/spades:newproject` ("run it first, then
+  re-run setup"), and `/spades:newproject` aborted back to
+  `/spades:setup` whenever `.spades/config` was missing — but config
+  is only written *after* setup's project step, so newproject could
+  never satisfy its precondition before setup finished. A three-way
+  cycle. `/spades:setup` is now the **single entry point** and drives
+  its own prerequisites inline in one pass:
+  - **Git missing** → setup runs `/repo:init` inline (Pre-Flight
+    Step 2), re-probes, and only aborts if the human cancels it. No
+    "run it first and come back". Still defers to the `repo` plugin
+    (it calls the skill, doesn't hand-roll `git init`).
+  - **No active project** → setup writes `.spades/config` first (with
+    `project:` unset), then invokes `/spades:newproject` inline (new
+    Step 3.5), which fills `project:` (and `linear.project_id`) back
+    in. The on-disk backend is what makes the inline call legal.
+  - `/spades:newproject`'s precondition is reframed as "a config with
+    a backend exists" and its abort is one-directional — standalone
+    with no config → "run `/spades:setup` first" (setup then creates
+    the project itself; the human is never sent back). The edge only
+    ever points `setup → {repo:init, newproject}`, never back.
+  - Canonical DAG documented in `docs/FRAMEWORK.md § Bootstrap Order`
+    as a load-bearing invariant, so future edits can't silently
+    reintroduce the cycle. AGENTS.md § "If you don't have a git repo
+    yet" updated to match (auto-init, not manual re-invoke) →
+    `agents_version` 2.2.0 → 2.3.0.
+- Skills bumped: `setup` 4.2.0 → 4.3.0, `newproject` 3.3.0 → 3.4.0.
+  FRAMEWORK.md doc version 2.12.0 → 2.13.0.
+
 ## [5.2.0] — 2026-06-20
 
 - **minor**: Reconcile the version that PR #57 (the cockpit HTML-template

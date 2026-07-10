@@ -1,7 +1,7 @@
 ---
 name: newproject
 description: Create a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades-anywhere:setup asks for an active project that doesn't exist yet. Writes .spades-anywhere/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 0.2.0
+version: 0.3.0
 ---
 
 # /spades-anywhere:newproject
@@ -37,9 +37,26 @@ CLI. In CLI mode the existing draft-then-paste workflow is fine.
 
 ## Pre-Flight
 
-1. **Confirm setup has run.** If `.spades-anywhere/config` is missing, abort
-   and suggest `/spades-anywhere:setup` first. Setup binds a backend; new
-   project creation depends on knowing the backend.
+1. **Require a backend (read `.spades-anywhere/config`).** This skill
+   needs to know the backend, which lives in the config. Probe:
+
+   ```bash
+   [ -f .spades-anywhere/config ] && echo present || echo missing
+   ```
+
+   - **`present`** → read `backend:` and proceed. This is also the
+     state when `/spades-anywhere:setup` invokes this skill inline
+     during first-run bootstrap: setup writes the config (Step 3)
+     *before* the inline call (Step 3.5), so the backend is always
+     on the store by the time this skill runs. `project:` may be
+     unset then — expected; this skill's Step 4 fills it in.
+   - **`missing`** → `/spades-anywhere:setup` has not run. Abort:
+     *"Run `/spades-anywhere:setup` first — it configures the backend
+     and, on that same single pass, creates your first project."* Do
+     **not** bootstrap config here, and do **not** tell the human to
+     run setup *and then re-run this skill* — setup creates the
+     project itself. One-directional edge (`setup → newproject`); no
+     cycle. See `docs/FRAMEWORK.md § Bootstrap Order`.
 2. **Read the backend** from `.spades-anywhere/config`'s `backend:` field. The
    branches below act according to that value.
 
@@ -229,12 +246,19 @@ Ask the human (via `AskUserQuestion`):
   `project:` field to the new slug.
 - **Leave active project unchanged** — keeps whatever was active.
 
-If chosen "set as active":
+**When invoked inline by `/spades-anywhere:setup` during bootstrap**
+(config's `project:` is unset — the store's first project), don't
+ask: setting it active is the only sensible outcome, so set it
+active and return to setup.
+
+If chosen "set as active" (or bootstrap):
 
 1. Read `.spades-anywhere/config`.
-2. Replace the `project:` line with `project: <new-slug>`.
-3. When `backend: linear`, also update the `linear.project_id` line
-   with the new Linear Project ID.
+2. Set `project: <new-slug>` — replace the existing `project:` line,
+   or **insert one** if it's absent or blank (the bootstrap case,
+   where setup wrote config with `project:` unset).
+3. When `backend: linear`, likewise set `linear.project_id` to the
+   new Linear Project ID — replacing or inserting the line as needed.
 
 ## Step 5 — Confirm
 
