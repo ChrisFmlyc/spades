@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 4.2.0
+version: 4.3.0
 ---
 
 # /spades:setup
@@ -18,8 +18,28 @@ content (scope / plan / learning files stay; the AGENTS.md marker
 block is replaced in place, content outside the markers is
 untouched).
 
-Read `docs/FRAMEWORK.md` § Hierarchy and § .spades/ Local Layout
-before running — FRAMEWORK.md is canonical.
+Read `docs/FRAMEWORK.md` § Hierarchy, § .spades/ Local Layout, and
+§ Bootstrap Order before running — FRAMEWORK.md is canonical.
+
+## Single-pass contract — setup drives its own prerequisites
+
+`/spades:setup` is the **one** command a human runs to start using
+SPADES in a repo. It completes in a **single pass** and **drives its
+own prerequisites inline**. It NEVER exits to ask the human to run
+another skill and then come back.
+
+- **Not a git repo?** Setup runs `/repo:init` inline (Pre-Flight
+  Step 2) — it does not abort and tell the human to run it.
+- **No active project?** Setup writes `.spades/config` first (so the
+  backend is on disk), then invokes `/spades:newproject` inline
+  (Step 2) — it does not exit and tell the human to run newproject
+  and re-run setup.
+
+Both prerequisite edges point **one way** (`setup → /repo:init`,
+`setup → /spades:newproject`) and neither points back. This is the
+acyclic bootstrap contract in `docs/FRAMEWORK.md § Bootstrap Order`;
+any edit that reintroduces an exit-and-come-back reopens the
+setup ⇄ repo:init ⇄ newproject deadlock. Don't.
 
 ## Self-Init Guard
 
@@ -59,19 +79,39 @@ for now (close/do/ship will refuse until installed)*. If re-probe
 still `missing`, re-show and re-ask; only advance on explicit
 Skip.
 
-### 2. Git repo
+### 2. Git repo (auto-init — never bounce)
 
 ```bash
 git rev-parse --git-dir >/dev/null 2>&1 && echo found || echo missing
 ```
 
-`found` → continue. `missing` → abort:
+`found` → continue.
 
-> *This directory isn't a git repository. Run `/repo:init` first
-> (initialises git, placeholder README, wires origin, pushes
-> `main`), then re-invoke `/spades:setup`.*
+`missing` → **run `/repo:init` inline, now.** Do NOT abort and tell
+the human to run it separately. SPADES still doesn't *own* git — it
+defers to the `repo` plugin — it just doesn't make the human do the
+hand-off by hand. Announce it in one line (*"No git repo here — I'll
+initialise one via `/repo:init`, then continue setup."*) and invoke
+`/repo:init`. It initialises git, writes a placeholder README, wires
+`origin`, and pushes `main`; it will ask you its own questions (repo
+name, remote) — that is `/repo:init`'s interaction, not a bounce
+back to setup.
 
-Do **not** auto-run `/repo:init`.
+After `/repo:init` returns, re-probe:
+
+```bash
+git rev-parse --git-dir >/dev/null 2>&1 && echo found || echo missing
+```
+
+- `found` → continue to Step 3.
+- `missing` (the human cancelled `/repo:init`, or it failed) →
+  **only now** abort, with the failure surfaced: *"`/repo:init` did
+  not complete, so there's no git repo to configure. Re-run
+  `/spades:setup` once the repo exists."* Setup cannot scaffold
+  committable files without a repo.
+
+`/repo:init` is terminal — it never calls back into SPADES, so this
+edge is one-directional (`setup → repo:init`).
 
 ### 3. Capture existing config (re-run context)
 
@@ -141,9 +181,12 @@ Once connected, re-run `/spades:setup` and pick Linear again.
 1. `AskUserQuestion`: which team? (list teams from probe).
 2. `AskUserQuestion`: which Linear Project? (list existing under
    the chosen team + *Create new Linear Project*).
-3. If *Create new* → exit with: *"Run `/spades:newproject <slug>`
-   first to create the Linear Project, then re-run
-   `/spades:setup`."* No inline invocation.
+3. If *Create new* → **do not exit.** Record `team_id` and set a
+   `create_new_project` flag; the Linear Project is created in
+   Step 3.5 (after Step 3 writes config), when setup invokes
+   `/spades:newproject` inline — its Linear fan-out creates the
+   Linear Project on this team and writes the ID back to config.
+   No bounce to the human.
 4. Otherwise, record `team_id` + `project_id` for Step 3.
 
 ### If Local was chosen
@@ -213,14 +256,24 @@ If `current_project` is set, print *"Currently active project:
 
 - Existing `.spades/projects/<slug>.md` records → offer them +
   *Create a new project*.
-- No records → *Create a new project* is the only option.
+- No records → *Create a new project* is the only option. (This is
+  the fresh-install path, and — with the `create_new_project` flag
+  from Step 1's Linear branch — also the "create new Linear
+  Project" path.)
 
-If *Create a new project* → exit with: *"Run
-`/spades:newproject <slug>` first to create the project record,
-then re-run `/spades:setup`."* No inline invocation.
+Two outcomes, both **deferred** — Step 2 only records intent, it
+does not write config or create anything yet:
 
-Otherwise, record the chosen slug into `new_project` for Step
-2.5's diff. Do **not** write `.spades/config` yet.
+- **Human picked an existing project** → record the chosen slug
+  into `new_project` for Step 2.5's diff. Clear `create_new_project`.
+- **Human chose *Create a new project*** (or `create_new_project`
+  was set in Step 1) → set `create_new_project`; leave `new_project`
+  unset. **Do not exit, do not bounce to `/spades:newproject`.**
+  The project is created in **Step 3.5**, inline, *after* Step 3
+  writes `.spades/config` — so the backend is on disk and
+  newproject's precondition is satisfied on the setup-driven path.
+
+Do **not** write `.spades/config` yet.
 
 ## Step 2.5 — Diff & Confirm
 
@@ -261,7 +314,10 @@ deleted by this skill.
 ```
 
 `(unchanged)` against fields where new = current. Only list fields
-present in either old or new config.
+present in either old or new config. When `create_new_project` is
+set, the Active-project line reads
+`<current_project> → (new project, created after config is written)`
+rather than a slug — the slug doesn't exist until Step 3.5.
 
 `AskUserQuestion`:
 
@@ -353,18 +409,62 @@ create.
 
 ```yaml
 backend: linear            # or: local
-project: <project-slug>
+project: <project-slug>    # unset/empty when create_new_project (Step 3.5 fills it)
 scm: github                # or: local-git
 review_format: html        # or: cli  (defaults to cli on older configs)
 linear:                    # only when backend: linear
   team_id: <uuid>
-  project_id: <uuid>
+  project_id: <uuid>       # unset when create_new_project (Step 3.5 fills it)
 github:                    # only when scm: github
   remote: origin
 ```
 
+- **Picked an existing project** → write `project:` (and, for
+  Linear, `linear.project_id`) with the chosen values.
+- **`create_new_project` set** →
+  - *Fresh install* — write config now with `project:` left unset
+    (omit the line or leave it blank) and, for Linear,
+    `linear.team_id` written but `linear.project_id` unset.
+  - *Re-run* — **keep** the existing `project:` (and
+    `linear.project_id`) untouched for now; do NOT blank them. Step
+    3.5's newproject overwrites them with the new slug on success,
+    so a cancelled newproject leaves the prior active project intact
+    (re-run safety — never blank a field the human still depends on).
+
+  Either way, **the config MUST be on disk before Step 3.5** — that
+  on-disk backend is exactly what makes the inline `/spades:newproject`
+  legal (its precondition is "config with a backend exists").
+
 Re-run safety: preserve values the human didn't change. Never
 blank fields the human still depends on.
+
+## Step 3.5 — Create the project (inline, only when `create_new_project`)
+
+Skip this step entirely when the human picked an existing project.
+
+When `create_new_project` is set, invoke `/spades:newproject`
+**inline, as a sub-routine of this run**. Config is now on disk
+(Step 3) with the settled backend and — for Linear — `team_id`, so
+newproject's Pre-Flight precondition holds. newproject:
+
+1. gathers the project's title / description / repos / owners,
+2. writes `.spades/projects/<slug>.md` (and, for Linear, creates
+   the Linear Project on `team_id` via its fan-out),
+3. sets `.spades/config`'s `project:` to the new slug (and, for
+   Linear, `linear.project_id` to the new Linear Project ID) in
+   its own Step 4.
+
+When it returns, setup resumes here with `project:` now populated.
+This is a one-directional edge — `setup → /spades:newproject` — and
+newproject never bounces back to setup, because setup guaranteed
+its precondition before invoking it. See
+`docs/FRAMEWORK.md § Bootstrap Order`.
+
+If newproject fails or the human cancels it mid-flow, config is
+left with `project:` unset; surface that clearly (*"No project was
+created — `.spades/config` has no active project yet. Re-run
+`/spades:setup` or run `/spades:newproject` to create one."*) and
+still finish the remaining scaffolding steps. Setup does not loop.
 
 ## Step 4 — Write `.spades/version`
 
@@ -649,10 +749,15 @@ need to verify post-merge state (`/spades:close`) invoke
 `/repo:sync` directly. The dependency is **one-directional**:
 SPADES → `repo`, never the reverse.
 
-**If you don't have a git repo yet**, run `/repo:init` first, then
-re-invoke `/spades:setup`. SPADES expects an initialised repo — it
+**If you don't have a git repo yet**, `/spades:setup` runs
+`/repo:init` for you automatically as its first prerequisite — you
+don't run it by hand or re-invoke setup afterwards. Setup is the
+single entry point and drives `/repo:init` inline (a one-directional
+`setup → repo:init` edge). SPADES expects an initialised repo — it
 scaffolds files (`AGENTS.md`, `ARCHITECTURE.md`, `.spades/config`)
-under git's expectation that they will be committed.
+under git's expectation that they will be committed — so setup
+guarantees the repo exists before it scaffolds. See
+`docs/FRAMEWORK.md § Bootstrap Order`.
 
 ## Versioning
 

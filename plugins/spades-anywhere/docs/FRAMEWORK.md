@@ -1,4 +1,4 @@
-# spades-anywhere Framework v0.2.0
+# spades-anywhere Framework v0.3.0
 
 `spades-anywhere` is a human–AI operating model for **real-world,
 non-coding work**. It is the sister plugin to `spades` (which targets
@@ -458,6 +458,60 @@ public_safe: true | false
 scope_ref: S-add-ai-helper-bot      # optional
 ---
 ```
+
+---
+
+## Bootstrap Order
+
+`/spades-anywhere:setup` is the **single entry point** for adopting
+`spades-anywhere`. A human runs exactly one command. Setup completes
+in a **single pass** and **drives its own prerequisites inline** — it
+never exits to ask the human to run another skill and then re-invoke
+setup. The ordering is a strict DAG:
+
+```
+/spades-anywhere:setup
+   ├─ choose backend, review_format
+   ├─ write .spades-anywhere/config   (project: unset if no project yet)
+   └─(no active project)──►  /spades-anywhere:newproject   # inline; fills project:
+```
+
+Unlike the sister `spades` plugin, `spades-anywhere` has **no git /
+`/repo:init` prerequisite and no `scm:` field** — it runs in
+non-coding contexts (Claude Desktop, ChatGPT, web/mobile) where there
+often is no git repo at all. So its only prerequisite edge is to
+`newproject`.
+
+### The prerequisite edge is one-directional
+
+**`setup → /spades-anywhere:newproject`.** `newproject` needs to know
+the backend, which lives in `.spades-anywhere/config`. Setup writes
+that config (with `project:` unset) **before** it invokes
+`newproject` inline, so newproject's precondition ("a config with a
+backend exists") is always satisfied on the setup-driven path.
+newproject creates the record, sets `project:`, and returns.
+
+### No mutual dependency — the invariant that must never break
+
+The failure mode to avoid: setup exits telling the human to run
+`/spades-anywhere:newproject` first, while `newproject` aborts telling
+the human to run `/spades-anywhere:setup` first — a cycle with no
+valid start, because `config` (which newproject requires) is only
+written after setup's project step.
+
+The fix makes every edge point one way, away from setup:
+
+- Setup **never** says "run newproject, then re-run setup." It writes
+  config, then runs newproject inline.
+- `newproject`, run **standalone** with no config, tells the human to
+  run `/spades-anywhere:setup` — and setup then creates the project
+  itself, inline. Guidance flows `newproject → setup →
+  (creates project)` and stops. No back-edge.
+
+Load-bearing: any edit that makes setup exit-and-wait on
+`newproject`, or makes `newproject` invoke setup, reintroduces the
+deadlock. Prerequisites are driven *from* setup, never required
+*before* it.
 
 ---
 

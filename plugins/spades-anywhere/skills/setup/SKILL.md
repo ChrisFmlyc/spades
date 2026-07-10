@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades-anywhere/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 0.3.0
+version: 0.4.0
 ---
 
 # /spades-anywhere:setup
@@ -25,8 +25,25 @@ web/mobile) where there often is no git repo at all. If the
 consumer chooses to put `.spades-anywhere/` under version control
 they may, but the framework doesn't assume or require it.
 
-Read `docs/FRAMEWORK.md` § Hierarchy and § .spades-anywhere/
-Local Layout before running — FRAMEWORK.md is canonical.
+Read `docs/FRAMEWORK.md` § Hierarchy, § .spades-anywhere/
+Local Layout, and § Bootstrap Order before running — FRAMEWORK.md
+is canonical.
+
+## Single-pass contract — setup drives its own prerequisites
+
+`/spades-anywhere:setup` is the **one** command a human runs to start
+using `spades-anywhere` in a project. It completes in a **single
+pass** and NEVER exits to ask the human to run another skill and come
+back. When it needs a project and none exists, it writes
+`.spades-anywhere/config` **first** (so the backend is on the store),
+then invokes `/spades-anywhere:newproject` inline (Step 3.5) — it
+does not bounce the human out to newproject and back. This is the
+acyclic bootstrap contract in `docs/FRAMEWORK.md § Bootstrap Order`:
+the edge points one way (`setup → newproject`) and never back.
+
+(Unlike the sister `spades` plugin, `spades-anywhere` has **no git /
+`/repo:init` prerequisite** — see the note below — so its only
+prerequisite edge is to `newproject`.)
 
 ## Self-Init Guard
 
@@ -107,8 +124,11 @@ Linear should show connected with ~25 tools. Re-run
 1. `AskUserQuestion`: which team? (list teams from probe).
 2. `AskUserQuestion`: which Linear Project? (existing under the
    chosen team + *Create new Linear Project*).
-3. If *Create new* → invoke `/spades-anywhere:newproject` inline.
-4. Record `team_id` + `project_id` for Step 3.
+3. If *Create new* → **do not create it here.** Record `team_id`
+   and set a `create_new_project` flag; the Linear Project is
+   created in Step 3.5, when setup invokes
+   `/spades-anywhere:newproject` inline *after* config is written.
+4. Otherwise record `team_id` + `project_id` for Step 3.
 
 ### If Local was chosen
 
@@ -144,12 +164,19 @@ If `current_project` is set, print *"Currently active project:
   them + *Create a new project*.
 - No records → *Create a new project* only.
 
-If *Create a new project* → invoke
-`/spades-anywhere:newproject` inline; resume here with the new
-slug.
+Two outcomes, both **deferred** — Step 2 only records intent:
 
-Record the slug into `new_project` for Step 2.5's diff. Do **not**
-write `.spades-anywhere/config` yet.
+- **Human picked an existing project** → record the chosen slug
+  into `new_project` for Step 2.5's diff. Clear `create_new_project`.
+- **Human chose *Create a new project*** (or `create_new_project`
+  was set in Step 1) → set `create_new_project`; leave `new_project`
+  unset. **Do not invoke newproject yet, do not exit.** It is
+  created in **Step 3.5**, inline, *after* Step 3 writes
+  `.spades-anywhere/config` — so the backend is on the store and
+  newproject's precondition holds, and its Step 4 can write
+  `project:` back into a config that already exists.
+
+Do **not** write `.spades-anywhere/config` yet.
 
 ## Step 2.5 — Diff & Confirm
 
@@ -188,7 +215,10 @@ NEVER deleted by this skill.
 ```
 
 `(unchanged)` against fields where new = current. Only list
-fields present in either old or new config.
+fields present in either old or new config. When
+`create_new_project` is set, the Active-project line reads
+`<current_project> → (new project, created after config is written)`
+— the slug doesn't exist until Step 3.5.
 
 `AskUserQuestion`:
 
@@ -280,18 +310,54 @@ create.
 
 ```yaml
 backend: linear            # or: local
-project: <project-slug>
+project: <project-slug>    # unset/empty when create_new_project (Step 3.5 fills it)
 review_format: html        # or: cli  (defaults to cli on older configs)
 linear:                    # only when backend: linear
   team_id: <uuid>
-  project_id: <uuid>
+  project_id: <uuid>       # unset when create_new_project (Step 3.5 fills it)
 ```
 
 `spades-anywhere` has **no `scm:` field** — non-coding contexts
 have no SCM concern.
 
+- **Picked an existing project** → write `project:` (and, for
+  Linear, `linear.project_id`) with the chosen values.
+- **`create_new_project` set** →
+  - *Fresh install* — write config now with `project:` unset and,
+    for Linear, `team_id` written but `project_id` unset.
+  - *Re-run* — **keep** the existing `project:` (and
+    `linear.project_id`) untouched; Step 3.5 overwrites them on
+    success, so a cancelled newproject leaves the prior active
+    project intact (re-run safety).
+
+  Either way, the config MUST be on the store before Step 3.5 — that
+  on-store backend is what makes the inline
+  `/spades-anywhere:newproject` legal and lets its Step 4 write
+  `project:` back.
+
 Re-run safety: preserve values the human didn't change. Never
 blank fields the human still depends on.
+
+## Step 3.5 — Create the project (inline, only when `create_new_project`)
+
+Skip entirely when the human picked an existing project.
+
+When `create_new_project` is set, invoke `/spades-anywhere:newproject`
+**inline, as a sub-routine of this run**. Config is now on the store
+(Step 3) with the settled backend and — for Linear — `team_id`, so
+newproject's Pre-Flight precondition holds. newproject gathers the
+project details, writes `.spades-anywhere/projects/<slug>.md` (and,
+for Linear, creates the Linear Project on `team_id`), and sets
+`.spades-anywhere/config`'s `project:` (and `linear.project_id`) in
+its own Step 4. When it returns, setup resumes with `project:`
+populated.
+
+One-directional edge — `setup → /spades-anywhere:newproject` — and
+newproject never bounces back, because setup guaranteed its
+precondition first. If newproject fails or the human cancels it,
+config is left with `project:` unset; surface that and finish the
+remaining scaffolding. Setup does not loop. See
+`docs/FRAMEWORK.md § Bootstrap Order`.
 
 ## Step 4 — Write `.spades-anywhere/version`
 

@@ -1,4 +1,4 @@
-# SPADES Framework v2.12.0
+# SPADES Framework v2.13.0
 
 SPADES is a human–AI operating model for engineering teams. It is
 backend-agnostic: artefacts can live in Linear (via the Linear MCP), on
@@ -431,6 +431,69 @@ public_safe: true | false
 scope_ref: S-add-ai-helper-bot      # optional
 ---
 ```
+
+---
+
+## Bootstrap Order
+
+`/spades:setup` is the **single entry point** for adopting SPADES in
+a repo. A human runs exactly one command. Setup completes in a
+**single pass** and **drives its own prerequisites inline** — it
+never exits to ask the human to run another skill and then re-invoke
+setup. The ordering is a strict DAG:
+
+```
+/spades:setup
+   ├─(not a git repo)──►  /repo:init            # inline; external repo plugin
+   ├─ choose backend, scm, review_format
+   ├─ write .spades/config   (project: unset if no project yet)
+   └─(no active project)──►  /spades:newproject  # inline; fills project:
+```
+
+### The two prerequisite edges are one-directional
+
+- **`setup → /repo:init`.** If the directory is not a git repo,
+  setup runs `/repo:init` inline. SPADES still doesn't *own* git —
+  it defers to the `repo` plugin (§ *Defer to the `repo` Plugin* in
+  AGENTS.md) — it just doesn't make the human perform the hand-off
+  by hand. `/repo:init` is terminal: it never calls back into
+  SPADES.
+- **`setup → /spades:newproject`.** `newproject` needs to know the
+  backend, which lives in `.spades/config`. Setup therefore writes
+  `.spades/config` (with `project:` unset) **before** it invokes
+  `newproject` inline, so newproject's precondition
+  ("a config with a backend exists") is always satisfied on the
+  setup-driven path. newproject creates the record, sets `project:`,
+  and returns.
+
+### No mutual dependency — the invariant that must never break
+
+The historical bug was a three-way deadlock:
+
+- setup aborted with *"run `/repo:init`, then re-invoke setup"*;
+- setup exited with *"run `/spades:newproject`, then re-run setup"*;
+- newproject aborted with *"run `/spades:setup` first"* whenever
+  `.spades/config` was missing.
+
+Since `.spades/config` is only written **after** setup's project
+step, newproject could never satisfy its precondition before setup
+finished, yet setup demanded newproject finish first — a cycle with
+no valid start. The human got bounced between three skills forever.
+
+The fix makes every edge point one way, away from setup:
+
+- Setup **never** says "run X, then re-run setup." It runs X inline.
+- `newproject`, run **standalone** with no `.spades/config`, tells
+  the human to run `/spades:setup` — and setup then creates the
+  project itself, inline, so the human is never sent back to
+  newproject. Guidance flows `newproject → setup → (creates project)`
+  and stops. No back-edge.
+
+This is load-bearing. Any future edit that makes `setup`
+exit-and-wait on `/repo:init` or `/spades:newproject`, or makes
+`newproject` invoke `/spades:setup`, reintroduces the deadlock.
+Preserve the DAG: prerequisites are driven *from* setup, never
+required *before* it.
 
 ---
 
