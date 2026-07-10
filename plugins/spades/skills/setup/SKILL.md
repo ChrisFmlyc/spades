@@ -79,23 +79,45 @@ for now (close/do/ship will refuse until installed)*. If re-probe
 still `missing`, re-show and re-ask; only advance on explicit
 Skip.
 
+**Skip is conditional.** *Skip for now* is only safe when this
+directory is **already a git repo** — then the repo plugin is
+merely deferred (close/do/ship refuse later until installed). If
+Step 2 finds **no git repo**, `/repo:init` (which lives in this
+same plugin) is required *now* to bootstrap one, so the skip does
+not apply there — Step 2 re-drives this install rather than
+proceeding without a repo. Record whether the plugin is `found`
+or `skipped` so Step 2 can branch on it.
+
 ### 2. Git repo (auto-init — never bounce)
 
 ```bash
 git rev-parse --git-dir >/dev/null 2>&1 && echo found || echo missing
 ```
 
-`found` → continue.
+`found` → continue to Pre-Flight Step 3.
 
-`missing` → **run `/repo:init` inline, now.** Do NOT abort and tell
-the human to run it separately. SPADES still doesn't *own* git — it
-defers to the `repo` plugin — it just doesn't make the human do the
-hand-off by hand. Announce it in one line (*"No git repo here — I'll
-initialise one via `/repo:init`, then continue setup."*) and invoke
-`/repo:init`. It initialises git, writes a placeholder README, wires
-`origin`, and pushes `main`; it will ask you its own questions (repo
-name, remote) — that is `/repo:init`'s interaction, not a bounce
-back to setup.
+`missing` → the repo must be bootstrapped **now**, before setup can
+scaffold committable files. `/repo:init` (from the `ai-skills/repo`
+plugin) is required for this:
+
+- **Repo plugin `found` in Step 1** → **run `/repo:init` inline,
+  now.** Do NOT abort and tell the human to run it separately.
+  SPADES still doesn't *own* git — it defers to the `repo` plugin —
+  it just doesn't make the human do the hand-off by hand. Announce
+  it in one line (*"No git repo here — I'll initialise one via
+  `/repo:init`, then continue setup."*) and invoke `/repo:init`. It
+  initialises git, writes a placeholder README, wires `origin`, and
+  pushes `main`; it will ask its own questions (repo name, remote)
+  — that is `/repo:init`'s interaction, not a bounce back to setup.
+- **Repo plugin `skipped` in Step 1** → the skip does not apply
+  when git is missing, because `/repo:init` is exactly what's
+  needed. Re-drive Step 1's install (show the `/plugin install`
+  block again, re-probe on *I've installed it*). Only once the
+  plugin is present, run `/repo:init` inline as above. If the human
+  still refuses to install it, setup cannot bootstrap a repo — abort
+  cleanly (see the `missing` re-probe outcome below); it does not
+  hand-roll `git init` itself (that would violate the
+  defer-to-`repo` rule).
 
 After `/repo:init` returns, re-probe:
 
@@ -103,12 +125,15 @@ After `/repo:init` returns, re-probe:
 git rev-parse --git-dir >/dev/null 2>&1 && echo found || echo missing
 ```
 
-- `found` → continue to Step 3.
-- `missing` (the human cancelled `/repo:init`, or it failed) →
-  **only now** abort, with the failure surfaced: *"`/repo:init` did
-  not complete, so there's no git repo to configure. Re-run
-  `/spades:setup` once the repo exists."* Setup cannot scaffold
-  committable files without a repo.
+- `found` → continue to Pre-Flight Step 3.
+- `missing` (the human cancelled `/repo:init`, declined to install
+  the plugin, or it failed) → **only now** abort, with the failure
+  surfaced: *"No git repo was initialised, so there's nothing to
+  configure yet. Re-run `/spades:setup` once the repo exists (it
+  will initialise one for you via `/repo:init`)."* Setup cannot
+  scaffold committable files without a repo. This is a terminal
+  stop, not a bounce — setup is still the single entry point; it
+  just needs the repo to exist to do its job.
 
 `/repo:init` is terminal — it never calls back into SPADES, so this
 edge is one-directional (`setup → repo:init`).
