@@ -19,11 +19,39 @@ get human approval before deviating.
   `bin/` directory. The plugin tree contains only `.md` files,
   `.json` manifests, and the `scripts/lint/` CI helpers (TypeScript
   on Node built-ins only, run without a build step).
-- **Templates live inside the producing skill.** v2 embeds AGENTS.md,
-  INTENT.md, ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md
-  scaffolding, Scope body shape, and Plan body shape inline in the
-  SKILL.md that produces each one. There is no separate `templates/`
-  or `fragments/` directory.
+- **Templates live inside the producing skill's directory.** Scope
+  and Plan body shapes, INTENT.md / ARCHITECTURE.md / PATTERNS.md /
+  ANTI-PATTERNS.md scaffolding, and the AGENTS.md marker block all
+  ship with the skill that produces them — never in a shared
+  `templates/` or `fragments/` directory at the plugin root.
+
+  Within the skill directory, follow the documented Agent Skills
+  anatomy (`scripts/` — executables; `reference/` — docs read on
+  demand; `assets/` — files rendered into output):
+
+  - **Small templates stay inline** in SKILL.md. Most producing
+    skills carry their body shape this way.
+  - **`template.html`** stays a flat sibling of SKILL.md. It is
+    addressed by exact path from `FRAMEWORK.md § worker-html-*`, and
+    flat siblings are a documented layout.
+  - **`reference/<name>.md`** holds material the skill reads on
+    demand — one mutually-exclusive branch of a flow, a long output
+    format, a per-SCM driver. This is what keeps a SKILL.md body
+    under 500 lines without deleting content.
+
+  Two rules bind any `reference/` file, both from the official
+  guidance:
+
+  1. **One level deep.** Every reference file links directly from
+     SKILL.md and never points at another one. Nested references make
+     the agent preview with partial reads and act on incomplete
+     instructions.
+  2. **A table of contents on anything over ~100 lines**, so a
+     partial read still reveals the full scope.
+
+  Point at them with explicit read-intent — *"Read
+  `reference/flow-plan-pass.md` and follow it"* — the way
+  `skills/ship/SKILL.md` dispatches to its SCM drivers.
 
 ## Project Structure
 
@@ -36,7 +64,10 @@ spades/                                       # repo root (this repo)
     └── spades/                               # the SPADES plugin
         ├── .claude-plugin/
         │   └── plugin.json                   # plugin manifest
-        ├── skills/<name>/SKILL.md            # one directory per skill (15 skills)
+        ├── skills/<name>/
+        │   ├── SKILL.md                      # one directory per skill (21 skills)
+        │   ├── template.html                 # HTML-mode render target (producing skills)
+        │   └── reference/<name>.md           # read on demand; keeps SKILL.md under 500 lines
         ├── agents/<name>.md                  # subagent definitions (4 reviewers + researcher)
         ├── docs/
         │   ├── FRAMEWORK.md                  # canonical framework reference

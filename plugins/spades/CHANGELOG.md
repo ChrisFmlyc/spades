@@ -8,6 +8,62 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.5.0] — 2026-08-10
+
+- **minor**: Every SKILL.md body is now **under 500 lines**, the
+  documented ceiling for optimal performance. A skill body loads in
+  full on every invocation, so bulk is a fixed tax that dilutes the
+  specific rules that matter.
+
+  | Skill | Before | After |
+  |---|---|---|
+  | `close` | 1149 | 249 |
+  | `setup` | 917 | 487 |
+  | `review` | 842 | 415 |
+  | `evaluate` | 708 | 494 |
+
+  Nothing was deleted. Content moved into `reference/` files that
+  load on demand, following the pattern `skills/ship/` already used
+  for its SCM drivers:
+
+  - `close/reference/flow-plan-pass.md`, `flow-quick.md`,
+    `flow-status-change.md` — five close flows where any one run
+    needs exactly one. The shared bookkeeping-PR machinery (B1–B7)
+    stays in SKILL.md because every flow uses it; seven near-identical
+    status-change routes collapsed into one table.
+  - `setup/reference/agents-md-block.md` — the consumer AGENTS.md
+    marker-block template, which is written verbatim rather than
+    reasoned about; `backend-migration.md` — Step 2.6, which only
+    fires on a backend switch.
+  - `review/reference/report-format.md` — the envelope schema,
+    dispatch banner, tiered digest, and persisted-report contract.
+
+  `evaluate` needed no split: its two HTML worker specs were
+  near-identical, so page 2 is now expressed as a delta on page 1.
+
+  Two constraints from the official guidance are honoured throughout
+  and recorded in `PATTERNS.md`: **references stay one level deep**
+  from SKILL.md (nested references cause partial reads and
+  incomplete instructions), and **every reference file carries a
+  table of contents** so a partial read still reveals full scope.
+
+- **minor**: `agents_version` → 2.5.0. The consumer marker block's
+  skill table was stale at 19 — it now lists all 21, adding
+  `/spades:objective` and `/spades:loop`, and the defer-to-plugins
+  section covers `crx` alongside `repo`.
+
+- **patch**: `PATTERNS.md` — the "templates live inside the producing
+  skill" rule now reads *skill **directory***, which is what the 26
+  existing sibling `template.html` files already demonstrated.
+  Documents the `scripts/` / `reference/` / `assets/` anatomy, when
+  each applies, and the two binding constraints above. `template.html`
+  deliberately stays a flat sibling: it is addressed by exact path
+  from `FRAMEWORK.md § worker-html-*`, and flat siblings are a
+  documented layout.
+
+- Skills bumped: `close` 4.5.0 → 4.6.0, `setup` 4.3.0 → 4.4.0,
+  `review` 3.4.0 → 3.5.0, `evaluate` 3.7.0 → 3.8.0
+
 ## [5.4.0] — 2026-08-10
 
 - **minor**: New skill `/spades:loop` — the **delivery entry point**,

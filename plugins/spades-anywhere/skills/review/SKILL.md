@@ -1,7 +1,7 @@
 ---
 name: review
 description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades-anywhere:approve. Non-blocking — informs the human but never gates shipping.
-version: 0.2.0
+version: 0.3.0
 ---
 
 ## Pre-Flight
@@ -310,446 +310,93 @@ is more useful than risking silent data corruption.
 
 ## Merging: Convergence and Sort
 
-The merge turns four separate findings lists into one ranked report. It
-has two jobs: surface **convergence** — where independent personas
-landed on the same concern — and rank what remains.
+The merge turns four lists into one ranked report. Two jobs: surface
+**convergence**, then rank what remains.
 
-### Convergence: cluster by underlying concern
+### Convergence
 
-Read every finding across all four lists and group those that describe
-the **same underlying concern** — the same risk, gap, or weakness —
-even when the personas filed them under different `category` values or
-worded them differently. Each such group collapses to a **single
-finding**: keep whichever states the concern most sharply (prefer a
-`high`-confidence finding over a `low` one) and add an `also_flagged_by`
-array naming the other personas that raised it.
-Findings that describe **distinct concerns stay separate**, even if
-their `category` or wording happens to coincide.
+Group findings that describe the **same underlying concern** — the
+same risk, gap, or weakness — even when filed under different
+`category` values or worded differently. Each group collapses to a
+**single finding**: keep whichever states it most sharply (prefer
+`high` confidence over `low`) and add an `also_flagged_by` array
+naming the other personas. Findings describing **distinct concerns
+stay separate**, even if category or wording coincide.
 
-Convergence is the panel's strongest signal: "three of four personas
-independently flagged this" is worth far more than any lone finding.
-Detecting it is a judgement the coordinator makes by reading the
-findings — not a mechanical key match.
+Convergence is the panel's strongest signal — "three of four
+personas independently flagged this" outweighs any lone finding.
+Detecting it is a judgement made by reading the findings, **not a
+mechanical key match**: each persona file defines a *disjoint*
+`category` enum, so a `(category, message)` key can never fire
+across personas. Personas staying in distinct lanes is the
+deliberate design that stops the panel collapsing into four
+restatements of one concern; it is not the same as personas never
+converging.
 
-> **Why this is a judgement, not a dedupe key.** Earlier versions
-> deduped on `(category, first 100 characters of message)`. That key
-> can never fire across personas: each persona file defines a
-> **disjoint** `category` enum — scope-guardian emits `traceability`,
-> security-lens emits `auth`, adversarial-reviewer emits
-> `hidden-assumption`, and so on, with no value shared between any two
-> personas. Two personas therefore can never produce the same key, and
-> the `also_flagged_by` array was unreachable. Keep the distinction
-> clear: personas using **distinct categories** is *staying in lane* —
-> the deliberate design that stops the panel collapsing into four
-> restatements of one concern. That is not the same as personas never
-> **converging**. Two personas in different lanes routinely see the
-> same underlying risk from different angles; convergence detection is
-> what makes that visible.
-
-Be conservative when clustering. If two findings are *related* but not
-the *same concern* — say, a security-lens worry about an auth boundary
-and an adversarial-reviewer worry about a different failure mode on the
-same task — keep them separate and let both stand. A false merge hides
-a finding; a missed merge only costs a convergence annotation.
+Be conservative. If two findings are *related* but not the *same
+concern* — a security worry about an auth boundary and an
+adversarial worry about a different failure mode on the same task —
+keep both. A false merge hides a finding; a missed merge only costs
+an annotation.
 
 ### Sort
 
-**Sort** by severity, then by convergence. Severity order:
-`blocking` > `major` > `minor`. Within a severity bucket, a finding
-with a longer `also_flagged_by` array — more personas independently
-converged on it — comes first. `confidence` is **not** a sort key: it
-is a display-only `high | low` annotation (see the persona files).
-There is no `severity × confidence` arithmetic, and `nit` is no longer
-a severity.
+Severity first: `blocking` > `major` > `minor`. Within a bucket, a
+longer `also_flagged_by` array comes first. **`confidence` is not a
+sort key** — it is a display-only `high | low` annotation. There is
+no `severity × confidence` arithmetic, and `nit` is no longer a
+severity.
 
 ### No merge-side filter
 
-There is no confidence filter at merge time. Under v1.1 the merge
-dropped findings with `confidence` below `0.3`; `confidence` is now a
-coarse `high | low` flag, not a float, and every persona already
-self-caps at three primary findings (plus, for the scope guardian and
-adversarial reviewer, one reserved-slot finding) — the filtering moved
-to generation time. The merge keeps every finding each persona emits;
-volume is controlled at presentation time by the tiered report (see
-"Presenting the Report"), not by dropping findings here.
+There is no confidence filter at merge time. Every persona already
+self-caps at three primary findings (plus a reserved-slot finding
+for the scope guardian and adversarial reviewer), so filtering
+happens at generation time. The merge keeps everything; volume is
+controlled at presentation by the tiered digest, never by dropping
+findings here.
 
 ### Worked example
 
-Six findings arrive from four personas (refs omitted for brevity):
-
-```json
-[
-  {"persona": "security-lens", "severity": "major", "confidence": "high",
-   "category": "trust-boundary",
-   "message": "Task 2's webhook handler trusts the caller-supplied signature header without verifying it against the shared secret."},
-  {"persona": "adversarial-reviewer", "severity": "major", "confidence": "high",
-   "category": "hidden-assumption",
-   "message": "The Plan assumes the webhook caller is already authenticated upstream; if that assumption is wrong, Task 2 processes forged events."},
-  {"persona": "architecture-strategist", "severity": "major", "confidence": "low",
-   "category": "patterns-drift",
-   "message": "Task 2's handler bypasses the shared request-validation middleware PATTERNS.md mandates."},
-  {"persona": "scope-guardian", "severity": "minor", "confidence": "high",
-   "category": "acceptance-criteria",
-   "message": "Acceptance criterion 3 ('events are handled') states no success condition and is not testable."},
-  {"persona": "adversarial-reviewer", "severity": "minor", "confidence": "high",
-   "category": "integration-blind-spot",
-   "message": "No retry or backoff is described for the downstream call in Task 4."},
-  {"persona": "scope-guardian", "severity": "minor", "confidence": "low",
-   "category": "gold-plating",
-   "message": "Task 5 adds a config flag for an export format the Scope does not mention."}
-]
-```
-
-The merge produces **four** findings:
-
-1. The **security-lens**, **adversarial-reviewer**, and
-   **architecture-strategist** findings all describe the *same
-   underlying concern* — Task 2's webhook trusts an unverified caller —
-   even though they were filed under three different categories
-   (`trust-boundary`, `hidden-assumption`, `patterns-drift`). They
-   converge into one finding: keep one of the three (all `major`) and
-   set `also_flagged_by: ["adversarial-reviewer", "architecture-strategist"]`.
-2. The **scope-guardian** `acceptance-criteria` finding is a *distinct
-   concern* (an untestable criterion) — it stays on its own.
-3. The second **adversarial-reviewer** finding is also *distinct* (a
-   missing retry path on a different task). It stays separate and is
-   **not** merged with finding 1, even though both came from
-   adversarial-reviewer — convergence is about the concern, not the
-   persona.
-4. The **scope-guardian** `gold-plating` finding is the reserved-slot
-   absorbed-remit finding — a *distinct concern*, so it stays on its
-   own.
-
-Nothing is dropped: there is no merge-side confidence filter.
-
-Sorted by severity, then convergence: finding 1 (`major`,
-`also_flagged_by` length 2) → then the three `minor` findings (2, 3,
-4), whose order among themselves is not significant — `confidence` is
-a display annotation, not a tiebreak. The envelope records
-`findings_total: 4`.
-
-## Report envelope (v2.0.0)
-
-The merged report carries a top-level envelope so downstream tooling
-can parse the report without inspecting the Markdown prose. The
-envelope appears as a `json` code block immediately after the banner
-(see Presenting the Report below) and MUST be valid JSON.
-
-```json
-{
-  "schema_version": "2.0.0",
-  "dispatch_mode": "subagent-dispatch",
-  "personas_spawned": 4,
-  "personas_completed": 4,
-  "findings_total": 0
-}
-```
-
-Required fields:
-
-- `schema_version` — the string `"2.0.0"` for this contract. A consumer
-  that encounters a different version knows to fall back to prose
-  parsing or flag the mismatch. `2.0.0` is the M-994 redesign: four
-  personas, `nit` removed from `severity`, `confidence` recast to a
-  `high | low` string, no merge-side confidence filter. This is the
-  **report-envelope** contract version — it is independent of the
-  framework's `.spades-anywhere/version` and of the fragment-marker mechanism
-  `/spades-anywhere:setup` uses to refresh consumer files on plugin upgrade.
-- `dispatch_mode` — one of `subagent-dispatch`, `sequential-inproc`,
-  `degraded`. Same value as the banner line.
-- `personas_spawned` — integer count of personas actually invoked.
-  Always `4` under v2.0.0.
-- `personas_completed` — the number of personas whose `spades-findings`
-  block parsed successfully. Count them; do not estimate. If a
-  persona's JSON block failed to parse, its prose still shows in the
-  report but it does NOT increment this counter.
-- `findings_total` — the number of findings in the merged report:
-  literally the length of the final merged list, counted after
-  convergence merging. Do not estimate.
-
-**When the review target is a Plan, stamp the panel tally onto that
-Plan** so the Plan page can echo it — write `panel_blocking`,
-`panel_major`, `panel_minor` (the counts of merged findings by
-severity) into the Plan's frontmatter. This is the review writing to
-the artefact it reviewed; not a cross-skill call. The Plan template
-reads these; absent → it shows `not run`.
-
-The v1.1 envelope carried a sixth field,
-`findings_filtered_low_confidence`, counting findings dropped by the
-merge-side confidence filter. v2.0.0 removes both the filter and the
-field — `confidence` is no longer a float, and the per-persona caps
-moved filtering to generation time.
-
-Per-persona finding shape changed in v2.0.0: `severity` lost the `nit`
-value and `confidence` became a `high | low` string. If a future
-version changes finding shape again, bump `schema_version`.
-
-## Presenting the Report
-
-A panel run produces two artefacts: a **tiered inline report** written
-to the terminal, and a **full report** persisted to a file. The inline
-report is a digest — it leads with the signal and fits on a screen; the
-full report is the complete audit record.
-
-### The dispatch-mode banner and envelope
-
-Both artefacts begin with a **dispatch-mode banner** (the value you
-recorded during spawning) and the **report envelope** JSON. The banner
-line (`Dispatch mode: <value>`) is ALWAYS the first line of output,
-before any prose, the envelope JSON, or the section title — so a
-`head -n 1` or a regex scan of the top-of-report surfaces the mode
-without parsing the envelope.
-
-The section title depends on dispatch mode:
-
-- When `dispatch_mode` is `subagent-dispatch` or `sequential-inproc`,
-  the title is `PANEL SECOND OPINION`.
-- When `dispatch_mode` is `degraded`, the title is
-  `SINGLE-CONTEXT SIMULATION (degraded)`. You MUST NOT use the words
-  "panel" or "multi-persona" anywhere in a degraded report's header or
-  framing prose — see "What This Skill Must Never Do" below.
-
-**Degraded-detection check.** The dispatch mode is asserted in three
-places that MUST agree: the banner's first line, the envelope's
-`dispatch_mode` field, and the section title (`PANEL SECOND OPINION`
-for a real panel; `SINGLE-CONTEXT SIMULATION (degraded)` for a degraded
-run). A reader — or a downstream tool — confirms a run was a genuine
-multi-context panel by checking that all three agree and none say
-`degraded`. If the three disagree, the report is malformed. This
-three-point agreement is the stated check that a degraded run can never
-be silently presented as a panel; it holds in the inline report and the
-persisted file alike.
-
-### The tiered inline report (CLI mode)
-
-**Read `review_format:` from `.spades-anywhere/config` and branch.**
-In CLI mode this digest IS the human's review surface and prints to
-the terminal in full. In HTML mode the digest is *not* printed
-inline — the rendered `.html` (written under "The persisted full
-report" below) is the human's review surface, and the terminal gets
-only a short `✓ Review written: <path>` line plus any conversational
-text. Both modes still write the canonical `.md`; the digest content
-is identical between surfaces — only where it renders differs.
-
-The inline report shows, in order:
-
-1. The banner and the envelope JSON.
-2. The section title.
-3. **Persona summaries** — each persona's prose summary, verbatim.
-   Never summarise a persona's prose in your own words; the whole point
-   is that the human sees each independent view unfiltered.
-4. **Convergence** — every merged finding with a non-empty
-   `also_flagged_by` array, shown in full. Convergence is the panel's
-   strongest signal, so it leads the findings.
-5. **Blocking and major findings.** Every `blocking` finding is shown
-   in full, always — blocking is never suppressed or collapsed. `major`
-   findings then fill an inline budget of roughly 5–7 findings total
-   (the convergence and blocking findings already shown count toward
-   that budget). `major` findings beyond the budget are not printed
-   individually — they collapse to a count line:
-   `+N more major finding(s) — see full report`.
-6. **Minor findings** never print individually inline. They collapse to
-   a single count line: `N minor finding(s) — see full report`.
-7. A pointer to the persisted full report: `Full report: <path>`.
-
-Inline shape when dispatch mode is `subagent-dispatch` (or
-`sequential-inproc`):
-
-```
-Dispatch mode: subagent-dispatch
-
-```json
-{"schema_version":"2.0.0","dispatch_mode":"subagent-dispatch",
- "personas_spawned":4,"personas_completed":4,"findings_total":14}
-```
-
-PANEL SECOND OPINION
-════════════════════════════════════════════════════════════
-
-Summary from each persona (their own words, verbatim):
-
-─── scope-guardian ─────────────────────────────────────────
-
-  <prose summary>
-
-─── architecture-strategist ────────────────────────────────
-
-  <prose summary>
-
-─── security-lens ──────────────────────────────────────────
-
-  <prose summary>
-
-─── adversarial-reviewer ───────────────────────────────────
-
-  <prose summary>
-
-Convergence — independent personas on the same concern:
-
-  [major, also_flagged_by ×2] security-lens — <message>
-    refs: Plan Task 2
-    also_flagged_by: [adversarial-reviewer, architecture-strategist]
-
-Findings — every blocking in full; major up to the inline budget:
-
-  [blocking] architecture-strategist — <message>
-    refs: ANTI-PATTERNS.md#..., Plan Task 4
-  [major]    scope-guardian — <message>
-    refs: Plan Task 3
-  +3 more major finding(s) — see full report.
-  9 minor finding(s) — see full report.
-
-Full report: .spades-anywhere/reviews/s-add-ai-helper-bot-2026-05-17.md
-
-════════════════════════════════════════════════════════════
-```
-
-Inline shape when dispatch mode is `degraded`:
-
-```
-Dispatch mode: degraded
-
-```json
-{"schema_version":"2.0.0","dispatch_mode":"degraded",
- "personas_spawned":4,"personas_completed":4,"findings_total":14}
-```
-
-SINGLE-CONTEXT SIMULATION (degraded)
-════════════════════════════════════════════════════════════
-
-This report was produced by re-prompting a single model context with
-each persona's priming in turn — it is NOT a multi-context review.
-Consumers relying on independence between reviewers should treat
-findings as lower-confidence than the headline severity suggests.
-
-Summary from each persona-prompted run (verbatim):
-
-─── scope-guardian ─────────────────────────────────────────
-
-  <prose summary>
-
-─── architecture-strategist ────────────────────────────────
-
-  <prose summary>
-
-─── security-lens ──────────────────────────────────────────
-
-  <prose summary>
-
-─── adversarial-reviewer ───────────────────────────────────
-
-  <prose summary>
-
-Convergence — runs that landed on the same concern:
-
-  ...
-
-Findings — every blocking in full; major up to the inline budget:
-
-  ...
-  +N more major finding(s) — see full report.
-  N minor finding(s) — see full report.
-
-Full report: .spades-anywhere/reviews/s-add-ai-helper-bot-2026-05-17.md
-
-════════════════════════════════════════════════════════════
-```
-
-### The persisted full report
-
-On **every** panel run — `degraded` runs included — write the full
-report to a file under `.spades-anywhere/reviews/`. **Read `review_format:`
-from `.spades-anywhere/config` and branch on the format.** The review MUST
-write a file before the inline digest is printed.
-
-#### Write the canonical `.md` (both modes)
-
-- **Path:** `.spades-anywhere/reviews/<slug>-<date>.md`. `<slug>` is the reviewed
-  Scope or Plan's tracker identifier lower-cased (e.g. `s-add-ai-helper-bot`), or a
-  short kebab-case slug derived from its title when there is no
-  identifier; `<date>` is `YYYY-MM-DD`.
-- **Collision rule:** if that path already exists — a repeat run of the
-  same slug on the same date — append a numeric suffix:
-  `<slug>-<date>-2.md`, then `-3`, and so on. Never overwrite an
-  existing review file; each run is its own audit record.
-
-#### Additionally render the HTML (HTML mode only)
-
-When `review_format: html`, after the `.md` above is written,
-render the HTML companion file. The `.md` is unchanged; the
-`.html` is **additive**.
-
-
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-blocks below match the markers in the actual file before
-substituting; abort and surface any mismatch. See
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
-use the bundled template` for the canonical rule.
-
-- Read the template at
-  `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html`.
-- Validate it contains the block markers listed below; if any are
-  missing, abort.
-- Substitute placeholders per `docs/FRAMEWORK.md § Output Format`:
-  - Envelope values fill `{{spades.target_id}}`,
-    `{{spades.target_title}}`, `{{spades.mode}}` (Scope / Plan /
-    Full), `{{spades.verdict}}` (overall), `{{spades.date}}`,
-    `{{spades.dispatch_mode}}`, `{{spades.project}}` (the active
-    project slug from `.spades-anywhere/config`, for the properties
-    rail; optional).
-  - The envelope YAML block also goes verbatim into the
-    `<script type="application/yaml" id="spades-frontmatter">` tag.
-  - `<!-- SPADES-BLOCK:objective-banner -->` — 0 or 1 item
-    `{{block.id}}`, `{{block.title}}` per `docs/FRAMEWORK.md §
-    Objective banner`. Resolve from the reviewed target's
-    `strategy_link` (a Scope's, or a Plan's parent Scope's),
-    counting it ONLY when it matches an existing
-    `.spades-anywhere/objectives/O-<slug>.md` file — then pass
-    `[{ id, title }]` (title read from that file); otherwise `[]`.
-  - `<!-- SPADES-BLOCK:persona-cards -->` — repeated once per
-    persona (4 cards: scope-guardian, architecture-strategist,
-    security-lens, adversarial-reviewer). Per-item:
-    `{{block.persona}}`, `{{block.summary_html}}`,
-    `{{block.finding_count}}`.
-  - `<!-- SPADES-BLOCK:findings -->` — repeated once per merged
-    finding (every severity, ungated). Per-item: `{{block.severity}}`,
-    `{{block.confidence}}`, `{{block.category}}`, `{{block.persona}}`,
-    `{{block.message_html}}`, `{{block.refs}}`,
-    `{{block.also_flagged_by}}`.
-  - `<!-- SPADES-BLOCK:convergence-cards -->` — repeated once per
-    convergence cluster. Per-item: `{{block.label}}`,
-    `{{block.personas}}`, `{{block.severity}}`.
-  - The cross-model synthesis prose is a direct
-    `{{spades.synthesis_html}}` substitution, not a repeating block.
-- **Path:** `.spades-anywhere/reviews/<slug>-<date>.html` with the same slug
-  rules. Collision rule applies identically: `<slug>-<date>-2.html`,
-  `-3`, etc.
-- Auto-open via the OPEN_CMD prelude
-  (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). **In HTML
-  mode, do NOT print the inline CLI digest** — the open `.html`
-  is the human's review surface. The terminal in HTML mode gets
-  only the short `✓ Review written: <path>` confirmation +
-  any conversational text. The full digest lives in the `.html`
-  (and the same content is in the `.md` for the AI / fallback
-  reading via `cat`).
-- The `.md` from the previous sub-step is unchanged — both files coexist.
-- **Contents:** the banner, the envelope, the section title, every
-  persona's prose summary verbatim, **every** merged finding at every
-  severity shown in full (the file is not tiered — it is the complete
-  record), and the cross-model synthesis.
-- `.spades-anywhere/reviews/` is gitignored by default; the review file is a
-  local audit artefact, not committed output.
-
-Create `.spades-anywhere/reviews/` lazily on the first write;
-do not pre-create it. The inline report's `Full report:`
-pointer names the file just written. If the write fails, say so
-plainly inline (`Full report: write failed — <reason>`) and
-continue — a failed persistence write never aborts the review.
-**Failure fallback**: if the `.md` and / or `.html` write
-failed in HTML mode, the digest *is* printed to CLI as a
-backup so the human still sees the panel output. In CLI mode
-this is moot — the digest is the primary display already.
+Four personas file six findings on the same Plan:
+
+| Persona | Severity | Category | Concern |
+|---|---|---|---|
+| security-lens | major | `trust-boundary` | Task 2's webhook trusts a caller-supplied signature header unverified |
+| adversarial-reviewer | major | `hidden-assumption` | Plan assumes the caller is authenticated upstream; if wrong, Task 2 processes forged events |
+| architecture-strategist | major | `patterns-drift` | Task 2's handler bypasses the request-validation middleware PATTERNS.md mandates |
+| scope-guardian | minor | `acceptance-criteria` | Criterion 3 ("events are handled") states no success condition |
+| adversarial-reviewer | minor | `integration-blind-spot` | No retry or backoff for the downstream call in Task 4 |
+| scope-guardian | minor | `gold-plating` | Task 5 adds a config flag for an export format the Scope never mentions |
+
+Merges to **four** findings:
+
+1. The first three describe **one concern** — Task 2 trusts an
+   unverified caller — despite three different categories. Keep one
+   (all `major`), set `also_flagged_by: ["adversarial-reviewer",
+   "architecture-strategist"]`.
+2. The untestable criterion is distinct; stands alone.
+3. The missing retry is distinct — **not** merged with 1 even though
+   both came from adversarial-reviewer. Convergence is about the
+   concern, not the persona.
+4. The gold-plating finding is the reserved-slot absorbed remit;
+   distinct, stands alone.
+
+Nothing is dropped. Sorted: finding 1 (`major`, `also_flagged_by`
+length 2), then the three `minor` findings in no significant order.
+Envelope records `findings_total: 4`.
+
+## Presenting the report
+
+**Read [`reference/report-format.md`](reference/report-format.md) and
+follow it.** It owns the envelope, the banner and its three-point
+agreement check, the tiered inline digest (both normal and degraded
+shapes), and the persisted `.md` / `.html` writes.
+
+A run produces two artefacts: a **tiered inline digest** (leads with
+signal, fits a screen) and a **full persisted report** (the complete
+audit record). The report file MUST be written before the digest
+prints.
 
 ## Cross-Model Synthesis
 
