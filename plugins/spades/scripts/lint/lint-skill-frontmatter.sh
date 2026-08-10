@@ -24,7 +24,7 @@ set -euo pipefail
 #   2  repo structure unexpected (no skills/ directory)
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PARSER="$REPO_ROOT/scripts/lint/frontmatter.py"
+PARSER="$REPO_ROOT/scripts/lint/frontmatter.ts"
 SKILLS_DIR="$REPO_ROOT/skills"
 
 if [ ! -d "$SKILLS_DIR" ]; then
@@ -40,13 +40,13 @@ for skill_md in "$SKILLS_DIR"/*/SKILL.md; do
     checked=$((checked + 1))
     rel="${skill_md#"$REPO_ROOT"/}"
     # name, description, version must all be present.
-    if ! python3 "$PARSER" "$skill_md" --require name,description,version >/dev/null; then
+    if ! node "$PARSER" "$skill_md" --require name,description,version >/dev/null; then
         echo "  FAIL: $rel (missing required field)"
         fail=$((fail + 1))
         continue
     fi
     # Validate the version: field is a plain X.Y.Z semver.
-    version=$(python3 "$PARSER" "$skill_md" --print | awk -F= '/^version=/ {sub("^version=", ""); print; exit}')
+    version=$(node "$PARSER" "$skill_md" --print | awk -F= '/^version=/ {sub("^version=", ""); print; exit}')
     if ! echo "$version" | grep -qE "$SEMVER_RE"; then
         echo "  FAIL: $rel (version='$version' is not X.Y.Z semver)"
         fail=$((fail + 1))

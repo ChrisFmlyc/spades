@@ -25,7 +25,7 @@ set -euo pipefail
 #      consumers; exits 0 with a skip message in that case)
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PARSER="$REPO_ROOT/scripts/lint/frontmatter.py"
+PARSER="$REPO_ROOT/scripts/lint/frontmatter.ts"
 AGENTS_DIR="$REPO_ROOT/agents"
 
 if [ ! -d "$AGENTS_DIR" ]; then
@@ -45,7 +45,7 @@ fi
 fail=0
 for f in "${files[@]}"; do
     rel="${f#"$REPO_ROOT"/}"
-    if ! python3 "$PARSER" "$f" \
+    if ! node "$PARSER" "$f" \
         --require name,description,model,tools,persona,focus >/dev/null; then
         echo "  FAIL: $rel"
         fail=$((fail + 1))

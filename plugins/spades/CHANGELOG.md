@@ -88,13 +88,53 @@ changes). The consumer-repo marker block in `AGENTS.md` carries the
 - **patch**: `README.md` — adds the autopilot section and the
   `/spades:loop` row; corrects the stale skill count (15 → 21).
 
-- **patch**: `scripts/lint/frontmatter.py` — the key regex now
-  accepts hyphens. Harness-level skill frontmatter uses hyphenated
-  keys (`disable-model-invocation`, `allowed-tools`) and the parser
-  rejected the whole file as malformed on sight of one. The SPADES
-  artefact schemas are unaffected: they use underscore keys, and the
-  per-kind allow-lists still decide which keys a project / scope /
-  plan / learning file may carry.
+- **minor**: The CI lint parser is now **TypeScript** —
+  `scripts/lint/frontmatter.py` → `scripts/lint/frontmatter.ts`. Same
+  parser, same schemas, same exit codes, same output strings; only the
+  language changed.
+
+  - **Still zero-dependency.** Node built-ins only — no
+    `package.json`, no `node_modules`, no `npm install`, no
+    `tsconfig.json`, no compiled output. Node 22.18+ runs `.ts`
+    directly via native type-stripping, so `node frontmatter.ts` is
+    the whole invocation. This preserves exactly the property the
+    stdlib-only Python had, which is what made the toolchain
+    carve-out acceptable in the first place.
+  - **Verified identical, not assumed.** A differential harness ran
+    both implementations over every artefact the lints touch (21
+    skills, 5 agents, all projects / scopes / plans, the example and
+    fixture corpora) plus 17 synthetic edge cases — no frontmatter,
+    unterminated block, duplicate key, unparseable line, CRLF, tabs,
+    embedded quotes and backslashes, HTML `<script>` frontmatter,
+    unclosed `<script>`, comment lines, list continuations, empty and
+    zero-byte files — and every usage-error path. 210 invocations,
+    byte-identical stdout, stderr, and exit code throughout. Python's
+    `repr()` quoting and argparse's wrapped usage banner are
+    reproduced deliberately so CI log output doesn't shift.
+  - **Erasable-syntax constraint** documented in the file header,
+    `scripts/lint/README.md`, and `ARCHITECTURE.md`: Node strips types
+    rather than compiling them, so `enum`, `namespace`, and parameter
+    properties are unavailable in lint sources.
+
+  Carried over from the Python fix this replaces: the frontmatter key
+  regex accepts hyphens. Harness-level skill frontmatter uses
+  hyphenated keys (`disable-model-invocation`, `allowed-tools`) and
+  the parser rejected the whole file as malformed on sight of one. The
+  SPADES artefact schemas are unaffected: they use underscore keys,
+  and the per-kind allow-lists still decide which keys a project /
+  scope / plan / learning file may carry.
+
+- **patch**: `.github/workflows/lint.yml` — `actions/setup-python@v5`
+  → `actions/setup-node@v4` across all five jobs, with the version
+  pinned once via a `NODE_VERSION` env var. The `examples` job gained
+  an explicit toolchain step; it previously had none and relied on the
+  runner image's preinstalled `python3`.
+
+- **patch**: `ARCHITECTURE.md` § *External Toolchain Policy*,
+  `PATTERNS.md` § *Approved Libraries*, and `scripts/lint/README.md`
+  § *Dependencies* updated to describe the TypeScript toolchain and
+  its Node version floor. The policy shape is unchanged — CI-only,
+  built-ins only, bounded to `scripts/lint/`, never at runtime.
 
 - Skills bumped: `loop` (new, 1.0.0)
 

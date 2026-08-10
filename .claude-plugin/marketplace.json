@@ -30,7 +30,7 @@
       "name": "spades-anywhere",
       "source": "./plugins/spades-anywhere",
       "description": "SPADES for non-coding agents — same six-phase loop, same Linear/local backends, same HTML mode, but adapted for real-world human tasks rather than code work. Runs in Claude Desktop, ChatGPT, the Claude web app, and mobile clients. No SCM, no PR lifecycle.",
-      "version": "0.13.0",
+      "version": "0.14.0",
       "author": {
         "name": "Chris Powell"
       },

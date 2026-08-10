@@ -7,6 +7,36 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the **AGENTS.md
 version** via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
+## [0.14.0] — 2026-08-10
+
+- **minor**: The CI lint parser is now **TypeScript** —
+  `scripts/lint/frontmatter.py` → `scripts/lint/frontmatter.ts`.
+  Ported from the sister `spades` plugin per the repo's lint-script
+  parity rule; the two files are identical apart from the paths their
+  walkers scan.
+
+  Same parser, same schemas, same exit codes, same output strings —
+  only the language changed. Still zero-dependency: Node built-ins
+  only, no `package.json`, no `node_modules`, no build step, since
+  Node 22.18+ runs `.ts` directly via native type-stripping. The five
+  `lint-*.sh` scripts now invoke `node` instead of `python3`.
+
+  The port also carries the sibling's frontmatter fix: the key regex
+  accepts hyphens, so harness-level keys like
+  `disable-model-invocation` and `allowed-tools` no longer make the
+  parser reject an entire file as malformed. The artefact schemas are
+  unaffected — they use underscore keys, and the per-kind allow-lists
+  still decide which keys each file may carry.
+
+  Verified against `scripts/lint/run-all.sh` — all 5 checks pass.
+  Note that these lints are not yet wired into
+  `.github/workflows/lint.yml`, which still covers `plugins/spades/`
+  only; that gap predates this change.
+
+- **patch**: `scripts/lint/README.md` — documents the Node version
+  floor, the no-build-step invocation, and the erasable-syntax
+  constraint that Node's type-stripping imposes on lint sources.
+
 ## [0.13.0] — 2026-07-10
 
 - **minor**: Harden the bootstrap ordering against a `setup ⇄
