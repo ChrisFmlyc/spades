@@ -1,4 +1,4 @@
-# SPADES Framework v2.13.0
+# SPADES Framework v2.14.0
 
 SPADES is a human–AI operating model for engineering teams. It is
 backend-agnostic: artefacts can live in Linear (via the Linear MCP), on
@@ -494,6 +494,89 @@ exit-and-wait on `/repo:init` or `/spades:newproject`, or makes
 `newproject` invoke `/spades:setup`, reintroduces the deadlock.
 Preserve the DAG: prerequisites are driven *from* setup, never
 required *before* it.
+
+---
+
+## Orchestration Order (`/spades:loop`)
+
+`/spades:setup` is the bootstrap entry point; `/spades:loop` is the
+**delivery entry point**. Setup gets a repo ready to run SPADES;
+loop takes one Scope from Plan to closed-out bookkeeping without the
+human driving each phase by hand.
+
+The two entry points sit at opposite ends of the same DAG and must
+never meet:
+
+```
+/spades:setup            (bootstrap — drives prerequisites inline)
+   └─► /repo:init, /spades:newproject
+                    ⋮
+        human writes the Scope   ← /spades:scope (human-owned, never automated)
+                    ⋮
+/spades:loop             (delivery — drives phases, aborts on prerequisites)
+   ├─► /spades:plan ──► /spades:approve ──► /spades:do ──► /spades:evaluate
+   ├─► /spades:ship ──► skills/ship/scm-github.md
+   ├─► /crx:loop ─────► /crx:single | /crx:multi
+   ├─► /spades:close ─► (bookkeeping PR)
+   └─► /repo:sync
+```
+
+### The three rules that keep it acyclic
+
+1. **No callee invokes `/spades:loop`.** A child skill's `Next:`
+   brief may *name* the loop as guidance to a human; it must never
+   invoke it. Guidance is text, not an edge.
+2. **Loop aborts on prerequisites; setup drives them.** This is the
+   deliberate asymmetry. `/spades:setup` runs `/repo:init` and
+   `/spades:newproject` inline because it is the bootstrap and there
+   is nothing upstream of it to bounce to. `/spades:loop` has plenty
+   upstream — setup, newproject, and the human-owned Scope — so it
+   **aborts with a pointer** instead. If loop ever drove setup
+   inline, and setup ever suggested loop, the § Bootstrap Order
+   deadlock returns one layer up.
+3. **Loop never re-invokes itself.** Not to resume after a pause,
+   not to advance to a sibling Plan. Resumption is a fresh human
+   invocation or in-conversation continuation; advancing is falling
+   through to the next stage inside one run.
+
+### Bounded back-edges
+
+Two edges in the delivery pipeline point backwards. Both are
+counted in the Plan's audit trail and both terminate:
+
+| Back-edge | Cap | Marker |
+|---|---|---|
+| Evaluate `PARTIAL` → `/spades:do` | 2 reworks per Plan | `Loop — rework <n>/2 after PARTIAL: …` |
+| Bot review round → push → re-review | 5 rounds per PR | `Loop — bot review clean on <url> (<n> rounds)` |
+
+Every other edge is forward-only. An uncapped back-edge is the same
+bug class as a cycle — it just fails slowly instead of immediately.
+
+### Loop state is derived, never duplicated
+
+`/spades:loop` keeps no state file. It derives its stage from the
+Plan's `status:` and the markers other skills already write
+(`PR opened:`, `Shipped`, `Evaluation — verdict:`), and adds
+`Loop — …` audit-trail lines only for facts SPADES does not
+otherwise record (human sign-off, rework count, review-round count,
+merge SHA, pause reason).
+
+This is what makes a looped run and a hand-driven run
+indistinguishable to every other skill: `/spades:status`,
+`/spades:list`, `/spades:close`, and the backend drivers all read
+the same artefacts either way, and a human can take over
+mid-pipeline — or hand back — at any stage boundary.
+
+### The human gate
+
+The loop's one designed pause is the **Evaluate sign-off**. Approve
+is executed (the six checks are walked, and a clean sweep may
+self-approve); Evaluate's verdict is derived; but the verdict is
+*confirmed* by a human, always. That gate is where oversight lands,
+which is why the routing doctrine pushes everything else toward
+`ai` — see `skills/loop/SKILL.md § Routing doctrine`. Scattering
+`human` rows through the pipeline duplicates oversight that already
+has a home, and turns an unattended loop back into a manual one.
 
 ---
 

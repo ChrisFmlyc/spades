@@ -95,7 +95,13 @@ def _parse_yaml_body(body: List[str]) -> Dict[str, str]:
     """Parse the YAML body lines (same logic for both source formats)."""
 
     fields: Dict[str, str] = {}
-    key_re = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*)$")
+    # Hyphens are permitted in keys because harness-level skill frontmatter
+    # uses them (`disable-model-invocation`, `allowed-tools`) alongside the
+    # underscore-only keys the SPADES artefact schemas define. Widening the
+    # key charset does not loosen any schema: the per-kind allow-lists in
+    # _check_unknown still decide which keys a project/scope/plan/learning
+    # file may carry.
+    key_re = re.compile(r"^([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.*)$")
     current_key: str | None = None
     for raw in body:
         if raw.strip() == "":
