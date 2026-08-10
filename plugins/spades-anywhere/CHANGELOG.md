@@ -7,6 +7,43 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the **AGENTS.md
 version** via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
+## [0.15.0] — 2026-08-10
+
+- **minor**: Every SKILL.md body is now **under 500 lines**, ported
+  from the sister `spades` plugin's same change (skill-body parity
+  rule). A skill body loads in full on every invocation, so bulk is a
+  fixed tax that dilutes the specific rules that matter.
+
+  | Skill | Before | After |
+  |---|---|---|
+  | `review` | 853 | 500 |
+  | `close` | 818 | 232 |
+  | `setup` | 722 | 462 |
+
+  Nothing was deleted — content moved into `reference/` files that
+  load on demand:
+
+  - `close/reference/flow-quick.md`, `flow-plan-pass.md`,
+    `flow-status-change.md` — the close flows, of which any one run
+    needs exactly one.
+  - `setup/reference/agents-md-block.md` — the consumer AGENTS.md
+    marker-block template (extracted **verbatim**, which is why
+    `agents_version` stays at 1.1.0); `backend-migration.md` — Step
+    2.6, which only fires on a backend switch.
+  - `review/reference/report-format.md` — envelope schema, dispatch
+    banner, tiered digest, persisted-report contract.
+
+  `review` also had its merge worked-example compressed from a raw
+  six-object JSON dump to a table, matching the sibling.
+
+  References stay **one level deep** from SKILL.md, and every
+  reference file carries a **table of contents** — the two
+  constraints the official skill-authoring guidance places on
+  progressive disclosure.
+
+- Skills bumped: `close` 1.2.0 → 1.3.0, `review` 0.2.0 → 0.3.0,
+  `setup` 0.4.0 → 0.5.0
+
 ## [0.14.0] — 2026-08-10
 
 - **minor**: The CI lint parser is now **TypeScript** —
