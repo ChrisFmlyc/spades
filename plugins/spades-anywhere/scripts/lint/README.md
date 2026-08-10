@@ -20,13 +20,32 @@ run them locally before pushing with:
 ## Dependencies
 
 - `bash` (CI-only; not in the plugin runtime)
-- `python3` (3.11+; only used by `frontmatter.py`, stdlib only — no
-  `requirements.txt`, by design)
+- `node` (**22.18+**, or 23.6+; only used by `frontmatter.ts`, built-ins
+  only — no `package.json`, no `node_modules`, by design)
 - `awk`, `grep`, `diff` (POSIX; any modern shell has these)
 
-No npm, no pip install, no external YAML libraries. If a future check
-needs more than flat-key frontmatter, simplify the schema or accept
-PyYAML — but update `ANTI-PATTERNS.md` first.
+`frontmatter.ts` runs **directly**, with no build step:
+
+```bash
+node scripts/lint/frontmatter.ts <file> --require name,description,version
+```
+
+Node 22.18+ strips TypeScript types natively, so there is no
+transpiler, no `tsconfig.json`, and no compiled output in the tree.
+The version floor is real — on older Node the file won't parse at all.
+
+Because Node *strips* types rather than compiling them, lint sources
+must stay within **erasable** TypeScript syntax: annotations,
+interfaces, type aliases, generics, and `as` casts are fine; `enum`,
+`namespace`, and parameter properties are not.
+
+No npm install, no external YAML libraries. If a future check needs
+more than flat-key frontmatter, simplify the schema or take a YAML
+dependency — but update `ANTI-PATTERNS.md` first.
+
+This file is kept in lockstep with `plugins/spades/scripts/lint/` per
+the repo's parity rule — same parser, same schemas, only the path the
+walker scans differs.
 
 ## Running a single check
 

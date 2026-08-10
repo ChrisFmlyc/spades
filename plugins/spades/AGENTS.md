@@ -12,12 +12,13 @@ rest. SPADES deliberately does **not** ship a `CLAUDE.md`,
 
 ## SPADES Skills (v2.0)
 
-This repo ships SPADES itself, so the plugin's 16 skills are available
-when working in it. Invoke them by their namespaced names:
+This repo ships SPADES itself, so the plugin's 21 skills are available
+when working in it. Invoke the main ones by their namespaced names:
 
 | Skill | What it does |
 |-------|-------------|
 | `/spades:setup` | Configure backend + scaffold this repo (re-runnable) |
+| `/spades:loop` | Drive one Scope from Plan to closed-out unattended — chains plan → approve → do → evaluate → **human sign-off** → ship → bot review → squash-merge → sync → close → bot review → merge → sync. Slash-only. Never scopes. |
 | `/spades:newproject` | Create a new Project record |
 | `/spades:objective` | Create or edit an Objective (`O-<description-slug>`) — a coherent strategic action associated with a project; independent of Scopes |
 | `/spades:scope` | Create or edit a Scope (`S-<description-slug>`) |
@@ -53,6 +54,41 @@ skip a phase or combine phases without explicit human instruction.
 tweak, a config nudge) can use `/spades:quick` instead of the full
 loop. See "Fast-Track Path (Small Work)" below for the gate criteria.
 When in doubt, use the full loop.
+
+### Running the phases: by hand, or via `/spades:loop`
+
+The six phases can be driven one command at a time — that has always
+been the model and still is. `/spades:loop` is the alternative: the
+human writes the Scope, types `/spades:loop`, and the agent walks
+Plan → Approve → Do → Evaluate, **stops for the human to sign off the
+evaluation**, then carries on through Ship, bot review, squash-merge,
+`/repo:sync`, `/spades:close`, the bookkeeping PR's own review and
+merge, and a final sync.
+
+Three things the loop does not change:
+
+- **Scope stays human-owned.** The loop starts *after* a Scope
+  exists and never invokes `/spades:scope`.
+- **The gates are executed, not skipped.** Approve walks all six
+  checks and self-approves only on a clean sweep; any failed check,
+  doc conflict, or sensitive-area Plan pauses for the human. The
+  Evaluate verdict is derived by `/spades:evaluate` and confirmed by
+  a human — never by the AI that produced the work.
+- **Every artefact is identical.** The loop derives its position from
+  the same `status:` fields and audit-trail markers the phases
+  already write, so a looped run and a hand-driven run are
+  indistinguishable to `/spades:status`, `/spades:close`, and the
+  backends. A human can take over — or hand back — at any stage.
+
+Routing doctrine inside the loop: **default everything to `ai`;
+route to `human` only when the AI genuinely cannot do it** (physical
+access, credentials it can't hold, knowledge only the human has, an
+outward-facing act the human must own). "A human would do it better"
+is not a reason. Oversight lands at the Evaluate sign-off gate; it
+doesn't need duplicating across every task.
+
+See `docs/FRAMEWORK.md § Orchestration Order (/spades:loop)` for the
+DAG and the rules that keep it acyclic.
 
 ## Hierarchy
 
@@ -300,9 +336,26 @@ logic inside a SPADES skill.
 
 SPADES skills that branch off main (`/spades:do`, `/spades:close`)
 MUST go through `/repo:branch`'s regex validation. SPADES skills
-that need to verify post-merge state (`/spades:close`) invoke
-`/repo:sync` directly. The dependency is **one-directional**:
+that need to verify post-merge state (`/spades:close`, `/spades:loop`)
+invoke `/repo:sync` directly. The dependency is **one-directional**:
 SPADES → `repo`, never the reverse.
+
+### The same rule for CodeRabbit — defer to the `crx` plugin
+
+SPADES does not own PR review triage either. The `crx` plugin (same
+`ai-skills` marketplace) does.
+
+| When you need to… | Use |
+|-------------------|-----|
+| Drive a PR to zero outstanding CodeRabbit findings | `/crx:loop` — waits for the review, dispatches each finding, pushes fixes, re-checks. |
+| Fix one pasted CodeRabbit finding | `/crx:single` |
+| Fix a pasted batch of findings | `/crx:multi` |
+
+`/spades:loop` Stage 7 invokes `/crx:loop` rather than re-implementing
+the fix-or-rebut contract, and handles only what `/crx:loop`
+deliberately leaves alone — non-CodeRabbit review bots such as
+Greptile. Human review threads are never auto-resolved by either
+plugin. Same one-directional rule: SPADES → `crx`, never the reverse.
 
 Before any commit or `/spades:ship` that touches `plugins/spades/`, run
 the § Versioning release gate (version bump + changed skills + CHANGELOG).

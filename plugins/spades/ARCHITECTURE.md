@@ -117,31 +117,40 @@ later surfaces automatically on related Scopes.
 | Backend drivers  | Linear MCP, local filesystem             | Linear is the only MCP-backed driver shipped today; local is filesystem-only. Other MCPs (Notion, Confluence) are extension points documented in `docs/EXTENDING-BACKENDS.md`. |
 | Agents           | Any AGENTS.md-honouring coding agent     | Skills target Claude Code first because of the plugin surface, but the rules in `AGENTS.md` apply to every agent. |
 | Versioning       | Marker block + `.spades/version`          | `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->` delimits the framework-owned block inside consumer `AGENTS.md`. Version sourced from `.claude-plugin/plugin.json`. |
-| CI               | GitHub Actions (`.github/workflows/lint.yml`) | Parallel lint jobs — see `scripts/lint/README.md` for the list. Python 3.11 (stdlib only) for the frontmatter parser. |
+| CI               | GitHub Actions (`.github/workflows/lint.yml`) | Parallel lint jobs — see `scripts/lint/README.md` for the list. Node 22.18+ (built-ins only) for the frontmatter parser. |
 
 ## External Toolchain Policy
 
-Python is the only non-Markdown toolchain permitted in this repo, and
-only under the narrow conditions below. New toolchain additions
-require a new Scope.
+TypeScript-on-Node is the only non-Markdown toolchain permitted in
+this repo, and only under the narrow conditions below. New toolchain
+additions require a new Scope.
 
-### Python is allowed for CI lint only — never at runtime
+### TypeScript is allowed for CI lint only — never at runtime
 
-`scripts/lint/frontmatter.py` and any other `scripts/lint/*.py` use
-the **Python 3.11 standard library only**. No `requirements.txt`, no
-`pip`, no third-party packages. This is acceptable because:
+`scripts/lint/frontmatter.ts` and any other `scripts/lint/*.ts` use
+**Node built-ins only**. No `package.json`, no `node_modules`, no
+`npm install`, no third-party packages, no build step. This is
+acceptable because:
 
-- CI-only: Python never ships inside the plugin or runs in an agent
-  session — it executes inside GitHub Actions via
-  `actions/setup-python@v5`.
-- Stdlib-only: no supply-chain surface beyond Python itself and the
+- CI-only: the parser never ships inside the plugin or runs in an
+  agent session — it executes inside GitHub Actions via
+  `actions/setup-node@v4`.
+- Built-ins only: no supply-chain surface beyond Node itself and the
   pinned GitHub Action version.
-- Bounded: confined to `scripts/lint/`. Any proposal to use Python
+- No build step: Node 22.18+ runs `.ts` files directly via native
+  type-stripping (`node frontmatter.ts`), so there is no transpiler,
+  no `tsconfig.json`, and no compiled artefact in the tree.
+- Bounded: confined to `scripts/lint/`. Any proposal to use Node
   outside this directory is a runtime dependency and forbidden by
   `ANTI-PATTERNS.md#dependency-anti-patterns`.
 
-If a future lint genuinely needs a non-stdlib YAML parser, the correct
-response is to simplify the schema, not to add `requirements.txt`.
+Because Node strips types rather than compiling them, lint sources
+must stay within **erasable** TypeScript syntax: type annotations,
+interfaces, type aliases, generics, and `as` casts are fine; `enum`,
+`namespace`, and parameter properties are not.
+
+If a future lint genuinely needs a real YAML parser, the correct
+response is to simplify the schema, not to add a `package.json`.
 
 ### No bash in the runtime path
 

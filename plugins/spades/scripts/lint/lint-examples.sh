@@ -22,7 +22,7 @@ set -euo pipefail
 #   2  an example file is missing
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PARSER="$REPO_ROOT/scripts/lint/frontmatter.py"
+PARSER="$REPO_ROOT/scripts/lint/frontmatter.ts"
 SCOPE="$REPO_ROOT/examples/example-scope.md"
 PLAN="$REPO_ROOT/examples/example-plan.md"
 INTENT="$REPO_ROOT/examples/example-intent.md"
@@ -36,11 +36,11 @@ run_schema() {
         echo "lint-examples: missing $label ($file)" >&2
         exit 2
     fi
-    if python3 "$PARSER" --schema "$kind" "$file" >/dev/null 2>&1; then
+    if node "$PARSER" --schema "$kind" "$file" >/dev/null 2>&1; then
         echo "  ok:   $label conforms to v2 $kind schema"
     else
         echo "  FAIL: $label does not conform to v2 $kind schema"
-        python3 "$PARSER" --schema "$kind" "$file" 2>&1 | sed 's/^/    /'
+        node "$PARSER" --schema "$kind" "$file" 2>&1 | sed 's/^/    /'
         fail=$((fail + 1))
     fi
 }

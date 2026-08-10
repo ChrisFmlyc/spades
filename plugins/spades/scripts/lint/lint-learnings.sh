@@ -24,7 +24,7 @@ set -euo pipefail
 #   1  violation
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PARSER="$REPO_ROOT/scripts/lint/frontmatter.py"
+PARSER="$REPO_ROOT/scripts/lint/frontmatter.ts"
 LEARN_DIR="$REPO_ROOT/.spades/learnings"
 
 include_private=0
@@ -59,14 +59,14 @@ one_eighty_days=$((180 * 24 * 60 * 60))
 for f in "${files[@]}"; do
     rel="${f#"$REPO_ROOT"/}"
     # Required frontmatter: title, area, tags, created, status, public_safe.
-    if ! python3 "$PARSER" "$f" --require title,area,tags,created,status,public_safe >/dev/null; then
+    if ! node "$PARSER" "$f" --require title,area,tags,created,status,public_safe >/dev/null; then
         echo "  FAIL: $rel (frontmatter missing required fields or malformed)"
         fail=$((fail + 1))
         continue
     fi
 
     # Re-parse to inspect values (cheap: same parser, --print).
-    parsed=$(python3 "$PARSER" "$f" --require title,area,tags,created,status,public_safe --print) || {
+    parsed=$(node "$PARSER" "$f" --require title,area,tags,created,status,public_safe --print) || {
         echo "  FAIL: $rel (re-parse failed)"
         fail=$((fail + 1))
         continue

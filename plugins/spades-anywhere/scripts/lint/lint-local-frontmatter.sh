@@ -20,7 +20,7 @@ set -euo pipefail
 # Learning files (.spades/learnings/*.md) are covered by lint-learnings.sh.
 #
 # Canonical schemas live in docs/FRAMEWORK.md § .spades/ Local Layout and
-# are mirrored in scripts/lint/frontmatter.py. Extending an enum means
+# are mirrored in scripts/lint/frontmatter.ts. Extending an enum means
 # editing both — never broaden lists here to silence a real file.
 #
 # A planted-fixture self-test runs on every invocation so the detection
@@ -31,7 +31,7 @@ set -euo pipefail
 #   1  a hard-fail violation, or the self-test no longer behaves
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-VALIDATOR="$REPO_ROOT/scripts/lint/frontmatter.py"
+VALIDATOR="$REPO_ROOT/scripts/lint/frontmatter.ts"
 PROJECTS_DIR="$REPO_ROOT/.spades/projects"
 SCOPES_DIR="$REPO_ROOT/.spades/scopes"
 PLANS_DIR="$REPO_ROOT/.spades/plans"
@@ -43,7 +43,7 @@ note() { echo "local-frontmatter: $*"; }
 # validate <project|scope|plan> <file>
 validate() {
     local kind="$1" file="$2"
-    if ! python3 "$VALIDATOR" --schema "$kind" "$file"; then
+    if ! node "$VALIDATOR" --schema "$kind" "$file"; then
         fail=$((fail + 1))
         return 1
     fi
@@ -59,7 +59,7 @@ run_dir() {
     shopt -s nullglob
     # Walk both .md (CLI-mode artefacts) and .html (HTML-mode artefacts,
     # introduced in v3.0.0). The validator parses YAML frontmatter from
-    # either source format — see scripts/lint/frontmatter.py.
+    # either source format — see scripts/lint/frontmatter.ts.
     local files=("$dir"/*.md "$dir"/*.html)
     shopt -u nullglob
     if [ "${#files[@]}" -eq 0 ]; then
@@ -87,7 +87,7 @@ self_test() {
         fail=$((fail + 1))
         return
     fi
-    if python3 "$VALIDATOR" --schema "$kind" "$path" >/dev/null 2>&1; then
+    if node "$VALIDATOR" --schema "$kind" "$path" >/dev/null 2>&1; then
         if [ "$expect" = "pass" ]; then
             note "ok   — $fixture still passes"
         else

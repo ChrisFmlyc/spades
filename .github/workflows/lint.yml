@@ -8,15 +8,21 @@ on:
 permissions:
   contents: read
 
+# Node 22.18+ runs the TypeScript lint parser directly via native
+# type-stripping — no build step, no npm install, no node_modules.
+# See plugins/spades/scripts/lint/README.md § Dependencies.
+env:
+  NODE_VERSION: "22"
+
 jobs:
   skill-frontmatter:
     name: skill frontmatter
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: "3.11"
+          node-version: ${{ env.NODE_VERSION }}
       - run: ./plugins/spades/scripts/lint/lint-skill-frontmatter.sh
 
   agents:
@@ -24,9 +30,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: "3.11"
+          node-version: ${{ env.NODE_VERSION }}
       - run: ./plugins/spades/scripts/lint/lint-agents.sh
 
   examples:
@@ -34,6 +40,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - run: ./plugins/spades/scripts/lint/lint-examples.sh
 
   learnings:
@@ -41,9 +50,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: "3.11"
+          node-version: ${{ env.NODE_VERSION }}
       - run: ./plugins/spades/scripts/lint/lint-learnings.sh
 
   local-frontmatter:
@@ -51,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-node@v4
         with:
-          python-version: "3.11"
+          node-version: ${{ env.NODE_VERSION }}
       - run: ./plugins/spades/scripts/lint/lint-local-frontmatter.sh

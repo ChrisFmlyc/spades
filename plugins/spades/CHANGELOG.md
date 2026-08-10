@@ -8,6 +8,140 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.4.0] — 2026-08-10
+
+- **minor**: New skill `/spades:loop` — the **delivery entry point**,
+  the counterpart to `/spades:setup`'s bootstrap entry point. The
+  human writes the Scope; the loop drives everything downstream of it
+  in one invocation:
+
+  ```
+  plan → approve → do → evaluate → [HUMAN SIGN-OFF] → ship
+       → bot review (/crx:loop + non-CodeRabbit bots) → squash-merge
+       → /repo:sync → close → bookkeeping-PR review → merge → /repo:sync
+  ```
+
+  Slash-only (`disable-model-invocation: true`) — typing it is the
+  human's standing authorization to push, open PRs, post and resolve
+  **bot** review threads, and squash-merge, bounded to the resolved
+  Scope's own Plans, branches, and PRs.
+
+  - **One designed pause: the Evaluate sign-off.** `/spades:evaluate`
+    derives the verdict; a human confirms it. The loop prints the
+    pause and *ends its turn* rather than using `AskUserQuestion`, so
+    the human can talk freely — ask why a row passed, have a check
+    re-run — while they work through the evaluation. Only an explicit
+    affirmative advances the loop; silence and questions are not
+    sign-off.
+  - **Routing doctrine — AI by default.** The loop answers Approve's
+    and Evaluate's routing questions with `ai` unless the AI
+    genuinely *cannot* do the work (physical access, credentials it
+    can't hold, knowledge only the human has, an outward-facing act
+    the human must own). "A human would do it better" is explicitly
+    not a reason: oversight lands at the sign-off gate and isn't
+    duplicated across tasks.
+  - **The Approve gate is executed, not skipped.** All six checks are
+    walked; a clean sweep may self-approve. Any failed check, any
+    `ARCHITECTURE.md` / `PATTERNS.md` / `ANTI-PATTERNS.md` conflict,
+    and any Plan touching auth, crypto, secrets, permissions, public
+    API contracts, schema migrations, or data deletion pauses for the
+    human.
+  - **Twelve pause conditions** besides sign-off, including any
+    unresolved **human** review thread (never auto-resolved), a red
+    or pending required check, `CHANGES_REQUESTED`, a merge conflict,
+    a branch-protection refusal, and any child skill's abort —
+    surfaced verbatim. Guardrails are never worked around.
+  - **Defers, never re-implements.** CodeRabbit triage goes to
+    `/crx:loop`; git state goes to `/repo:sync` and `/repo:branch`;
+    each phase is a real invocation of the owning skill. The loop
+    handles only what `/crx:loop` deliberately leaves alone — other
+    review bots such as Greptile — under the same fix-or-rebut
+    discipline.
+  - **State is derived, not duplicated.** No state file: stage comes
+    from the Plan's `status:` plus the markers other skills already
+    write (`PR opened:`, `Shipped`, `Evaluation — verdict:`), with
+    `Loop — …` audit-trail lines added only for facts SPADES doesn't
+    otherwise record. A looped run and a hand-driven run are
+    indistinguishable to `/spades:status`, `/spades:close`, and the
+    backends, so a human can take over or hand back at any stage
+    boundary.
+  - **Multi-Plan Scopes** are walked one Plan at a time in
+    `depends_on:` order, each with its own sign-off gate.
+
+- **minor**: `docs/FRAMEWORK.md` → v2.14.0. New § *Orchestration
+  Order (`/spades:loop`)* documents the delivery DAG and the three
+  rules that keep it acyclic: no callee invokes the loop; the loop
+  **aborts** on missing prerequisites where `/spades:setup` **drives**
+  them inline (the deliberate asymmetry that stops the § Bootstrap
+  Order deadlock recurring one layer up); and the loop never
+  re-invokes itself. Also documents the two bounded back-edges —
+  evaluate-PARTIAL → do (cap 2) and bot-review round → push (cap 5)
+  — on the principle that an uncapped back-edge is the same bug class
+  as a cycle, just slower to fail.
+
+- **patch**: `AGENTS.md` → 2.4.0. Adds § *Running the phases: by
+  hand, or via `/spades:loop`* and § *The same rule for CodeRabbit —
+  defer to the `crx` plugin*, extending the existing one-directional
+  defer rule (SPADES → `repo`) to cover SPADES → `crx`. Corrects the
+  stale skill count (16 → 21).
+
+- **patch**: `README.md` — adds the autopilot section and the
+  `/spades:loop` row; corrects the stale skill count (15 → 21).
+
+- **minor**: The CI lint parser is now **TypeScript** —
+  `scripts/lint/frontmatter.py` → `scripts/lint/frontmatter.ts`. Same
+  parser, same schemas, same exit codes, same output strings; only the
+  language changed.
+
+  - **Still zero-dependency.** Node built-ins only — no
+    `package.json`, no `node_modules`, no `npm install`, no
+    `tsconfig.json`, no compiled output. Node 22.18+ runs `.ts`
+    directly via native type-stripping, so `node frontmatter.ts` is
+    the whole invocation. This preserves exactly the property the
+    stdlib-only Python had, which is what made the toolchain
+    carve-out acceptable in the first place.
+  - **Verified identical, not assumed.** A differential harness ran
+    both implementations over every artefact the lints touch (21
+    skills, 5 agents, all projects / scopes / plans, the example and
+    fixture corpora) plus 17 synthetic edge cases — no frontmatter,
+    unterminated block, duplicate key, unparseable line, CRLF, tabs,
+    embedded quotes and backslashes, HTML `<script>` frontmatter,
+    unclosed `<script>`, comment lines, list continuations, empty and
+    zero-byte files — and every usage-error path. 210 invocations,
+    byte-identical stdout, stderr, and exit code throughout. Python's
+    `repr()` quoting and argparse's wrapped usage banner are
+    reproduced deliberately so CI log output doesn't shift.
+  - **Erasable-syntax constraint** documented in the file header,
+    `scripts/lint/README.md`, and `ARCHITECTURE.md`: Node strips types
+    rather than compiling them, so `enum`, `namespace`, and parameter
+    properties are unavailable in lint sources.
+
+  Carried over from the Python fix this replaces: the frontmatter key
+  regex accepts hyphens. Harness-level skill frontmatter uses
+  hyphenated keys (`disable-model-invocation`, `allowed-tools`) and
+  the parser rejected the whole file as malformed on sight of one. The
+  SPADES artefact schemas are unaffected: they use underscore keys,
+  and the per-kind allow-lists still decide which keys a project /
+  scope / plan / learning file may carry.
+
+- **patch**: `.github/workflows/lint.yml` — `actions/setup-python@v5`
+  → `actions/setup-node@v4` across all five jobs, with the version
+  pinned once via a `NODE_VERSION` env var. The `examples` job gained
+  an explicit toolchain step; it previously had none and relied on the
+  runner image's preinstalled `python3`.
+
+- **patch**: `ARCHITECTURE.md` § *External Toolchain Policy*,
+  `PATTERNS.md` § *Approved Libraries*, and `scripts/lint/README.md`
+  § *Dependencies* updated to describe the TypeScript toolchain and
+  its Node version floor. The policy shape is unchanged — CI-only,
+  built-ins only, bounded to `scripts/lint/`, never at runtime.
+
+- Skills bumped: `loop` (new, 1.0.0)
+
+**Requires** `crx@ai-skills` ≥ 0.3.0 and `repo@ai-skills` ≥ 0.5.0 —
+`/crx:loop` and `/repo:sync` were slash-only before those versions
+and could not be invoked by a driving skill.
+
 ## [5.3.0] — 2026-07-10
 
 - **minor**: Break the `setup ⇄ repo:init ⇄ newproject` bootstrap

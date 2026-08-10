@@ -218,7 +218,7 @@ spades/
     │   ├── skills/<name>/SKILL.md       # 16 skills (HTML-rendering skills also ship template.html)
     │   ├── agents/<name>.md             # 5 agents (4 reviewer personas + 1 researcher)
     │   ├── examples/                    # worked Scope / Plan / Intent examples
-    │   ├── scripts/lint/                # CI lints (Python 3.11 stdlib + bash)
+    │   ├── scripts/lint/                # CI lints (TypeScript on Node + bash)
     │   ├── tests/                       # planted-fixture self-tests
     │   ├── ARCHITECTURE.md              # plugin's own architecture (dogfooding)
     │   └── CHANGELOG.md

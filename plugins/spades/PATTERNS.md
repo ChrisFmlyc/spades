@@ -17,8 +17,8 @@ get human approval before deviating.
   blocks, never append. Same inputs → same outputs.
 - **Pure-Markdown plugin.** No bash, no helper binaries on PATH, no
   `bin/` directory. The plugin tree contains only `.md` files,
-  `.json` manifests, and the `scripts/lint/` CI helpers (Python
-  stdlib only).
+  `.json` manifests, and the `scripts/lint/` CI helpers (TypeScript
+  on Node built-ins only, run without a build step).
 - **Templates live inside the producing skill.** v2 embeds AGENTS.md,
   INTENT.md, ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md
   scaffolding, Scope body shape, and Plan body shape inline in the
@@ -42,7 +42,7 @@ spades/                                       # repo root (this repo)
         │   ├── FRAMEWORK.md                  # canonical framework reference
         │   └── EXTENDING-BACKENDS.md         # contract for adding a backend driver
         ├── examples/                         # worked example Scopes, Plans, Intent + fixture repos
-        ├── scripts/lint/                     # CI lint scripts (Python 3.11 stdlib + bash)
+        ├── scripts/lint/                     # CI lint scripts (TypeScript on Node + bash)
         ├── tests/fixtures/local-frontmatter/ # planted fixtures for lint self-tests
         ├── .spades/                          # SPADES dogfooding its own loop
         │   ├── version                       # spades_version pin for this repo
@@ -70,7 +70,7 @@ the SKILL.md of the producing skill.
 - **Markdown + YAML frontmatter** is the only data format. Skills,
   examples, and architecture docs are all Markdown. Structured
   metadata lives in flat-key YAML frontmatter (no nested structures —
-  see the stdlib-only parser in `scripts/lint/frontmatter.py`).
+  see the dependency-free parser in `scripts/lint/frontmatter.ts`).
 - **Marker blocks** delimit framework-owned regions in consumer
   `AGENTS.md`: `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->` /
   `<!-- SPADES-FRAMEWORK-END -->`. The marker-replace state machine
@@ -126,7 +126,7 @@ the SKILL.md of the producing skill.
 |---------------|-------------------------|---------|-------|
 | Skill format  | Markdown + YAML frontmatter | n/a | The only runtime "language" |
 | Backend       | Linear (via Linear MCP), local filesystem | n/a | Two drivers in-tree; others via `docs/EXTENDING-BACKENDS.md` |
-| CI lints      | Python 3.11 stdlib + bash | n/a   | Lives in `scripts/lint/` only; never ships at runtime |
+| CI lints      | TypeScript on Node 22.18+ (built-ins only) + bash | n/a | Lives in `scripts/lint/` only; never ships at runtime. Run directly via native type-stripping — no build step, no `package.json` |
 | CI runner     | GitHub Actions          | n/a     | For lint validation on every PR |
 
 No npm / pip / cargo / go modules. No compiled code in the plugin
