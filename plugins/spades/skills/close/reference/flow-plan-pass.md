@@ -129,7 +129,7 @@ Scope <scope_id> rolled up to `done`.   # omit if not rolled up
 ```
 
 Then **B4** (PR body lists the Plan, Scope, ship PR, merge SHA,
-merged-by, and the files touched), **B5** (wait for the merge),
+merged-by, and the files touched), **B5** (verify the merge),
 **B6** (cleanup), and **B7** with this mirror:
 
 - Plan's sub-issue → `Done`.

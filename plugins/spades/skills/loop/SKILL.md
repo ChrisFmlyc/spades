@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, do, evaluate, human sign-off, ship, bot review, squash-merge, sync, close. Not for autonomous use and carries no trigger conditions: it runs only when the user invokes it directly, or when a goal or driver the user set up delegates to it. See "Who may invoke this".
-version: 1.5.0
+version: 1.5.1
 ---
 
 # /spades:loop
@@ -394,22 +394,23 @@ sibling is terminal, and opens the bookkeeping PR.
 If its Step 3.2 asks the human to acknowledge rejected siblings,
 **pause** — a mixed-terminal rollup is an explicit human decision.
 
-Close then reaches **Step 5 — "Has the bookkeeping PR been
-merged?"**. Do not answer it yet.
+Close then reaches **B5**, which verifies the merge with `gh` rather
+than asking. It isn't merged yet — that's Stages 12–13's job.
 
 ## Stages 12–13 — Review and merge the bookkeeping PR
 
-These run **inside** close's Step 5 wait. The bookkeeping PR is a
-real PR — carrying the `Shipped` marker, any Scope rollup, and the
+These run **inside** close's B5 verification. The bookkeeping PR is
+a real PR — carrying the `Shipped` marker, any Scope rollup, and the
 learning from Stage 10 — and the bots review it like any other.
 
 - **12** — run Stage 7 against the bookkeeping PR number.
 - **13** — run Stage 8's assertions and squash-merge it.
 
-Only now answer Step 5 with **"Yes — bookkeeping PR is merged"** and
-let close's Steps 6–9 finish (cleanup, Linear mirror, confirmation).
-Answering Yes earlier would put the Linear mirror ahead of the audit
-trail on `main`, which close's Step 7 exists to prevent.
+Then let B5 re-probe: it now sees `MERGED` and close's B6–B7 finish
+(cleanup, Linear mirror, confirmation). **Never tell close the PR is
+merged before it is** — the Linear mirror must not run ahead of the
+audit trail landing on `main`, which is what close's B7 ordering
+exists to prevent.
 
 ## Stage 14 — Sync
 

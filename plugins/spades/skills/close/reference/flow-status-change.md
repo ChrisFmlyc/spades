@@ -6,7 +6,7 @@ bookkeeping PR"*. Seven routes share one shape, so they share one
 file; only the values in the table below differ.
 
 All of them run SKILL.md's shared machinery — **B1** (preconditions),
-**B2** (branch), **B3** (commit), **B4** (PR), **B5** (wait), **B6**
+**B2** (branch), **B3** (commit), **B4** (PR), **B5** (verify merge), **B6**
 (cleanup), **B7** (Linear mirror). This file supplies the per-route
 values and the handful of route-specific pre-checks.
 
@@ -112,7 +112,7 @@ When `backend: local` there is nothing to mirror — the file on
    (where one applies) and the no-cascade guarantee, citing
    `docs/FRAMEWORK.md § Terminal States` (or
    `§ Hierarchy → Objectives` for Objectives).
-6. **B4** → **B5** → **B6** — PR, wait for merge, cleanup.
+6. **B4** → **B5** → **B6** — PR, verify the merge, cleanup.
 7. **B7** — mirror per the table above.
 8. Confirm.
 

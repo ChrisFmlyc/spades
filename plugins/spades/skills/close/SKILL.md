@@ -1,7 +1,7 @@
 ---
 name: close
 description: The single conversational entry point for closing out a Plan, Scope, Project, or Objective. Asks the human what they're doing — finalise as shipped/done/archived/complete (the happy path), reject (Plans only), or abandon (Scopes, Projects, and Objectives). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "close O-…", "complete this objective", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging" — the skill figures out which flow applies.
-version: 4.9.0
+version: 4.10.0
 ---
 
 # /spades:close
@@ -272,16 +272,30 @@ Print the URL prominently:
 ○ Merge it on GitHub — squash recommended — then return here.
 ```
 
-### B5 — Wait for the human to confirm the merge
+### B5 — Verify the bookkeeping PR merged
 
-`AskUserQuestion`: *Has the bookkeeping PR been merged?*
+**Check it yourself. Do not ask.** B1 guarantees `scm: github`, so
+`gh` is available — asking a human to report something you can
+determine is a worse answer than determining it:
 
-- **Yes — bookkeeping PR is merged.** Continue to B6.
-- **Not yet — exit, I'll merge it and re-run.** Exit cleanly; the PR
-  stays open. Once merged on GitHub, the recovery path is
-  `/repo:sync` — at that point the close-out is complete and there
-  is no need to re-run `/spades:close` unless the human still wants
-  Linear mirroring.
+```bash
+gh pr view <bookkeeping-pr> --json state,mergeCommit \
+  --jq '"\(.state) \(.mergeCommit.oid // "-")"'
+```
+
+- **`MERGED`** → capture the merge SHA, continue to B6.
+- **`OPEN`** → the human hasn't merged it yet. Say so, and exit
+  cleanly; the PR stays open. Once they merge it on GitHub the
+  recovery path is `/repo:sync` — the close-out is complete at that
+  point and there is no need to re-run `/spades:close` unless Linear
+  mirroring is still wanted. **A driver that opened this PR and can
+  merge it should do so rather than exit here.**
+- **`CLOSED` unmerged** → surface it and stop. The bookkeeping edits
+  are unlanded; re-running close after re-opening or re-creating the
+  PR is the path.
+- **Probe fails** (`gh` error, malformed response) → *only now* ask
+  the human, since you genuinely cannot tell: *Has the bookkeeping PR
+  been merged?* That is what the question was always for.
 
 ### B6 — Post-bookkeeping cleanup
 
@@ -309,7 +323,7 @@ is the record.
 After a `/spades:ship` PR is squash-merged:
 
 1. `/spades:close P-<id>` — branches off `origin/main`, opens the
-   bookkeeping PR, waits for the merge, mirrors to Linear.
+   bookkeeping PR, verifies the merge, mirrors to Linear.
 2. `/repo:sync` — brings `main` forward and deletes merged feature
    branches. To have it delete the merged feature branch, be on that
    branch when you invoke it; its post-merge path only fires for the
@@ -327,8 +341,9 @@ After a `/spades:ship` PR is squash-merged:
 - **Bookkeeping branch already exists.** B2 catches it; the human
   picks recovery.
 - **Bookkeeping PR can't be merged** (branch protection, required
-  reviews). The human merges by hand, then answers *Yes* at B5 — or
-  *Not yet*, fixes the protection, and returns.
+  reviews). B5 sees `OPEN`, says so, and exits. Once the human merges
+  it by hand, B5's next probe sees `MERGED` and the close-out
+  continues.
 - **Plan was already shipped on `main`** (legacy `/spades:ship` Step
   6 finalised it without a bookkeeping PR). The resolver returns
   zero candidates and the skill says so. The Plan is fine; its audit
