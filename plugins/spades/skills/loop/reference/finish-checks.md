@@ -114,7 +114,9 @@ Must be `MERGED` with a merge SHA.
 Three things, all on both the ship PR and the bookkeeping PR:
 
 **Zero unresolved review threads** — the § Thread sweep query above,
-run on both PRs. Count `isResolved == false` regardless of author: a
+run on both PRs. (It is duplicated from `bot-review.md` on purpose:
+pointing at that file from this one would be a nested reference, and
+those get partially read. Two copies beat an unreliable read.) Count `isResolved == false` regardless of author: a
 human thread left open counts, and so does a bot's.
 
 **Every check green on the merge commit:**
