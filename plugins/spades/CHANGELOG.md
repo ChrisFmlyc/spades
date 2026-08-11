@@ -8,6 +8,28 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.9.2] — 2026-08-11
+
+Two defects found by reading the loop as the agent that would execute
+it, rather than as its author.
+
+- **patch**: Stage 15 said a sibling Plan should "fall through to
+  Stage 2 (or 1 if still `draft`)" — but § Loop state sends a `draft`
+  Plan to Stage 2 (Approve). Stage 1 is `/spades:plan`, so following
+  Stage 15 literally would have drafted a **second** Plan for work
+  that already had one. It now re-enters at the Plan's derived stage
+  and says explicitly that `draft` means Approve, never Plan.
+
+- **patch**: Stages 12–13 said to "let B5 re-probe" without saying how
+  close is still in play — B5 can't re-probe if close exited. Now
+  explicit: don't let close exit (its `OPEN` branch already tells a
+  driver that can merge to do so rather than exit), and if it has
+  exited, re-invoke `/spades:close`, which re-enters at B5. Notes
+  that re-invoking *close* is fine — only `/spades:loop` may never
+  re-invoke itself.
+
+- Skills bumped: `loop` 1.5.3 → 1.5.4
+
 ## [5.9.1] — 2026-08-11
 
 - **patch**: FINISHED assertion 2 counted a **still-running** check as
