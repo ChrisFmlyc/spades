@@ -8,6 +8,21 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.9.1] — 2026-08-11
+
+- **patch**: FINISHED assertion 2 counted a **still-running** check as
+  a failure. A check in flight has `conclusion: null`, and the query
+  only tested `conclusion`, so a Scope a minute from done would have
+  been paused with a check problem that didn't exist.
+
+  Found by actually running the probe against a real merge commit
+  rather than reading it — the post-merge run on `main` trails the
+  merge by a minute or two, which is the common case, not an edge
+  one. The query now separates `pending` from `failed`: failures
+  pause, pending polls.
+
+- Skills bumped: `loop` 1.5.2 → 1.5.3
+
 ## [5.9.0] — 2026-08-11
 
 Review pass over the session's accumulated edits, asking of each one
