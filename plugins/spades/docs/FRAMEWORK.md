@@ -547,7 +547,7 @@ counted in the Plan's audit trail and both terminate:
 | Back-edge | Cap | Marker |
 |---|---|---|
 | Evaluate `PARTIAL` → `/spades:do` | 2 reworks per Plan | `Loop — rework <n>/2 after PARTIAL: …` |
-| Bot review round → push → re-review | 5 rounds per PR | `Loop — bot review clean on <url> (<n> rounds)` |
+| Bot review round → push → re-review | 3 rounds per PR, for the loop's own non-CodeRabbit cycle; `/crx:loop` runs and caps its own | `Loop — bot review clean on <url> (<n> rounds)` |
 
 Every other edge is forward-only. An uncapped back-edge is the same
 bug class as a cycle — it just fails slowly instead of immediately.
