@@ -96,10 +96,26 @@ already `shipped`. Classify each as `shipped` (terminal, success),
 
 | Situation | Action |
 |---|---|
-| **Every sibling `shipped`** | Roll up silently. Scope `status:` → `done`, `updated:` → today. Append `- YYYY-MM-DD: All plans shipped. Scope done.` |
+| **Every sibling `shipped`** *and the Scope's acceptance criteria are covered* | Roll up silently. Scope `status:` → `done`, `updated:` → today. Append `- YYYY-MM-DD: All plans shipped. Scope done.` |
+| **Every sibling `shipped`** *but criteria are left uncovered* | **Do not roll up silently** — see below. |
 | **All terminal, mix of `shipped` and `rejected`, ≥1 `shipped`** | Ask the human to acknowledge via `AskUserQuestion`, **listing the rejected siblings** so the acknowledgement is informed. |
 | **Every sibling `rejected`** | No rollup — the Scope shipped nothing. Surface it and stop short of the rollup edit. The Plan's own close-out still proceeds. |
 | **Any sibling still in flight** | No rollup; leave the Scope unchanged. |
+
+**"All Plans terminal" is not the same as "the Scope is done."** If
+Plans were deferred at planning and never written, *every sibling
+shipped* is true of a Scope whose acceptance criteria are mostly
+untouched — and rolling up would record that they were met. Before
+the silent rollup, read the Scope's acceptance criteria and check the
+shipped Plans actually cover them. If they don't, surface the
+uncovered criteria and ask via `AskUserQuestion`:
+
+- **Leave the Scope open** *(recommended)* — the remaining criteria
+  need Plans. Append `- YYYY-MM-DD: Rollup withheld — <n>/<m>
+  acceptance criteria uncovered: <list>.` and leave the status alone.
+- **Roll up anyway** — the human is asserting the Scope is done
+  regardless. Record which criteria were uncovered in the audit line
+  so the claim is traceable to a decision rather than an oversight.
 
 On an accepted mixed-terminal acknowledgement, append to the Scope:
 

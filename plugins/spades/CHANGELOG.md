@@ -8,6 +8,51 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.9.0] — 2026-08-11
+
+Review pass over the session's accumulated edits, asking of each one
+"would this drive the right behaviour?"
+
+- **minor**: **`/spades:close` no longer rolls a Scope up to `done`
+  when its acceptance criteria are uncovered.** *"Every sibling Plan
+  terminal"* is not *"the Scope is done"* — if Plans were deferred at
+  planning and never written, the first condition is true of a Scope
+  whose criteria are mostly untouched, and the silent rollup recorded
+  that they were met.
+
+  Observed live: a Scope with 7 acceptance criteria, 0 ticked, one
+  Plan covering a fraction of them. The agent withheld the rollup and
+  flagged it, which was right — but it had to deviate from the skill
+  to avoid writing something false. Now the skill checks coverage
+  first and, where criteria are uncovered, surfaces them and asks:
+  leave the Scope open (recommended), or roll up with the uncovered
+  criteria recorded so the claim traces to a decision rather than an
+  oversight. Applies to both the Plan-Pass rollup and the standalone
+  Scope roll-up route.
+
+- **patch**: Fixed a real bug in `/spades:loop` Stage 10 — a bulk
+  edit had spliced the deploy marker into the learning-gate's audit
+  block, so an agent capturing a learning would have written a
+  *deploy* marker.
+
+- **patch**: Stage 8 no longer requests `reviewDecision` in its `gh`
+  query. Fetching a field the very next line tells you to ignore
+  invites using it.
+
+- **patch**: Stage 11 described two different merges — the ship PR's
+  and the bookkeeping PR's — with the same phrase, two lines apart.
+  Now named explicitly.
+
+- **patch**: Redundancy trimmed. Stage 7 no longer restates
+  `/crx:loop`'s thread-closing mechanic (it keeps the principle and
+  points at the owner), and the carry-forward restatement in
+  § Pauses is three lines instead of six. `finish-checks.md` now
+  records *why* the thread-sweep query is duplicated rather than
+  referenced, so a future editor doesn't dedupe it into the nested
+  reference the guidance forbids.
+
+- Skills bumped: `close` 4.10.0 → 4.11.0, `loop` 1.5.1 → 1.5.2
+
 ## [5.8.1] — 2026-08-11
 
 - **patch**: `/spades:close` **B5 now checks whether the bookkeeping

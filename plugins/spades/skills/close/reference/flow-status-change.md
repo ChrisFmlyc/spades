@@ -55,7 +55,12 @@ Informational only; the rejection proceeds either way.
 **Scope roll-up.** Read every child Plan and classify it `shipped`,
 `rejected`, or in flight, then decide:
 
-- **All `shipped`** → proceed; the rollup is unambiguous.
+- **All `shipped`, criteria covered** → proceed; unambiguous.
+- **All `shipped`, but acceptance criteria left uncovered** → do not
+  roll up silently. *All Plans terminal* is not *the Scope is done*:
+  if Plans were deferred and never written, this is true of a Scope
+  whose criteria are mostly untouched. Surface the uncovered ones and
+  ask — leave open (recommended), or roll up with them recorded.
 - **Mix of `shipped` and `rejected`, ≥1 `shipped`** → prompt with
   the rejected siblings listed (mixed-terminal acknowledgement).
   Proceed on confirmation; include the acknowledged IDs in the audit
