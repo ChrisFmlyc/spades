@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, do, evaluate, human sign-off, ship, bot review, squash-merge, deploy, close, sync. Not for autonomous use and carries no trigger conditions: it runs only when the user invokes it directly, or when a goal or driver the user set up delegates to it. See "Who may invoke this".
-version: 1.5.3
+version: 1.5.4
 ---
 
 # /spades:loop
@@ -404,11 +404,19 @@ learning from Stage 10 — and the bots review it like any other.
 - **12** — run Stage 7 against the bookkeeping PR number.
 - **13** — run Stage 8's assertions and squash-merge it.
 
-Then let B5 re-probe: it now sees `MERGED` and close's B6–B7 finish
-(cleanup, Linear mirror, confirmation). **Never tell close the PR is
-merged before it is** — the Linear mirror must not run ahead of the
-audit trail landing on `main`, which is what close's B7 ordering
-exists to prevent.
+**Do not let close exit at B5.** Its `OPEN` branch says a driver
+that opened the PR and can merge it should do so rather than exit —
+that is you. Stay inside close: run 12 and 13, then have B5 probe
+again. It now sees `MERGED`, and close's B6–B7 finish (cleanup,
+Linear mirror, confirmation).
+
+If close *has* already exited, re-invoke `/spades:close P-<plan-id>`
+— it re-enters at B5, sees the merge, and completes. (Re-invoking
+*close* is fine; only `/spades:loop` may never re-invoke itself.)
+
+**Never tell close the PR is merged before it is** — the Linear
+mirror must not run ahead of the audit trail landing on `main`, which
+is what close's B7 ordering exists to prevent.
 
 ## Stage 14 — Sync
 
@@ -432,8 +440,10 @@ Append `Loop — plan complete.`
 Re-read every Plan under the Scope.
 
 - **An unblocked non-terminal Plan exists** → announce it, pin it,
-  fall through to Stage 2 (or 1 if still `draft`). This Plan is done,
-  the Scope is not — say so plainly and do **not** print the FINISHED
+  and re-enter at **its** derived stage per § Loop state. A `draft`
+  Plan starts at Stage 2 (Approve) — never Stage 1, which would draft
+  a second Plan for work that already has one. This Plan is done, the
+  Scope is not — say so plainly and do **not** print the FINISHED
   block. Do not re-invoke `/spades:loop`.
 - **Only blocked Plans remain** → pause, saying what they wait on.
 - **All terminal** → run the finished gate below.
