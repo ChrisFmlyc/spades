@@ -303,6 +303,34 @@ plugin-specific framing. The skill-level checks in
 Step 1 mirror `/spades:review` and `/spades:research`: same probe,
 same abort message structure, same "do not proceed" semantics.
 
+## Artefacts Carry Forward — Never Block on Pending Files
+
+Every phase writes artefacts, and in a git repo they land as
+uncommitted changes that accumulate as work progresses.
+
+**Uncommitted SPADES-owned paths never block a phase.** No skill
+pauses, prompts, or aborts because artefacts are pending; they carry
+forward and are swept into the next commit the pipeline makes.
+
+SPADES-owned paths are exactly `.spades/`, `AGENTS.md`, `INTENT.md`,
+`ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`. Every
+committing phase (`do`, `ship`, `close`, `quick`) sweeps that
+allowlist — **allowlist only, never `git add -A`**. Files outside it
+are the human's work in progress: never auto-staged, never blocking,
+mentioned once so the human knows they're there.
+
+Waiting for artefacts to reach a PR before starting the next phase is
+the failure this prevents. Do that and every phase needs its own
+commit and its own PR; the artefact count grows with each step, the
+PR count grows with it, and the human ends up merging bookkeeping
+instead of shipping work. `/spades:close` is the deliberate final
+catch-all — it tolerates a dirty tree by design and sweeps whatever
+earlier phases left.
+
+The canonical contract is `docs/FRAMEWORK.md § Carry-Forward of
+SPADES-Owned Artefacts`. Not applicable to `spades-anywhere`, which
+has no SCM.
+
 ## Sub-agent Fan-Out
 
 Producing skills (`/spades:newproject`, `/spades:objective`,

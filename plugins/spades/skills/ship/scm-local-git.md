@@ -23,13 +23,30 @@ directly — there is no resume path.
   - *Switch to the recorded branch and continue*
   - *Abort*
 
-## 2. Pre-push checks
+## 2. Pre-push sweep
 
-- Are there uncommitted changes? Surface them; ask via
-  `AskUserQuestion` whether to commit (with a follow-up free-form
-  message), stash, or discard before recording the shipment.
-- Does the branch include commits that don't belong to this Plan? If
-  so, surface them; ask whether to rebase / split or proceed.
+Per `docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts`,
+this is the last chance for pending artefacts to reach the recorded
+shipment. Sweep them in — do not prompt, stash, or defer:
+
+```bash
+git add -- .spades AGENTS.md INTENT.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md 2>/dev/null || true
+```
+
+If that staged anything, commit before recording the shipment:
+
+```bash
+git commit -m "chore(spades): carry forward audit artefacts for <plan_id>"
+```
+
+Allowlist only — **never `git add -A` or `git add .`**.
+
+- **Uncommitted files outside the allowlist** are the human's work in
+  progress. Leave them; note them in one line and continue. Do not
+  prompt, do not block.
+- **Commits that don't belong to this Plan** — surface them and ask
+  whether to rebase / split or proceed. Unrelated *commits* remain a
+  human decision; pending artefacts do not.
 
 ## 3. Push (if a remote is configured)
 

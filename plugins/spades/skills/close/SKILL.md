@@ -1,7 +1,7 @@
 ---
 name: close
 description: The single conversational entry point for closing out a Plan, Scope, Project, or Objective. Asks the human what they're doing — finalise as shipped/done/archived/complete (the happy path), reject (Plans only), or abandon (Scopes, Projects, and Objectives). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "close O-…", "complete this objective", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging" — the skill figures out which flow applies.
-version: 4.6.0
+version: 4.7.0
 ---
 
 # /spades:close
@@ -188,7 +188,9 @@ these steps by name rather than restating them.
      main..origin/main` must return `0`. Otherwise abort: *"Local
      `main` is behind `origin/main`. Run `/repo:sync` first."*
    - **A dirty working tree is fine** — no check. B3's sweep picks
-     up SPADES-owned paths.
+     up SPADES-owned paths. Close is the final catch-all in
+     `docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts`:
+     anything earlier phases didn't sweep lands here.
 
    These are deliberately minimal. `/spades:close` doesn't duplicate
    `/repo:sync`; it refuses to run if the preconditions sync would

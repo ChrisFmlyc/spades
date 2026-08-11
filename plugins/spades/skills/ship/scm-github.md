@@ -39,13 +39,34 @@ CodeRabbit review.
   - *Switch to the recorded branch and continue*
   - *Abort*
 
-### 2. Pre-push checks
+### 2. Pre-push sweep
 
-- Are there uncommitted changes? Surface them; ask via
-  `AskUserQuestion` whether to commit (with a follow-up free-form
-  message), stash, or discard before pushing.
-- Does the branch include commits that don't belong to this Plan?
-  If so, surface them; ask whether to rebase / split or proceed.
+Per `docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts`,
+this is the **last chance for pending artefacts to reach the
+deliverable PR**. Sweep them in — do not prompt, do not stash, do not
+wait for a later phase:
+
+```bash
+git add -- .spades AGENTS.md INTENT.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md 2>/dev/null || true
+```
+
+If that staged anything, commit it before pushing:
+
+```bash
+git commit -m "chore(spades): carry forward audit artefacts for <plan_id>"
+```
+
+Allowlist only — **never `git add -A` or `git add .`**.
+
+- **Uncommitted files outside the allowlist** are the human's work in
+  progress. Leave them uncommitted; they stay in the tree and out of
+  the PR. Note them in one line of the push report so the human knows
+  they were not included. Do not prompt, and do not block the push.
+- **Commits on the branch that don't belong to this Plan** — surface
+  them and ask whether to rebase / split or proceed. This one still
+  asks: unrelated *commits* in a PR is a review problem the human
+  should decide about, unlike pending artefacts, which have a defined
+  home.
 
 ### 3. Push
 
