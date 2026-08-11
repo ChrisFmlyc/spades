@@ -1132,12 +1132,18 @@ committed a worse error than one that leaves them uncommitted.
 | `/spades:quick` | The single quick-path commit sweeps the allowlist. |
 
 Because every committing phase sweeps, the tree is
-**SPADES-clean at every hand-off**. That is what lets `/repo:sync`
-run between phases at all: it hard-refuses a dirty tree, and under
-this rule it never sees one in the normal path. If it does refuse,
-that is a genuine anomaly — a human edit outside the loop — not
-routine pipeline state, and surfacing its message verbatim is the
-correct response.
+**SPADES-clean at every hand-off** and pending artefacts are always
+somebody's to pick up.
+
+This is also why **no phase requires a `/repo:sync` ahead of it**.
+`/repo:sync` hard-refuses a dirty tree, so a phase that demanded one
+first would be unreachable in exactly the situation this rule exists
+for — artefacts pending, waiting to be recorded. `/spades:close`
+branches off `origin/main` for precisely that reason, and syncing is
+a *cleanup* concern that belongs after the close-out PR merges, never
+between phases. When a sync does refuse, that is a genuine anomaly —
+a human edit outside the pipeline — and surfacing its message
+verbatim is the correct response.
 
 ### Why this lives in FRAMEWORK.md
 

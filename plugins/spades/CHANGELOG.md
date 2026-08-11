@@ -50,7 +50,36 @@ changes). The consumer-repo marker block in `AGENTS.md` carries the
 - `/spades:loop` is 554 lines — over the 500 guideline, within the
   +20% allowance.
 
-- Skills bumped: `loop` 1.1.0 → 1.2.0, `close` 4.7.0 → 4.8.0
+- **minor**: **`/spades:close` no longer requires a `/repo:sync` ahead
+  of it**, and the loop no longer runs one. Close now fetches and
+  branches straight off `origin/main`:
+
+  ```bash
+  git switch -c <bookkeeping-branch> origin/main
+  ```
+
+  So it works from wherever the previous phase left you, with a stale
+  local `main` and a dirty tree, and uncommitted artefacts ride onto
+  the new branch for B3 to sweep.
+
+  This removes a genuine ordering trap rather than just a step:
+  `/repo:sync` refuses a dirty tree, so demanding one before close
+  made close **unreachable in exactly the case it exists for** —
+  pending artefacts waiting to be recorded, the Stage 9 learning
+  being the obvious one. Syncing is a cleanup concern and now happens
+  once, after the close-out PR merges.
+
+  Loop tail is therefore: `8 merge → 9 learning gate → 10 close →
+  11–12 bookkeeping review + merge → 13 sync → 14 next Plan`. One
+  sync, at the end.
+
+  Stage 13 switches to the merged ship branch before invoking
+  `/repo:sync` when it still exists locally — sync's post-merge
+  deletion only fires for the checked-out branch, and without that
+  the branch the pre-close sync used to clean would linger `[gone]`,
+  accumulating one per loop.
+
+- Skills bumped: `loop` 1.1.0 → 1.3.0, `close` 4.7.0 → 4.9.0
 
 ## [5.6.0] — 2026-08-11
 
