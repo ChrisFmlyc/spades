@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, do, evaluate, human sign-off, ship, bot review, squash-merge, sync, close. Not for autonomous use and carries no trigger conditions: it runs only when the user invokes it directly, or when a goal or driver the user set up delegates to it. See "Who may invoke this".
-version: 1.3.0
+version: 1.4.0
 ---
 
 # /spades:loop
@@ -304,6 +304,17 @@ Its preference order is the right one: **fix in code and push**;
 close a finding out with a posted rationale only when it isn't
 genuine. Never resolve a thread to make a count reach zero.
 
+**`CHANGES_REQUESTED` from a bot is not a blocker.** It means
+*review this thing*, and there are exactly two ways to clear it:
+
+1. **Fix it in code and push** — the preferred path.
+2. **Resolve it manually with a comment** saying why it stands.
+
+If a fix doesn't auto-close its thread after the re-review, close it
+yourself with `Fixed in <commit-hash>.` and resolve — naming the
+real commit, so the claim is checkable. `/crx:loop` owns this for
+CodeRabbit; do the same for the bots in 7.3.
+
 ### 7.3 Other bots (Greptile and friends)
 
 `/crx:loop` handles CodeRabbit only. Sweep for the rest:
@@ -325,7 +336,9 @@ author:
   verify the finding against current code, make the smallest safe
   fix scoped to the files it touches, commit `fix(review): <line>`,
   push. If not genuine, post the rationale **then** resolve — never
-  resolve without a posted reply.
+  resolve without a posted reply. If a pushed fix leaves the thread
+  open after the re-review, close it with `Fixed in <commit-hash>.`
+  and resolve.
 - **A human** → never touch it. Do not reply, resolve, or fix on
   their behalf. Unresolved human threads are a pause.
 
@@ -356,9 +369,26 @@ gh pr view <n> --json state,mergeable,mergeStateStatus,statusCheckRollup,reviewD
   `CONFLICTING`.
 - No required check `FAILURE` / `ERROR` / `TIMED_OUT` / `CANCELLED`,
   none still `PENDING`.
-- `reviewDecision` is not `CHANGES_REQUESTED`.
+- No **human** reviewer's latest review is `CHANGES_REQUESTED`.
+  **Ignore the PR-level `reviewDecision`** — see below.
 - Zero unresolved threads — re-run 7.3's query; a bot can post
   between the sweep and the merge.
+
+**Never gate on `reviewDecision`.** CodeRabbit never posts
+`APPROVED` and never retracts `CHANGES_REQUESTED`, so once it flags
+a PR that verdict is permanent — gating on it deadlocks every PR the
+bot ever reviewed, with every finding fixed and every thread
+resolved. Zero unresolved threads is the real signal. Check human
+reviewers individually instead:
+
+```bash
+gh pr view <n> --json reviews \
+  --jq '[.reviews[] | select(.author.login | endswith("[bot]") | not)]
+        | group_by(.author.login) | map(last)
+        | map(select(.state == "CHANGES_REQUESTED")) | length'
+```
+
+Non-zero → a human wants changes; pause. That gate is real and stays.
 
 Then `gh pr merge <n> --squash --delete-branch`.
 

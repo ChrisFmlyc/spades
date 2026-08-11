@@ -8,6 +8,31 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.7.1] — 2026-08-11
+
+- **patch**: `/spades:loop` Stage 8 no longer gates the merge on the
+  PR-level `reviewDecision`. **CodeRabbit never posts `APPROVED` and
+  never retracts `CHANGES_REQUESTED`**, so `reviewDecision !=
+  CHANGES_REQUESTED` is an assertion that can never clear once the
+  bot has flagged a PR — the loop deadlocked with every finding
+  fixed and every thread resolved. Hit for real on PR #64.
+
+  Zero unresolved threads is the real completion signal. The human
+  gate stays and gets sharper: Stage 8 now checks each **human**
+  reviewer's latest review individually, so a person asking for
+  changes still pauses the loop while a bot's stale verdict doesn't.
+
+- **patch**: Stage 7 now states what `CHANGES_REQUESTED` actually
+  means — *review this thing* — with the two ways to clear it: fix
+  it in code and push (preferred), or resolve it manually with a
+  comment. And when a pushed fix leaves its thread open after the
+  re-review, close it with `Fixed in <commit-hash>.` naming the real
+  commit. `/crx:loop` owns that for CodeRabbit (crx 0.3.0); Stage 7.3
+  does the same for other bots.
+
+- Skills bumped: `loop` 1.3.0 → 1.4.0
+- **Requires** `crx@ai-skills` ≥ 0.3.0 for the CodeRabbit half.
+
 ## [5.7.0] — 2026-08-11
 
 - **minor**: `/spades:loop` gains a **learning gate** — a new Stage 10
