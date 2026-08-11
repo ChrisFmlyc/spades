@@ -8,6 +8,50 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.7.0] — 2026-08-11
+
+- **minor**: `/spades:loop` gains a **learning gate** — a new Stage 10
+  between the ship-PR merge and close. **Nothing closes until the
+  question has been asked.** The work is merged and the lessons are
+  freshest at that moment; once close runs the Plan is terminal and
+  the moment has passed.
+
+  - *Capture* → invokes `/spades:learn`, which writes the learning
+    under `.spades/learnings/`.
+  - *Nothing to capture* → proceeds straight to close.
+  - Either answer is recorded (`Loop — learning captured: <path>.` /
+    `Loop — learning declined.`) so a resumed run knows the gate was
+    passed and never asks twice.
+
+  The learning is written **uncommitted, on purpose**: Stage 11's
+  close branches off `main` carrying it, and B3's sweep lands it in
+  the bookkeeping PR alongside the `Shipped` marker and any Scope
+  rollup — one PR for the whole close-out, per § Carry-Forward of
+  SPADES-Owned Artefacts.
+
+  **Ordering note.** The gate sits *after* the post-merge
+  `/repo:sync`, not before it. `/repo:sync` refuses any dirty tree,
+  so a learning written earlier would block the very sync that
+  `/spades:close` requires to start on a clean `main`. That sync is a
+  precondition of close, not a closing act; the loop's **final**
+  `/repo:sync` is Stage 14, after the bookkeeping PR merges — which
+  is now stated explicitly at both stages so the two aren't confused.
+
+  Tail stages renumbered: close 10 → 11, bookkeeping review/merge
+  11–12 → 12–13, final sync 13 → 14, next-Plan 14 → 15. The
+  state-derivation table, the Pauses table, and the edge cases move
+  with them. `deliverable_type: artefact` runs the gate too — lessons
+  are just as real without a PR.
+
+  The loop's completion block no longer suggests `/spades:learn`
+  (it just asked), and `close`'s Plan-Pass flow omits the same
+  suggestion when the audit trail shows a driver already asked.
+
+- `/spades:loop` is 554 lines — over the 500 guideline, within the
+  +20% allowance.
+
+- Skills bumped: `loop` 1.1.0 → 1.2.0, `close` 4.7.0 → 4.8.0
+
 ## [5.6.0] — 2026-08-11
 
 - **minor**: `/spades:loop` is now reachable by a driver. The

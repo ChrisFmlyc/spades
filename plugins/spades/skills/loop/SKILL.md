@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, do, evaluate, human sign-off, ship, bot review, squash-merge, sync, close. Not for autonomous use and carries no trigger conditions: it runs only when the user invokes it directly, or when a goal or driver the user set up delegates to it. See "Who may invoke this".
-version: 1.1.0
+version: 1.2.0
 ---
 
 # /spades:loop
@@ -113,8 +113,8 @@ Every failure is an abort with a pointer, never an inline fix.
    ```
 
 5. **`gh` installed and authenticated** (`command -v gh`;
-   `gh auth status`). Stages 7–13 run entirely on `gh`; no degraded
-   path.
+   `gh auth status`). Every stage from 7 onward depends on `gh`;
+   there is no degraded path.
 6. **Freshness** — `git fetch origin --quiet && git rev-list --count
    main..origin/main` must return `0`. Else → *"Local `main` is
    behind `origin/main`. Run `/repo:sync`, then re-run."*
@@ -143,8 +143,9 @@ write, so a looped run and a hand-driven run are indistinguishable:
 | `evaluating`, PASS, sign-off recorded | 6 — Ship |
 | `shipping`, `PR opened:`, no `Loop — bot review clean` | 7 — Bot review |
 | `shipping`, review clean, PR not `MERGED` | 8 — Merge |
-| `shipping`, PR `MERGED` | 9 — Sync → 10 — Close |
-| `shipped`, no `Loop — complete` | 13 — Final sync |
+| `shipping`, PR `MERGED`, no `Loop — learning:` line | 9 — Sync → 10 — **Learning gate** |
+| `shipping`, PR `MERGED`, `Loop — learning:` recorded | 11 — Close |
+| `shipped`, no `Loop — complete` | 14 — Final sync |
 | `shipped`, `Loop — complete` present | Done → next Plan |
 
 Only facts SPADES doesn't already record get a marker. Append to the
@@ -155,6 +156,8 @@ Only facts SPADES doesn't already record get a marker. Append to the
 - YYYY-MM-DD: Loop — rework <n>/2 after PARTIAL: <one-line gap>.
 - YYYY-MM-DD: Loop — bot review clean on <pr-url> (<n> rounds).
 - YYYY-MM-DD: Loop — ship PR squash-merged: <merge-sha>.
+- YYYY-MM-DD: Loop — learning captured: <path>.
+- YYYY-MM-DD: Loop — learning declined.
 - YYYY-MM-DD: Loop — paused at stage <k>: <reason>.
 - YYYY-MM-DD: Loop — complete.
 ```
@@ -375,7 +378,49 @@ pipeline state. Surface its message verbatim and pause. It owns that
 decision; never auto-stash, auto-discard, or sweep non-SPADES files
 to get past it.
 
-## Stage 10 — Close
+This sync is **not** the loop's final one — it exists because
+`/spades:close` refuses to start anywhere but a clean, fast-forwarded
+`main`. The closing sync is Stage 14.
+
+## Stage 10 — Learning gate
+
+**Nothing closes until this question has been asked.** The work is
+merged and the lessons are freshest now; once close runs, the Plan is
+terminal and the moment has passed.
+
+Ask via `AskUserQuestion`:
+
+> *Anything worth carrying forward from this Plan?*
+>
+> - **Capture a learning** — writes it under `.spades/learnings/` so
+>   future Plans on related Scopes surface it automatically.
+> - **Nothing to capture** — proceed to close.
+
+- **Capture** → invoke **`/spades:learn`** and let it write the
+  learning file. Append:
+
+  ```markdown
+  - YYYY-MM-DD: Loop — learning captured: <path>.
+  ```
+
+- **Nothing to capture** → append:
+
+  ```markdown
+  - YYYY-MM-DD: Loop — learning declined.
+  ```
+
+Either way the gate is recorded, so a resume knows it was asked and
+never asks twice.
+
+**The learning is written here, uncommitted, on purpose.** Stage 11's
+close branches off `main` carrying it, and B3's sweep lands it in the
+bookkeeping PR alongside the Plan's `Shipped` marker — one PR for the
+whole close-out, per `docs/FRAMEWORK.md § Carry-Forward of
+SPADES-Owned Artefacts`. That is also why this gate sits *after*
+Stage 9: `/repo:sync` refuses any dirty tree, so a learning written
+before it would block the sync.
+
+## Stage 11 — Close
 
 Invoke **`/spades:close P-<plan-id>`**, picking **Pass**. It
 verifies the merge, branches, writes `status: shipped` plus the
@@ -388,25 +433,28 @@ If its Step 3.2 asks the human to acknowledge rejected siblings,
 Close then reaches **Step 5 — "Has the bookkeeping PR been
 merged?"**. Do not answer it yet.
 
-## Stages 11–12 — Review and merge the bookkeeping PR
+## Stages 12–13 — Review and merge the bookkeeping PR
 
 These run **inside** close's Step 5 wait. The bookkeeping PR is a
-real PR and the bots review it like any other.
+real PR — carrying the `Shipped` marker, any Scope rollup, and the
+learning from Stage 10 — and the bots review it like any other.
 
-- **11** — run Stage 7 against the bookkeeping PR number.
-- **12** — run Stage 8's assertions and squash-merge it.
+- **12** — run Stage 7 against the bookkeeping PR number.
+- **13** — run Stage 8's assertions and squash-merge it.
 
 Only now answer Step 5 with **"Yes — bookkeeping PR is merged"** and
 let close's Steps 6–9 finish (cleanup, Linear mirror, confirmation).
 Answering Yes earlier would put the Linear mirror ahead of the audit
 trail on `main`, which close's Step 7 exists to prevent.
 
-## Stage 13 — Final sync
+## Stage 14 — Final sync
 
-Invoke **`/repo:sync`** again to bring the whole checkout back into
-alignment. Append `Loop — complete.`
+**Only now** — with the bookkeeping PR merged and nothing left
+outstanding — invoke **`/repo:sync`** to bring the whole checkout back
+into alignment. This is the loop's closing act for this Plan; append
+`Loop — complete.`
 
-## Stage 14 — Next Plan, or done
+## Stage 15 — Next Plan, or done
 
 Re-read every Plan under the Scope.
 
@@ -425,7 +473,6 @@ Re-read every Plan under the Scope.
   Working tree:   clean, on main, synced
 
 Next:
-  /spades:learn    — capture anything worth carrying forward
   /spades:status   — what's still open
 ```
 
@@ -444,11 +491,11 @@ resuming is re-entering at the derived stage.
 | 4 | `/spades:do` finds the Plan is wrong mid-flight | 3 |
 | 5 | Evaluate verdict FAIL | 5 |
 | 6 | Third PARTIAL on the same Plan (rework cap 2) | 5 |
-| 7 | Bot review hits the 5-round cap | 7, 11 |
-| 8 | An unresolved review thread from a **human** | 7, 11 |
-| 9 | Any pre-merge assertion fails | 8, 12 |
+| 7 | Bot review hits the 5-round cap | 7, 12 |
+| 8 | An unresolved review thread from a **human** | 7, 12 |
+| 9 | Any pre-merge assertion fails | 8, 13 |
 | 10 | A child skill aborts or refuses | any |
-| 11 | Mixed-terminal Scope rollup needs acknowledgement | 10 |
+| 11 | Mixed-terminal Scope rollup needs acknowledgement | 11 |
 | 12 | The human says stop | any |
 
 **Pending SPADES artefacts are not a pause.** Uncommitted files under
@@ -492,7 +539,7 @@ code.
 
 - **Scope already `done`** → nothing to loop; report and exit.
 - **A Plan is `rejected`** → terminal; skip to the next unblocked
-  sibling. Stage 10 handles the mixed-terminal rollup.
+  sibling. Stage 11 handles the mixed-terminal rollup.
 - **Ship PR merged outside the loop** → Stage 7/8 sees `MERGED`.
   Skip to Stage 9, recording the SHA from `gh pr view`.
 - **Ship PR closed without merging** → pause, pointing at
@@ -503,4 +550,5 @@ code.
   human's behalf.
 - **`deliverable_type: artefact`** → no PR lifecycle. Run Stages
   1–6; ship records the reference and reaches `shipped` in-skill.
-  Skip to Stage 14.
+  Still run **Stage 10's learning gate** — the lessons are just as
+  real without a PR — then skip to Stage 15.
