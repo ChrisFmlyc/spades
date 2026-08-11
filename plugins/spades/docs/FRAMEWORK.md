@@ -1041,8 +1041,10 @@ Skills that read repo state outside their own deliverable
 (`/spades:plan`, `/spades:do`, `/spades:review`, `/spades:research`,
 `/spades:scope`, `/spades:approve`, `/spades:status`,
 `/spades:list`) implicitly depend on this check. Skills that already
-own the sync responsibility (`/spades:close` calls `/repo:sync`
-twice; `/repo:sync` is the sync itself) satisfy it directly.
+own the sync responsibility (`/repo:sync` is the sync itself)
+satisfy it directly. `/spades:close` is exempt for a different
+reason: it branches off `origin/main`, so local staleness cannot
+affect it.
 
 ### Two-layer enforcement
 
@@ -1132,12 +1134,8 @@ committed a worse error than one that leaves them uncommitted.
 | `/spades:quick` | The single quick-path commit sweeps the allowlist. |
 
 Because every committing phase sweeps, the tree is
-**SPADES-clean at every hand-off**. That is what lets `/repo:sync`
-run between phases at all: it hard-refuses a dirty tree, and under
-this rule it never sees one in the normal path. If it does refuse,
-that is a genuine anomaly — a human edit outside the loop — not
-routine pipeline state, and surfacing its message verbatim is the
-correct response.
+**SPADES-clean at every hand-off** and pending artefacts are always
+somebody's to pick up.
 
 ### Why this lives in FRAMEWORK.md
 

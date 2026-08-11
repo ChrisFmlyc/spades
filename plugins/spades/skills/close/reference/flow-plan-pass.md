@@ -140,7 +140,11 @@ merged-by, and the files touched), **B5** (wait for the merge),
   `<bookkeeping-pr-url>`."*
 
 `/spades:close` does not invoke `/spades:learn` inline — P5 surfaces
-it as a suggestion and the human runs it separately.
+it as a suggestion and the human runs it separately. **Omit that
+suggestion when the Plan's audit trail already carries a `Loop —
+learning captured:` or `Loop — learning declined.` line**: a driver
+asked before close ran, and re-offering it contradicts an answer the
+human already gave.
 
 ## P5 — Confirm
 

@@ -1,7 +1,7 @@
 ---
 name: close
 description: The single conversational entry point for closing out a Plan, Scope, Project, or Objective. Asks the human what they're doing — finalise as shipped/done/archived/complete (the happy path), reject (Plans only), or abandon (Scopes, Projects, and Objectives). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "close O-…", "complete this objective", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging" — the skill figures out which flow applies.
-version: 4.7.0
+version: 4.9.0
 ---
 
 # /spades:close
@@ -177,24 +177,26 @@ these steps by name rather than restating them.
    from the `ai-skills` marketplace (for `/repo:sync` and
    `/repo:branch`). Re-run `/spades:setup` — it walks through
    installing the prerequisite plugins."*
-4. **Post-merge git state.** Run `/repo:sync` **before**
-   `/spades:close`; this skill enforces the resulting state but
-   never auto-syncs.
-   - `git rev-parse --abbrev-ref HEAD` must be the default branch.
-     Otherwise abort: *"Run `/repo:sync` first — `/spades:close`
-     expects to start on `main` after the merged feature branch has
-     been cleaned up."*
-   - `git fetch origin --quiet && git rev-list --count
-     main..origin/main` must return `0`. Otherwise abort: *"Local
-     `main` is behind `origin/main`. Run `/repo:sync` first."*
-   - **A dirty working tree is fine** — no check. B3's sweep picks
-     up SPADES-owned paths. Close is the final catch-all in
+4. **Git state — no prior sync required.** Fetch, and let B2 branch
+   straight off `origin/main`:
+
+   ```bash
+   git fetch origin --quiet
+   ```
+
+   - **You do not need to be on `main`.** B2 creates the bookkeeping
+     branch from `origin/main` directly, so close works from wherever
+     the previous phase left you — typically the just-merged feature
+     branch.
+   - **Local `main` does not need fast-forwarding.** `origin/main` is
+     the base, so a stale local `main` is irrelevant. `/repo:sync`
+     brings it forward afterwards.
+   - **A dirty working tree is fine** — no check. Uncommitted
+     artefacts ride onto the new branch and B3's sweep stages the
+     SPADES-owned ones. Close is the final catch-all in
      `docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts`:
      anything earlier phases didn't sweep lands here.
 
-   These are deliberately minimal. `/spades:close` doesn't duplicate
-   `/repo:sync`; it refuses to run if the preconditions sync would
-   have satisfied aren't already met.
 5. **Verify ancestors active** per `FRAMEWORK.md § Target Resolution
    → Parent-status precondition`, **on the Pass route only**. Reject
    and Abandon are exempt — they *create* terminal status.
@@ -226,7 +228,16 @@ branch already exists from an aborted run, abort:
 > Either merge its PR on GitHub then re-run `/spades:close`, or
 > delete it (`git branch -D <name>`) and re-run.*
 
-Then `git switch -c <bookkeeping-branch>`.
+Then branch **off `origin/main`**, not off whatever is checked out:
+
+```bash
+git switch -c <bookkeeping-branch> origin/main
+```
+
+The bookkeeping branch is based on the merged remote tip regardless of
+where the previous phase left you or how stale local `main` is.
+Uncommitted artefacts ride onto the new branch, where B3 stages the
+SPADES-owned ones.
 
 ### B3 — Stage + commit
 
@@ -297,20 +308,20 @@ is the record.
 
 After a `/spades:ship` PR is squash-merged:
 
-1. `/repo:sync` — clean `main`, delete the merged feature branch.
-2. `/spades:close P-<id>` — bookkeeping PR, merge confirmation,
-   Linear mirror, learning suggestion.
+1. `/spades:close P-<id>` — branches off `origin/main`, opens the
+   bookkeeping PR, waits for the merge, mirrors to Linear.
+2. `/repo:sync` — brings `main` forward and deletes merged feature
+   branches. To have it delete the merged feature branch, be on that
+   branch when you invoke it; its post-merge path only fires for the
+   checked-out branch.
 
-A future `repo` enhancement could have `/repo:sync` detect Plans in
-`status: shipping` with a `PR opened:` marker on the just-merged
-branch and offer to chain into `/spades:close`. Until then, run the
-two in sequence. `/spades:loop` automates exactly this pairing.
+`/spades:loop` automates this sequence.
 
 ## Edge Cases
 
-- **Local state isn't post-merge-clean.** B1 refuses and points at
-  `/repo:sync`. The boundary is deliberate — close doesn't duplicate
-  sync logic.
+- **Local state isn't post-merge-clean.** Not a problem — B2 branches
+  off `origin/main`, so a stale local `main` and a dirty tree are both
+  fine.
 - **Ship PR isn't merged.** The Plan Pass flow catches it and exits
   before touching git or files. Re-run after merging.
 - **Bookkeeping branch already exists.** B2 catches it; the human

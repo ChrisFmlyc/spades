@@ -8,6 +8,92 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.7.0] — 2026-08-11
+
+- **minor**: `/spades:loop` gains a **learning gate** — a new Stage 10
+  between the ship-PR merge and close. **Nothing closes until the
+  question has been asked.** The work is merged and the lessons are
+  freshest at that moment; once close runs the Plan is terminal and
+  the moment has passed.
+
+  - *Capture* → invokes `/spades:learn`, which writes the learning
+    under `.spades/learnings/`.
+  - *Nothing to capture* → proceeds straight to close.
+  - Either answer is recorded (`Loop — learning captured: <path>.` /
+    `Loop — learning declined.`) so a resumed run knows the gate was
+    passed and never asks twice.
+
+  The learning is written **uncommitted, on purpose**: Stage 11's
+  close branches off `main` carrying it, and B3's sweep lands it in
+  the bookkeeping PR alongside the `Shipped` marker and any Scope
+  rollup — one PR for the whole close-out, per § Carry-Forward of
+  SPADES-Owned Artefacts.
+
+  **Ordering note.** The gate sits *after* the post-merge
+  `/repo:sync`, not before it. `/repo:sync` refuses any dirty tree,
+  so a learning written earlier would block the very sync that
+  `/spades:close` requires to start on a clean `main`. That sync is a
+  precondition of close, not a closing act; the loop's **final**
+  `/repo:sync` is Stage 14, after the bookkeeping PR merges — which
+  is now stated explicitly at both stages so the two aren't confused.
+
+  Tail stages renumbered: close 10 → 11, bookkeeping review/merge
+  11–12 → 12–13, final sync 13 → 14, next-Plan 14 → 15. The
+  state-derivation table, the Pauses table, and the edge cases move
+  with them. `deliverable_type: artefact` runs the gate too — lessons
+  are just as real without a PR.
+
+  The loop's completion block no longer suggests `/spades:learn`
+  (it just asked), and `close`'s Plan-Pass flow omits the same
+  suggestion when the audit trail shows a driver already asked.
+
+- `/spades:loop` is 554 lines — over the 500 guideline, within the
+  +20% allowance.
+
+- **minor**: **`/spades:close` no longer requires a `/repo:sync` ahead
+  of it**, and the loop no longer runs one. Close now fetches and
+  branches straight off `origin/main`:
+
+  ```bash
+  git switch -c <bookkeeping-branch> origin/main
+  ```
+
+  So it works from wherever the previous phase left you, with a stale
+  local `main` and a dirty tree, and uncommitted artefacts ride onto
+  the new branch for B3 to sweep.
+
+  This removes a genuine ordering trap rather than just a step:
+  `/repo:sync` refuses a dirty tree, so demanding one before close
+  made close **unreachable in exactly the case it exists for** —
+  pending artefacts waiting to be recorded, the Stage 9 learning
+  being the obvious one. Syncing is a cleanup concern and now happens
+  once, after the close-out PR merges.
+
+  Loop tail is therefore: `8 merge → 9 learning gate → 10 close →
+  11–12 bookkeeping review + merge → 13 sync → 14 next Plan`. One
+  sync, at the end.
+
+  Stage 13 switches to the merged ship branch before invoking
+  `/repo:sync` when it still exists locally — sync's post-merge
+  deletion only fires for the checked-out branch, and without that
+  the branch the pre-close sync used to clean would linger `[gone]`,
+  accumulating one per loop.
+
+  The change is stated **once, in the loop** — Stage 13 says the sync
+  goes there, after close and only after close. It is not sprayed
+  across the other skills as a set of "don't sync here" rules. What
+  did change elsewhere is only what had become factually wrong:
+  close's own precondition, and the handful of places that claimed
+  close needed a sync first (`AGENTS.md`, the consumer marker block,
+  `ship`'s post-PR hand-off, `FRAMEWORK.md § Freshness`). Those said
+  the opposite of what the skill now does.
+
+- **patch**: `agents_version` → 2.7.0 — the consumer marker block's
+  close row no longer tells people to run `/repo:sync` first.
+
+- Skills bumped: `loop` 1.1.0 → 1.3.0, `close` 4.7.0 → 4.9.0,
+  `setup` 4.5.0 → 4.6.0, `ship` 3.3.0 → 3.4.0
+
 ## [5.6.0] — 2026-08-11
 
 - **minor**: `/spades:loop` is now reachable by a driver. The
