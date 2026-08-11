@@ -8,6 +8,32 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.10.0] — 2026-08-11
+
+- **minor**: Stage 7 now **delegates CodeRabbit to `/crx:loop` and
+  trusts it**, rather than wrapping it in a review loop of its own.
+
+  The old shape — *7.1 wait → 7.2 crx → 7.3 other bots → 7.4
+  converge* — had `/spades:loop` owning the waiting, the round
+  counter, and the convergence, with `/crx:loop` reading as merely
+  "the fix step" inside it. That framing is what invites an agent to
+  drive the cycle itself: if you already own the wait and the
+  convergence, doing the fixes inline feels equivalent. Observed
+  live — one round via `/crx:loop`, then three hand-rolled in bash.
+
+  The ownership split is now clean. **`/crx:loop` returns when
+  CodeRabbit is clean** and owns the waiting, rounds, dispatch,
+  fix-or-rebut, thread-closing and its own cap; the loop assumes it
+  completed its contract, and if it stops short it says why. What
+  remains genuinely the loop's — other review bots, human threads,
+  the final pre-merge sweep — is stated as such.
+
+  The duplicate wait and converge steps are gone, and the round cap
+  is split by owner: `/crx:loop` runs its own; the loop keeps a
+  3-round cap for its **own** non-CodeRabbit cycle only.
+
+- Skills bumped: `loop` 1.5.4 → 1.6.0
+
 ## [5.9.2] — 2026-08-11
 
 Two defects found by reading the loop as the agent that would execute
