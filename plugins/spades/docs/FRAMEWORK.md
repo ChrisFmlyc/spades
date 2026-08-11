@@ -558,8 +558,8 @@ bug class as a cycle — it just fails slowly instead of immediately.
 Plan's `status:` and the markers other skills already write
 (`PR opened:`, `Shipped`, `Evaluation — verdict:`), and adds
 `Loop — …` audit-trail lines only for facts SPADES does not
-otherwise record (human sign-off, rework count, review-round count,
-merge SHA, pause reason).
+otherwise record (who signed the evaluation off, rework count,
+review-round count, merge SHA, pause reason).
 
 This is what makes a looped run and a hand-driven run
 indistinguishable to every other skill: `/spades:status`,
@@ -569,14 +569,28 @@ mid-pipeline — or hand back — at any stage boundary.
 
 ### The human gate
 
-The loop's one designed pause is the **Evaluate sign-off**. Approve
-is executed (the six checks are walked, and a clean sweep may
-self-approve); Evaluate's verdict is derived; but the verdict is
-*confirmed* by a human, always. That gate is where oversight lands,
-which is why the routing doctrine pushes everything else toward
-`ai` — see `skills/loop/SKILL.md § Routing doctrine`. Scattering
-`human` rows through the pipeline duplicates oversight that already
-has a home, and turns an unattended loop back into a manual one.
+The loop's one designed pause is the **Evaluate sign-off — and it
+fires only when the evaluation needed a human.** Approve is executed
+by the AI (the six checks are walked; a clean sweep self-approves).
+Evaluate's verdict is derived from the rows. If every row was
+AI-verified, the loop confirms the verdict itself and carries on; if
+one or more rows could only be run by a human, the human runs them
+and confirms the verdict.
+
+So the gate is reached by **routing, not policy** — see
+`skills/loop/SKILL.md § Autonomy doctrine`. A `human` row means "no
+agent can run this check", never "a human should double-check this
+one". Sensitivity is not a routing input: auth, secrets, schema
+migrations, and data deletion route on verifiability like anything
+else. Scattering `human` rows through the pipeline invents gates
+nobody asked for and turns an unattended loop back into a manual one.
+
+Under the loop, the child skills' own questions are answered by the
+loop, not forwarded — `/spades:plan`'s title and breakdown,
+`/spades:approve`'s decision, `/spades:learn`'s classification, and
+the rest. The child skills stay written for hand-driving and are
+unchanged by this; **the loop is the override**, and it records its
+answers as its own (`AI (/spades:loop)`), never as the human's.
 
 ---
 
