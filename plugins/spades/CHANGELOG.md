@@ -8,6 +8,51 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.8.0] — 2026-08-11
+
+- **minor**: `/spades:loop` now has one unambiguous definition of
+  **finished**, and says so. New **Stage 15 finished gate** asserts
+  all four against GitHub — never from memory of what the run did:
+
+  1. Ship PR squash-merged
+  2. Nothing open in GitHub — zero unresolved threads on **both** PRs,
+     every check green on the merge commit, every linked issue closed
+  3. Deploy successful — or `not configured`, shown as such
+  4. Close bookkeeping PR squash-merged
+
+  Any assertion unmet → pause with the failing one and its evidence.
+  **A FINISHED block that isn't true is worse than none** — it's the
+  one output a human trusts without checking.
+
+  The block is visually distinct and appears **once per Scope**. No
+  pause uses that shape, so from across the room "it finished" and
+  "it's been waiting on you" are no longer one glyph apart. A Plan
+  finishing on a multi-Plan Scope says so plainly and does *not*
+  print it.
+
+- **minor**: New **Stage 9 deploy gate**, between the ship-PR merge
+  and everything that follows. If the repo deploys, that deploy must
+  succeed before anything closes — a Plan whose deploy is broken has
+  not shipped in any sense the word carries, and close writes
+  `status: shipped`. Failure pauses.
+
+  If the repo has no deployments configured, that is fine and is
+  recorded as such. **The loop never reports a deploy as successful
+  when none ran** — that would put a claim in the audit trail with no
+  evidence behind it. Check-run-based deploys (Vercel, Netlify) are
+  detected too.
+
+- **patch**: Markers split — `Loop — plan complete.` per Plan,
+  `Loop — FINISHED.` once per Scope. Previously one marker meant both,
+  so the audit trail couldn't answer "is it *finally* done".
+
+- **patch**: Stage 7's sub-loop moved to `reference/bot-review.md`
+  and the finish probes to `reference/finish-checks.md`, keeping the
+  body at 557 lines. Both carry a table of contents; neither
+  references the other — one level deep, per `PATTERNS.md`.
+
+- Skills bumped: `loop` 1.4.0 → 1.5.0
+
 ## [5.7.1] — 2026-08-11
 
 - **patch**: `/spades:loop` Stage 8 no longer gates the merge on the
