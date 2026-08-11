@@ -79,7 +79,20 @@ changes). The consumer-repo marker block in `AGENTS.md` carries the
   the branch the pre-close sync used to clean would linger `[gone]`,
   accumulating one per loop.
 
-- Skills bumped: `loop` 1.1.0 → 1.3.0, `close` 4.7.0 → 4.9.0
+  The change is stated **once, in the loop** — Stage 13 says the sync
+  goes there, after close and only after close. It is not sprayed
+  across the other skills as a set of "don't sync here" rules. What
+  did change elsewhere is only what had become factually wrong:
+  close's own precondition, and the handful of places that claimed
+  close needed a sync first (`AGENTS.md`, the consumer marker block,
+  `ship`'s post-PR hand-off, `FRAMEWORK.md § Freshness`). Those said
+  the opposite of what the skill now does.
+
+- **patch**: `agents_version` → 2.7.0 — the consumer marker block's
+  close row no longer tells people to run `/repo:sync` first.
+
+- Skills bumped: `loop` 1.1.0 → 1.3.0, `close` 4.7.0 → 4.9.0,
+  `setup` 4.5.0 → 4.6.0, `ship` 3.3.0 → 3.4.0
 
 ## [5.6.0] — 2026-08-11
 

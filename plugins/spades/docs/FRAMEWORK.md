@@ -1041,8 +1041,10 @@ Skills that read repo state outside their own deliverable
 (`/spades:plan`, `/spades:do`, `/spades:review`, `/spades:research`,
 `/spades:scope`, `/spades:approve`, `/spades:status`,
 `/spades:list`) implicitly depend on this check. Skills that already
-own the sync responsibility (`/spades:close` calls `/repo:sync`
-twice; `/repo:sync` is the sync itself) satisfy it directly.
+own the sync responsibility (`/repo:sync` is the sync itself)
+satisfy it directly. `/spades:close` is exempt for a different
+reason: it branches off `origin/main`, so local staleness cannot
+affect it.
 
 ### Two-layer enforcement
 
@@ -1134,16 +1136,6 @@ committed a worse error than one that leaves them uncommitted.
 Because every committing phase sweeps, the tree is
 **SPADES-clean at every hand-off** and pending artefacts are always
 somebody's to pick up.
-
-This is also why **no phase requires a `/repo:sync` ahead of it**.
-`/repo:sync` hard-refuses a dirty tree, so a phase that demanded one
-first would be unreachable in exactly the situation this rule exists
-for — artefacts pending, waiting to be recorded. `/spades:close`
-branches off `origin/main` for precisely that reason, and syncing is
-a *cleanup* concern that belongs after the close-out PR merges, never
-between phases. When a sync does refuse, that is a genuine anomaly —
-a human edit outside the pipeline — and surfacing its message
-verbatim is the correct response.
 
 ### Why this lives in FRAMEWORK.md
 

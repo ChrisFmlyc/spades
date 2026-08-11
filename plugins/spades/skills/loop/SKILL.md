@@ -402,10 +402,6 @@ in the bookkeeping PR alongside the Plan's `Shipped` marker — one PR
 for the whole close-out, per `docs/FRAMEWORK.md § Carry-Forward of
 SPADES-Owned Artefacts`.
 
-**Nothing syncs between here and close.** `/repo:sync` refuses a
-dirty tree, so a sync at this point would reject the very learning
-just written. The loop's only sync is Stage 13, after the bookkeeping
-PR has merged.
 
 ## Stage 10 — Close
 

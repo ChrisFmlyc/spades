@@ -197,12 +197,6 @@ these steps by name rather than restating them.
      `docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts`:
      anything earlier phases didn't sweep lands here.
 
-   Close therefore **never requires a sync ahead of it**. That is
-   deliberate: `/repo:sync` refuses a dirty tree, so demanding one
-   first would have made close unreachable in exactly the case it
-   exists for — pending artefacts waiting to be recorded. Syncing is
-   a *cleanup* concern and belongs after the bookkeeping PR merges,
-   not before close starts.
 5. **Verify ancestors active** per `FRAMEWORK.md § Target Resolution
    → Parent-status precondition`, **on the Pass route only**. Reject
    and Abandon are exempt — they *create* terminal status.
@@ -240,10 +234,9 @@ Then branch **off `origin/main`**, not off whatever is checked out:
 git switch -c <bookkeeping-branch> origin/main
 ```
 
-That is what removes the need for a sync beforehand — the bookkeeping
-branch is based on the merged remote tip regardless of where the
-previous phase left you or how stale local `main` is. Uncommitted
-artefacts in the tree ride onto the new branch, where B3 stages the
+The bookkeeping branch is based on the merged remote tip regardless of
+where the previous phase left you or how stale local `main` is.
+Uncommitted artefacts ride onto the new branch, where B3 stages the
 SPADES-owned ones.
 
 ### B3 — Stage + commit
@@ -313,29 +306,22 @@ is the record.
 
 ## Workflow integration with `/repo:sync`
 
-After a `/spades:ship` PR is squash-merged, close runs **first** and
-the sync comes last:
+After a `/spades:ship` PR is squash-merged:
 
 1. `/spades:close P-<id>` — branches off `origin/main`, opens the
    bookkeeping PR, waits for the merge, mirrors to Linear.
 2. `/repo:sync` — brings `main` forward and deletes merged feature
-   branches.
+   branches. To have it delete the merged feature branch, be on that
+   branch when you invoke it; its post-merge path only fires for the
+   checked-out branch.
 
-**Not the other way round.** Close deliberately requires no prior
-sync: `/repo:sync` refuses a dirty tree, so syncing first would
-reject the pending artefacts close exists to record — a learning
-captured after the ship PR merged being the common case. See
-`docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts`.
-
-To have `/repo:sync` delete the merged feature branch, be on that
-branch when you invoke it; its post-merge path only fires for the
-checked-out branch. `/spades:loop` automates this whole sequence.
+`/spades:loop` automates this sequence.
 
 ## Edge Cases
 
-- **Local state isn't post-merge-clean.** B1 refuses and points at
-  `/repo:sync`. The boundary is deliberate — close doesn't duplicate
-  sync logic.
+- **Local state isn't post-merge-clean.** Not a problem — B2 branches
+  off `origin/main`, so a stale local `main` and a dirty tree are both
+  fine.
 - **Ship PR isn't merged.** The Plan Pass flow catches it and exits
   before touching git or files. Re-run after merging.
 - **Bookkeeping branch already exists.** B2 catches it; the human

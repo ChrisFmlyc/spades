@@ -27,7 +27,7 @@ when working in it. Invoke the main ones by their namespaced names:
 | `/spades:do` | Execute an approved Plan, routed per the approval decision |
 | `/spades:evaluate` | Check delivered output against acceptance criteria |
 | `/spades:ship` | Open PR + review + merge (code) or record deliverable (artefact / action) |
-| `/spades:close` | Conversational close-out entry. Asks pass / reject / abandon based on target type. Pass = finalise (Plan → shipped, Scope → done, Project → archived, Objective → complete). Reject (Plans) and Abandon (Scopes, Projects, Objectives) require a reason. Objective completion is ungated and has no cascade. Opens a bookkeeping PR for any file change; run `/repo:sync` first. |
+| `/spades:close` | Conversational close-out entry. Asks pass / reject / abandon based on target type. Pass = finalise (Plan → shipped, Scope → done, Project → archived, Objective → complete). Reject (Plans) and Abandon (Scopes, Projects, Objectives) require a reason. Objective completion is ungated and has no cascade. Opens a bookkeeping PR for any file change. |
 | `/spades:quick` | Fast-track for trivial work — quick-item marker file (`.spades/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |
@@ -268,9 +268,8 @@ To every SPADES skill that:
 - Creates a branch off `main` (`do`, `close`).
 - Reports cross-cutting state (`status`, `list`).
 
-Skills that already own the sync responsibility — `/spades:close`
-invokes `/repo:sync` directly at Steps 2 and 7 — satisfy the rule
-by construction.
+`/spades:close` is exempt by construction: it branches off
+`origin/main`, so a stale local `main` cannot affect it.
 
 ### The behavioural reflex
 
