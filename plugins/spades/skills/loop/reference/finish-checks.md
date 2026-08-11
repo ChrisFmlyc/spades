@@ -119,14 +119,25 @@ pointing at that file from this one would be a nested reference, and
 those get partially read. Two copies beat an unreliable read.) Count `isResolved == false` regardless of author: a
 human thread left open counts, and so does a bot's.
 
-**Every check green on the merge commit:**
+**Every check green on the merge commit.** Separate *still running*
+from *failed* — a check in flight has `conclusion: null`, and
+treating that as a failure would pause a Scope that is merely a
+minute from done:
 
 ```bash
 gh api "repos/{owner}/{repo}/commits/<merge-sha>/check-runs" \
-  --jq '[.check_runs[] | select(.conclusion != "success" and .conclusion != "neutral" and .conclusion != "skipped")] | length'
+  --jq '{ pending: ([.check_runs[] | select(.status != "completed")] | length),
+          failed:  ([.check_runs[] | select(.status == "completed"
+                    and .conclusion != "success"
+                    and .conclusion != "neutral"
+                    and .conclusion != "skipped")] | length) }'
 ```
 
-Non-zero → not finished.
+- `failed > 0` → **not finished**; pause with the failing checks.
+- `pending > 0` → **not yet knowable**; poll at ~60–90s. Post-merge
+  runs on `main` routinely trail the merge by a minute or two. Do not
+  report this as a check failure.
+- both `0` → green.
 
 **Any linked issue closed.** `gh pr view --json` has no field for
 this; use GraphQL:

@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, do, evaluate, human sign-off, ship, bot review, squash-merge, deploy, close, sync. Not for autonomous use and carries no trigger conditions: it runs only when the user invokes it directly, or when a goal or driver the user set up delegates to it. See "Who may invoke this".
-version: 1.5.2
+version: 1.5.3
 ---
 
 # /spades:loop
