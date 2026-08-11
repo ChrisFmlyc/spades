@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 3.3.0
+version: 3.4.0
 ---
 
 # /spades:do
@@ -109,6 +109,8 @@ Then decide:
   against `/repo:branch`'s regex, then run `git switch -c <name>`.
   Any uncommitted changes ride onto the new feature branch — that's
   fine, they belong with the Plan you're starting. Continue to Step 2.
+  Never block on pending SPADES artefacts; see
+  `docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts`.
 - **On a feature branch named for this Plan** — already in place.
   Record this as a resume in the audit trail; continue to Step 2.
 - **On a feature branch named for a different Plan** — warn the
@@ -229,7 +231,18 @@ You execute the Plan autonomously. The order:
      NOT merge code from a spike.
    - **`straight-through`** — mechanical change; existing tests cover.
 4. **Commit as you go.** One commit per task is a reasonable default
-   for AI delivery. Use clear, conventional messages.
+   for AI delivery. Use clear, conventional messages. Each commit
+   also sweeps the SPADES allowlist alongside the code it wrote, so
+   audit artefacts travel with the work rather than piling up:
+
+   ```bash
+   git add -- .spades AGENTS.md INTENT.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md 2>/dev/null || true
+   ```
+
+   Allowlist only — never `git add -A`. Files outside it are the
+   human's work in progress: leave them uncommitted and don't block
+   on them (`docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned
+   Artefacts`).
 5. **If you discover the Plan is wrong, STOP.** Do not silently change
    direction. Surface the discrepancy and ask whether to revise the
    Plan (back to `/spades:plan` / `/spades:approve`) or push through

@@ -1068,6 +1068,88 @@ repeat the rule; they reference it. Adding a new skill that does
 cross-cutting reads? The skill author reads this section, references
 it in their skill's prose, and the convention propagates.
 
+---
+
+## Carry-Forward of SPADES-Owned Artefacts
+
+Every phase writes artefacts. Scope writes a Scope file, Plan writes
+a Plan file, Approve and Do append audit-trail lines, Evaluate writes
+evaluation pages. In a repo with an SCM these land as **uncommitted
+changes**, and they accumulate as the loop progresses.
+
+### The rule
+
+> **Uncommitted SPADES-owned paths never block a phase.** They are
+> carried forward and swept into the next commit the pipeline makes.
+> No skill pauses, prompts, or aborts because SPADES artefacts are
+> pending.
+
+Waiting for artefacts to reach a PR before starting the next phase is
+the failure this rule exists to prevent. Do it and each phase needs
+its own commit and its own PR — the artefact count grows with every
+step, so does the PR count, and the human ends up merging bookkeeping
+instead of shipping work.
+
+### The allowlist
+
+SPADES-owned paths are exactly:
+
+```
+.spades/  AGENTS.md  INTENT.md  ARCHITECTURE.md  PATTERNS.md  ANTI-PATTERNS.md
+```
+
+Any skill that makes a commit sweeps this allowlist into it:
+
+```bash
+git add -- .spades AGENTS.md INTENT.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md 2>/dev/null || true
+```
+
+**Allowlist only — never `git add -A` or `git add .`.** The
+distinction is the whole safety property: SPADES stages what SPADES
+wrote, and nothing else.
+
+### Non-SPADES changes
+
+Uncommitted files outside the allowlist are the **human's** work in
+progress. They:
+
+- are never auto-staged by any SPADES skill;
+- never block a phase either;
+- ride along on whatever branch is checked out;
+- are mentioned **once**, in the phase report, so the human knows
+  they are there.
+
+A skill that stages a human's unrelated edits into a Plan's PR has
+committed a worse error than one that leaves them uncommitted.
+
+### Where the sweeps happen
+
+| Phase | Sweep |
+|---|---|
+| `/spades:do` | Each task commit sweeps the allowlist alongside the code it wrote. |
+| `/spades:ship` | Pre-push sweep — the last chance for artefacts to reach the deliverable PR. |
+| `/spades:close` | B3's sweep — the final catch-all, which is why close tolerates a dirty tree by design. |
+| `/spades:quick` | The single quick-path commit sweeps the allowlist. |
+
+Because every committing phase sweeps, the tree is
+**SPADES-clean at every hand-off**. That is what lets `/repo:sync`
+run between phases at all: it hard-refuses a dirty tree, and under
+this rule it never sees one in the normal path. If it does refuse,
+that is a genuine anomaly — a human edit outside the loop — not
+routine pipeline state, and surfacing its message verbatim is the
+correct response.
+
+### Why this lives in FRAMEWORK.md
+
+The rule spans every phase and the SCM drivers. Stating it once means
+`do`, `ship`, `close`, `quick`, and `loop` reference it rather than
+each inventing its own tolerance for pending files — which is how the
+inconsistency arose: `close` tolerated a dirty tree, `ship` prompted
+about one, and the loop stalled between them.
+
+Not applicable to `spades-anywhere`, which has no SCM: there are no
+commits to sweep into and nothing to block on.
+
 ## Output Format (CLI vs HTML)
 
 `/spades:setup` Step 1.7 records `review_format:` in

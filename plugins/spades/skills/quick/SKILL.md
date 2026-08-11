@@ -1,7 +1,7 @@
 ---
 name: quick
 description: Fast-track path for trivial work — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when someone says "just fix this small thing", "quick tweak", "one-line change", "typo fix", "rename this variable", or when you would otherwise invoke /spades:scope for a change that clearly meets every gate criterion below. Do NOT use for anything touching architecture, auth, schemas, public APIs, or requiring more than one focused commit.
-version: 2.1.0
+version: 2.2.0
 ---
 
 ## Pre-Flight
@@ -121,6 +121,17 @@ enough" judgement that the human needs to call, prompt via
 - Make the change in a **single commit**. If you find yourself wanting
   a second commit, that's a signal the work is bigger than fast-track
   allows — stop and re-evaluate the gate.
+- That commit also sweeps the SPADES allowlist, so the quick-item
+  marker travels with the fix rather than needing a PR of its own:
+
+  ```bash
+  git add -- .spades AGENTS.md INTENT.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md 2>/dev/null || true
+  ```
+
+  Allowlist only — never `git add -A`. Files outside it are the
+  human's work in progress: leave them, don't block on them. Pending
+  artefacts never gate the commit; see `docs/FRAMEWORK.md §
+  Carry-Forward of SPADES-Owned Artefacts`.
 - Do not refactor nearby code "while you're there". That's out of scope.
 
 ### 3. Verify

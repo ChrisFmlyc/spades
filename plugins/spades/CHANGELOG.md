@@ -8,6 +8,70 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.6.0] — 2026-08-11
+
+- **minor**: `/spades:loop` is now reachable by a driver. The
+  `disable-model-invocation: true` flag is dropped so a `/goal` (or
+  any driver the user set up) can delegate to it — the flag blocked
+  that path along with everything else.
+
+  The guard moves from the flag to the skill body, mirroring the same
+  change made to `crx:loop`:
+
+  - A new **§ Who may invoke this** names the only two legitimate
+    starts — the user invoking it, or a goal/driver the user
+    established — and rules out reaching for it unprompted.
+  - **The description deliberately carries no trigger conditions.** It
+    says what the skill does and never when to fire, so a Scope
+    existing, a Plan sitting in `draft`, or the user merely discussing
+    loopable work cannot pull it in. It also states outright that the
+    skill is not for autonomous use.
+
+- **minor**: **Artefacts now carry forward instead of gating a
+  phase.** New `docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned
+  Artefacts` makes it a framework contract:
+
+  > Uncommitted SPADES-owned paths never block a phase. They are
+  > carried forward and swept into the next commit the pipeline makes.
+
+  The old behaviour made each phase's artefacts wait for a PR before
+  the next phase started — so a Plan file, its audit-trail edits, and
+  two evaluation pages each wanted a commit of their own, and the PR
+  count grew with every step until the human was merging bookkeeping
+  instead of shipping work.
+
+  - The allowlist is exactly `.spades/`, `AGENTS.md`, `INTENT.md`,
+    `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`. Every
+    committing phase sweeps it — **allowlist only, never `git add
+    -A`**, which is the whole safety property: SPADES stages what
+    SPADES wrote and nothing else.
+  - **Files outside the allowlist are the human's work in progress.**
+    Never auto-staged, never blocking, mentioned once so the human
+    knows they are there. Staging someone's unrelated edits into a
+    Plan's PR is a worse error than leaving them uncommitted.
+  - Sweeps happen in `do` (each task commit), `ship` (pre-push — the
+    last chance to reach the deliverable PR), `quick` (its single
+    commit), and `close` (B3, the final catch-all — which is why
+    close tolerates a dirty tree by design).
+
+  Fixes the inconsistency that caused the stall: `close` tolerated a
+  dirty tree, `ship` prompted about one via `AskUserQuestion`, and
+  `/spades:loop` sat between them waiting. Because every committing
+  phase now sweeps, the tree is SPADES-clean at every hand-off — which
+  is what lets `/repo:sync` run between phases at all, since it
+  hard-refuses a dirty tree. A refusal is now a genuine anomaly (a
+  human edit outside the loop), not routine pipeline state.
+
+- **patch**: `agents_version` → 2.6.0. The consumer marker block gains
+  the carry-forward rule so downstream repos inherit it.
+
+- `/spades:loop` is 506 lines, over the 500 guideline by ~1%, within
+  the allowance for this accommodation.
+
+- Skills bumped: `loop` 1.0.0 → 1.1.0, `close` 4.6.0 → 4.7.0,
+  `do` 3.3.0 → 3.4.0, `ship` 3.2.0 → 3.3.0, `quick` 2.1.0 → 2.2.0,
+  `setup` 4.4.0 → 4.5.0
+
 ## [5.5.0] — 2026-08-10
 
 - **minor**: Every SKILL.md body is now **under 500 lines**, the

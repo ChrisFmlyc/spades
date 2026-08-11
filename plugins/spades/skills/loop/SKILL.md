@@ -1,8 +1,7 @@
 ---
 name: loop
-description: Drive one Scope from Plan all the way to closed-out, unattended. Chains /spades:plan → approve → do → evaluate → (human sign-off) → ship → bot-review via /crx:loop → squash-merge → /repo:sync → /spades:close → bot-review → merge → /repo:sync, pausing only where a human is genuinely required. Use after a Scope exists, when someone says "run the loop", "take this scope to done", "/spades:loop". Never creates or edits a Scope.
-version: 1.0.0
-disable-model-invocation: true
+description: Drives one existing Scope from Plan to closed-out — plan, approve, do, evaluate, human sign-off, ship, bot review, squash-merge, sync, close. Not for autonomous use and carries no trigger conditions: it runs only when the user invokes it directly, or when a goal or driver the user set up delegates to it. See "Who may invoke this".
+version: 1.1.0
 ---
 
 # /spades:loop
@@ -13,12 +12,35 @@ bookkeeping is yours, except the gates where a human is required.
 Read `docs/FRAMEWORK.md` § Orchestration Order (`/spades:loop`),
 § Target Resolution, § Freshness, and § Audit Trail before running.
 
-Slash-only — **invoking this skill authorizes the full pipeline on
-this Scope: branch, commit, push, open PRs, post and resolve bot
-review threads, squash-merge those PRs, sync the checkout.** Bounded
-to the resolved Scope's own Plans, branches, and PRs; to the pauses
-in § Pauses; and to forward motion only (no force-push, no `--admin`
-merge, no history rewrite, no resolving a human's thread).
+## Who may invoke this — and what that authorizes
+
+**Invoking this skill authorizes the full pipeline on this Scope:
+branch, commit, push, open PRs, post and resolve bot review threads,
+squash-merge those PRs, sync the checkout.** Bounded to the resolved
+Scope's own Plans, branches, and PRs; to the pauses in § Pauses; and
+to forward motion only (no force-push, no `--admin` merge, no history
+rewrite, no resolving a human's thread).
+
+Because that authorization is real, only two things may start it:
+
+1. **The user invoking `/spades:loop`** (optionally with a Scope or
+   Plan ID). The original and expected path.
+2. **A goal or driver the user set up, delegating to it** — e.g. a
+   `/goal` whose stated outcome is this Scope reaching closed-out.
+   The user's act of setting that goal is what carries the
+   authorization down.
+
+**Not authorized: reaching for this skill on your own initiative.**
+This skill deliberately carries **no trigger conditions** — its
+description says what it does, never when to fire. A Scope existing
+is not a request to run the loop; neither is a Plan sitting in
+`draft`, nor the user discussing work that could be looped. If nobody
+asked, offer it and let them decide.
+
+(Until v1.1.0 this was enforced mechanically with
+`disable-model-invocation: true`. That flag also blocked path 2, so
+it was dropped in favour of this rule. The rule is the contract — the
+flag was only ever its proxy.)
 
 The loop's own output is short CLI status lines — one per stage
 transition, one block per pause. It renders no review surface of its
@@ -240,8 +262,13 @@ the same gap means the Plan is wrong, not the execution.
 ## Stage 6 — Ship
 
 Invoke **`/spades:ship P-<plan-id>`**. Its `scm-github` driver
-Phase 1 pushes, opens the PR, records `PR opened: <url>`, and exits
-with the Plan in `shipping`.
+Phase 1 sweeps pending SPADES artefacts, pushes, opens the PR,
+records `PR opened: <url>`, and exits with the Plan in `shipping`.
+
+That sweep is what keeps the pipeline moving: every artefact written
+since Stage 1 — Plan files, audit-trail edits, evaluation pages —
+lands in **this** PR rather than waiting for one of its own. See
+`docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts`.
 
 **Honour that exit.** Do not follow ship into Phase 2 — the loop
 merges at Stage 8 and closes out via `/spades:close`. Capture the PR
@@ -341,8 +368,12 @@ branch-protection rule blocks the merge, that rule is doing its job
 Invoke **`/repo:sync`** — leaves `main` fast-forwarded with the
 merged branch deleted, exactly the state `/spades:close` asserts.
 
-If it refuses (dirty tree), surface its message verbatim and pause.
-It owns that decision; never auto-stash or auto-discard.
+Stage 6's sweep means the tree is SPADES-clean here, so `/repo:sync`
+has nothing to refuse in the normal path. **A refusal is therefore a
+genuine anomaly** — a human edit made outside the loop — not routine
+pipeline state. Surface its message verbatim and pause. It owns that
+decision; never auto-stash, auto-discard, or sweep non-SPADES files
+to get past it.
 
 ## Stage 10 — Close
 
@@ -419,6 +450,13 @@ resuming is re-entering at the derived stage.
 | 10 | A child skill aborts or refuses | any |
 | 11 | Mixed-terminal Scope rollup needs acknowledgement | 10 |
 | 12 | The human says stop | any |
+
+**Pending SPADES artefacts are not a pause.** Uncommitted files under
+`.spades/` or the doc allowlist never stop a stage — they carry
+forward and get swept by the next committing phase (`docs/FRAMEWORK.md
+§ Carry-Forward of SPADES-Owned Artefacts`). Never wait for artefacts
+to reach a PR before advancing; that is what turns one deliverable
+into a chain of bookkeeping PRs.
 
 **Never work around a guardrail.** A child skill's refusal is the
 answer — surface it verbatim and stop.

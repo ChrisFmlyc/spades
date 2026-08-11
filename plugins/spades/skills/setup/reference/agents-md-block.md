@@ -199,6 +199,29 @@ or Plan is created.
 
 If any criterion fails, fall back to the full loop.
 
+## Artefacts Carry Forward — Never Block on Pending Files
+
+Every phase writes artefacts, and in a git repo they land as
+uncommitted changes that accumulate as work progresses.
+
+**Uncommitted SPADES-owned paths never block a phase.** No skill
+pauses, prompts, or aborts because artefacts are pending; they carry
+forward and are swept into the next commit the pipeline makes.
+
+SPADES-owned paths are exactly `.spades/`, `AGENTS.md`, `INTENT.md`,
+`ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`. Every
+committing phase (`do`, `ship`, `close`, `quick`) sweeps that
+allowlist — **allowlist only, never `git add -A`**. Files outside it
+are your work in progress: never auto-staged, never blocking,
+mentioned once so you know they're there.
+
+Waiting for artefacts to reach a PR before starting the next phase is
+the failure this prevents — otherwise every phase needs its own
+commit and its own PR, and you end up merging bookkeeping instead of
+shipping work. `/spades:close` is the deliberate final catch-all: it
+tolerates a dirty tree by design and sweeps whatever earlier phases
+left behind.
+
 ## Architecture Constraints
 
 Before generating any Plan, read these files if they exist:
