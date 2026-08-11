@@ -8,6 +8,27 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.8.1] — 2026-08-11
+
+- **patch**: `/spades:close` **B5 now checks whether the bookkeeping
+  PR merged instead of asking the human.** B1 already guarantees
+  `scm: github`, so `gh` is always available — asking someone to
+  report something the skill can determine is a worse answer than
+  determining it.
+
+  `MERGED` → continue. `OPEN` → say so and exit cleanly. `CLOSED`
+  unmerged → surface and stop. **Only if the probe itself fails** —
+  `gh` error, malformed response — does it ask, which is what the
+  question was always for.
+
+  This also removes a needless hand-off from `/spades:loop`: Stages
+  12–13 merge the bookkeeping PR and B5's next probe simply sees it,
+  rather than the loop asserting a merge to a skill that could have
+  looked. The ordering guarantee is unchanged — the Linear mirror
+  still never runs ahead of the audit trail landing on `main`.
+
+- Skills bumped: `close` 4.9.0 → 4.10.0, `loop` 1.5.0 → 1.5.1
+
 ## [5.8.0] — 2026-08-11
 
 - **minor**: `/spades:loop` now has one unambiguous definition of
