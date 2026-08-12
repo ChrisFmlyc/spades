@@ -33,7 +33,7 @@ gh api graphql -f query='
 ```
 
 A thread is outstanding when `isResolved == false`. Who opened it
-decides who handles it — `coderabbitai[bot]` goes to `/crx:loop`,
+decides who handles it — `coderabbitai[bot]` goes to `/codereview:loop`,
 another `[bot]` is handled in Stage 7.3, a **human** is never touched
 and is always a pause.
 
