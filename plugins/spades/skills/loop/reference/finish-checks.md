@@ -16,10 +16,10 @@ owns *how you find out*.
 
 ## Thread sweep
 
-The canonical query for unresolved review threads. Stage 7.3 uses it
-to find non-CodeRabbit findings, Stage 8 re-runs it immediately
-before merging (a bot can post between the sweep and the merge), and
-FINISHED assertion 2 uses it on both PRs.
+The canonical query for unresolved review threads. Stage 7's final
+sweep uses it, Stage 8 re-runs it immediately before merging (a bot
+can post between the sweep and the merge), and FINISHED assertion 2
+uses it on both PRs.
 
 ```bash
 gh api graphql -f query='
@@ -33,9 +33,8 @@ gh api graphql -f query='
 ```
 
 A thread is outstanding when `isResolved == false`. Who opened it
-decides who handles it — `coderabbitai[bot]` goes to `/codereview:loop`,
-another `[bot]` is handled in Stage 7.3, a **human** is never touched
-and is always a pause.
+decides who handles it — any `[bot]` goes to `/codereview:loop`, and a
+**human** is never touched and is always a pause.
 
 ---
 

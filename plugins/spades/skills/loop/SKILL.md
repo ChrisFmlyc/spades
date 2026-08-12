@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, do, evaluate, ship, bot review, squash-merge, deploy, close, sync — answering for the human at every step the AI can answer. Not for autonomous use and carries no trigger conditions: it runs only when the user invokes it directly, or when a goal or driver the user set up delegates to it. See "Who may invoke this".
-version: 1.7.1
+version: 1.7.2
 ---
 
 # /spades:loop
@@ -411,14 +411,14 @@ Drive the ship PR to zero unresolved bot review threads. **Read
 
 The rules that don't bend, wherever the detail lives:
 
-- **CodeRabbit is `/codereview:loop`'s, entirely.** Invoke it; it returns
-  when CodeRabbit is clean. It owns the waiting, the rounds, the
-  fixing, and its own cap — **assume it completed its contract.**
-  Don't wait for CodeRabbit yourself, don't count its rounds, don't
-  re-implement its cycle. If it stops short it says why: surface that
-  and pause.
-- **Everything CodeRabbit isn't, is yours** — other review bots, and
-  the final sweep before merge.
+- **Every review bot is `/codereview:loop`'s, entirely** — CodeRabbit,
+  Greptile, and any other coding agent. Invoke it; it returns when
+  they are clean. It owns the waiting, the cycles, the fixing, and its
+  own cap — **assume it completed its contract.** Don't wait for a
+  review yourself, don't count its cycles, don't re-implement its
+  loop. If it stops short it says why: surface that and pause.
+- **What it never touches is yours** — human threads, and the final
+  sweep before merge.
 - **`CHANGES_REQUESTED` is not a blocker** — it means *review this
   thing*. Fix in code and push (preferred), or resolve manually with
   a comment.
@@ -447,12 +447,14 @@ gh pr view <n> --json state,mergeable,mergeStateStatus,statusCheckRollup
   [`reference/bot-review.md`](reference/bot-review.md); a bot can
   post between the sweep and the merge.
 
-**Never gate on `reviewDecision`.** CodeRabbit never posts
-`APPROVED` and never retracts `CHANGES_REQUESTED`, so once it flags
-a PR that verdict is permanent — gating on it deadlocks every PR the
-bot ever reviewed, with every finding fixed and every thread
-resolved. Zero unresolved threads is the real signal. Check human
-reviewers individually instead:
+**Never gate on `reviewDecision`.** It is a single PR-level verdict
+that mixes bots and humans together, so it cannot tell you *who*
+wants changes — and a bot wanting changes is already handled while a
+human wanting changes is a pause. It also lags: a bot clears its
+`CHANGES_REQUESTED` only once every thread is closed, which is the
+same moment the thread sweep already told you. Zero unresolved
+threads is the real signal. Check human reviewers individually
+instead:
 
 ```bash
 gh pr view <n> --json reviews \
@@ -647,7 +649,7 @@ resuming re-enters at the derived stage.
 | 4 | `/spades:do` finds the Plan is wrong mid-flight | 3 |
 | 5 | Evaluate verdict FAIL | 5 |
 | 6 | Third PARTIAL on the same Plan (rework cap 2) | 5 |
-| 7 | `/codereview:loop` stops short, or your own other-bot cycle hits its 3-round cap | 7, 12 |
+| 7 | `/codereview:loop` stops short, or a human thread is open | 7, 12 |
 | 8 | An unresolved review thread from a **human** | 7, 12 |
 | 9 | Any pre-merge assertion fails | 8, 13 |
 | 10 | Deploy `failure` / `error` | 9 |
