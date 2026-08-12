@@ -367,22 +367,23 @@ that need to verify post-merge state (`/spades:close`, `/spades:loop`)
 invoke `/repo:sync` directly. The dependency is **one-directional**:
 SPADES → `repo`, never the reverse.
 
-### The same rule for CodeRabbit — defer to the `crx` plugin
+### The same rule for CodeRabbit — defer to the `codereview` plugin
 
-SPADES does not own PR review triage either. The `crx` plugin (same
-`ai-skills` marketplace) does.
+SPADES does not own PR review triage either. The `codereview` plugin
+(same `ai-skills` marketplace) does.
 
 | When you need to… | Use |
 |-------------------|-----|
-| Drive a PR to zero outstanding CodeRabbit findings | `/crx:loop` — waits for the review, dispatches each finding, pushes fixes, re-checks. |
-| Fix one pasted CodeRabbit finding | `/crx:single` |
-| Fix a pasted batch of findings | `/crx:multi` |
+| Drive a PR to zero outstanding CodeRabbit findings | `/codereview:loop` — waits for the review, dispatches each finding, pushes fixes, re-checks. |
+| Fix one pasted CodeRabbit finding | `/codereview:single` |
+| Fix a pasted batch of findings | `/codereview:multi` |
 
-`/spades:loop` Stage 7 invokes `/crx:loop` rather than re-implementing
-the fix-or-rebut contract, and handles only what `/crx:loop`
-deliberately leaves alone — non-CodeRabbit review bots such as
-Greptile. Human review threads are never auto-resolved by either
-plugin. Same one-directional rule: SPADES → `crx`, never the reverse.
+`/spades:loop` Stage 7 invokes `/codereview:loop` rather than
+re-implementing the fix-or-rebut contract, and handles only what
+`/codereview:loop` deliberately leaves alone — non-CodeRabbit review
+bots such as Greptile. Human review threads are never auto-resolved by
+either plugin. Same one-directional rule: SPADES → `codereview`, never
+the reverse.
 
 Before any commit or `/spades:ship` that touches `plugins/spades/`, run
 the § Versioning release gate (version bump + changed skills + CHANGELOG).

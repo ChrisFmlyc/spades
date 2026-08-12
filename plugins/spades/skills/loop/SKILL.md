@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, do, evaluate, ship, bot review, squash-merge, deploy, close, sync — answering for the human at every step the AI can answer. Not for autonomous use and carries no trigger conditions: it runs only when the user invokes it directly, or when a goal or driver the user set up delegates to it. See "Who may invoke this".
-version: 1.7.0
+version: 1.7.1
 ---
 
 # /spades:loop
@@ -167,13 +167,13 @@ Every failure is an abort with a pointer, never an inline fix.
 3. **`project:` is set.** Else → `/spades:setup`.
 4. **Prerequisite plugins** — the loop defers all git and all
    CodeRabbit work to them. Probe
-   `$HOME/.claude/plugins/cache/ai-skills/{repo,crx}`; either missing
+   `$HOME/.claude/plugins/cache/ai-skills/{repo,codereview}`; either missing
    → abort with:
 
    ```
    /plugin marketplace add ChrisFmlyc/ai-skills
    /plugin install repo@ai-skills
-   /plugin install crx@ai-skills
+   /plugin install codereview@ai-skills
    ```
 
 5. **`gh` installed and authenticated** (`command -v gh`;
@@ -411,7 +411,7 @@ Drive the ship PR to zero unresolved bot review threads. **Read
 
 The rules that don't bend, wherever the detail lives:
 
-- **CodeRabbit is `/crx:loop`'s, entirely.** Invoke it; it returns
+- **CodeRabbit is `/codereview:loop`'s, entirely.** Invoke it; it returns
   when CodeRabbit is clean. It owns the waiting, the rounds, the
   fixing, and its own cap — **assume it completed its contract.**
   Don't wait for CodeRabbit yourself, don't count its rounds, don't
@@ -647,7 +647,7 @@ resuming re-enters at the derived stage.
 | 4 | `/spades:do` finds the Plan is wrong mid-flight | 3 |
 | 5 | Evaluate verdict FAIL | 5 |
 | 6 | Third PARTIAL on the same Plan (rework cap 2) | 5 |
-| 7 | `/crx:loop` stops short, or your own other-bot cycle hits its 3-round cap | 7, 12 |
+| 7 | `/codereview:loop` stops short, or your own other-bot cycle hits its 3-round cap | 7, 12 |
 | 8 | An unresolved review thread from a **human** | 7, 12 |
 | 9 | Any pre-merge assertion fails | 8, 13 |
 | 10 | Deploy `failure` / `error` | 9 |

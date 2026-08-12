@@ -8,6 +8,31 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.11.1] — 2026-08-12
+
+- **patch**: The `crx` plugin was renamed to `codereview` in the
+  `ai-skills` marketplace. Every invocation reference SPADES makes to
+  it is updated: `/crx:loop` → `/codereview:loop`, `/crx:single` →
+  `/codereview:single`, `/crx:multi` → `/codereview:multi`, plus the
+  plugin name in prose, the Stage 4 prerequisite probe
+  (`$HOME/.claude/plugins/cache/ai-skills/{repo,codereview}`) and the
+  install line (`/plugin install codereview@ai-skills`). The entries
+  below are left untouched — they record what the plugin was called at
+  the time.
+
+  Touches `AGENTS.md` (agents_version 2.7.0 → 2.7.1),
+  `docs/FRAMEWORK.md`, `skills/loop/` (1.7.0 → 1.7.1) and
+  `skills/setup/` (4.6.0 → 4.6.1).
+
+- **Requires** `codereview@ai-skills` ≥ 0.6.0 — the first version
+  published under the new name. Anyone still on `crx@ai-skills` must
+  uninstall it and install `codereview@ai-skills`; a plugin update
+  does not follow the rename.
+
+- Also backfills `.spades/version`, which PR #73 left at 5.10.0 while
+  bumping `plugin.json` and the marketplace to 5.11.0. 5.11.0 has no
+  entry of its own; the change it shipped is described under 5.10.0.
+
 ## [5.10.0] — 2026-08-11
 
 - **minor**: Stage 7 now **delegates CodeRabbit to `/crx:loop` and
