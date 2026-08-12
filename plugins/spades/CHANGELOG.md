@@ -8,6 +8,36 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.11.2] — 2026-08-12
+
+- **patch**: `codereview:single` and `codereview:multi` were merged into
+  a single `/codereview:fix` skill, so every SPADES reference to the old
+  pair is updated. `/codereview:fix` takes a block of findings of any
+  size, runs one subagent per finding, and never pushes — the caller
+  does that.
+
+  Touches `AGENTS.md` (agents_version 2.7.1 → 2.7.2),
+  `docs/FRAMEWORK.md`, `skills/loop/` (1.7.1 → 1.7.2) and
+  `skills/setup/` (4.6.1 → 4.6.2).
+
+  `/codereview:loop` also now covers **every** review bot, not just
+  CodeRabbit, so Stage 7's two-owner split moves with it.
+  `reference/bot-review.md` loses its "other bots (Greptile and
+  friends)" section — `/spades:loop` no longer runs a review cycle of
+  its own, and no longer has a 3-round cap to run. What is left to
+  `/spades:loop` is human threads and the final sweep before merge.
+
+- **Requires** `codereview@ai-skills` ≥ 1.0.0.
+
+- Also corrects a claim this changelog helped spread. 5.10.0 and the
+  #14 entry state that CodeRabbit never retracts `CHANGES_REQUESTED`.
+  It does, once every thread is closed. Stage 8's gate is unchanged —
+  ignore `reviewDecision`, check human reviewers individually — but its
+  stated reason is now the true one: `reviewDecision` is a single
+  PR-level verdict that mixes bots and humans, so it cannot say *who*
+  wants changes, and it lags the thread sweep that already answered
+  the question.
+
 ## [5.11.1] — 2026-08-12
 
 - **patch**: The `crx` plugin was renamed to `codereview` in the

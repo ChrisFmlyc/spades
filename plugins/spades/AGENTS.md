@@ -374,16 +374,15 @@ SPADES does not own PR review triage either. The `codereview` plugin
 
 | When you need to… | Use |
 |-------------------|-----|
-| Drive a PR to zero outstanding CodeRabbit findings | `/codereview:loop` — waits for the review, dispatches each finding, pushes fixes, re-checks. |
-| Fix one pasted CodeRabbit finding | `/codereview:single` |
-| Fix a pasted batch of findings | `/codereview:multi` |
+| Drive a PR to zero outstanding review-bot findings | `/codereview:loop` — waits for each review, hands findings to `/codereview:fix`, pushes, re-checks. |
+| Fix a block of review findings, one or many | `/codereview:fix` — one subagent per finding; fixes in code or answers on GitHub. Never pushes. |
 
 `/spades:loop` Stage 7 invokes `/codereview:loop` rather than
-re-implementing the fix-or-rebut contract, and handles only what
-`/codereview:loop` deliberately leaves alone — non-CodeRabbit review
-bots such as Greptile. Human review threads are never auto-resolved by
-either plugin. Same one-directional rule: SPADES → `codereview`, never
-the reverse.
+re-implementing the fix-or-answer contract, and handles only what
+`/codereview:loop` deliberately leaves alone — human review threads,
+and the final sweep before merge. A human's thread is never
+auto-resolved by either plugin. Same one-directional rule: SPADES →
+`codereview`, never the reverse.
 
 Before any commit or `/spades:ship` that touches `plugins/spades/`, run
 the § Versioning release gate (version bump + changed skills + CHANGELOG).

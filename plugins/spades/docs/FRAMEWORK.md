@@ -516,7 +516,7 @@ never meet:
 /spades:loop             (delivery — drives phases, aborts on prerequisites)
    ├─► /spades:plan ──────► /spades:approve ──► /spades:do ──► /spades:evaluate
    ├─► /spades:ship ──────► skills/ship/scm-github.md
-   ├─► /codereview:loop ──► /codereview:single | /codereview:multi
+   ├─► /codereview:loop ──► /codereview:fix
    ├─► /spades:close ─────► (bookkeeping PR)
    └─► /repo:sync
 ```
@@ -547,7 +547,7 @@ counted in the Plan's audit trail and both terminate:
 | Back-edge | Cap | Marker |
 |---|---|---|
 | Evaluate `PARTIAL` → `/spades:do` | 2 reworks per Plan | `Loop — rework <n>/2 after PARTIAL: …` |
-| Bot review round → push → re-review | 3 rounds per PR, for the loop's own non-CodeRabbit cycle; `/codereview:loop` runs and caps its own | `Loop — bot review clean on <url> (<n> rounds)` |
+| Bot review cycle → push → re-review | Owned and capped entirely by `/codereview:loop`; `/spades:loop` runs no review cycle of its own | `Loop — bot review clean on <url>` |
 
 Every other edge is forward-only. An uncapped back-edge is the same
 bug class as a cycle — it just fails slowly instead of immediately.

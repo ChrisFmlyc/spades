@@ -273,8 +273,8 @@ logic inside a SPADES skill.
 | Create a new branch off main | `/repo:branch` (validates the name) plus `git switch -c <name>` to create in place, or `/repo:newbranch` for create-with-worktree. |
 | Sync local main after a PR merge | `/repo:sync` — fetches, ff-pulls main, force-deletes the merged feature branch. |
 | Refuse to commit on `main` / `master` | `/repo:branch` enforces this absolutely — no overrides. |
-| Drive a PR to zero CodeRabbit findings | `/codereview:loop` — waits for the review, fixes or rebuts each finding, pushes, re-checks. |
-| Fix one pasted CodeRabbit finding | `/codereview:single`; a pasted batch → `/codereview:multi` |
+| Drive a PR to zero review-bot findings | `/codereview:loop` — waits for each review, hands findings to `/codereview:fix`, pushes, re-checks. |
+| Fix a block of review findings, one or many | `/codereview:fix` — one subagent per finding. Never pushes. |
 
 SPADES skills that branch off main (`/spades:do`, `/spades:close`)
 go through `/repo:branch`'s regex validation. SPADES skills that
