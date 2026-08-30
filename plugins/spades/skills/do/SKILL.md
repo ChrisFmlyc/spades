@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 3.4.0
+version: 3.5.0
 ---
 
 # /spades:do
@@ -346,6 +346,26 @@ Print the summary:
 Next:
   /spades:evaluate P-rag-pipeline-lookup-3HyD   — verify against criteria
 ```
+
+## Step 6 — Record Leads
+
+Delivery is done. Anything you noticed along the way that was
+**outside this Plan** is a Lead — record it now, while the diff is
+fresh, and move on.
+
+Invoke **`/spades:leads --from do --plan P-<plan-id>`**. It spawns a
+scout over the Plan's diff, files what clears its gate, and prints a
+one-line receipt.
+
+- **Never ask whether to generate Leads.** Capture is a side effect
+  of delivery, not a question. See `/spades:leads` § Two invariants.
+- **Never block on it.** A Leads failure prints a warning; this skill
+  still reports the Plan as delivered.
+- **Under `/spades:loop`, this step is deferred to Stage 5** — after
+  the verdict, when the diff is final. A PARTIAL rolls the Plan back
+  here, and Leads filed against a diff that is about to change are
+  waste. The loop owns that timing; standalone runs fire now.
+- Skipped entirely when `leads: off` in `.spades/config`.
 
 ## Edge Cases
 

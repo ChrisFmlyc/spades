@@ -230,6 +230,16 @@ from its filename), filesystem-safe, and stable.
   is an independent sibling of a Scope (see § Hierarchy → Objectives), not a
   parent or child of one.
 
+### Lead ID
+- Form: `L-<description-slug>-<suffix>` — `L-` prefix, the same slug
+  grammar, plus a random 4-character base62 suffix minted exactly as a
+  Plan's (collision-checked against existing Leads).
+- Stored at: `.spades/leads/L-<description-slug>-<suffix>.md`.
+- A Lead belongs to a **project**, never to a Scope or Plan. It records
+  where it came from (`origin_plan`, `learning_ref`) without being owned
+  by it — the originating work is usually shipped and closed long before
+  the Lead is picked up.
+
 ### Plan ID
 - Form: `P-<description-slug>-<own-suffix>[-<dep-suffix>...]`.
 - `own-suffix` — 4-character base62 (`[A-Za-z0-9]{4}`), randomly minted
@@ -292,6 +302,7 @@ volume is high (plans, where the same description may recur).
 ├── plans/P-<desc-slug>-<suffix>[-<dep>...].md # plan records
 ├── quick/Q-<desc-slug>-<suffix>.md           # quick-path items (no Scope/Plan)
 ├── learnings/YYYY-MM-DD-<slug>.md            # learning records
+├── leads/L-<desc-slug>-<suffix>.md           # recorded ideas, out of scope by construction
 └── reviews/<slug>-<date>.md                  # panel-review reports
 ```
 
@@ -301,6 +312,7 @@ volume is high (plans, where the same description may recur).
 backend: linear | local
 project: <project-slug>             # active project for this repo
 scm: github | local-git             # source-code-management tool (default: local-git)
+leads: local | off | linear         # lead capture (default: local when absent)
 linear:                             # only when backend: linear
   team_id: <uuid>
   project_id: <uuid>                # Linear's own Project ID for this project
@@ -628,6 +640,9 @@ their storage; skills don't need to know how.
 | `record_shipment(plan_id, artefact_ref)` | Record the ship phase's deliverable reference (PR URL, doc URL, evidence text). |
 | `create_learning(record)` | Append a learning. |
 | `list_learnings()` | List active learnings. |
+| `create_lead(record)` | Record a lead. Returns the lead ID. |
+| `list_leads(filter)` | List leads for the active project, filterable by status. |
+| `update_lead(id, fields)` | Update specified fields on a lead (e.g. `status`, `promoted_to`). |
 
 ### The two shipped drivers
 
@@ -641,6 +656,11 @@ their storage; skills don't need to know how.
   a milestone alone is not a valid Objective.
 - Scope → parent Issue
 - Plan → sub-issue under the parent
+- Lead → a Linear **Issue on the Project**, titled `L-<slug> — <title>`,
+  labelled `spades:lead`, held in the team's triage/backlog state. It is
+  not a Scope and never becomes one — promoting a Lead closes its issue
+  and opens a Scope issue that links back. Only mirrored when
+  `leads: linear`; under `leads: local` a Lead is a file and nothing more.
 - `record_*` operations → comments on the parent issue
 - Statuses → Linear workflow states
 

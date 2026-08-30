@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 4.6.2
+version: 4.7.0
 ---
 
 # /spades:setup
@@ -291,6 +291,7 @@ backend: linear            # or: local
 project: <project-slug>    # unset when create_new_project (Step 3.5 fills it)
 scm: github                # or: local-git
 review_format: html        # or: cli  (defaults to cli on older configs)
+leads: local               # or: off | linear  (defaults to local when absent)
 linear:                    # only when backend: linear
   team_id: <uuid>
   project_id: <uuid>       # unset when create_new_project
@@ -352,7 +353,7 @@ Idempotent — overwrite is fine.
 ## Step 5 — Scaffold `.spades/` subdirectories
 
 Create if missing, no files inside: `projects/`, `scopes/`,
-`plans/`, `learnings/`, `reviews/`.
+`plans/`, `learnings/`, `reviews/`, `leads/`.
 
 ## Step 5.5 — Ignore transient HTML scratch
 
