@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Record Leads — ideas, problems, and improvements an agent noticed while working, that are deliberately OUT of scope for the current work. Runs a scout sub-agent over what just happened and files one Lead per idea under .spades/leads/. Invoked automatically when /spades:do, /spades:learn, or /spades:review finish, or directly as `/spades:leads`. Use `--list` to publish the board, `--promote` to turn Leads into a Scope, `--decline` to close them. Never asks whether to generate Leads, and never writes code.
-version: 1.0.1
+version: 1.1.0
 ---
 
 # SPADES Leads
@@ -52,7 +52,7 @@ is what separates it from everything else SPADES records:
 
 | Invocation | Mode |
 |---|---|
-| `/spades:leads` | **Scout** the working state — the branch diff vs `main`, or everything since the last Lead if the tree is clean — then record and list. |
+| `/spades:leads` | **Scout** the working state — the branch diff vs `main`, or everything since the last Lead if the tree is clean — then record, render, and open the board. |
 | `/spades:leads --from do --plan P-…` | Scout the Plan's diff. Auto-invoked. |
 | `/spades:leads --from learn --learning <path>` | Scout one Learning for the change it implies. Auto-invoked. |
 | `/spades:leads --from review --report <path>` | Scout a review report's non-blocking findings. Auto-invoked. |
@@ -60,8 +60,9 @@ is what separates it from everything else SPADES records:
 | `/spades:leads --promote L-a,L-b` | Turn Leads into a Scope (or a Quick item). |
 | `/spades:leads --decline L-x "reason"` | Close a Lead with a reason. |
 
-Every capture mode ends by printing the receipt in § The receipt.
-`--list` is the only mode that renders the board.
+**Every mode that records ends by rendering and opening the board** —
+receipt first, then § Render and open. `--list` skips the recording
+and goes straight there.
 
 ## Storage format
 
@@ -205,7 +206,8 @@ caller continues.
 
 ## The receipt
 
-Every capture mode ends with one line. Not a prompt — a receipt:
+Every capture mode prints one line before rendering. Not a prompt —
+a receipt:
 
 ```
 ○ Leads — 2 filed: L-parse-config-swallows-zoderror, L-lint-accepts-nested-yaml
@@ -218,8 +220,18 @@ Nothing filed:
 ○ Leads — none (nothing outside scope worth recording)
 ```
 
-Then return control to the caller. Do not render the board, do not
-open anything, do not ask a question.
+Then **render and open the board** per § Render and open, and return
+control to the caller. Never ask a question.
+
+Two cases skip the render, because a tab showing nothing is worse
+than no tab:
+
+- `leads: off` — nothing ran at all.
+- Nothing filed **and** no open Leads already on the board.
+
+Nothing filed but Leads *are* open → still render. The human asked
+for a capture and the board is the answer to "so what is outstanding
+now?".
 
 ## `--list` — the board
 
@@ -251,13 +263,54 @@ Conversion is `promoted / (promoted + declined)`. Above the band
 means Leads are being rubber-stamped or the scout is under-generating;
 below it means noise. Report the number, never act on it.
 
-**Render per `review_format:`, then open:**
+Then render it per § Render and open.
 
-- **`cli`** — write `.spades/.tmp/leads.md`, print the board inline,
-  and open the file with the OPEN_CMD prelude.
-- **`html`** — dispatch `worker-html-leads` (below), which renders
-  and opens `.spades/.tmp/leads.html`. Do not also dump the board to
-  the CLI; the tab is the surface.
+## Render and open
+
+**Read `review_format:` from `.spades/config` and branch.** This step
+is not optional and not conditional on how the skill was invoked — a
+recorded Lead the human never sees is the same as no Lead.
+
+Create `.spades/.tmp/` if it does not exist (it is gitignored by
+`/spades:setup` § Step 5.5).
+
+### `review_format: cli`
+
+1. Write the board to `.spades/.tmp/leads.md` — the funnel header,
+   then the areas, then the rows.
+2. **Print it inline.** In CLI mode the terminal is the surface.
+3. Open the file too, so it survives the scrollback: run the
+   **OPEN_CMD prelude** (`docs/FRAMEWORK.md § OPEN_CMD detection
+   prelude`) and `$OPEN_CMD "<absolute-path-to-leads.md>"` in the
+   background.
+
+### `review_format: html`
+
+1. Dispatch **`worker-html-leads`** (below). Per
+   `docs/FRAMEWORK.md § worker-html-* — parallel HTML rendering` the
+   worker renders **and** opens the page — the open is step 4 of its
+   contract, not an afterthought.
+2. **Do not also dump the board to the CLI.** The tab is the surface;
+   print the two-line confirmation instead:
+
+   ```
+   ✓ Leads board: .spades/.tmp/leads.html
+   ○ opened in your browser
+   ```
+
+### When the open fails
+
+`OPEN_CMD` is empty on an unrecognised OS, and the worker returns
+`opened: false` in that case. **Never treat that as a failure** —
+print the path and carry on:
+
+```
+✓ Leads board: .spades/.tmp/leads.html
+○ Open it in your browser: file:///<absolute-path>
+```
+
+Same fallback in CLI mode; the board was already printed inline, so
+nothing is lost.
 
 ### `worker-html-leads`
 
@@ -365,5 +418,7 @@ overlap if an evaluate follows later. Same scout, same
 - Using a Lead as evidence for a `/spades:evaluate` verification row,
   or as a reason a PR should not merge.
 - Recording `status: promoted` before the Scope or Quick item exists.
+- Recording Leads without rendering the board — see § Render and
+  open. The two exceptions are listed there and are the only ones.
 - Blocking the calling skill on a Leads failure.
 - Invoking another SPADES skill.
