@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SPADES template: leads v2.0.0 (matches plugin v5.12.1) -->
+<!-- SPADES template: leads v3.0.0 (matches plugin v5.13.0) -->
 <!--
   Transient leads board (.spades/.tmp/leads.html). Re-rendered on
   every /spades:leads --list.
@@ -7,10 +7,13 @@
   Derived from skills/list/template.html — identical Cockpit skeleton
   (header.cmd -> .deck -> .wrap.body -> aside.rail + main -> footer),
   identical sizing, spacing, radii, grid columns and media query.
-  Only the :root palette differs: brand amber gold (#FFC107 primary,
-  #FFDE59 light) on white panels with black text. Structural var
-  NAMES are unchanged from list, so a palette change is a one-block
-  swap; the accent names --lime/--teal are replaced by --gold*.
+  The CSS is list's CSS verbatim — same :root, same Cockpit palette
+  (dark deck, lime/teal accents) — with only three changes: the
+  artefact classes renamed (.scope-* -> .lead-*, .phase-row ->
+  .area-row), the status pills swapped for kind pills on the same
+  rgba-tint pattern, and .area-row .lbl made monospace and
+  uncapitalised because leads' rail labels are file paths, not
+  status words.
 
   RENDER CONTRACT (string substitution + block repetition)
   Field names follow SKILL.md 'worker-html-leads'.
@@ -35,39 +38,38 @@
 <title>SPADES Leads &middot; {{spades.project_slug}}</title>
 <style>
   :root {
-    --bg: #f6f5f1; --bg-bar: #ffffff; --panel: #ffffff; --panel-2: #efece4;
-    --panel-inset: #faf8f2; --border: #e3e0d7; --hair: #f0eee8;
-    --ink: #101014; --ink-soft: #3d3d47; --ink-strong: #000000;
-    --muted: #6b6b78; --muted-2: #8b8b98; --muted-3: #a8a8b4;
-    --gold: #FFC107; --gold-lite: #FFDE59; --gold-deep: #B26A00;
-    --red: #b3261e; --red-soft: #8c1d16; --green: #1a7f4b; --amber: #b26a00;
-    --k-defect: #8c1d16; --k-enhancement: #6b4e00; --k-simplification: #14603a;
-    --k-risk: #8a4b00; --k-opportunity: #4b32a8;
-    --cf-high: #1a7f4b; --cf-medium: #b26a00; --cf-low: #8b8b98;
+    --bg: #0b0e14; --bg-bar: #0d1117; --panel: #141a23; --panel-2: #1b2330;
+    --panel-inset: #11161f; --border: #263041; --hair: #161d28;
+    --ink: #e6edf3; --ink-soft: #c3cdd9; --ink-strong: #dbe3ec;
+    --muted: #8b98ab; --muted-2: #6b7688; --muted-3: #5f6b7e;
+    --lime: #c3f73a; --teal: #38e8e0; --amber: #ff9f1c; --red: #ff4d4d; --red-soft: #ff7a7a; --green: #3ddc84;
+    --st-scoped: #aab4c4; --st-planning: #ffb454; --st-approval: #ffb454;
+    --st-delivering: #5fb0ff; --st-evaluating: #c4b1fb; --st-shipping: #5fe0d8;
+    --st-shipped: #3ddc84; --st-done: #3ddc84; --st-rejected: #ff7a7a; --st-abandoned: #aab4c4;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif; font-size: 16px; line-height: 1.55; }
   *::-webkit-scrollbar { width: 10px; height: 10px; }
-  *::-webkit-scrollbar-thumb { background: #cfcbc0; border-radius: 6px; }
+  *::-webkit-scrollbar-thumb { background: #2b3647; border-radius: 6px; }
   *::-webkit-scrollbar-track { background: var(--bg); }
   a { color: inherit; }
   .wrap { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
   code { font-family: ui-monospace, Menlo, monospace; background: var(--panel-2); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
 
   /* COMMAND BAR */
-  header.cmd { position: sticky; top: 0; z-index: 20; background: var(--bg-bar); border-bottom: 1px solid var(--border); box-shadow: 0 6px 18px rgba(16,16,20,0.06); }
+  header.cmd { position: sticky; top: 0; z-index: 20; background: var(--bg-bar); border-bottom: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
   header.cmd .wrap { padding-top: 14px; padding-bottom: 14px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
   .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-  .spade { width: 26px; display: flex; align-items: center; justify-content: center; color: var(--gold-deep); font-size: 22px; line-height: 1; }
+  .spade { width: 26px; display: flex; align-items: center; justify-content: center; color: var(--lime); font-size: 22px; line-height: 1; }
   .brand .kicker { font-size: 10px; letter-spacing: 2.5px; color: var(--muted); font-weight: 700; }
-  .brand .id { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brand .id { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .spacer { flex: 1; }
-  .chip { display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: rgba(255,193,7,0.12); border: 1px solid rgba(255,193,7,0.45); }
-  .chip span { font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700; color: var(--gold-deep); }
+  .chip { display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: rgba(139,152,171,0.1); border: 1px solid rgba(139,152,171,0.3); }
+  .chip span { font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700; color: #aab4c4; }
 
 
   /* DECISION DECK */
-  .deck { border-bottom: 1px solid var(--panel-2); background: radial-gradient(1200px 200px at 20% -40%, rgba(255,193,7,0.10), transparent); }
+  .deck { border-bottom: 1px solid var(--panel-2); background: radial-gradient(1200px 200px at 20% -40%, rgba(195,247,58,0.06), transparent); }
   .deck .wrap { padding-top: 28px; padding-bottom: 26px; }
   .deck h1 { font-size: 30px; line-height: 1.15; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
   .deck .lede { color: var(--muted); font-size: 15px; margin-bottom: 20px; }
@@ -85,13 +87,17 @@
   .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
   .card .hd { font-size: 11px; letter-spacing: 1.5px; color: var(--muted); font-weight: 700; margin-bottom: 12px; }
   .area-row { display: flex; align-items: center; gap: 9px; padding: 5px 0; font-size: 13px; }
-  .area-row .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); }
-  .area-row .lbl { color: var(--ink-soft); flex: 1; text-transform: capitalize; }
+  .area-row .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--lime); }
+  /* area labels are file paths, not phase names — never capitalize them, keep them
+     monospace, and clip from the START so the filename stays visible. */
+  .area-row .lbl { color: var(--ink-soft); flex: 1; min-width: 0; font-family: ui-monospace, Menlo, monospace;
+                   font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+                   direction: rtl; text-align: left; }
   .area-row .c { font-family: ui-monospace, monospace; color: var(--muted); font-size: 12px; }
   .filter-card .fr { font-size: 13px; color: var(--muted-2); margin-bottom: 4px; }
   .filter-card .fr:last-child { margin-bottom: 0; }
-  .filter-card .fr .lime { color: var(--gold-deep); font-family: ui-monospace, monospace; }
-  .filter-card .fr .val { color: var(--ink-soft); font-family: ui-monospace, monospace; }
+  .filter-card .fr .lime { color: var(--lime); font-family: ui-monospace, monospace; }
+  .filter-card .fr .val { color: #cbd5e1; font-family: ui-monospace, monospace; }
 
   main { min-width: 0; }
   section { margin-bottom: 30px; scroll-margin-top: 86px; }
@@ -104,24 +110,24 @@
   .lead-head { display: grid; grid-template-columns: 1fr 120px 210px 96px; gap: 0; align-items: center; padding: 11px 16px; background: var(--panel-inset); border-bottom: 1px solid var(--border); font-size: 11px; letter-spacing: 1px; color: var(--muted-2); font-weight: 700; }
   .lead-row { padding: 13px 16px; border-bottom: 1px solid var(--panel-2); }
   .lead-row:last-child { border-bottom: none; }
-  .lead-row:hover { background: rgba(255,193,7,0.05); }
+  .lead-row:hover { background: rgba(195,247,58,0.03); }
   /* the main line is the grid; blocked-warning sits full-width beneath it */
   .lead-main { display: grid; grid-template-columns: 1fr 120px 210px 96px; gap: 0; align-items: start; }
   .lead-row .lid { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .lead-row .ltitle { font-size: 14px; color: var(--ink-strong); font-weight: 500; margin-top: 2px; }
   .lead-row .flags { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted-3); margin-top: 3px; }
   .lead-row .st { padding-top: 1px; }
-  .lead-row .meta { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); padding-right: 10px; }
+  .lead-row .meta { font-family: ui-monospace, monospace; font-size: 12px; color: #9aa6b4; padding-right: 10px; }
   .lead-row .upd { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-2); }
   .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
   .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-  .pill.defect         { background: rgba(140,29,22,0.10);  color: var(--k-defect); }
-  .pill.enhancement    { background: rgba(255,193,7,0.20);   color: var(--k-enhancement); }
-  .pill.simplification { background: rgba(20,96,58,0.10);    color: var(--k-simplification); }
-  .pill.risk           { background: rgba(138,75,0,0.10);    color: var(--k-risk); }
-  .pill.opportunity    { background: rgba(75,50,168,0.10);   color: var(--k-opportunity); }
+  .pill.defect         { background: rgba(255,77,77,0.14);   color: var(--red-soft); }
+  .pill.enhancement    { background: rgba(195,247,58,0.14);  color: var(--lime); }
+  .pill.simplification { background: rgba(56,232,224,0.14);  color: var(--teal); }
+  .pill.risk           { background: rgba(255,159,28,0.14);  color: var(--amber); }
+  .pill.opportunity    { background: rgba(167,139,250,0.14); color: var(--st-evaluating); }
 
-  footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--panel-2); font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted-2); }
+  footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--panel-2); font-family: ui-monospace, monospace; font-size: 11px; color: #4f5a6b; }
 
   @media (max-width: 900px) {
     .body { grid-template-columns: 1fr; }
@@ -129,17 +135,19 @@
     .deck-grid { grid-template-columns: 1fr; }
     .lead-head, .lead-main { grid-template-columns: 1fr 110px; }
     .lead-head span:nth-child(3), .lead-head span:nth-child(4),
-    .lead-main .plans, .lead-main .upd { display: none; }
+    .lead-main .meta, .lead-main .upd { display: none; }
     .wrap { padding: 0 18px; }
   }
-  .src { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
+  .src { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-2); display: flex; align-items: center; gap: 5px; margin-top: 2px; }
   .src::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--muted-3); }
   .src.learn::before  { background: var(--green); }
-  .src.review::before { background: var(--gold-deep); }
-  .stat.conv .n { color: var(--gold-deep); }
-  .stat.conv.healthy .n { color: var(--green); }
+  .src.review::before { background: var(--amber); }
+  .cf-high   { color: var(--green); }
+  .cf-medium { color: var(--amber); }
+  .cf-low    { color: var(--muted-3); }
   .stat.open .n { color: var(--ink); }
-  .cf-high { color: var(--cf-high); } .cf-medium { color: var(--cf-medium); } .cf-low { color: var(--cf-low); }
+  .stat.conv .n { color: var(--lime); }
+  .stat.conv.healthy .n { color: var(--green); }
 </style>
 </head>
 <body>
@@ -222,7 +230,7 @@ rendered_at: {{spades.rendered_at}}
                 <div class="flags">{{block.area}}</div>
               </div>
               <span class="st"><span class="pill {{block.kind}}">{{block.kind}}</span></span>
-              <span class="meta">{{block.size}} &middot; <span class="cf-{{block.confidence}}">{{block.confidence}}</span> &middot; <span class="src {{block.source}}">{{block.source_label}}</span></span>
+              <span class="meta">{{block.size}} &middot; <span class="cf-{{block.confidence}}">{{block.confidence}}</span><span class="src {{block.source}}">{{block.source_label}}</span></span>
               <span class="upd">{{block.created}}</span>
             </div>
           </div>
