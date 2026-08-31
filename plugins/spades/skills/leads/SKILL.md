@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Record Leads — ideas, problems, and improvements an agent noticed while working, that are deliberately OUT of scope for the current work. Runs a scout sub-agent over what just happened and files one Lead per idea under .spades/leads/. Invoked automatically when /spades:do, /spades:learn, or /spades:review finish, or directly as `/spades:leads`. Use `--list` to publish the board, `--promote` (with an optional `--as scope|quick|rule`) to turn Leads into work, `--decline` to close them. Never asks whether to generate Leads, and never writes code.
-version: 1.3.0
+version: 2.0.0
 ---
 
 # SPADES Leads
@@ -70,7 +70,7 @@ is what separates it from everything else SPADES records:
 | `/spades:leads --from learn --learning <path>` | Scout one Learning for the change it implies. Auto-invoked. |
 | `/spades:leads --from review --report <path>` | Scout a review report's non-blocking findings. Auto-invoked. |
 | `/spades:leads --list` | Publish the board. Records nothing. |
-| `/spades:leads --promote L-a,L-b [--as scope\|quick\|rule]` | Turn Leads into work. Confirms Scope vs Quick vs rule unless `--as` is given. One Lead per Quick item, always. |
+| `/spades:leads --promote L-a,L-b [--as scope\|quick\|rule]` | Turn Leads into work — **invokes** `/spades:scope` or `/spades:quick` with the context. Confirms which unless `--as` is given. One Lead per Quick item, always. |
 | `/spades:leads --decline L-x "reason"` | Close a Lead with a reason. |
 
 **Every mode that records ends by rendering and opening the board** —
@@ -384,17 +384,40 @@ other transient views use. Substitute it along with the rest.
    items, not one. `--as scope` on one Lead is fine. `--as rule`
    routes to the docs.
 
-5. **Print the command; never run it.** This skill does not invoke
-   `/spades:scope`, `/spades:quick`, `/spades:patterns` or
-   `/spades:anti-patterns`. It prints the exact command(s) with the
-   seed text — the Leads' *What I noticed* as the problem statement,
-   their *Why it might matter* as the justification, and for a Scope
-   one acceptance criterion per Lead. Promotion is the human's act.
+5. **Invoke the destination skill, passing the context.** Do not
+   print a command for the human to copy — that dead-ends at *"what
+   is the Scope called?"* with *"it does not exist yet"*, which is no
+   use to anybody.
 
-6. **On confirmation that the Scope or Quick item(s) exist**, set
-   `status: promoted` and `promoted_to:` on each Lead, and — on
-   `backend: linear` — close each `L-` issue with a link to the new
+   | Answer | What you invoke |
+   |---|---|
+   | Scope | **`/spades:scope`** once, for the whole set |
+   | Quick | **`/spades:quick`** once **per Lead**, sequentially — rule 2 |
+   | Rule | **`/spades:patterns`** or **`/spades:anti-patterns`** |
+
+   Pass the seed as the argument and let the destination skill do its
+   own job from there — it will ask its own questions, and the human
+   is present because they typed `--promote`. Never pre-empt those
+   questions, and never write the Scope or Quick file yourself.
+
+   The seed for a Scope: the Leads' *What I noticed* as the problem
+   statement, their *Why it might matter* as the justification, and
+   **one acceptance criterion per Lead**. For a Quick item: that one
+   Lead's *What I'd do*.
+
+6. **Capture the minted ID and record it.** `/spades:scope` returns
+   an `S-…`, `/spades:quick` a `Q-…`. For each promoted Lead set
+   `status: promoted` and `promoted_to: <that ID>`, and — on
+   `backend: linear` — close its `L-` issue with a link to the new
    Scope issue. For a rule, `promoted_to:` names the doc.
+
+   **The ID comes from the skill that minted it — never guess one.**
+   Do not derive a slug and report it as though it exists.
+
+7. **If the destination skill aborts or the human backs out**, the
+   Leads stay `status: open` and nothing is recorded. A half-promoted
+   Lead is worse than an unpromoted one: it disappears off the board
+   while no work exists for it.
 
 ### Worked examples
 
@@ -408,24 +431,34 @@ Both `small`, same `area` → Quick is the recommendation, but they are
 two criteria of one change, so the human picks Scope:
 
 ```
-✓ Promoting 2 leads as one Scope
+○ Promoting 2 leads as one Scope — invoking /spades:scope
+    Problem:  the linter accepts nested YAML, and renders a missing
+              required field as an empty string
+    Criteria: 1. nested structures rejected with a pointed error
+              2. a missing required field fails, never renders empty
 
-  /spades:scope "harden the frontmatter linter"
-      Problem:  the linter accepts nested YAML, and renders a missing
-                required field as an empty string
-      Criteria: 1. nested structures rejected with a pointed error
-                2. a missing required field fails, never renders empty
+  … /spades:scope runs, asks its own questions, mints the ID …
+
+✓ S-harden-the-frontmatter-linter created
+✓ L-lint-nested-yaml-7Kd2      → promoted_to: S-harden-the-frontmatter-linter
+✓ L-lint-missing-fallback-3Hy9 → promoted_to: S-harden-the-frontmatter-linter
 ```
 
 **Same two Leads, but taken as Quick**
 
 Rule 2 applies — **two** Quick items, never one:
 
-```
-✓ Promoting 2 leads as 2 separate Quick items
+Two invocations, sequential, one per Lead:
 
-  /spades:quick "reject nested YAML in the frontmatter linter"
-  /spades:quick "fail on a missing required frontmatter field"
+```
+○ Promoting 2 leads as 2 separate Quick items
+  → /spades:quick "reject nested YAML in the frontmatter linter"
+✓ Q-reject-nested-yaml-2Kp1 created
+  → /spades:quick "fail on a missing required frontmatter field"
+✓ Q-fail-on-missing-field-8Rt4 created
+
+✓ L-lint-nested-yaml-7Kd2      → promoted_to: Q-reject-nested-yaml-2Kp1
+✓ L-lint-missing-fallback-3Hy9 → promoted_to: Q-fail-on-missing-field-8Rt4
 ```
 
 **Forcing it, no question asked**
@@ -434,8 +467,8 @@ Rule 2 applies — **two** Quick items, never one:
 /spades:leads --promote L-loop-stage8-wedged-check-3Hy9 --as scope
 ```
 
-`medium`, single Lead, `--as` given → straight to the printed
-`/spades:scope` command with no `AskUserQuestion`.
+`medium`, single Lead, `--as` given → invokes `/spades:scope`
+immediately with no `AskUserQuestion`.
 
 **A Lead that is really a prohibition**
 
@@ -444,9 +477,9 @@ Rule 2 applies — **two** Quick items, never one:
 ```
 
 ```
-✓ Promoting 1 lead as a rule
-
-  /spades:anti-patterns   — add: never gate a merge on reviewDecision
+○ Promoting 1 lead as a rule — invoking /spades:anti-patterns
+  → add: never gate a merge on reviewDecision
+✓ L-never-gate-on-reviewdecision-9Xa2 → promoted_to: ANTI-PATTERNS.md
 ```
 
 ## `--decline`
@@ -480,10 +513,23 @@ Authorized callers:
 3. **`/spades:learn`**, on completion.
 4. **`/spades:review`**, on completion.
 
-**Acyclicity.** `do | learn | review → leads → scout` is one-way and
-terminal. This skill invokes no SPADES skill — not `scope`, not
-`quick`, not `plan`, not the loop. Promotion prints a command; it
-never runs one.
+**Acyclicity — the capture path invokes nothing.**
+`do | learn | review → leads → scout` is one-way and terminal. A
+capture run invokes **no** SPADES skill: not `scope`, not `quick`,
+not `plan`, not the loop. It files Leads, renders the board, returns.
+
+`--promote` does invoke `/spades:scope` / `/spades:quick` / the docs
+skills — and that is only legal because **promote is never reachable
+from a capture run.** It happens when a human types it, and nowhere
+else.
+
+That distinction is the whole safety property, so it is worth stating
+what it prevents. `leads → scope → plan → do → leads` is a cycle. It
+is a safe one *only* while every lap requires a human to choose to
+promote. If a capture run could promote, `/spades:do` finishing would
+be able to mint a Scope on its own — machinery inventing work, which
+is the exact failure this skill exists to avoid. **A capture run must
+never promote, for any reason, however obvious the promotion looks.**
 
 ## Under `/spades:loop`
 
@@ -513,4 +559,9 @@ overlap if an evaluate follows later. Same scout, same
 - Recording Leads without rendering the board — see § Render and
   open. The two exceptions are listed there and are the only ones.
 - Blocking the calling skill on a Leads failure.
-- Invoking another SPADES skill.
+- Invoking another SPADES skill **from a capture run**. Only
+  `--promote`, typed by a human, may invoke one — see § Acyclicity.
+- Promoting from an auto-invoked capture run (`--from do|learn|review`),
+  under any circumstances.
+- Reporting an `S-` or `Q-` ID you derived rather than one the
+  destination skill actually minted.
