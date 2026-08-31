@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Record Leads — ideas, problems, and improvements an agent noticed while working, that are deliberately OUT of scope for the current work. Runs a scout sub-agent over what just happened and files one Lead per idea under .spades/leads/. Invoked automatically when /spades:do, /spades:learn, or /spades:review finish, or directly as `/spades:leads`. Use `--list` to publish the board, `--promote` (with an optional `--as scope|quick|rule`) to turn Leads into work, `--decline` to close them. Never asks whether to generate Leads, and never writes code.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # SPADES Leads
@@ -359,41 +359,114 @@ other transient views use. Substitute it along with the rest.
 2. **The one hard rule: one Lead per Quick item.** A Quick item is a
    single focused commit addressing a single Lead. Two Leads in one
    unit of work is a **Scope** — that is precisely what a Scope is
-   for. So `quick` across N Leads means **N separate Quick items**,
-   one each. Never bundle several Leads into one Quick item, whatever
-   the human picks and whatever `--as` says.
+   for. Never bundle several Leads into one Quick item, whatever the
+   human picks and whatever `--as` says.
 
-3. **Propose, then confirm.** Recommend by size — every Lead
-   `trivial`/`small` → Quick; anything larger, or Leads that only
-   make sense together → Scope. Then ask via `AskUserQuestion`:
+3. **Route in two passes: cluster, then size.** One `--promote` can
+   legitimately produce several destinations — a Scope *and* a Quick,
+   or two Scopes. Do not force the whole set down one path.
 
-   > *Promote L-a, L-b — how?*
+   **Pass 1 — cluster by relatedness.** Group the promoted Leads:
+   same `area`, the same underlying change, or one only makes sense
+   once the other lands. Relatedness is about the *work*, not the
+   `kind` field.
+
+   **Pass 2 — apply the routing matrix, per Lead.**
+
+   ### The routing matrix
+
+   **This matrix is the routing decision. Apply it to every promoted
+   Lead and follow the result. Do not substitute judgement for it, do
+   not average across the set, and do not skip a row because the
+   answer "obviously" looks like something else.**
+
+   | # | Related to another promoted Lead? | Passes `/spades:quick` § The Gate? | Destination |
+   |---|---|---|---|
+   | 1 | **Yes** | *not evaluated* | **The single Scope for its cluster.** One acceptance criterion per Lead in that cluster. |
+   | 2 | No | **Yes** — all ten | **Its own Quick item.** One Lead, one focused commit. |
+   | 3 | No | **No** — one or more fail | **Its own Scope.** Name the failing criterion when you report it. |
+
+   The rows are exhaustive and ordered. **Row 1 short-circuits** —
+   relatedness is evaluated first and wins outright, so a Lead that
+   would sail through the Quick gate alone still joins its cluster's
+   Scope. The gate is only ever consulted for a Lead that ends up
+   alone.
+
+   Two Leads landing in row 1 for the same cluster share **one**
+   Scope. Two Leads landing in row 2 get **two** Quick items, never
+   one. Two unrelated Leads in row 3 get **two** Scopes, not one
+   combined Scope — unrelated work does not belong in a single Scope
+   any more than it belongs in a single Quick item.
+
+   **The Quick gate is `/spades:quick`'s, not a guess.** Read
+   `${CLAUDE_PLUGIN_ROOT}/skills/quick/SKILL.md § The Gate` and walk
+   all ten criteria. Never route to Quick off the scout's `size`
+   field: `size` is an estimate an LLM made while reading a diff, and
+   routing on it is how work well past the 50-line cap has been sent
+   to the fast path. `size` may *rank* candidates; only the gate
+   decides.
+
+   The criteria that disqualify most often: **≤ 50 LoC changed**
+   (hard stop ~100), **single concern**, **one file or one tight
+   cluster in one module**, and no schema / architectural / security
+   / public-API change. The gate is all-or-nothing — one failure
+   means Scope.
+
+   ### Matrix verification cases
+
+   Given a board where `l1`+`l2` are related, `l3` is small and
+   isolated, `l4` is large and unrelated, and `l5` is related to
+   `l3` — these are the required outcomes. If your routing disagrees
+   with any row, your routing is wrong.
+
+   | Promoted | Rows applied | Result |
+   |---|---|---|
+   | `l1, l2` | both row 1 | **one Scope** |
+   | `l1, l2, l4` | `l1`,`l2` row 1 · `l4` row 3 | **one Scope** for `l1`+`l2`, **plus a second Scope** for `l4` — alone, but it fails the gate |
+   | `l3, l4` | `l3` row 2 · `l4` row 3 | `l3` → **Quick** · `l4` → **its own Scope** (a mixed outcome, which is correct) |
+   | `l3, l5` | both row 1 | **one Scope** — `l5` is related to `l3`, so row 1 takes `l3` before the gate is ever consulted |
+   | `l3` alone | row 2 | **Quick** |
+   | `l4` alone | row 3 | **its own Scope** |
+
+4. **Propose the split, then confirm.** Show the grouping and the
+   destination for each cluster, with the gate verdict in one line
+   for anything routed to Quick. Then ask via `AskUserQuestion`:
+
+   > *Promote 3 leads — L-a and L-b look related, L-c stands alone.*
    >
-   > - **One Scope covering both** — they share an area and land as
-   >   one change with two acceptance criteria.
-   > - **Two separate Quick items** — one per Lead, one commit each.
-   > - **A rule, not work** — routes to `ANTI-PATTERNS.md` /
-   >   `PATTERNS.md` instead.
+   > - **As proposed** — one Scope for L-a + L-b, one Quick for L-c.
+   > - **One Scope for all three** — treat them as a single change.
+   > - **A Scope each** — three separate Scopes, no grouping.
 
-   Put the recommendation first and say why in one line. A single
-   Lead still gets the question — Scope and Quick are both valid for
-   one Lead, and only the human knows which the work deserves.
+   Recommendation first, one line of why. A single promoted Lead
+   still gets asked — Scope and Quick are both legitimate for one
+   Lead, and only the human knows which the work deserves.
 
-4. **`--as` skips the question** and is honoured as given — with rule
-   2 still absolute: `--as quick` on three Leads produces three Quick
-   items, not one. `--as scope` on one Lead is fine. `--as rule`
-   routes to the docs.
+5. **`--as` skips the question**, with two things it cannot override:
 
-5. **Invoke the destination skill, passing the context.** Do not
+   - **Rule 2.** `--as quick` on three Leads produces three Quick
+     items, never one carrying three.
+   - **The Quick gate.** `--as quick` still walks the ten criteria
+     first. A Lead that fails is reported with the failing criterion
+     and left `open` — do not hand it to `/spades:quick`, which
+     would only refuse it at its own gate and waste the round trip.
+
+   `--as scope` on one Lead is always fine — a Scope has no gate.
+   `--as rule` routes to the docs.
+
+6. **Invoke the destination skill(s), passing the context.** Do not
    print a command for the human to copy — that dead-ends at *"what
    is the Scope called?"* with *"it does not exist yet"*, which is no
    use to anybody.
 
-   | Answer | What you invoke |
+   | Destination | What you invoke |
    |---|---|
-   | Scope | **`/spades:scope`** once, for the whole set |
-   | Quick | **`/spades:quick`** once **per Lead**, sequentially — rule 2 |
+   | Scope cluster | **`/spades:scope`** once per cluster |
+   | Quick | **`/spades:quick`** once per Lead, sequentially — rule 2 |
    | Rule | **`/spades:patterns`** or **`/spades:anti-patterns`** |
+
+   Several clusters means several invocations, in order, each
+   reporting its own minted ID before the next starts.
 
    Pass the seed as the argument and let the destination skill do its
    own job from there — it will ask its own questions, and the human
@@ -405,7 +478,7 @@ other transient views use. Substitute it along with the rest.
    **one acceptance criterion per Lead**. For a Quick item: that one
    Lead's *What I'd do*.
 
-6. **Capture the minted ID and record it.** `/spades:scope` returns
+7. **Capture the minted ID and record it.** `/spades:scope` returns
    an `S-…`, `/spades:quick` a `Q-…`. For each promoted Lead set
    `status: promoted` and `promoted_to: <that ID>`, and — on
    `backend: linear` — close its `L-` issue with a link to the new
@@ -414,24 +487,26 @@ other transient views use. Substitute it along with the rest.
    **The ID comes from the skill that minted it — never guess one.**
    Do not derive a slug and report it as though it exists.
 
-7. **If the destination skill aborts or the human backs out**, the
+8. **If a destination skill aborts or the human backs out**, the
    Leads stay `status: open` and nothing is recorded. A half-promoted
    Lead is worse than an unpromoted one: it disappears off the board
    while no work exists for it.
 
 ### Worked examples
 
-**Three Leads, promote two, take the Scope**
+**Two related Leads — row 1, one Scope**
 
 ```
 /spades:leads --promote L-lint-nested-yaml-7Kd2,L-lint-missing-fallback-3Hy9
 ```
 
-Both `small`, same `area` → Quick is the recommendation, but they are
-two criteria of one change, so the human picks Scope:
+Same `area`, two halves of one change → both row 1, so the gate is
+never consulted and Scope is the recommendation:
 
 ```
-○ Promoting 2 leads as one Scope — invoking /spades:scope
+○ Promoting 2 leads — related (both in scripts/lint/frontmatter.ts)
+  → row 1 for both: one Scope
+  → invoking /spades:scope
     Problem:  the linter accepts nested YAML, and renders a missing
               required field as an empty string
     Criteria: 1. nested structures rejected with a pointed error
@@ -444,22 +519,54 @@ two criteria of one change, so the human picks Scope:
 ✓ L-lint-missing-fallback-3Hy9 → promoted_to: S-harden-the-frontmatter-linter
 ```
 
-**Same two Leads, but taken as Quick**
-
-Rule 2 applies — **two** Quick items, never one:
-
-Two invocations, sequential, one per Lead:
+**Two unrelated Leads that both pass the gate — row 2 twice, two Quick items**
 
 ```
-○ Promoting 2 leads as 2 separate Quick items
-  → /spades:quick "reject nested YAML in the frontmatter linter"
-✓ Q-reject-nested-yaml-2Kp1 created
-  → /spades:quick "fail on a missing required frontmatter field"
-✓ Q-fail-on-missing-field-8Rt4 created
-
-✓ L-lint-nested-yaml-7Kd2      → promoted_to: Q-reject-nested-yaml-2Kp1
-✓ L-lint-missing-fallback-3Hy9 → promoted_to: Q-fail-on-missing-field-8Rt4
+/spades:leads --promote L-typo-in-readme-4Bn7,L-drop-unused-import-9Qc3
 ```
+
+Unrelated, different modules, each one file and well under 50 LoC.
+Rule 2 means **two** Quick items, never one carrying both:
+
+```
+○ Promoting 2 leads — unrelated, both pass the Quick gate
+  → row 2 twice: 2 separate Quick items
+  → /spades:quick "fix the install command typo in README"
+✓ Q-fix-readme-install-typo-2Kp1 created
+  → /spades:quick "drop the unused Buffer import in lib/api.ts"
+✓ Q-drop-unused-buffer-import-8Rt4 created
+
+✓ L-typo-in-readme-4Bn7     → promoted_to: Q-fix-readme-install-typo-2Kp1
+✓ L-drop-unused-import-9Qc3 → promoted_to: Q-drop-unused-buffer-import-8Rt4
+```
+
+**A mixed outcome — row 2 and row 3 in one run**
+
+The case most likely to be got wrong. One small isolated Lead, one
+large unrelated one:
+
+```
+/spades:leads --promote L-drop-unused-import-9Qc3,L-autoremove-index-join-7Kd2
+```
+
+```
+○ Promoting 2 leads — unrelated to each other, routed separately
+  → L-drop-unused-import-9Qc3      row 2 → Quick (gate: all ten pass)
+  → L-autoremove-index-join-7Kd2   row 3 → own Scope
+       gate fails: ≤50 LoC (est. ~140), and touches the schema's
+       status union
+
+  → /spades:quick "drop the unused Buffer import in lib/api.ts"
+✓ Q-drop-unused-buffer-import-8Rt4 created
+  → /spades:scope "the removal decision reads what it needs"
+✓ S-removal-decision-reads-what-it-needs created
+
+✓ L-drop-unused-import-9Qc3    → promoted_to: Q-drop-unused-buffer-import-8Rt4
+✓ L-autoremove-index-join-7Kd2 → promoted_to: S-removal-decision-reads-what-it-needs
+```
+
+Never collapse this into one Scope covering both, and never send the
+large one to Quick because its partner qualified.
 
 **Forcing it, no question asked**
 
@@ -565,3 +672,7 @@ overlap if an evaluate follows later. Same scout, same
   under any circumstances.
 - Reporting an `S-` or `Q-` ID you derived rather than one the
   destination skill actually minted.
+- **Routing to Quick off the `size` field** instead of walking
+  `/spades:quick` § The Gate. `size` is an estimate; the gate decides.
+- Sending a whole promoted set down one path when it contains
+  unrelated clusters — see § `--promote` step 3.
