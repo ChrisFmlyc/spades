@@ -312,7 +312,7 @@ volume is high (plans, where the same description may recur).
 backend: linear | local
 project: <project-slug>             # active project for this repo
 scm: github | local-git             # source-code-management tool (default: local-git)
-leads: local | off | linear         # lead capture (default: local when absent)
+leads: on | off                     # lead capture kill switch (default: on)
 linear:                             # only when backend: linear
   team_id: <uuid>
   project_id: <uuid>                # Linear's own Project ID for this project
@@ -659,8 +659,10 @@ their storage; skills don't need to know how.
 - Lead → a Linear **Issue on the Project**, titled `L-<slug> — <title>`,
   labelled `spades:lead`, held in the team's triage/backlog state. It is
   not a Scope and never becomes one — promoting a Lead closes its issue
-  and opens a Scope issue that links back. Only mirrored when
-  `leads: linear`; under `leads: local` a Lead is a file and nothing more.
+  and opens a Scope issue that links back. Mirrored whenever the
+  project's backend is Linear, on the same terms as every other
+  artefact — the `leads:` key is a kill switch, never a backend
+  selector.
 - `record_*` operations → comments on the parent issue
 - Statuses → Linear workflow states
 
