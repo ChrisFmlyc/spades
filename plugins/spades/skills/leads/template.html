@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SPADES template: leads v2.0.0 (matches plugin v5.12.1) -->
+<!-- SPADES template: leads v2.0.1 (matches plugin v5.12.3) -->
 <!--
   Transient leads board (.spades/.tmp/leads.html). Re-rendered on
   every /spades:leads --list.
@@ -86,7 +86,11 @@
   .card .hd { font-size: 11px; letter-spacing: 1.5px; color: var(--muted); font-weight: 700; margin-bottom: 12px; }
   .area-row { display: flex; align-items: center; gap: 9px; padding: 5px 0; font-size: 13px; }
   .area-row .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); }
-  .area-row .lbl { color: var(--ink-soft); flex: 1; text-transform: capitalize; }
+  /* area labels are file paths, not phase names — never capitalize them, and
+     keep them monospace so they read as paths (list capitalizes because its
+     labels are status words). */
+  .area-row .lbl { color: var(--ink-soft); flex: 1; min-width: 0; font-family: ui-monospace, Menlo, monospace;
+                   font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: left; }
   .area-row .c { font-family: ui-monospace, monospace; color: var(--muted); font-size: 12px; }
   .filter-card .fr { font-size: 13px; color: var(--muted-2); margin-bottom: 4px; }
   .filter-card .fr:last-child { margin-bottom: 0; }
