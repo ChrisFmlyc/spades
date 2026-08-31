@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 4.3.0
+version: 4.4.0
 ---
 
 # SPADES Learn
@@ -197,6 +197,26 @@ When invoked in the default mode:
    Private learnings (`public_safe: false`) live under the
    gitignored `.spades/learnings/private/` directory; the brief
    notes the private path in place of the public one.
+
+## After capture — record the Lead it implies
+
+A Learning is a diagnosis. Often it implies a prescription: a
+specific change to *this* project. That change is a Lead, not a
+Learning, and it belongs on the Leads board where it can be picked up
+later.
+
+Once the Learning file is written, invoke
+**`/spades:leads --from learn --learning <path-to-the-file>`**.
+
+- **Only when a specific change here is implied.** If the Learning's
+  action is *"remember this when planning"*, the scout returns
+  nothing and that is the correct outcome. Budget is one Lead.
+- A Lead born this way carries `learning_ref:` back to this file,
+  which is what makes it sort to the top of the board — it is
+  evidence-backed rather than speculative.
+- **Never ask.** Never block: a Leads failure does not affect the
+  Learning, which is already written.
+- Skipped entirely when `leads: off` in `.spades/config`.
 
 ## Refresh flow (`--refresh`)
 

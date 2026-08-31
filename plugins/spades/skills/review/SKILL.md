@@ -1,7 +1,7 @@
 ---
 name: review
 description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
-version: 3.5.0
+version: 3.6.0
 ---
 
 # SPADES Review — Persona Panel Second Opinion
@@ -377,6 +377,22 @@ Next: /spades:approve P-<id>   — apply or override findings
 
 Next: /spades:approve P-<id>   — apply or override findings
 ```
+
+## After the brief — record Leads from unactioned findings
+
+The panel's non-blocking findings are already Lead-shaped: specific,
+out of scope for the Plan under review, and blocking nothing. Today
+they die in the report. Record them instead.
+
+Once the brief is printed, invoke
+**`/spades:leads --from review --report <path-to-the-report.md>`**.
+
+- **Non-blocking findings only.** Anything the human is about to act
+  on at `/spades:approve` is not a Lead — it is the work.
+- Budget is five. The panel is already ranked, so the scout is mostly
+  filtering and de-duplicating rather than judging afresh.
+- **Never ask.** Never block: the review report stands on its own.
+- Skipped entirely when `leads: off` in `.spades/config`.
 
 ## Relationship with /spades:approve
 
