@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Record Leads — ideas, problems, and improvements an agent noticed while working, that are deliberately OUT of scope for the current work. Runs a scout sub-agent over what just happened and files one Lead per idea under .spades/leads/. Invoked automatically when /spades:do, /spades:learn, or /spades:review finish, or directly as `/spades:leads`. Use `--list` to publish the board, `--promote` (with an optional `--as scope|quick|rule`) to turn Leads into work, `--decline` to close them. Never asks whether to generate Leads, and never writes code.
-version: 2.1.0
+version: 2.1.1
 ---
 
 # SPADES Leads
@@ -196,6 +196,13 @@ it stays a Learning and the scout returns nothing.
 
 `duplicates` are never filed. The coordinator counts them for the
 receipt and moves on.
+
+**This is what makes re-capture safe.** The same Plan can finish Do
+more than once — a PARTIAL verdict rolls it back and it comes through
+again — and each completion scouts the diff afresh. Dedupe absorbs
+the overlap, so capture never needs deferring to whoever is driving.
+A capture step that waits for a driver to call it is a capture step
+that never runs.
 
 ## Recording (fan-out dispatch)
 
@@ -620,6 +627,13 @@ Authorized callers:
 3. **`/spades:learn`**, on completion.
 4. **`/spades:review`**, on completion.
 
+**Those three own the call, not whatever is driving them.**
+`/spades:loop` invokes `do`, `learn` and `review`; each of them
+invokes this skill as part of finishing. The loop has no Leads step
+and needs none — capture rides along with the phase skill, so it
+works identically hand-driven and looped. Nothing here is ever
+deferred to a driver.
+
 **Acyclicity — the capture path invokes nothing.**
 `do | learn | review → leads → scout` is one-way and terminal. A
 capture run invokes **no** SPADES skill: not `scope`, not `quick`,
@@ -637,18 +651,6 @@ promote. If a capture run could promote, `/spades:do` finishing would
 be able to mint a Scope on its own — machinery inventing work, which
 is the exact failure this skill exists to avoid. **A capture run must
 never promote, for any reason, however obvious the promotion looks.**
-
-## Under `/spades:loop`
-
-The loop's Stage 3 is not the right moment: a PARTIAL verdict rolls
-the Plan back to `delivering` and re-runs Do, so scouting there files
-Leads against a diff that is about to change.
-
-**Under the loop, the `do` capture fires after the verdict lands
-(Stage 5), when the diff is final.** Standalone `/spades:do` with no
-evaluate behind it fires on completion, and dedupe absorbs the
-overlap if an evaluate follows later. Same scout, same
-`source: do` — only the moment moves.
 
 ## Forbidden
 
