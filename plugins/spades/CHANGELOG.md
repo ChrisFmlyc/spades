@@ -8,6 +8,188 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.18.0] — 2026-08-31
+
+- **minor**: five findings from Greptile's reviews of #85 and #86 were
+  independently validated; the four that held are fixed here. Touches
+  `skills/leads/` (2.1.1 → 2.2.0) and this changelog.
+
+  **`--promote` recorded nothing when a later destination aborted.**
+  A single `--promote` can produce several destinations, invoked in
+  order. Step 8 said "the Leads stay `open` and nothing is recorded" —
+  set-wide and unqualified — which collided with step 7's per-ID
+  recording. Either reading orphaned an already-minted Scope: one on
+  disk with no Lead pointing at it, both source Leads still `open` and
+  re-promotable. Step 8 is now scoped per destination.
+
+  **Nothing stopped a Lead being promoted twice.** Step 1 checked only
+  that an ID existed. A Lead carrying `promoted_to:` is now refused,
+  naming the item it already became.
+
+  **The `rule` destination was unreachable from a bare `--promote`.**
+  5.16.0 offered "a rule, not work" in the confirmation menu; 5.17.0's
+  rewrite of that menu dropped it, leaving `--as rule` as the only
+  path. Restored, and the matrix's exhaustiveness claim now says what
+  it is exhaustive over.
+
+  **`/spades:loop` does not invoke `/spades:review`.** The claim that
+  it invoked `do`, `learn` **and** `review` was wrong on the third:
+  the loop declines `/spades:review` as human-invoked and delegates
+  bot review to `/codereview:loop`. Corrected — review-origin Leads
+  cannot appear during a looped run, and the skill no longer implies
+  they can.
+
+  Not fixed, deliberately: dedupe does not supersede a Lead whose
+  concern a rework removed. Real, but auto-closing on a scout's
+  silence would let an LLM's non-observation retire recorded work.
+  `--decline "fixed during rework"` already covers it in one line.
+
+- **Release-gate catch-up.** `AGENTS.md` § Versioning requires four
+  version locations and a changelog entry per PR. 5.12.0 through
+  5.17.1 bumped `plugin.json` and both `marketplace.json` fields but
+  never `.spades/version`, and added no entries. The pin is resynced
+  and the eleven missing entries are written below, plus 5.11.0, which
+  #73 also skipped. `agents_version` was correct throughout —
+  `AGENTS.md` genuinely did not change.
+
+  No consumer was affected: `skills/setup/` reads the plugin version
+  from `plugin.json`, and only `agents_version` from `.spades/version`.
+  The gap was the record, not the release.
+
+## [5.17.1] — 2026-08-31
+
+- **patch**: `/spades:do` Step 6 deferred Leads capture to "`/spades:loop`
+  Stage 5". The loop has no Leads step and never had one, so under the
+  loop capture was unreachable and nothing was ever filed. Capture
+  belongs to the phase skill: `do`, `learn` and `review` each invoke
+  `/spades:leads` on completion, and the loop needs no knowledge of it.
+  Touches `skills/do/` (3.5.1 → 3.5.2) and `skills/leads/` (2.1.0 →
+  2.1.1). (#86)
+
+## [5.17.0] — 2026-08-31
+
+- **minor**: `/spades:leads --promote` routed to `/spades:quick` off the
+  scout's `size` estimate, sending work well past the 50-line cap to
+  the fast path. Replaced with an explicit three-row routing matrix
+  applied per Lead — related Leads share one Scope, a lone Lead goes
+  Quick only if all ten of `/spades:quick` § The Gate pass, otherwise
+  its own Scope. One `--promote` may now produce several destinations.
+  Touches `skills/leads/` (2.0.0 → 2.1.0). (#85)
+
+## [5.16.0] — 2026-08-31
+
+- **minor**: `--promote` printed a command for the human to copy, which
+  dead-ended at "what is the Scope called?" — nothing existed and no ID
+  had been minted. It now invokes `/spades:scope` / `/spades:quick` /
+  the docs skills with the seed context and records the ID they mint.
+  The capture path still invokes nothing; promote may, because it is
+  unreachable from a capture run. Touches `skills/leads/` (1.3.0 →
+  2.0.0). (#84)
+
+## [5.15.0] — 2026-08-31
+
+- **minor**: `--promote` guessed Scope vs Quick from `size` with no way
+  to disagree. It now confirms via `AskUserQuestion` and takes an
+  `--as scope|quick|rule` override. One Lead per Quick item is
+  absolute: `--as quick` across N Leads yields N Quick items, never one
+  carrying several. Touches `skills/leads/` (1.2.0 → 1.3.0). (#83)
+
+## [5.14.1] — 2026-08-31
+
+- **patch**: the leads board's KIND column inherited `/spades:list`'s
+  120px status column, sized for words like "delivering". `SIMPLIFICATION`
+  overflowed into the next column. Widened to 158px, with `.pill`
+  gaining `white-space: nowrap`. Touches `skills/leads/template.html`
+  (v3.0.0 → v3.0.1). (#82)
+
+## [5.14.0] — 2026-08-31
+
+- **minor**: `/spades:leads` gated its Linear mirror on a `leads:` config
+  value of its own and never read `backend:`. `backend: linear` with no
+  `leads:` key defaulted to local, so Leads silently never reached
+  Linear while every other artefact did; `backend: local` with
+  `leads: linear` would have called `save_issue` against a config with
+  no `linear:` section. The mirror now follows `backend:` like every
+  sibling skill, and `leads:` is a kill switch only. Touches
+  `docs/FRAMEWORK.md`, `skills/leads/` (1.1.0 → 1.2.0) and
+  `skills/setup/` (4.7.0 → 4.7.1). (#81)
+
+## [5.13.1] — 2026-08-31
+
+- **patch**: the `worker-html-review` dispatch spec in
+  `skills/review/reference/report-format.md` carried field names the v2
+  template no longer used — only `summary_html` and `severity` survived
+  across three blocks, nine scalars were undocumented, and
+  `prose_sections: { synthesis_html }` named a placeholder the template
+  does not contain. A worker following it rendered literal
+  `{{block.persona_id}}` and lost every finding title. Both copies
+  corrected against the template. Touches `skills/review/` (3.6.0 →
+  3.6.1) and its template (v2.0.0 → v2.0.1). (#80)
+
+## [5.13.0] — 2026-08-31
+
+- **minor**: the leads board is rebuilt from `skills/list/template.html`
+  with no palette transformation, so `:root` is byte-identical to the
+  Cockpit deck — verified across 21 shared selectors. Also fixes two
+  defects visible only in a browser: the BY AREA rail title-cased file
+  paths (`Scripts/Lint/Frontmatter.Ts`), and the meta column left a
+  separator dangling at its line break. Touches
+  `skills/leads/template.html` (v2.0.0 → v3.0.0). (#79)
+
+## [5.12.2] — 2026-08-31
+
+- **patch**: `/spades:leads` filed Leads and then stopped — no board, no
+  browser tab. The modes table promised bare invocation would "record
+  and list" while two later rules said `--list` was the only mode that
+  rendered and "do not render the board, do not open anything". The
+  receipt section wins on a top-to-bottom read, so the render never
+  fired. Replaced with one canonical § Render and open, branching on
+  `review_format:`, reached from every mode that records. Touches
+  `skills/do/` (3.5.0 → 3.5.1) and `skills/leads/` (1.0.1 → 1.1.0).
+  (#78)
+
+## [5.12.1] — 2026-08-31
+
+- **patch**: the leads template was hand-rolled rather than derived from
+  the fourteen `template.html` files already in the repo, so it
+  diverged from the house design for no reason. Rebuilt on the shared
+  Cockpit skeleton — same `header.cmd` → `.deck` → `.wrap.body` →
+  `aside.rail` + `main` → `footer`, same class vocabulary, and the
+  embedded `spades-frontmatter` yaml block the other transient views
+  carry. Touches `skills/leads/` (1.0.0 → 1.0.1) and its template
+  (v1.0.0 → v2.0.0). (#77)
+
+## [5.12.0] — 2026-08-31
+
+- **minor**: new skill `/spades:leads`. A Lead is an idea the AI had
+  while doing something else — a problem noticed, an improvement seen —
+  recorded so the human can pick what to build later. It is out of
+  scope by construction, which is what separates it from a Learning
+  (retrospective), a Plan risk (dies with the Plan), a review finding
+  (blocks a merge) and a `// TODO` (no ID, no status, no decay policy).
+
+  A scout sub-agent reads the source material and returns candidates
+  through six gates and a per-source budget; the open Leads go into its
+  prompt so duplicates come back as duplicates. Recording is a fan-out
+  wave: `worker-file-lead` per Lead, `worker-linear-lead` when the
+  backend is Linear. `--list` publishes the board sorted by provenance,
+  with a funnel header carrying conversion against a 30–50% band.
+
+  Never asks whether to record, and never writes code.
+
+  Adds `skills/leads/` (1.0.0) and its template, a `leads:` config key,
+  the Lead ID format, three backend operations and the Linear mapping
+  in `docs/FRAMEWORK.md`, and capture hooks in `skills/do/` (3.4.0 →
+  3.5.0), `skills/learn/` (4.3.0 → 4.4.0), `skills/review/` (3.5.0 →
+  3.6.0) and `skills/setup/` (4.6.2 → 4.7.0). (#76)
+
+  **`spades-anywhere` parity remains deferred.** The `learn` and
+  `review` capture sources port near-unchanged; the `do` source scouts
+  a git diff and `--promote`'s Quick gate counts lines of code, so both
+  need the action-based equivalents. The hook edits to `do`, `learn`,
+  `review`, `setup` and `docs/FRAMEWORK.md` are unported drift in
+  rubric-covered files and need their own scope.
+
 ## [5.11.2] — 2026-08-12
 
 - **patch**: `codereview:single` and `codereview:multi` were merged into
@@ -62,6 +244,17 @@ changes). The consumer-repo marker block in `AGENTS.md` carries the
 - Also backfills `.spades/version`, which PR #73 left at 5.10.0 while
   bumping `plugin.json` and the marketplace to 5.11.0. 5.11.0 has no
   entry of its own; the change it shipped is described under 5.10.0.
+
+## [5.11.0] — 2026-08-11
+
+- **minor**: version-only release for the `/spades:loop` autonomy change
+  in #72, which shipped without a bump. The loop now approves Plans
+  itself and reaches the evaluate sign-off only when the evaluation
+  carried rows a human had to verify. Touches no files beyond the
+  version manifests. (#73)
+
+  Recorded retrospectively in 5.18.0 — #73 bumped `plugin.json` and
+  `marketplace.json` but skipped `.spades/version` and this changelog.
 
 ## [5.10.0] — 2026-08-11
 

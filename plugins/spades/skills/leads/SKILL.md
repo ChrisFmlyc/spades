@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Record Leads — ideas, problems, and improvements an agent noticed while working, that are deliberately OUT of scope for the current work. Runs a scout sub-agent over what just happened and files one Lead per idea under .spades/leads/. Invoked automatically when /spades:do, /spades:learn, or /spades:review finish, or directly as `/spades:leads`. Use `--list` to publish the board, `--promote` (with an optional `--as scope|quick|rule`) to turn Leads into work, `--decline` to close them. Never asks whether to generate Leads, and never writes code.
-version: 2.1.1
+version: 2.2.0
 ---
 
 # SPADES Leads
@@ -361,7 +361,9 @@ other transient views use. Substitute it along with the rest.
 /spades:leads --promote L-a,L-b [--as scope|quick|rule]
 ```
 
-1. **Read the named Leads.** Unknown ID → abort naming it.
+1. **Read the named Leads.** Unknown ID → abort naming it. A Lead
+   already carrying `promoted_to:` → abort naming it and the item it
+   became; it is not promoted twice. Existence is not the only check.
 
 2. **The one hard rule: one Lead per Quick item.** A Quick item is a
    single focused commit addressing a single Lead. Two Leads in one
@@ -393,7 +395,10 @@ other transient views use. Substitute it along with the rest.
    | 2 | No | **Yes** — all ten | **Its own Quick item.** One Lead, one focused commit. |
    | 3 | No | **No** — one or more fail | **Its own Scope.** Name the failing criterion when you report it. |
 
-   The rows are exhaustive and ordered. **Row 1 short-circuits** —
+   The rows are exhaustive **over work destinations** — every Lead
+   that becomes work lands in exactly one row. They do not cover the
+   `rule` destination, which is not work and is offered at step 4
+   instead. Ordered, too: **row 1 short-circuits** —
    relatedness is evaluated first and wins outright, so a Lead that
    would sail through the Quick gate alone still joins its cluster's
    Scope. The gate is only ever consulted for a Lead that ends up
@@ -444,6 +449,14 @@ other transient views use. Substitute it along with the rest.
    > - **As proposed** — one Scope for L-a + L-b, one Quick for L-c.
    > - **One Scope for all three** — treat them as a single change.
    > - **A Scope each** — three separate Scopes, no grouping.
+   > - **A rule, not work** — routes to `ANTI-PATTERNS.md` /
+   >   `PATTERNS.md` instead of producing any work item.
+
+   The rule option is always offered, because the matrix cannot
+   propose it: routing asks "Scope or Quick", and a prohibition is
+   neither. There is no `kind: rule` for a scout to detect, so the
+   only way a Lead reaches the docs is a human saying so — here, or
+   via `--as rule`. Offer it and let them decline it.
 
    Recommendation first, one line of why. A single promoted Lead
    still gets asked — Scope and Quick are both legitimate for one
@@ -494,10 +507,24 @@ other transient views use. Substitute it along with the rest.
    **The ID comes from the skill that minted it — never guess one.**
    Do not derive a slug and report it as though it exists.
 
-8. **If a destination skill aborts or the human backs out**, the
-   Leads stay `status: open` and nothing is recorded. A half-promoted
-   Lead is worse than an unpromoted one: it disappears off the board
-   while no work exists for it.
+8. **If a destination skill aborts or the human backs out, that is
+   scoped to the destination that failed** — not to the run.
+
+   Record each destination as its ID is minted, per step 7. A later
+   abort never un-records an earlier one: the Scope or Quick item it
+   minted **exists**, and this skill cannot retract it (step 6 forbids
+   writing those files, and nothing here can close them). Leaving its
+   Leads `open` would strand real work with nothing pointing at it,
+   invisible to the funnel counters and re-promotable into a duplicate.
+
+   So: the Leads belonging to the **failed** destination stay `open`
+   and nothing is recorded for them. Every destination that already
+   minted keeps its `promoted` / `promoted_to:`. Report both halves —
+   what landed, and what did not.
+
+   The principle is the same one either way round: never record a Lead
+   as promoted when no work exists for it, and never leave a Lead open
+   when the work does exist.
 
 ### Worked examples
 
@@ -627,12 +654,20 @@ Authorized callers:
 3. **`/spades:learn`**, on completion.
 4. **`/spades:review`**, on completion.
 
-**Those three own the call, not whatever is driving them.**
-`/spades:loop` invokes `do`, `learn` and `review`; each of them
-invokes this skill as part of finishing. The loop has no Leads step
-and needs none — capture rides along with the phase skill, so it
-works identically hand-driven and looped. Nothing here is ever
-deferred to a driver.
+**Those three own the call, not whatever is driving them.** Each
+invokes this skill as part of finishing, so capture rides along with
+the phase skill and behaves identically hand-driven and looped. The
+loop has no Leads step and needs none. Nothing here is ever deferred
+to a driver.
+
+Be precise about what a looped run actually reaches: `/spades:loop`
+invokes `/spades:do` and — when there is something to carry —
+`/spades:learn`. It does **not** invoke `/spades:review`, which it
+declines as human-invoked, delegating bot review to
+`/codereview:loop` instead. So `source: review` Leads appear only
+when a human runs `/spades:review` themselves. Do not expect them
+from a loop, and do not go looking for a loop stage that would
+produce them.
 
 **Acyclicity — the capture path invokes nothing.**
 `do | learn | review → leads → scout` is one-way and terminal. A
