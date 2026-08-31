@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SPADES template: review v2.0.0 (matches plugin v3.6.0) -->
+<!-- SPADES template: review v2.0.1 (matches plugin v5.13.1) -->
 <!--
   Transient panel-review report. "Cockpit" redesign — dark command
   deck. A four-persona panel (scope-guardian, architecture-strategist,
@@ -8,15 +8,15 @@
 
   RENDER CONTRACT (string substitution + block repetition)
 
-  Scalars carried over from v1 (provided by the skill):
+  Scalars (provided by the skill — all required except `project`):
     target_id, mode, personas_count, dispatch_mode, rendered_at,
     blocking_count, major_count, minor_count, nit_count,
-    total_findings, verdict_class, verdict_label, breadcrumb_path,
-    plugin_version
+    verdict_class, verdict_label, plugin_version
   Optional (|— fallback): project
 
-  Required repeating blocks (worker validates these markers — unchanged
-  field names from v1, so no skill-side change is needed):
+  Required repeating blocks (worker validates these markers). NOTE: the
+  v2 redesign RENAMED these fields from v1 — the dispatch spec in
+  reference/report-format.md is the matching copy, keep the two in step:
     persona-cards     — persona_id, persona_class, findings_count,
                         summary_html
     convergence-cards — title, corroborated_by, desc_html

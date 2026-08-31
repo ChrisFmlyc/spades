@@ -233,28 +233,47 @@ same wave as the `.md` write. No inline render.
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html`
 - `output_path`: `.spades/reviews/<slug>-<date>.html` — same slug and
   collision rules as the `.md`
-- `frontmatter`: `{ target_id, target_title, mode (Scope|Plan|Full),
-  verdict, date, dispatch_mode, project }`, also embedded verbatim in
+- `frontmatter`: `{ target_id, mode (Scope|Plan|Full), personas_count,
+  dispatch_mode, verdict_class, verdict_label, blocking_count,
+  major_count, minor_count, nit_count, rendered_at, plugin_version,
+  project }`, also embedded verbatim in
   `<script id="spades-frontmatter">`. `project` is the active project
-  slug, for the properties rail; optional.
+  slug, for the properties rail; it is the only optional one (the
+  template gives it a `|—` fallback).
+
+  `verdict_class` is substituted as a CSS class, so it must be one of
+  the values the template styles — `clean` / `no-blocking` green the
+  BLOCKING deck number out. `verdict_label` is the human string beside
+  it. The four `*_count` scalars drive the deck; pass `0`, never an
+  empty string.
 - `blocks`:
   - `objective-banner` — 0 or 1 item `{ id, title }` per
     `FRAMEWORK.md § Objective banner`. Resolve from the reviewed
     target's `strategy_link` (a Scope's, or a Plan's parent Scope's),
     counting it **only** when it matches an existing
     `.spades/objectives/O-<slug>.md`; otherwise `[]`.
-  - `persona-cards` — one per persona (4). Fields: `persona,
-    summary_html, finding_count`.
+  - `persona-cards` — one per persona (4). Fields: `persona_id,
+    persona_class, findings_count, summary_html`. `persona_class` is
+    substituted as a CSS class and colours the card's spine.
   - `findings` — one per merged finding, every severity, ungated.
-    Fields: `severity, confidence, category, persona, message_html,
-    refs, also_flagged_by`.
-  - `convergence-cards` — one per cluster. Fields: `label, personas,
-    severity`.
-- `prose_sections`: `{ synthesis_html }` (cross-model synthesis).
+    Fields: `severity, title_html, source, body_html`. `severity` is
+    substituted as a CSS class.
+  - `convergence-cards` — one per cluster. Fields: `title,
+    corroborated_by, desc_html`.
+
+No `prose_sections` — the template has no synthesis placeholder. The
+coordinator's cross-model synthesis goes in the `.md` and the inline
+digest only.
 
 Required markers: `<!-- SPADES-BLOCK:persona-cards -->`,
 `<!-- SPADES-BLOCK:findings -->`,
 `<!-- SPADES-BLOCK:convergence-cards -->`.
+
+**These field names are the template's, verified against
+`skills/review/template.html`.** They are not free-form: the worker
+substitutes them literally, so a wrong name renders as visible
+`{{block.…}}` text — and for the two class-bearing fields, as a
+broken CSS class that silently loses its colour.
 
 ### Failure fallback
 
