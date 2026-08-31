@@ -1,7 +1,7 @@
 ---
 name: leads
-description: Record Leads — ideas, problems, and improvements an agent noticed while working, that are deliberately OUT of scope for the current work. Runs a scout sub-agent over what just happened and files one Lead per idea under .spades/leads/. Invoked automatically when /spades:do, /spades:learn, or /spades:review finish, or directly as `/spades:leads`. Use `--list` to publish the board, `--promote` to turn Leads into a Scope, `--decline` to close them. Never asks whether to generate Leads, and never writes code.
-version: 1.2.0
+description: Record Leads — ideas, problems, and improvements an agent noticed while working, that are deliberately OUT of scope for the current work. Runs a scout sub-agent over what just happened and files one Lead per idea under .spades/leads/. Invoked automatically when /spades:do, /spades:learn, or /spades:review finish, or directly as `/spades:leads`. Use `--list` to publish the board, `--promote` (with an optional `--as scope|quick|rule`) to turn Leads into work, `--decline` to close them. Never asks whether to generate Leads, and never writes code.
+version: 1.3.0
 ---
 
 # SPADES Leads
@@ -26,9 +26,14 @@ is what separates it from everything else SPADES records:
 
 ## Two invariants
 
-1. **It never asks.** Generating Leads is a side effect of doing the
-   work, never a question put to the human. No `AskUserQuestion` in
-   the capture path, ever.
+1. **It never asks whether to record.** Generating Leads is a side
+   effect of doing the work, never a question put to the human. No
+   `AskUserQuestion` anywhere in the capture path, ever.
+
+   `--promote` is **not** the capture path and does ask — deciding
+   what a Lead becomes is the human's call, and § `--promote` is
+   where that question lives. Recording is automatic; promoting is
+   deliberate.
 2. **It never writes code.** The scout reads and returns; this skill
    records. Nothing under this skill edits a source file.
 
@@ -65,7 +70,7 @@ is what separates it from everything else SPADES records:
 | `/spades:leads --from learn --learning <path>` | Scout one Learning for the change it implies. Auto-invoked. |
 | `/spades:leads --from review --report <path>` | Scout a review report's non-blocking findings. Auto-invoked. |
 | `/spades:leads --list` | Publish the board. Records nothing. |
-| `/spades:leads --promote L-a,L-b` | Turn Leads into a Scope (or a Quick item). |
+| `/spades:leads --promote L-a,L-b [--as scope\|quick\|rule]` | Turn Leads into work. Confirms Scope vs Quick vs rule unless `--as` is given. One Lead per Quick item, always. |
 | `/spades:leads --decline L-x "reason"` | Close a Lead with a reason. |
 
 **Every mode that records ends by rendering and opening the board** —
@@ -345,29 +350,104 @@ other transient views use. Substitute it along with the rest.
 
 ## `--promote` — turning Leads into work
 
-`/spades:leads --promote L-a,L-b`
+```
+/spades:leads --promote L-a,L-b [--as scope|quick|rule]
+```
 
 1. **Read the named Leads.** Unknown ID → abort naming it.
-2. **Route by size:**
-   - Every named Lead is `trivial` or `small`, and one focused
-     commit covers them → say so and point at `/spades:quick`.
-     Cheapest path; do not manufacture a Scope for a one-liner.
-   - Otherwise → seed **`/spades:scope`**. The Leads' *What I
-     noticed* become the problem statement, their *Why it might
-     matter* the justification, and each Lead becomes one acceptance
-     criterion. **Promote clusters, not items** — several Leads in
-     one `area` make a better Scope than one Lead alone.
-3. **This skill does not invoke `/spades:scope` or `/spades:quick`.**
-   It prints the exact command with the seed text. Promotion is the
-   human's act; the skill prepares it.
-4. **On confirmation that the Scope or Quick item exists**, set
-   `status: promoted` and `promoted_to:` on each Lead, and — on
-   `backend: linear` — close the `L-` issue with a link to the new
-   Scope issue.
 
-**A third destination:** a Lead that is really a rule, not work,
-routes to `/spades:anti-patterns` or `/spades:patterns`. Record it as
-`promoted` with `promoted_to:` naming the doc.
+2. **The one hard rule: one Lead per Quick item.** A Quick item is a
+   single focused commit addressing a single Lead. Two Leads in one
+   unit of work is a **Scope** — that is precisely what a Scope is
+   for. So `quick` across N Leads means **N separate Quick items**,
+   one each. Never bundle several Leads into one Quick item, whatever
+   the human picks and whatever `--as` says.
+
+3. **Propose, then confirm.** Recommend by size — every Lead
+   `trivial`/`small` → Quick; anything larger, or Leads that only
+   make sense together → Scope. Then ask via `AskUserQuestion`:
+
+   > *Promote L-a, L-b — how?*
+   >
+   > - **One Scope covering both** — they share an area and land as
+   >   one change with two acceptance criteria.
+   > - **Two separate Quick items** — one per Lead, one commit each.
+   > - **A rule, not work** — routes to `ANTI-PATTERNS.md` /
+   >   `PATTERNS.md` instead.
+
+   Put the recommendation first and say why in one line. A single
+   Lead still gets the question — Scope and Quick are both valid for
+   one Lead, and only the human knows which the work deserves.
+
+4. **`--as` skips the question** and is honoured as given — with rule
+   2 still absolute: `--as quick` on three Leads produces three Quick
+   items, not one. `--as scope` on one Lead is fine. `--as rule`
+   routes to the docs.
+
+5. **Print the command; never run it.** This skill does not invoke
+   `/spades:scope`, `/spades:quick`, `/spades:patterns` or
+   `/spades:anti-patterns`. It prints the exact command(s) with the
+   seed text — the Leads' *What I noticed* as the problem statement,
+   their *Why it might matter* as the justification, and for a Scope
+   one acceptance criterion per Lead. Promotion is the human's act.
+
+6. **On confirmation that the Scope or Quick item(s) exist**, set
+   `status: promoted` and `promoted_to:` on each Lead, and — on
+   `backend: linear` — close each `L-` issue with a link to the new
+   Scope issue. For a rule, `promoted_to:` names the doc.
+
+### Worked examples
+
+**Three Leads, promote two, take the Scope**
+
+```
+/spades:leads --promote L-lint-nested-yaml-7Kd2,L-lint-missing-fallback-3Hy9
+```
+
+Both `small`, same `area` → Quick is the recommendation, but they are
+two criteria of one change, so the human picks Scope:
+
+```
+✓ Promoting 2 leads as one Scope
+
+  /spades:scope "harden the frontmatter linter"
+      Problem:  the linter accepts nested YAML, and renders a missing
+                required field as an empty string
+      Criteria: 1. nested structures rejected with a pointed error
+                2. a missing required field fails, never renders empty
+```
+
+**Same two Leads, but taken as Quick**
+
+Rule 2 applies — **two** Quick items, never one:
+
+```
+✓ Promoting 2 leads as 2 separate Quick items
+
+  /spades:quick "reject nested YAML in the frontmatter linter"
+  /spades:quick "fail on a missing required frontmatter field"
+```
+
+**Forcing it, no question asked**
+
+```
+/spades:leads --promote L-loop-stage8-wedged-check-3Hy9 --as scope
+```
+
+`medium`, single Lead, `--as` given → straight to the printed
+`/spades:scope` command with no `AskUserQuestion`.
+
+**A Lead that is really a prohibition**
+
+```
+/spades:leads --promote L-never-gate-on-reviewdecision-9Xa2 --as rule
+```
+
+```
+✓ Promoting 1 lead as a rule
+
+  /spades:anti-patterns   — add: never gate a merge on reviewDecision
+```
 
 ## `--decline`
 
@@ -425,6 +505,10 @@ overlap if an evaluate follows later. Same scout, same
 - Filing a candidate that failed the gate, to reach a count.
 - Using a Lead as evidence for a `/spades:evaluate` verification row,
   or as a reason a PR should not merge.
+- **Bundling more than one Lead into a single Quick item** — see
+  § `--promote` rule 2. N Leads under Quick means N Quick items. Two
+  Leads in one unit of work is a Scope, and no flag or human answer
+  overrides that.
 - Recording `status: promoted` before the Scope or Quick item exists.
 - Recording Leads without rendering the board — see § Render and
   open. The two exceptions are listed there and are the only ones.
