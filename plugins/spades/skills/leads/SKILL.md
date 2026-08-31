@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Record Leads — ideas, problems, and improvements an agent noticed while working, that are deliberately OUT of scope for the current work. Runs a scout sub-agent over what just happened and files one Lead per idea under .spades/leads/. Invoked automatically when /spades:do, /spades:learn, or /spades:review finish, or directly as `/spades:leads`. Use `--list` to publish the board, `--promote` to turn Leads into a Scope, `--decline` to close them. Never asks whether to generate Leads, and never writes code.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # SPADES Leads
@@ -36,17 +36,25 @@ is what separates it from everything else SPADES records:
 
 1. **`.spades/config` exists** and `project:` is set. Else → *"Run
    `/spades:setup` first."*
-2. **Read `leads:` from `.spades/config`.** Values:
+2. **Read `backend:` from `.spades/config`** — `linear` or `local`.
+   This is the same key every other SPADES skill reads, and it is the
+   **only** thing that decides whether a Lead reaches Linear:
 
-   | Value | Behaviour |
+   | `backend:` | Behaviour |
    |---|---|
-   | `off` | Do nothing. Return immediately, print nothing. |
-   | `local` *(default when the key is absent)* | Record Leads as files. No Linear mirror. |
-   | `linear` | Record files **and** mirror each Lead to Linear. |
+   | `local` | The Lead file is the whole record. No mirror. |
+   | `linear` | Write the file **and** mirror the Lead to Linear, per § Recording. |
 
-3. **Read `review_format:`** — `html` or `cli`. Drives what `--list`
-   renders and opens.
-4. **Ensure `.spades/leads/` exists.** Create if missing.
+   A Lead is an artefact like any other: if the project's backend is
+   Linear, Leads go to Linear. Never gate the mirror on anything else.
+
+3. **Read `review_format:`** — `html` or `cli`. Decides whether
+   § Render and open produces `.html` or `.md`.
+4. **Read `leads:`** — `on` *(default when the key is absent)* or
+   `off`. A kill switch and nothing more: `off` means do nothing,
+   return immediately, print nothing. It does **not** decide the
+   backend — that is `backend:`'s job, above.
+5. **Ensure `.spades/leads/` exists.** Create if missing.
 
 ## Modes
 
@@ -94,7 +102,7 @@ origin_plan: P-rag-pipeline-lookup-3HyD    # optional
 learning_ref: .spades/learnings/2026-08-30-config-parse.md   # optional
 promoted_to: S-harden-config-parsing        # optional; set by --promote
 declined_reason: deliberate, documented in ANTI-PATTERNS.md  # optional
-linear_issue_id: <uuid>                     # optional; leads: linear only
+linear_issue_id: <uuid>                     # set only when backend: linear
 ---
 ```
 
@@ -192,9 +200,9 @@ sub-agent per resource, all spawned in a single message:
 | Sub-agent | Resource owned | Returns |
 |---|---|---|
 | `worker-file-lead` | `.spades/leads/L-<…>.md` — one worker **per Lead**; each owns exactly one file. | `{ status: ok }` |
-| `worker-linear-lead` *(only when `leads: linear`)* | Linear — `save_issue(team: <linear.team_id>, project: <linear.project_id>, title: "L-<slug> — <title>", description: <body>, label: "spades:lead")` in the team's triage/backlog state. Includes the Layer-2 freshness probe. | `{ status: ok, linear_issue_id }` |
+| `worker-linear-lead` *(only when `backend: linear`)* | Linear — `save_issue(team: <linear.team_id>, project: <linear.project_id>, title: "L-<slug> — <title>", description: <body>, label: "spades:lead")` in the team's triage/backlog state. Includes the Layer-2 freshness probe. | `{ status: ok, linear_issue_id }` |
 
-After the wave: on `leads: linear`, the coordinator injects each
+After the wave: on `backend: linear`, the coordinator injects each
 `linear_issue_id` into its Lead file's frontmatter. Sequential after
 the worker wrote it — that is the sanctioned integration write.
 
@@ -354,7 +362,7 @@ other transient views use. Substitute it along with the rest.
    human's act; the skill prepares it.
 4. **On confirmation that the Scope or Quick item exists**, set
    `status: promoted` and `promoted_to:` on each Lead, and — on
-   `leads: linear` — close the `L-` issue with a link to the new
+   `backend: linear` — close the `L-` issue with a link to the new
    Scope issue.
 
 **A third destination:** a Lead that is really a rule, not work,
@@ -366,7 +374,7 @@ routes to `/spades:anti-patterns` or `/spades:patterns`. Record it as
 `/spades:leads --decline L-x "reason"`
 
 Sets `status: declined` and `declined_reason:`, and cancels the
-Linear issue on `leads: linear`. A reason is **required** — a board
+Linear issue on `backend: linear`. A reason is **required** — a board
 that fills with unexplained declines teaches nobody anything.
 
 Declining must stay as cheap as promoting, or the board never
