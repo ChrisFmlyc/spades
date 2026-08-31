@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Record Leads — ideas, problems, and improvements an agent noticed while working, that are deliberately OUT of scope for the current work. Runs a scout sub-agent over what just happened and files one Lead per idea under .spades/leads/. Invoked automatically when /spades:do, /spades:learn, or /spades:review finish, or directly as `/spades:leads`. Use `--list` to publish the board, `--promote` to turn Leads into a Scope, `--decline` to close them. Never asks whether to generate Leads, and never writes code.
-version: 1.0.0
+version: 1.0.1
 ---
 
 # SPADES Leads
@@ -274,6 +274,13 @@ Per `docs/FRAMEWORK.md § worker-html-* — parallel HTML rendering`.
     area, size, confidence, source, source_label, created`.
 - Required markers: `<!-- SPADES-BLOCK:area-groups -->`,
   `<!-- SPADES-BLOCK:lead-rows -->`.
+
+The template is the Cockpit skeleton shared with `/spades:list` —
+same `header.cmd` → `.deck` → `.wrap.body` → `aside.rail` + `main` →
+`footer` structure, same sizing, same `.pill` / `.stat` / `.card`
+vocabulary — and carries the embedded
+`<script type="application/yaml" id="spades-frontmatter">` block the
+other transient views use. Substitute it along with the rest.
 
 ## `--promote` — turning Leads into work
 
