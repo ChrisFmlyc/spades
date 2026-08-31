@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 3.5.1
+version: 3.5.2
 ---
 
 # /spades:do
@@ -363,10 +363,15 @@ skill's § Render and open — `.html` or inline `.md` depending on
   of delivery, not a question. See `/spades:leads` § Two invariants.
 - **Never block on it.** A Leads failure prints a warning; this skill
   still reports the Plan as delivered.
-- **Under `/spades:loop`, this step is deferred to Stage 5** — after
-  the verdict, when the diff is final. A PARTIAL rolls the Plan back
-  here, and Leads filed against a diff that is about to change are
-  waste. The loop owns that timing; standalone runs fire now.
+- **This step is part of finishing Do, not of any driver.** It fires
+  whenever Do completes — hand-driven or under `/spades:loop`, which
+  neither knows nor needs to know about Leads. Never defer it to a
+  caller: a step deferred to a driver that does not implement it
+  never runs at all.
+- **A rework re-runs it, and that is fine.** If a PARTIAL verdict
+  sends this Plan back through Do, the next completion scouts again;
+  `/spades:leads` dedupes against the open Leads and returns the
+  repeats as duplicates rather than filing them.
 - Skipped entirely when `leads: off` in `.spades/config`.
 
 ## Edge Cases
