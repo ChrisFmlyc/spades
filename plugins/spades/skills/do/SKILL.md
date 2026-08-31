@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 3.5.0
+version: 3.5.1
 ---
 
 # /spades:do
@@ -354,8 +354,10 @@ Delivery is done. Anything you noticed along the way that was
 fresh, and move on.
 
 Invoke **`/spades:leads --from do --plan P-<plan-id>`**. It spawns a
-scout over the Plan's diff, files what clears its gate, and prints a
-one-line receipt.
+scout over the Plan's diff, files what clears its gate, prints a
+one-line receipt, and then renders and opens the board per that
+skill's § Render and open — `.html` or inline `.md` depending on
+`review_format:`.
 
 - **Never ask whether to generate Leads.** Capture is a side effect
   of delivery, not a question. See `/spades:leads` § Two invariants.
