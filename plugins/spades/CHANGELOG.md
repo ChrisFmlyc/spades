@@ -32,6 +32,15 @@ changes). The consumer-repo marker block in `AGENTS.md` carries the
   path. Restored, and the matrix's exhaustiveness claim now says what
   it is exhaustive over.
 
+  **Restoring `rule` re-introduced the bundling bug it was meant to
+  avoid.** Caught by Greptile on this PR, in the fix above: the menu
+  options are set-wide, so picking "a rule, not work" on three
+  unrelated Leads sent all three through one docs invocation and
+  marked them all promoted to the same document. Rule 2 now reads
+  "Scope is the only destination that groups" and covers rule entries
+  as well as Quick items — N Leads means N entries, each with its own
+  `promoted_to:`.
+
   **`/spades:loop` does not invoke `/spades:review`.** The claim that
   it invoked `do`, `learn` **and** `review` was wrong on the third:
   the loop declines `/spades:review` as human-invoked and delegates

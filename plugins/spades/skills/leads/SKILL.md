@@ -365,11 +365,20 @@ other transient views use. Substitute it along with the rest.
    already carrying `promoted_to:` → abort naming it and the item it
    became; it is not promoted twice. Existence is not the only check.
 
-2. **The one hard rule: one Lead per Quick item.** A Quick item is a
-   single focused commit addressing a single Lead. Two Leads in one
-   unit of work is a **Scope** — that is precisely what a Scope is
-   for. Never bundle several Leads into one Quick item, whatever the
-   human picks and whatever `--as` says.
+2. **The one hard rule: Scope is the only destination that groups.**
+   A Quick item is a single focused commit addressing a single Lead. A
+   rule is a single prohibition. Two Leads in one unit of work is a
+   **Scope** — that is precisely what a Scope is for.
+
+   So **one Lead per Quick item, and one Lead per rule.** N Leads to
+   Quick means N Quick items; N Leads to rule means N invocations of
+   the docs skill, each recording its own `promoted_to:`. Never bundle
+   several Leads into one Quick item or one rule addition, whatever
+   the human picks and whatever `--as` says.
+
+   Grouping unrelated prohibitions into one docs invocation loses
+   which Lead became which rule, and invites the human to compose one
+   of them while the rest are marked promoted regardless.
 
 3. **Route in two passes: cluster, then size.** One `--promote` can
    legitimately produce several destinations — a Scope *and* a Quick,
@@ -449,8 +458,8 @@ other transient views use. Substitute it along with the rest.
    > - **As proposed** — one Scope for L-a + L-b, one Quick for L-c.
    > - **One Scope for all three** — treat them as a single change.
    > - **A Scope each** — three separate Scopes, no grouping.
-   > - **A rule, not work** — routes to `ANTI-PATTERNS.md` /
-   >   `PATTERNS.md` instead of producing any work item.
+   > - **A rule, not work** — each becomes its own entry in
+   >   `ANTI-PATTERNS.md` / `PATTERNS.md`; no work item is produced.
 
    The rule option is always offered, because the matrix cannot
    propose it: routing asks "Scope or Quick", and a prohibition is
@@ -465,7 +474,9 @@ other transient views use. Substitute it along with the rest.
 5. **`--as` skips the question**, with two things it cannot override:
 
    - **Rule 2.** `--as quick` on three Leads produces three Quick
-     items, never one carrying three.
+     items, never one carrying three — and `--as rule` on three Leads
+     produces three rule entries, not one invocation covering all
+     three.
    - **The Quick gate.** `--as quick` still walks the ten criteria
      first. A Lead that fails is reported with the failing criterion
      and left `open` — do not hand it to `/spades:quick`, which
@@ -483,7 +494,7 @@ other transient views use. Substitute it along with the rest.
    |---|---|
    | Scope cluster | **`/spades:scope`** once per cluster |
    | Quick | **`/spades:quick`** once per Lead, sequentially — rule 2 |
-   | Rule | **`/spades:patterns`** or **`/spades:anti-patterns`** |
+   | Rule | **`/spades:patterns`** or **`/spades:anti-patterns`**, once per Lead — rule 2 |
 
    Several clusters means several invocations, in order, each
    reporting its own minted ID before the next starts.
@@ -695,10 +706,10 @@ never promote, for any reason, however obvious the promotion looks.**
 - Filing a candidate that failed the gate, to reach a count.
 - Using a Lead as evidence for a `/spades:evaluate` verification row,
   or as a reason a PR should not merge.
-- **Bundling more than one Lead into a single Quick item** — see
-  § `--promote` rule 2. N Leads under Quick means N Quick items. Two
-  Leads in one unit of work is a Scope, and no flag or human answer
-  overrides that.
+- **Bundling more than one Lead into a single Quick item or a single
+  rule entry** — see § `--promote` rule 2. Scope is the only
+  destination that groups. Two Leads in one unit of work is a Scope,
+  and no flag or human answer overrides that.
 - Recording `status: promoted` before the Scope or Quick item exists.
 - Recording Leads without rendering the board — see § Render and
   open. The two exceptions are listed there and are the only ones.
