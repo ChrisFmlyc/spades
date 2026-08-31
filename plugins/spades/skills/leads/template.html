@@ -1,188 +1,237 @@
 <!DOCTYPE html>
-<!-- SPADES template: leads v1.0.0 (matches plugin v5.12.0) -->
+<!-- SPADES template: leads v2.0.0 (matches plugin v5.12.1) -->
 <!--
   Transient leads board (.spades/.tmp/leads.html). Re-rendered on
   every /spades:leads --list.
 
+  Derived from skills/list/template.html — identical Cockpit skeleton
+  (header.cmd -> .deck -> .wrap.body -> aside.rail + main -> footer),
+  identical sizing, spacing, radii, grid columns and media query.
+  Only the :root palette differs: brand amber gold (#FFC107 primary,
+  #FFDE59 light) on white panels with black text. Structural var
+  NAMES are unchanged from list, so a palette change is a one-block
+  swap; the accent names --lime/--teal are replaced by --gold*.
+
   RENDER CONTRACT (string substitution + block repetition)
-  Field names follow SKILL.md § worker-html-leads.
+  Field names follow SKILL.md 'worker-html-leads'.
 
   Scalars (frontmatter): project_slug, open_count, promoted_count,
-    declined_count, stale_count, conversion_pct, conversion_health,
+    declined_count, stale_count, conversion_pct (|-), conversion_health,
     rendered_at, plugin_version
 
   Required repeating blocks (worker validates BOTH markers):
-    area-groups — area, count
-    lead-rows   — id, title, kind, area, size, confidence, source,
+    area-groups - area, count
+    lead-rows   - id, title, kind, area, size, confidence, source,
                   source_label, created
 
-  {{block.kind}}, {{block.size}}, {{block.confidence}} and
-  {{block.source}} are substituted as CSS classes (.k-<kind>,
-  .sz-<size>, .cf-<confidence>, .src-<source>) so badges self-colour.
-  {{spades.conversion_health}} is substituted as a class on the
-  conversion tile (.healthy | .high | .low).
+  block.kind is substituted as a .pill class, block.source as a .src
+  class, block.confidence as a .cf- class, and spades.conversion_health
+  as a class on the conversion stat - so they self-colour.
 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SPADES Leads · {{spades.project_slug}}</title>
+<title>SPADES Leads &middot; {{spades.project_slug}}</title>
 <style>
   :root {
-    --gold: #FFC107; --gold-lite: #FFDE59; --gold-deep: #E0A800;
-    --ink: #101014; --ink-soft: #3d3d47; --muted: #6b6b78; --muted-2: #9a9aa6;
-    --panel: #ffffff; --page: #f6f5f1; --line: #e6e4dd; --hair: #f0eee8;
-    --ok: #1a7f4b; --warn: #b26a00; --bad: #b3261e;
+    --bg: #f6f5f1; --bg-bar: #ffffff; --panel: #ffffff; --panel-2: #efece4;
+    --panel-inset: #faf8f2; --border: #e3e0d7; --hair: #f0eee8;
+    --ink: #101014; --ink-soft: #3d3d47; --ink-strong: #000000;
+    --muted: #6b6b78; --muted-2: #8b8b98; --muted-3: #a8a8b4;
+    --gold: #FFC107; --gold-lite: #FFDE59; --gold-deep: #B26A00;
+    --red: #b3261e; --red-soft: #8c1d16; --green: #1a7f4b; --amber: #b26a00;
+    --k-defect: #8c1d16; --k-enhancement: #6b4e00; --k-simplification: #14603a;
+    --k-risk: #8a4b00; --k-opportunity: #4b32a8;
+    --cf-high: #1a7f4b; --cf-medium: #b26a00; --cf-low: #8b8b98;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--page); color: var(--ink);
-         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
-         font-size: 16px; line-height: 1.55; }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
-  code, .mono { font-family: ui-monospace, Menlo, monospace; }
+  body { background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif; font-size: 16px; line-height: 1.55; }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-thumb { background: #cfcbc0; border-radius: 6px; }
+  *::-webkit-scrollbar-track { background: var(--bg); }
+  a { color: inherit; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+  code { font-family: ui-monospace, Menlo, monospace; background: var(--panel-2); padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.9em; }
 
-  /* HEADER */
-  header.bar { background: var(--panel); border-bottom: 3px solid var(--gold); }
-  header.bar .wrap { display: flex; align-items: center; gap: 16px; padding: 18px 28px; flex-wrap: wrap; }
-  .spade { width: 34px; height: 34px; border-radius: 9px; background: var(--gold);
-           display: flex; align-items: center; justify-content: center; font-size: 19px; color: var(--ink); }
-  .kicker { font-size: 10px; letter-spacing: 2.6px; color: var(--muted); font-weight: 700; }
-  .title { font-size: 19px; font-weight: 700; letter-spacing: -0.2px; }
+  /* COMMAND BAR */
+  header.cmd { position: sticky; top: 0; z-index: 20; background: var(--bg-bar); border-bottom: 1px solid var(--border); box-shadow: 0 6px 18px rgba(16,16,20,0.06); }
+  header.cmd .wrap { padding-top: 14px; padding-bottom: 14px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .spade { width: 26px; display: flex; align-items: center; justify-content: center; color: var(--gold-deep); font-size: 22px; line-height: 1; }
+  .brand .kicker { font-size: 10px; letter-spacing: 2.5px; color: var(--muted); font-weight: 700; }
+  .brand .id { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .spacer { flex: 1; }
-  .stamp { font-size: 12px; color: var(--muted-2); text-align: right; }
+  .chip { display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; background: rgba(255,193,7,0.12); border: 1px solid rgba(255,193,7,0.45); }
+  .chip span { font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700; color: var(--gold-deep); }
 
-  /* STATS */
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin: 26px 0 8px; }
-  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
-  .tile .n { font-size: 30px; font-weight: 750; letter-spacing: -1px; line-height: 1.1; }
-  .tile .l { font-size: 11px; letter-spacing: 1.6px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-top: 4px; }
-  .tile.open { border-left: 4px solid var(--gold); }
-  .tile.conv { background: linear-gradient(180deg, #fffdf5, var(--panel)); border-left: 4px solid var(--gold-lite); }
-  .tile.conv .band { font-size: 11px; color: var(--muted); margin-top: 6px; }
-  .tile.conv.healthy .n { color: var(--ok); }
-  .tile.conv.high .n, .tile.conv.low .n { color: var(--warn); }
 
-  /* LAYOUT */
-  .grid { display: grid; grid-template-columns: 232px 1fr; gap: 20px; margin: 22px 0 60px; align-items: start; }
-  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
-  .panel h2 { font-size: 10.5px; letter-spacing: 2.2px; text-transform: uppercase; color: var(--muted);
-              padding: 15px 18px 10px; border-bottom: 1px solid var(--hair); }
+  /* DECISION DECK */
+  .deck { border-bottom: 1px solid var(--panel-2); background: radial-gradient(1200px 200px at 20% -40%, rgba(255,193,7,0.10), transparent); }
+  .deck .wrap { padding-top: 28px; padding-bottom: 26px; }
+  .deck h1 { font-size: 30px; line-height: 1.15; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+  .deck .lede { color: var(--muted); font-size: 15px; margin-bottom: 20px; }
+  .deck-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .stat { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .stat .lbl { font-size: 11px; letter-spacing: 1.5px; color: var(--muted); font-weight: 700; }
+  .stat .n { font-size: 30px; font-weight: 800; font-family: ui-monospace, monospace; line-height: 1.1; color: var(--ink); }
+  .stat .note { font-size: 12px; color: var(--muted-2); }
+  .stat.inflight .n { color: var(--amber); }
+  .stat.done .n { color: var(--green); }
 
-  /* RAIL */
-  .rail ul { list-style: none; padding: 8px; }
-  .rail li { display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
-             padding: 8px 10px; border-radius: 8px; font-size: 13.5px; }
-  .rail li:hover { background: var(--hair); }
-  .rail .a { color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .rail .c { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
-  .rail .empty { padding: 14px 18px; color: var(--muted-2); font-size: 13px; }
+  /* BODY GRID */
+  .body { display: grid; grid-template-columns: 268px minmax(0,1fr); gap: 32px; align-items: start; padding-top: 28px; padding-bottom: 60px; }
+  aside.rail { position: sticky; top: 86px; display: flex; flex-direction: column; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .card .hd { font-size: 11px; letter-spacing: 1.5px; color: var(--muted); font-weight: 700; margin-bottom: 12px; }
+  .area-row { display: flex; align-items: center; gap: 9px; padding: 5px 0; font-size: 13px; }
+  .area-row .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); }
+  .area-row .lbl { color: var(--ink-soft); flex: 1; text-transform: capitalize; }
+  .area-row .c { font-family: ui-monospace, monospace; color: var(--muted); font-size: 12px; }
+  .filter-card .fr { font-size: 13px; color: var(--muted-2); margin-bottom: 4px; }
+  .filter-card .fr:last-child { margin-bottom: 0; }
+  .filter-card .fr .lime { color: var(--gold-deep); font-family: ui-monospace, monospace; }
+  .filter-card .fr .val { color: var(--ink-soft); font-family: ui-monospace, monospace; }
 
-  /* LEADS */
-  .lead { padding: 16px 20px; border-bottom: 1px solid var(--hair); }
-  .lead:last-child { border-bottom: 0; }
-  .lead:hover { background: #fffdf6; }
-  .lead .top { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
-  .lead .id { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--muted);
-              background: var(--hair); padding: 2px 7px; border-radius: 5px; }
-  .lead .t { font-size: 15.5px; font-weight: 620; flex: 1; min-width: 260px; letter-spacing: -0.15px; }
-  .lead .meta { margin-top: 9px; display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
-  .lead .path { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; color: var(--muted); }
-  .lead .date { font-size: 11.5px; color: var(--muted-2); margin-left: auto; }
+  main { min-width: 0; }
+  section { margin-bottom: 30px; scroll-margin-top: 86px; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  .sec-head h2 { font-size: 12px; letter-spacing: 2px; color: var(--muted); font-weight: 700; margin: 0; text-transform: uppercase; }
+  .sec-head .hint { font-size: 12px; color: var(--muted-2); font-family: ui-monospace, monospace; }
 
-  .badge { font-size: 10.5px; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase;
-           padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink-soft); background: #fafaf8; }
-  .k-defect { background: #fdecea; border-color: #f5c6c0; color: #8c1d16; }
-  .k-enhancement { background: #fff8e1; border-color: var(--gold-lite); color: #6b4e00; }
-  .k-simplification { background: #eef7f0; border-color: #cfe6d6; color: #14603a; }
-  .k-risk { background: #fff3e0; border-color: #f4d1a0; color: #8a4b00; }
-  .k-opportunity { background: #f3f0ff; border-color: #d9d1f5; color: #4b32a8; }
-  .sz-trivial, .sz-small { color: var(--ok); border-color: #cfe6d6; }
-  .sz-medium { color: var(--warn); border-color: #f4d1a0; }
-  .sz-large { color: var(--bad); border-color: #f5c6c0; }
-  .cf-high { background: var(--gold); border-color: var(--gold-deep); color: var(--ink); }
-  .cf-medium { background: #fff8e1; border-color: var(--gold-lite); color: #6b4e00; }
-  .cf-low { color: var(--muted-2); }
-  .src { font-size: 11px; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
-  .src::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted-2); }
-  .src-learn::before { background: var(--ok); }
-  .src-review::before { background: var(--gold-deep); }
-  .src-do::before, .src-manual::before { background: var(--muted-2); }
+  /* SCOPES TABLE */
+  .leads { background: var(--panel); border: 1px solid var(--border); border-radius: 11px; overflow: hidden; }
+  .lead-head { display: grid; grid-template-columns: 1fr 120px 210px 96px; gap: 0; align-items: center; padding: 11px 16px; background: var(--panel-inset); border-bottom: 1px solid var(--border); font-size: 11px; letter-spacing: 1px; color: var(--muted-2); font-weight: 700; }
+  .lead-row { padding: 13px 16px; border-bottom: 1px solid var(--panel-2); }
+  .lead-row:last-child { border-bottom: none; }
+  .lead-row:hover { background: rgba(255,193,7,0.05); }
+  /* the main line is the grid; blocked-warning sits full-width beneath it */
+  .lead-main { display: grid; grid-template-columns: 1fr 120px 210px 96px; gap: 0; align-items: start; }
+  .lead-row .lid { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lead-row .ltitle { font-size: 14px; color: var(--ink-strong); font-weight: 500; margin-top: 2px; }
+  .lead-row .flags { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted-3); margin-top: 3px; }
+  .lead-row .st { padding-top: 1px; }
+  .lead-row .meta { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); padding-right: 10px; }
+  .lead-row .upd { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-2); }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .pill.defect         { background: rgba(140,29,22,0.10);  color: var(--k-defect); }
+  .pill.enhancement    { background: rgba(255,193,7,0.20);   color: var(--k-enhancement); }
+  .pill.simplification { background: rgba(20,96,58,0.10);    color: var(--k-simplification); }
+  .pill.risk           { background: rgba(138,75,0,0.10);    color: var(--k-risk); }
+  .pill.opportunity    { background: rgba(75,50,168,0.10);   color: var(--k-opportunity); }
 
-  .empty-state { padding: 44px 22px; text-align: center; color: var(--muted); }
-  .empty-state .big { font-size: 15px; color: var(--ink-soft); margin-bottom: 6px; }
+  footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--panel-2); font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted-2); }
 
-  footer { color: var(--muted-2); font-size: 12px; padding: 0 0 40px; }
-  footer code { background: var(--panel); border: 1px solid var(--line); padding: 2px 6px; border-radius: 5px; }
+  @media (max-width: 900px) {
+    .body { grid-template-columns: 1fr; }
+    aside.rail { position: static; }
+    .deck-grid { grid-template-columns: 1fr; }
+    .lead-head, .lead-main { grid-template-columns: 1fr 110px; }
+    .lead-head span:nth-child(3), .lead-head span:nth-child(4),
+    .lead-main .plans, .lead-main .upd { display: none; }
+    .wrap { padding: 0 18px; }
+  }
+  .src { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
+  .src::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--muted-3); }
+  .src.learn::before  { background: var(--green); }
+  .src.review::before { background: var(--gold-deep); }
+  .stat.conv .n { color: var(--gold-deep); }
+  .stat.conv.healthy .n { color: var(--green); }
+  .stat.open .n { color: var(--ink); }
+  .cf-high { color: var(--cf-high); } .cf-medium { color: var(--cf-medium); } .cf-low { color: var(--cf-low); }
 </style>
 </head>
 <body>
+<script type="application/yaml" id="spades-frontmatter">
+project: {{spades.project_slug}}
+open: {{spades.open_count}}
+promoted: {{spades.promoted_count}}
+declined: {{spades.declined_count}}
+stale: {{spades.stale_count}}
+conversion_pct: {{spades.conversion_pct|-}}
+rendered_at: {{spades.rendered_at}}
+</script>
 
-<header class="bar">
-  <div class="wrap">
-    <div class="spade">&spades;</div>
-    <div>
-      <div class="kicker">SPADES LEADS</div>
-      <div class="title">{{spades.project_slug}}</div>
+  <!-- COMMAND BAR -->
+  <header class="cmd">
+    <div class="wrap">
+      <div class="brand">
+        <div class="spade">&#9824;</div>
+        <div style="min-width:0;">
+          <div class="kicker">SPADES &middot; LEADS &middot; TRANSIENT VIEW</div>
+          <div class="id">{{spades.project_slug}}</div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+      <div class="chip"><span>re-renders each /spades:leads --list</span></div>
     </div>
-    <div class="spacer"></div>
-    <div class="stamp">{{spades.rendered_at}}<br>plugin {{spades.plugin_version}}</div>
+  </header>
+
+  <!-- DECISION DECK -->
+  <div class="deck">
+    <div class="wrap">
+      <h1>Leads</h1>
+      <p class="lede">Ideas recorded while working on <code>{{spades.project_slug}}</code> &mdash; each one out of scope by construction. Evidence-backed first. Promote what you want built; the rest keeps.</p>
+      <div class="deck-grid">
+        <div class="stat open"><div class="lbl">OPEN</div><div class="n">{{spades.open_count}}</div><div class="note">awaiting a decision</div></div>
+        <div class="stat"><div class="lbl">PROMOTED</div><div class="n">{{spades.promoted_count}}</div><div class="note">became scopes / quick items</div></div>
+        <div class="stat conv {{spades.conversion_health}}"><div class="lbl">CONVERSION</div><div class="n">{{spades.conversion_pct|-}}%</div><div class="note">healthy 30&ndash;50%</div></div>
+      </div>
+    </div>
   </div>
-</header>
 
-<main class="wrap">
+  <!-- BODY -->
+  <div class="wrap body">
 
-  <section class="stats">
-    <div class="tile open"><div class="n">{{spades.open_count}}</div><div class="l">Open</div></div>
-    <div class="tile"><div class="n">{{spades.promoted_count}}</div><div class="l">Promoted</div></div>
-    <div class="tile"><div class="n">{{spades.declined_count}}</div><div class="l">Declined</div></div>
-    <div class="tile"><div class="n">{{spades.stale_count}}</div><div class="l">Stale</div></div>
-    <div class="tile conv {{spades.conversion_health}}">
-      <div class="n">{{spades.conversion_pct|—}}%</div>
-      <div class="l">Conversion</div>
-      <div class="band">healthy 30–50%</div>
-    </div>
-  </section>
-
-  <div class="grid">
-
-    <aside class="panel rail">
-      <h2>By area</h2>
-      <ul>
+    <!-- META RAIL -->
+    <aside class="rail">
+      <div class="card">
+        <div class="hd">BY AREA</div>
         <!-- SPADES-BLOCK:area-groups -->
-        <li><span class="a">{{block.area}}</span><span class="c">{{block.count}}</span></li>
+        <div class="area-row">
+          <span class="dot"></span>
+          <span class="lbl">{{block.area}}</span>
+          <span class="c">{{block.count}}</span>
+        </div>
         <!-- SPADES-ENDBLOCK -->
-      </ul>
+      </div>
+      <div class="card filter-card">
+        <div class="hd">CLOSED OUT</div>
+        <div class="fr">Declined: <span class="val">{{spades.declined_count}}</span></div>
+        <div class="fr">Stale: <span class="val">{{spades.stale_count}}</span></div>
+        <div class="fr">Hidden here, kept on disk</div>
+      </div>
     </aside>
 
-    <section class="panel">
-      <h2>Open leads · evidence-backed first</h2>
-      <!-- SPADES-BLOCK:lead-rows -->
-      <article class="lead">
-        <div class="top">
-          <span class="id">{{block.id}}</span>
-          <span class="t">{{block.title}}</span>
+    <!-- MAIN -->
+    <main>
+      <section id="leads">
+        <div class="sec-head">
+          <h2>Open leads ({{spades.open_count}})</h2>
+          <span class="hint">evidence-backed first</span>
         </div>
-        <div class="meta">
-          <span class="badge k-{{block.kind}}">{{block.kind}}</span>
-          <span class="badge sz-{{block.size}}">{{block.size}}</span>
-          <span class="badge cf-{{block.confidence}}">{{block.confidence}}</span>
-          <span class="src src-{{block.source}}">{{block.source_label}}</span>
-          <span class="path">{{block.area}}</span>
-          <span class="date">{{block.created}}</span>
+        <div class="leads">
+          <div class="lead-head"><span>LEAD</span><span>KIND</span><span>SIZE / CONFIDENCE / SOURCE</span><span>RECORDED</span></div>
+          <!-- SPADES-BLOCK:lead-rows -->
+          <div class="lead-row">
+            <div class="lead-main">
+              <div style="min-width:0; padding-right:12px;">
+                <div class="lid">{{block.id}}</div>
+                <div class="ltitle">{{block.title}}</div>
+                <div class="flags">{{block.area}}</div>
+              </div>
+              <span class="st"><span class="pill {{block.kind}}">{{block.kind}}</span></span>
+              <span class="meta">{{block.size}} &middot; <span class="cf-{{block.confidence}}">{{block.confidence}}</span> &middot; <span class="src {{block.source}}">{{block.source_label}}</span></span>
+              <span class="upd">{{block.created}}</span>
+            </div>
+          </div>
+          <!-- SPADES-ENDBLOCK -->
         </div>
-      </article>
-      <!-- SPADES-ENDBLOCK -->
-    </section>
+      </section>
 
+      <footer>SPADES &middot; v{{spades.plugin_version}} &middot; template: Leads (transient) / Cockpit &middot; rendered {{spades.rendered_at}}</footer>
+    </main>
   </div>
-
-  <footer>
-    Promote with <code>/spades:leads --promote L-a,L-b</code> ·
-    decline with <code>/spades:leads --decline L-x "reason"</code>.
-    Declined, promoted, and low-confidence leads are hidden here but kept on disk.
-  </footer>
-
-</main>
 </body>
 </html>
