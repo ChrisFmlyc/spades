@@ -294,16 +294,6 @@ The canonical definition lives in `docs/FRAMEWORK.md § Freshness`.
 This section is the operating-rules-level statement; that section is
 the contract.
 
-The sister `spades-anywhere` plugin enforces the same rule, with
-identical hard-refusal behaviour, in the local-backend + git
-scenario (the only `spades-anywhere` scenario where a remote main
-exists to compare against). See
-`plugins/spades-anywhere/docs/FRAMEWORK.md § Freshness` for the
-plugin-specific framing. The skill-level checks in
-`/spades-anywhere:review` Step 1 and `/spades-anywhere:research`
-Step 1 mirror `/spades:review` and `/spades:research`: same probe,
-same abort message structure, same "do not proceed" semantics.
-
 ## Artefacts Carry Forward — Never Block on Pending Files
 
 Every phase writes artefacts, and in a git repo they land as
@@ -329,8 +319,7 @@ catch-all — it tolerates a dirty tree by design and sweeps whatever
 earlier phases left.
 
 The canonical contract is `docs/FRAMEWORK.md § Carry-Forward of
-SPADES-Owned Artefacts`. Not applicable to `spades-anywhere`, which
-has no SCM.
+SPADES-Owned Artefacts`.
 
 ## Sub-agent Fan-Out
 
@@ -637,7 +626,7 @@ future — without breaking or blocking another Scope. If two Scopes
 genuinely need each other to ship in order, the Scope boundaries are
 wrong: combine them, or accept that the sequencing lives in the
 roadmap (a human-readable artefact outside `.spades/`), not in the
-dependency graph. The same applies to `spades-anywhere`.
+dependency graph.
 
 ### No `abandoned` status for Quick items
 
@@ -651,8 +640,7 @@ bail, just delete the marker file at `.spades/quick/Q-<id>.md`.
 Adding a status enum + a setter skill for the quick path would
 inflate exactly the ceremony the quick path exists to avoid. A
 deleted file is a sufficient signal; if you want a trace, the git
-history records the delete. The same applies to
-`spades-anywhere/quick/Q-<id>.md`.
+history records the delete.
 
 ## What You Must Never Do
 

@@ -8,6 +8,14 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.21.0] — 2026-09-04
+
+- **minor**: the `spades-anywhere` sister plugin is removed from the
+  repo and the marketplace; `spades` is the only plugin. The
+  parity rule and PR parity section are gone from the maintainer
+  `AGENTS.md`, and `AGENTS.md` / `FRAMEWORK.md` no longer describe
+  which rules apply to the sister. `agents_version` 2.9.0 → 2.10.0.
+
 ## [5.20.0] — 2026-09-04
 
 - **minor**: `/spades:leads` rebuilt as a standing notice-and-raise

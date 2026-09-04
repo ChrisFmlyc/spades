@@ -901,10 +901,8 @@ all-or-nothing.
 ## Execution Posture
 
 When a plan declares tasks, each task picks one execution posture from
-a fixed set shared between `spades` and `spades-anywhere`. The
-posture declares *how* to approach the work, not what to do. The set
-is identical across plugins so a Plan moving between coding and
-non-coding contexts stays legible.
+a fixed set. The posture declares *how* to approach the work, not
+what to do.
 
 - **`specify-first`** — the target is clear and worth pinning down
   before starting. **Code:** write failing tests first, then satisfy
@@ -1181,9 +1179,6 @@ The rule spans every phase and the SCM drivers. Stating it once means
 each inventing its own tolerance for pending files — which is how the
 inconsistency arose: `close` tolerated a dirty tree, `ship` prompted
 about one, and the loop stalled between them.
-
-Not applicable to `spades-anywhere`, which has no SCM: there are no
-commits to sweep into and nothing to block on.
 
 ## Output Format (CLI vs HTML)
 
