@@ -8,6 +8,20 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.21.1] — 2026-09-04
+
+- **patch**: `scope`, `newproject`, and `setup` ask their questions
+  again. The green-field rewrite left the fixed-option decisions
+  (delivery, priority, type; backend, SCM, review format, active
+  project) as headings with option lists, and an agent given a rich
+  description filled them by inference and drafted the whole
+  artefact. Each is now an explicit `AskUserQuestion` call with the
+  inferred value first and marked *(Recommended)*, `scope` writes
+  only after the conversation completes, and `newproject` asks for
+  title, description, repos, and owners in turn. Skill versions:
+  scope 3.5.0 → 3.6.0; newproject 3.5.0 → 3.6.0; setup 4.8.0 →
+  4.9.0.
+
 ## [5.21.0] — 2026-09-04
 
 - **minor**: the `spades-anywhere` sister plugin is removed from the
