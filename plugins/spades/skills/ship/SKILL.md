@@ -1,301 +1,173 @@
 ---
 name: ship
 description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.4.0
+version: 3.5.0
 ---
 
 # /spades:ship
 
-You are shipping the deliverable from an evaluated Plan. Ship is the
-moment work becomes real to the outside world: a PR merges, an
-artefact is published, an action's evidence is filed.
+You are shipping the deliverable of an evaluated Plan. Ship is the
+moment work becomes real to the outside world: a PR is published, an
+artefact is filed, an action's evidence is recorded.
 
-Read `docs/FRAMEWORK.md` § Hierarchy (`deliverable_type` semantics)
-and § Target Resolution before running.
+Read `docs/FRAMEWORK.md` § Hierarchy (`deliverable_type`), § Target
+Resolution, § Audit Trail (the `Shipped` marker), § Carry-Forward of
+SPADES-Owned Artefacts, and § Output Format before running.
 
 ### Output format
 
-This skill honours `review_format:` from `.spades/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. Anywhere this
-skill would today summarise the Plan + parent Scope to the terminal
-during ship, in HTML mode auto-open both `.html` files via the
-OPEN_CMD prelude. The PR-opening, audit-trail markers, and SCM
-driver dispatch all stay identical between modes.
+The Plan and Scope are read from their `.md` files. HTML mode opens
+both existing `.html` pages via the OPEN_CMD prelude at the start;
+they are the human's view of what is being shipped, and the terminal
+carries the progress lines, driver messages, prompts, and the final
+confirmation. CLI mode summarises inline. After each audit-trail
+write in HTML mode, re-dispatch `worker-html-plan` (and
+`worker-html-scope` when the Scope changed).
 
 ## Pre-Flight
 
-1. **Confirm setup + active project.** Abort otherwise.
-2. **Resolve the target Plan** per `docs/FRAMEWORK.md` § Target
-   Resolution. This skill's parameters:
-   - **Artefact type:** Plan (no type-question needed).
-   - **Status filter:** `evaluating` with a PASS verdict in the audit
-     trail. When listing candidates, parse the audit trail to surface
-     only PASS-verdict plans first; PARTIAL plans appear below with
-     an annotation; FAIL plans are excluded.
-   - **Zero-candidate suggestion:** `/spades:evaluate P-…` to verify a
-     delivered plan.
+1. **Confirm setup and active project.** Abort otherwise.
+2. **Read `backend:`, `scm:`, and `review_format:`** from
+   `.spades/config`.
+3. **Resolve the target Plan** per `docs/FRAMEWORK.md § Target
+   Resolution` — artefact type Plan; status filter `evaluating` with
+   a PASS verdict in the audit trail (PASS Plans listed first,
+   PARTIAL below with an annotation, FAIL excluded); zero candidates
+   → suggest `/spades:evaluate P-…`.
+4. **Read the Plan and its parent Scope.**
+5. **Verify ancestors active** per § Target Resolution →
+   Parent-status precondition; hard abort on an `abandoned` Scope or
+   an `abandoned` / `archived` Project.
+6. **Verify the verdict.** `evaluating` + PASS → ship. `evaluating`
+   + PARTIAL → ask whether to ship with the remaining gaps accepted
+   (recorded in the audit trail) or return to `/spades:do`.
+   `evaluating` + FAIL, or any other status → abort with a clear
+   message.
+7. **Open the review surface** per § Output format.
 
-   If the human passed a Plan ID, resolve directly; otherwise run the
-   interactive picker.
-3. **Read the Plan and parent Scope.**
-4. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
-   Resolution → Parent-status precondition`. If the parent Scope is
-   `abandoned`, or its parent Project is `abandoned` / `archived`,
-   abort hard with the canonical error shape. No override.
-5. **Verify status.** The Plan must be `status: evaluating` with a
-   PASS verdict recorded in the audit trail. Acceptable variations:
-   - `evaluating` + PASS → ship
-   - `evaluating` + PARTIAL → ask the human if they want to ship
-     anyway (PARTIAL with explicit acceptance of remaining gaps) or
-     route back to `/spades:do`
-   - `evaluating` + FAIL → abort; not shippable
-   - any other status → abort with a clear message
-6. **Open the artefacts (HTML mode only).** Read `review_format:`
-   from `.spades/config`. When `review_format: html`, run the
-   OPEN_CMD prelude (`docs/FRAMEWORK.md § OPEN_CMD detection
-   prelude`) and open both the Plan's `.html` and the parent Scope's
-   `.html`. **In HTML mode the open `.html` files ARE the review
-   surface — do NOT also paste / summarise the Plan body, Scope
-   content, or any "let me show you what we're about to ship"
-   preview to the CLI; the human has the browser tabs.** Short
-   conversational text (PR-open progress narration, SCM driver
-   handshake messages, the final `✓ Plan shipped …` confirmation,
-   error messages) stays CLI as today. In CLI mode, summarise
-   inline as today. The PR-opening, audit-trail markers, and SCM
-   driver dispatch all stay identical between modes. See
-   `docs/FRAMEWORK.md § Output Format → What counts as review-form
-   text` for the canonical line.
+## Step 1 — Fresh run or resume (`deliverable_type: code`)
 
-## Step 0 — Detect fresh run vs resume (code deliverables)
+Read the audit trail:
 
-For `deliverable_type: code`, ship may be two-phase or single-phase
-depending on the configured SCM driver:
+- **No `PR opened:` / `MR opened:` line** → fresh run; continue.
+- **`PR opened:` present, no later `Shipped` line** → the PR is
+  published and finalisation belongs to `/spades:close`. Probe the
+  PR state (`gh pr view <n> --json state`), report it, and print
+  `Run /spades:close P-<id>` for a merged PR or `Merge the PR, then
+  run /spades:close P-<id>` for an open one. Stop.
+- **`Shipped` line present** → already shipped; say so and stop.
 
-- **Two-phase drivers** (e.g. `scm: github`, `scm: gitlab`) — Phase 1
-  pushes and opens a PR/MR; Phase 2 resumes after merge to record
-  the merge SHA and mark the Plan `shipped`.
-- **Single-phase drivers** (e.g. `scm: local-git`) — push (if a
-  remote is set), record the commit SHA, mark `shipped` immediately.
-  No resume.
+`artefact` and `action` deliverables are always single-phase;
+continue.
 
-Resume detection is contract-level — the markers come from
-`docs/EXTENDING-SCM.md` § 4 and don't depend on the driver loaded:
+## Step 2 — Mark shipping
 
-Read the audit trail before doing anything else.
+Capture an optional one-line description via `AskUserQuestion`:
+**Type a brief description** (free-form, ≤140 characters) / **Skip**.
 
-- **No `PR opened:` / `MR opened:` line** → fresh run. Continue to
-  Step 1.
-- **`PR opened:` or `MR opened:` line present, no later `Shipped`
-  line** → resume. Jump to Step 6 (Resume).
-- **`Shipped` line present** → already complete. Ask via
-  `AskUserQuestion` whether to re-record or exit.
-
-For `deliverable_type: artefact` or `action`: always single-phase.
-Continue to Step 1.
-
-## Step 1 — Update Status
-
-Before updating status, capture a light one-line description via
-`AskUserQuestion`:
-
-- *Type a brief description (one line)*
-- *Skip — proceed without a description*
-
-For *Type*, follow up with a free-form prompt: *"Brief description
-(one line) — e.g. 'publishing the auth refactor'."* Capture the
-reply verbatim (≤140 chars; truncate with `…` if longer). Skip is
-fine — the deliverable-type clause alone is enough.
-
-Move the Plan to `status: shipping` and `updated: <today>`.
-
-Append to the audit trail:
+Set the Plan to `status: shipping`, `updated: <today>`, and append:
 
 ```markdown
 - YYYY-MM-DD: Ship phase started — deliverable_type: <code|artefact|action>[ — "<description>"].
 ```
 
-Omit the ` — "<description>"` clause when the human skipped.
+With `backend: linear`, move the sub-issue to its `shipping`
+workflow state.
 
-## Step 2 — Branch on Deliverable Type
+## Step 3 — Ship by deliverable type
 
-### Branch A: `deliverable_type: code`
+### A — `code`
 
-You're publishing code. `/spades:do` already created a feature
-branch and committed work onto it; this branch publishes that work.
+`/spades:do` created the feature branch and committed onto it; this
+branch publishes it. The flow is per SCM: read `scm:` and follow the
+matching driver file, which owns branch verification, the pre-push
+sweep, the push, PR opening where the SCM has one, and the audit
+markers.
 
-**Branch A is routed by SCM** — the per-SCM ship flow lives in a
-sibling driver file, not in this skill. SKILL.md's only job here is to
-read the configured SCM and load the matching driver.
+- `scm: github` → **read `${CLAUDE_PLUGIN_ROOT}/skills/ship/scm-github.md`
+  and follow it.** Two-phase: this run pushes and opens the PR, then
+  exits with the Plan at `shipping`; `/spades:close P-<id>` records
+  the `Shipped` marker after the merge.
+- `scm: local-git` → **read `${CLAUDE_PLUGIN_ROOT}/skills/ship/scm-local-git.md`
+  and follow it.** Single-phase: push when a remote is configured,
+  record the commit, return here for Step 4.
+- Any other value → abort: *"No ship driver for `scm: <value>`. See
+  `docs/EXTENDING-SCM.md` for the contract, or set `scm: local-git`
+  in `.spades/config`."*
 
-1. Read `scm:` from `.spades/config`. Expect one of: `github`,
-   `local-git`.
-2. **Read `${CLAUDE_PLUGIN_ROOT}/skills/ship/scm-<value>.md` and
-   follow it.** That file owns Branch A from this point: branch
-   verification, pre-push checks, push, PR-open (where applicable),
-   and the audit-trail markers.
-3. The driver returns control here after recording its shipment
-   marker. Single-phase drivers (e.g. `local-git`) come back ready
-   for Step 3. Two-phase drivers (e.g. `github`) come back from
-   Phase 1 with an exit instruction — **honour it and stop**; the
-   resume is a later invocation that re-enters at Step 0 → Step 6.
+### B — `artefact`
 
-If `.spades/config`'s `scm:` value has no matching driver file in
-`skills/ship/`, abort with:
+The deliverable is a tangible thing outside the repo: a document, a
+video, a dataset, a configuration landing somewhere else.
 
-> *No ship driver for `scm: <value>`. See `docs/EXTENDING-SCM.md` for
-> the contract, or fall back to `scm: local-git` in `.spades/config`.*
+1. Ask via `AskUserQuestion` what kind of reference it is: **URL** /
+   **File path** / **Record in a system** (Confluence or Notion page
+   ID, S3 key, …).
+2. Capture the exact reference free-form. Check its shape: a
+   well-formed URL, an existing path, an identifiable record.
+3. Verify reachability where possible — fetch a URL, stat a path.
+   An unreachable artefact is surfaced, and the human decides whether
+   to proceed.
+4. `record_shipment(plan_id, artefact_ref)` and append:
 
-This is the same failure mode that applied to the previous inline
-dispatch — unsupported SCMs are a setup-time concern, not a ship-time
-papering-over.
+   ```markdown
+   - YYYY-MM-DD: Shipped (artefact). Ref: <ref>.
+   ```
 
-### Branch B: `deliverable_type: artefact`
+Continue to Step 4.
 
-The deliverable is a tangible thing that isn't merged code — a
-document, a video, a dataset, a configuration file landing somewhere
-outside the repo.
+### C — `action`
 
-#### B.1 — Identify the artefact
+The deliverable is a one-off human act: a server install, a vendor
+call, an email, a meeting. The evidence of completion is what gets
+recorded.
 
-Ask the human (via `AskUserQuestion`):
+1. Ask free-form what was done.
+2. Ask for evidence — a photo path, a confirmation email reference
+   or message ID, a receipt or order number, a signed document, a
+   note in a system of record. Several items are fine.
+3. `record_shipment(plan_id, evidence_list)` and append:
 
-- **Artefact is at a URL** (doc link, video link, dataset URL)
-- **Artefact is a file path** (within this repo or elsewhere)
-- **Artefact is a record in a system** (Confluence page ID, Notion
-  page ID, S3 key, etc.)
+   ```markdown
+   - YYYY-MM-DD: Shipped (action). Description: <description>. Evidence:
+     - <evidence 1>
+     - <evidence 2>
+   ```
 
-#### B.2 — Capture the reference
+Continue to Step 4.
 
-Get the exact reference from the human in free-form text. Validate
-shape: URLs are well-formed, file paths exist, system records are
-identifiable.
+## Step 4 — Finalise (single-phase paths)
 
-#### B.3 — Verify reachability
+Reached from the local-git driver and from Branches B and C. Set the
+Plan to `status: shipped`, `updated: <today>`, then apply the Scope
+rollup per `docs/FRAMEWORK.md § Scope status rollup`:
 
-When you can — for URLs, attempt a quick fetch. For file paths, stat
-them. If the artefact isn't reachable, surface that and ask whether to
-proceed anyway.
+- **Every sibling `shipped`** → Scope `status: done`; append
+  `- YYYY-MM-DD: All plans shipped. Scope done.`
+- **All terminal, a mix of `shipped` and `rejected`, at least one
+  `shipped`** → ask the human to acknowledge via `AskUserQuestion`,
+  listing the rejected siblings. On acceptance the Scope is `done`
+  with `- YYYY-MM-DD: All plans terminal. Shipped: <n>. Rejected:
+  <m> (acknowledged: P-…). Scope done.`; on decline the Scope is
+  unchanged and the Plan's audit trail records
+  `- YYYY-MM-DD: Scope rollup deferred (mixed-terminal; human
+  declined).`
+- **Every sibling `rejected`** → no rollup; the Scope shipped
+  nothing, so surface that and leave it at `shipping`.
+- **A sibling still in flight** → no rollup.
 
-#### B.4 — Record Shipment
-
-Call `record_shipment(plan_id, artefact_ref)`. Append to audit trail:
-
-```markdown
-- YYYY-MM-DD: Shipped (artefact). Ref: <ref>.
-```
-
-### Branch C: `deliverable_type: action`
-
-The deliverable is a one-off human action — a server install, a
-vendor call, an email, a meeting. The thing itself isn't a file or a
-PR; the evidence of completion is.
-
-#### C.1 — Identify the action
-
-Ask the human (free-form) what was done.
-
-#### C.2 — Capture evidence
-
-Ask for the evidence:
-
-- A photo (file path)
-- A confirmation email (forwarded thread reference, message ID)
-- A receipt or order number
-- A signed document (path or URL)
-- A note in a system of record (URL or record ID)
-
-Multiple evidence items are fine; record all.
-
-#### C.3 — Record Shipment
-
-Call `record_shipment(plan_id, artefact_ref)` with the evidence list.
-Append to audit trail:
-
-```markdown
-- YYYY-MM-DD: Shipped (action). Description: <description>. Evidence:
-  - <evidence 1>
-  - <evidence 2>
-```
-
-## Step 6 — Resume (two-phase drivers, after merge)
-
-You arrive here because Step 0 detected a two-phase resume marker
-(`PR opened:`, `MR opened:`, etc.) in the audit trail with no later
-`Shipped:` line. Single-phase drivers (e.g. `scm: local-git`) never
-land here; they emit `Shipped` directly in Step 2 and continue to
-Step 3.
-
-Resume is per-SCM — the merge-state query, the parser, the credentials
-all live in the driver:
-
-1. Read `scm:` from `.spades/config`.
-2. **Read `${CLAUDE_PLUGIN_ROOT}/skills/ship/scm-<value>.md` and
-   follow its "Phase 2 — Resume after merge" section.** The driver
-   verifies the merge, captures the merge SHA, and appends
-   `Shipped. …` to the audit trail.
-3. The driver returns here ready for Step 3 to finalise the Plan
-   status. If the driver couldn't confirm a merge (PR still open,
-   PR closed-without-merge), it has already exited or asked the
-   human how to proceed — there is nothing further to do in Step 6.
-
-## Step 3 — Update Status
-
-Plan status → `shipped`. `updated: <today>`.
-
-This step applies the **mixed-terminal Scope rollup** for the
-single-phase path (e.g. `scm: local-git`) and for `artefact` /
-`action` deliverables. Two-phase drivers (e.g. `scm: github`) do
-their rollup later via `/spades:close` Step 3.2 using the same
-rules.
-
-Read every sibling Plan under the parent Scope. Classify each:
-
-- `shipped` — terminal, success.
-- `rejected` — terminal, abandoned (rejection was a prior explicit
-  decision).
-- Anything else — still in flight.
-
-Rules:
-
-- **Every sibling is `shipped`** → roll up silently. Scope status →
-  `done`. Append to Scope audit trail:
-  ```markdown
-  - YYYY-MM-DD: All plans shipped. Scope done.
-  ```
-
-- **Every sibling is terminal (mix of `shipped` and `rejected`) and at
-  least one is `shipped`** → ask the human to acknowledge via
-  `AskUserQuestion`, listing the rejected siblings. If they accept,
-  Scope status → `done`. Append:
-  ```markdown
-  - YYYY-MM-DD: All plans terminal. Shipped: <n>. Rejected: <m>
-    (acknowledged: P-<id-1>, P-<id-2>). Scope done.
-  ```
-  If they decline, leave the Scope at its current status and record
-  a deferred-ack line in the Plan's audit trail.
-
-- **Every sibling is `rejected` (no `shipped`)** → no rollup; the
-  Scope didn't ship anything. Surface and stop short of the rollup
-  edit. The Plan's own `status: shipped` write still proceeds.
-
-- **At least one sibling still in flight** → no rollup; leave Scope
-  unchanged.
-
-When `backend: linear`, mirror: sub-issue → "Done", parent Issue →
-"Done" (only if every sub-issue is `Done`).
-
-## Step 4 — (no inline learn invocation)
-
-`/spades:ship` does not invoke `/spades:learn` inline. Step 5's
-brief surfaces `/spades:learn` as a follow-up suggestion; the
-human runs it separately if there's something worth capturing.
+With `backend: linear`, move the sub-issue to Done, and the parent
+Issue to Done when every sub-issue is Done.
 
 ## Step 5 — Confirm
+
+Two-phase drivers print their own hand-off and exit inside Step 3.
+Single-phase paths print:
 
 ```
 ✓ Plan shipped:   P-rag-pipeline-lookup-3HyD
 ✓ Scope:          S-add-ai-helper-bot (done — all plans shipped)
-✓ Artefact:       https://github.com/.../pull/123  (or other ref)
+✓ Artefact:       https://docs.example.com/…  (or commit / evidence)
 ✓ Status:         shipped
 
 Next:
@@ -303,15 +175,16 @@ Next:
   /spades:status                           — see what's still open
 ```
 
-## Edge Cases
+`/spades:learn` is a suggestion the human runs separately.
 
-SCM-specific edge cases (push failures, merge conflicts, missing CLI
-auth) live in the driver files (`skills/ship/scm-<name>.md`). Edge
-cases that apply across all deliverable types:
+## Edge cases
 
-- **The deliverable lives in a system the human can't show you.**
-  Accept a free-form evidence string. The audit trail records what
-  the human attested to; SPADES doesn't enforce verifiability.
-- **No matching driver for the configured `scm:`.** Branch A aborts
-  with a pointer to `docs/EXTENDING-SCM.md`. The fix is upstream of
-  ship — either add a driver or change `scm:` in `.spades/config`.
+SCM-specific cases — push failures, merge conflicts, missing CLI
+auth — live in the driver files. Across all deliverable types:
+
+- **The deliverable lives somewhere the human can't show you.**
+  Accept a free-form evidence string; the audit trail records what
+  the human attested to.
+- **No driver for the configured `scm:`.** The fix is upstream of
+  ship: add a driver per `docs/EXTENDING-SCM.md` or change
+  `.spades/config`.

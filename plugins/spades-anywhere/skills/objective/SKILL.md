@@ -1,142 +1,79 @@
 ---
 name: objective
 description: Create or edit a spades-anywhere Objective — a coherent strategic action associated with a project (Rumelt/OKR sense), prefixed O-. Use when someone says "create an objective", "set an objective", "add an objective", "new objective", "add a milestone for this project", or "/spades-anywhere:objective <description>". An Objective is independent of Scopes — it never contains, requires, or gates on one. Closing an Objective is done via /spades-anywhere:close O-<slug>.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # /spades-anywhere:objective
 
-You are creating (or editing) an **Objective** — *a coherent strategic
-action associated with a project*, in the *Good Strategy / Bad Strategy*
-(Rumelt) sense, close to the **Objective** in OKRs (though not tied to
-OKRs). It is the in-SPADES anchor that records *"this project has this
-strategic objective associated with it."*
+You are creating or editing an **Objective** — a coherent strategic
+action associated with a project, in the *Good Strategy / Bad
+Strategy* sense and close to the Objective in OKRs. It is the
+in-SPADES anchor that records *"this project has this strategic
+objective."*
 
-Read `docs/FRAMEWORK.md` § Hierarchy → Objectives, § ID Format, and
-§ .spades-anywhere/ Local Layout before running. The schema below mirrors
-that contract.
+An Objective is independent of Scopes: it never contains, requires,
+or gates on one, and it does not run the six-phase loop. Its record
+is minimal — a title, a 2–4 sentence description, an optional
+strategy link — with no acceptance criteria, dates, owners, or
+priority. Completing or abandoning one is `/spades-anywhere:close
+O-<slug>`.
 
-**What an Objective is NOT.** It is independent of Scopes — it never
-contains, requires, attaches, or gates on a Scope, and it does not run the
-six-phase loop. Do not prompt for acceptance criteria, plans, target dates,
-owners, or priority. Keep it minimal. The full contract lives in
-`docs/FRAMEWORK.md` § Hierarchy → Objectives.
-
-This skill **creates and edits** Objectives. Completing or abandoning one is
-`/spades-anywhere:close O-<slug>` (per skill isolation, this skill never
-invokes close inline).
+Read `docs/FRAMEWORK.md` § Hierarchy → Objectives, § ID Format,
+§ .spades-anywhere/ Local Layout, and § Output Format before running.
 
 ### Output format
 
-This skill honours `review_format:` from `.spades-anywhere/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML) → Universal rule`. In
-**both** modes, write the Objective record as
-`.spades-anywhere/objectives/O-<slug>.md` — the AI-readable source of truth
-and the canonical record. In HTML mode, **additionally** render via the
-sibling `${CLAUDE_PLUGIN_ROOT}/skills/objective/template.html` and write
-`.spades-anywhere/objectives/O-<slug>.html` for the human's view, then
-auto-open via the OPEN_CMD prelude. HTML mode is additive — the `.md` always
-exists; the `.html` is added in HTML mode.
-
-**HTML mode is review-via-file, not review-via-CLI.** Do NOT paste the
-Objective body to the CLI for the human's approval before Step 4 writes the
-file. The file IS the review surface. To iterate, apply targeted edits to
-the file (the human reloads to see changes) — never re-paste a new full
-draft to the CLI. In CLI mode the draft-then-confirm workflow is fine.
+- **Both modes** — `.spades-anywhere/objectives/O-<slug>.md`, the
+  canonical record.
+- **HTML mode** — additionally
+  `.spades-anywhere/objectives/O-<slug>.html` from
+  `${CLAUDE_PLUGIN_ROOT}/skills/objective/template.html`,
+  auto-opened as the review surface; iteration is a targeted `.md`
+  edit plus a re-render.
+- **CLI mode** — the record is pasted for confirmation before the
+  write.
 
 ## Pre-Flight
 
-1. **Confirm setup.** If `.spades-anywhere/config` is missing, abort and
-   suggest `/spades-anywhere:setup` first.
-2. **Confirm active project.** Read `project:` from
-   `.spades-anywhere/config`. If missing, abort and suggest
-   `/spades-anywhere:newproject` to create one.
-3. **Verify Project active** per `docs/FRAMEWORK.md § Target Resolution →
-   Parent-status precondition`. If the active Project's status is
-   `abandoned` or `archived`, abort hard with the canonical error shape. In
-   Edit mode, also re-verify after Step 1 resolves the target. No override.
-   (Objectives are gated on Project status for *create/edit* only; closing
-   one is not — see that section.)
-4. **No INTENT hard-gate.** Unlike `/spades-anywhere:scope`, this skill does
-   **not** hard-gate on `INTENT.md`. An Objective is itself a strategy-level
-   statement, so gating it on INTENT would be circular. If `INTENT.md` is
-   missing, mention it as a soft nudge only and proceed.
-5. **Read the backend.** The branches below act according to
-   `.spades-anywhere/config`'s `backend:` field.
+1. **Confirm setup and active project.** Missing config →
+   `/spades-anywhere:setup`; missing `project:` →
+   `/spades-anywhere:newproject`.
+2. **Read `backend:` and `review_format:`.**
+3. **Verify the Project is active** per `docs/FRAMEWORK.md § Target
+   Resolution → Parent-status precondition`; an `abandoned` or
+   `archived` Project is a hard abort for create and edit.
+4. **INTENT is a soft nudge here** — an Objective is itself a
+   strategy-level statement.
 
-## Step 1 — Mode (Create vs Edit)
+## Step 1 — Mode
 
-- **Create mode** (default) — a new Objective.
-- **Edit mode** — refining an existing Objective.
+**Create** (default), or **Edit** when the input names an
+`O-<slug>` ID, a slug, or a fuzzy-matching title. Fuzzy match via
+`list_objectives(filter)`; offer up to three candidates via
+`AskUserQuestion` plus **Create a new objective**.
 
-If the human's input names a slug, an `O-<slug>` ID, or a title that
-fuzzy-matches an existing Objective, default to Edit mode. Otherwise Create.
+## Step 2 — Slug (Create mode)
 
-### Fuzzy match
+Same rule as Scopes, prefixed `O-`. *"Q3 Trust Launch"* →
+`O-q3-trust-launch`. Confirm via `AskUserQuestion`: **Use this ID**
+/ **Edit the slug**. An existing file switches to Edit. With
+`backend: linear`, an existing milestone of the same name → **Bind
+to the existing milestone** (recommended) / **Create a separate
+one**.
 
-When the human gives a description, fuzzy-match it against existing
-Objectives (via the backend's `list_objectives(filter)`, filtered to the
-active project):
+## Step 3 — Gather
 
-1. Score each by slug substring, title token-overlap, and `O-` ID prefix.
-2. Surface up to three candidates above a soft threshold via
-   `AskUserQuestion`:
-   - **Edit `O-<slug>` (<title>)** — top candidate
-   - **Edit `O-<slug2>` (<title2>)** — second candidate (if any)
-   - **Create a new objective** — always offered
-3. If none look close, go straight to Create mode.
+- **Title.**
+- **Objective** — 2–4 sentences describing the coherent strategic
+  action or outcome; push for a coherent action rather than a
+  vague aspiration or a task list, and reflect it back.
+- **Strategy link** (optional) — a URL, ID, or reference upstream.
+  "None" is fine.
 
-## Step 2 — Slug Derivation (Create mode only)
+## Step 4 — Write and mirror
 
-Derive the slug from the title, using the same rule as
-`/spades-anywhere:newproject` and `/spades-anywhere:scope`:
-
-1. Lowercase.
-2. Replace non-`[a-z0-9-]` runs with single hyphens.
-3. Trim leading and trailing hyphens.
-4. Truncate to 64 characters (after the `O-` prefix).
-5. Reject if empty, leading-hyphen, or `..` present.
-
-Example: *"Q3 Trust Launch"* → `O-q3-trust-launch`.
-
-Show the derived ID and confirm via `AskUserQuestion`: **Use this ID**
-(recommended) / **Edit the slug**.
-
-**Collision check.** If `.spades-anywhere/objectives/O-<slug>.md` already
-exists, this is an Edit operation — switch modes and warn the human. When
-`backend: linear`, also query for an existing milestone of the same name; if
-one exists, ask via `AskUserQuestion` whether to **bind to the existing
-milestone** (recommended) or **create a separate one** (pick a
-differentiated name).
-
-## Step 3 — Gather the Objective (minimal)
-
-The Objective record is deliberately minimal. Ask the human, conversationally
-(not as a form):
-
-- **Title** — human-readable name. The slug derives from this.
-- **Objective** — a 2–4 sentence description of the coherent strategic
-  action/outcome. Push for a *coherent action* (Rumelt), not a vague
-  aspiration or a task list. Reflect it back so the human can sharpen it.
-- **Strategy link** *(optional, may be empty)* — a URL / ID / ref to the
-  upstream roadmap or strategy item this objective serves, or a fuller
-  written definition of it. Accept "none".
-
-Do **not** prompt for acceptance criteria, target dates, owners, priority,
-or any Scope linkage. Those are deliberately out of scope.
-
-## Step 4 — Create (or update) the Objective
-
-**Read `review_format:` from `.spades-anywhere/config` and branch on file
-format.** Step 4 MUST write the Objective `.md` before exiting — never print
-the record to the CLI only, and never paste the body to the CLI for approval
-before this step writes the file in HTML mode.
-
-### When `backend: local`
-
-#### Step 4.A — Write the canonical `.md` (both modes)
-
-Write `.spades-anywhere/objectives/O-<slug>.md` with this exact shape:
+### The canonical `.md` (both modes)
 
 ```markdown
 ---
@@ -147,122 +84,81 @@ status: open
 strategy_link: <ref or empty>
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
+linear_milestone_id: <id>       # backend: linear, injected after the wave
+linear_issue_id: <id>           # backend: linear, injected after the wave
 ---
 
 # <title>
 
 ## Objective
 
-<the 2–4 sentence description of the coherent strategic action/outcome>
+<the 2–4 sentence description>
 
 ## Audit Trail
 
 - YYYY-MM-DD: Objective created.
 ```
 
-In Edit mode, apply targeted edits to the existing file: update the
-`## Objective` body and/or `strategy_link:`, bump `updated:`, and append an
-audit line `- YYYY-MM-DD: Objective edited.`. Never rewrite `status:` here —
-that is `/spades-anywhere:close`'s job.
+Edit mode applies targeted edits — the body and/or
+`strategy_link:`, `updated:` today, `- YYYY-MM-DD: Objective
+edited.` — leaving `status:` to `/spades-anywhere:close`.
 
-#### Step 4.B — HTML render (HTML mode only)
+### The `.html` (HTML mode)
 
-When `review_format: html`, render the `.html` companion from
-`${CLAUDE_PLUGIN_ROOT}/skills/objective/template.html` to
-`.spades-anywhere/objectives/O-<slug>.html` and auto-open it via the
-OPEN_CMD prelude (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`).
-Validate the template exists and the named blocks below match the markers
-in the actual file per `docs/FRAMEWORK.md § Output Format → HTML
-rendering: validate and use the bundled template`; abort on any mismatch.
+Rendered from `${CLAUDE_PLUGIN_ROOT}/skills/objective/template.html`
+to `.spades-anywhere/objectives/O-<slug>.html` per
+`docs/FRAMEWORK.md § Output Format → HTML rendering`. The page is
+the objective, so it carries no `objective-banner`.
 
-Substitute placeholders (this Objective page has **no**
-`objective-banner` — it *is* the objective; do not add one):
+- `frontmatter`: `{ id, title, project, status, strategy_link,
+  created, updated }`, embedded verbatim
+- `linked_count` *(scalar)*: the number of `linked-scopes`
+- `blocks`:
+  - `linked-scopes` — one per Scope in `.spades-anywhere/scopes/*.md`
+    whose `strategy_link` equals `O-<slug>`. Fields: `id, title,
+    status`.
+  - `audit-events` — one per audit entry. Fields: `date, desc`.
 
-- Frontmatter values fill `{{spades.id}}`, `{{spades.title}}`,
-  `{{spades.project}}`, `{{spades.status}}`,
-  `{{spades.strategy_link}}`, `{{spades.created}}`,
-  `{{spades.updated}}`.
-- `{{spades.linked_count}}` — the number of Scopes that contribute to
-  THIS objective (the count of `linked-scopes` below). Drives the deck.
-- `<!-- SPADES-BLOCK:linked-scopes -->` — repeated once per Scope whose
-  `strategy_link` matches this objective's `O-<slug>` id. Resolve by
-  scanning the peer scope files `.spades-anywhere/scopes/*.md`; a Scope
-  is linked when its `strategy_link` frontmatter equals `O-<slug>`.
-  Per-item: `{{block.id}}`, `{{block.title}}`, `{{block.status}}`.
-  Empty list when none.
-- `<!-- SPADES-BLOCK:audit-events -->` — repeated once per audit-trail
-  entry. Per-item: `{{block.date}}`, `{{block.desc}}`.
+Required markers: `linked-scopes`, `audit-events`.
 
-Required template markers: `<!-- SPADES-BLOCK:linked-scopes -->`,
-`<!-- SPADES-BLOCK:audit-events -->`.
+### The wave
 
-### When `backend: linear` — fan-out dispatch
-
-Apply the fan-out pattern from `docs/FRAMEWORK.md § Sub-agent Dispatch
-(Fan-Out)`. Spawn the sub-agents below **in parallel in a single assistant
-message with multiple `Agent` tool calls** (`subagent_type:
-general-purpose`):
+Per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`:
 
 | Sub-agent | Resource owned | Returns |
-|-----------|---------------|---------|
-| `worker-file-objective` | `.spades-anywhere/objectives/O-<slug>.<ext>` — the canonical `.md` (Step 4.A shape), written **without** `linear_milestone_id` / `linear_issue_id`; the coordinator injects them post-dispatch. | `{ status: ok }` (or `fail` + `error`) |
-| `worker-html-objective` *(only when `review_format: html`)* | `.spades-anywhere/objectives/O-<slug>.html` — see Step 4.B. | `{ status: ok, path, opened }` |
-| `worker-linear-objective` | Linear — creates **both** objects (the milestone alone is not a valid Objective): **(1)** `save_milestone(project: <linear.project_id>, name: "O-<slug>", description: <objective text>)` (no targetDate); then **(2)** `save_issue(team: <linear.team_id>, project: <linear.project_id>, title: "O-<slug> — <title>", description: <objective text>, milestone: "O-<slug>")` — the **sister `O-` tracking issue** bound to that milestone. | `{ status: ok, linear_milestone_id, linear_issue_id }` (or `fail`) |
+|---|---|---|
+| `worker-file-objective` | `.spades-anywhere/objectives/O-<slug>.md`, without the Linear IDs | `{ status: ok }` |
+| `worker-html-objective` *(HTML mode)* | `.spades-anywhere/objectives/O-<slug>.html` | `{ status: ok, path, opened }` |
+| `worker-linear-objective` *(`backend: linear`)* | Linear — both objects: **(1)** `save_milestone(project: <linear.project_id>, name: "O-<slug>", description: <text>)`; **(2)** `save_issue(team: <linear.team_id>, project: <linear.project_id>, title: "O-<slug> — <title>", description: <text>, milestone: "O-<slug>")`, the sister tracking issue whose Done state is the completion signal | `{ status: ok, linear_milestone_id, linear_issue_id }` |
 
-The Linear sub-agent's prompt includes the Layer-2 freshness probe (per
-`FRAMEWORK.md § Sub-agent Dispatch`). Each prompt is self-contained
-(scope, inputs, return schema).
-
-After the sub-agents return, the coordinator (this skill body) collects
-results per the failure semantics in `FRAMEWORK.md § Sub-agent Dispatch`:
-
-- **All ok** → targeted edit on the local `.md` to inject
-  `linear_milestone_id: <id>` and `linear_issue_id: <id>` into the
-  frontmatter (and into the embedded `<script id="spades-frontmatter">`
-  block in HTML mode). Record the dispatch mode used.
-- **File sub-agent failed** → abort; the milestone/issue may have been
-  created but is orphaned. Surface clearly so the human can delete it from
-  Linear or re-run.
-- **Linear sub-agent failed** → keep the local file (canonical); surface
-  the failure and offer to retry the Linear mirror later. If the milestone
-  was created but the sister issue was not, say so explicitly — a milestone
-  without its sister issue is an incomplete Objective in Linear.
-
-The local file is the canonical SPADES record; the Linear milestone + sister
-issue is the tracker mirror. Both should exist when `backend: linear`.
+After the wave: all ok → inject both IDs into the `.md` (and
+`.html`), record the dispatch mode; file failed → abort, noting
+possible orphans; HTML failed → keep the `.md`, continue; Linear
+failed → keep the local file, offer a retry, and say explicitly when
+the milestone exists without its sister issue.
 
 ## Step 5 — Confirm
-
-Print a short summary:
 
 ```
 ✓ Objective created: O-<slug>          (or "updated")
 ✓ Title:             <title>
 ✓ Project:           <project-slug>
 ✓ Strategy link:     <ref or "—">
-✓ Linear milestone:  O-<slug>          (only when backend: linear)
-✓ Linear issue:      <id> (sister O-)  (only when backend: linear)
+✓ Linear milestone:  O-<slug>          (backend: linear)
+✓ Linear issue:      <id> (sister O-)  (backend: linear)
 ✓ Status:            open
 
 Next:
-  /spades-anywhere:close O-<slug>   — mark complete when the team lead judges
-                                      the objective reached (or --abandon to
-                                      walk away)
+  /spades-anywhere:close O-<slug>   — mark complete when the team lead
+                                      judges it reached (or --abandon)
 ```
 
-## Edge Cases
+## Edge cases
 
-- **Description reads like a task, not an objective.** Push back: an
-  Objective is a coherent strategic action/outcome, not a unit of work.
-  Suggest `/spades-anywhere:scope` if the human is actually describing
-  deliverable work.
-- **Human wants to attach scopes.** Explain that Objectives and Scopes are
-  independent — there is no attachment. If they want to *record* that a
-  Scope contributes to this Objective, they can set that Scope's optional
-  `strategy_link:` to `O-<slug>` via `/spades-anywhere:scope` (Edit mode);
-  it is purely documentary.
-- **Project not active.** Pre-Flight Step 3 refuses create/edit under an
-  abandoned/archived Project.
-- **Linear milestone exists but no sister issue (legacy / partial run).**
-  In Edit mode, offer to create the missing sister issue so the Objective
-  is valid in Linear.
+- **The description reads like a task** — push back; deliverable
+  work is a Scope.
+- **The human wants to attach Scopes** — a Scope records its
+  contribution by setting its own `strategy_link:` to `O-<slug>`
+  via `/spades-anywhere:scope` (Edit mode); the link is documentary.
+- **A milestone exists without its sister issue** — in Edit mode,
+  offer to create the missing sister issue.

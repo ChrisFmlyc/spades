@@ -1,44 +1,36 @@
 ---
 name: close
 description: The single conversational entry point for closing out a Plan, Scope, Project, or Objective. Asks the human what they're doing — finalise as shipped/done/archived/complete (the happy path), reject (Plans only), or abandon (Scopes, Projects, and Objectives). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "close O-…", "complete this objective", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging" — the skill figures out which flow applies.
-version: 4.11.0
+version: 4.12.0
 ---
 
 # /spades:close
 
-You are the close-out entry point. The human tells you what to
-close; **you ask what kind of close it is** — pass, reject, or
-abandon — and do the right thing for that target type.
+You are the close-out entry point. The human names what to close;
+you ask what kind of close it is and run the matching flow. Every
+close lands on `main` through a small bookkeeping PR, so the audit
+trail is committed history.
 
 Four close actions:
 
-1. **Pass** (happy path) — finalise the lifecycle. Plan → `shipped`
-   (needs a merged PR + bookkeeping commit). Scope → `done` (only
-   when every child Plan is terminal). Project → `archived`
-   (graceful sunset). Objective → `complete` (the team lead's
-   **ungated** judgement — no rollup, no gating, no cascade). Quick
-   item → `shipped` (lightweight: no bookkeeping commit, no rollup).
-2. **Reject** — Plan rollback → `rejected`, for any non-terminal
-   Plan. A `draft` Plan doesn't need rejection; the menu offers
-   *"leave in draft (no-op)"*. Requires a reason.
-3. **Abandon** — terminal walk-away on a container or objective →
-   `abandoned`. Plans cannot be abandoned; they are attempts, not
-   initiatives (`FRAMEWORK.md § Terminal States`). Requires a reason.
-4. **Drop** — quick-item bail when its PR closed unmerged: delete
-   the marker. Quick items have no terminal walk-away status by
-   design; git history records the delete. No reason required.
+1. **Pass** — finalise the lifecycle. Plan → `shipped` (a merged
+   ship PR). Scope → `done` (every child Plan terminal). Project →
+   `archived`. Objective → `complete` (the team lead's ungated
+   judgement). Quick item → `shipped` (no bookkeeping PR, no rollup).
+2. **Reject** — a non-terminal Plan → `rejected`, with a reason.
+   Plans are attempts; rejection is the judgement on this attempt.
+3. **Abandon** — a Scope, Project, or Objective → `abandoned`, with
+   a reason. Containers are initiatives; abandonment is a walk-away.
+4. **Drop** — a Quick item whose PR closed unmerged: delete the
+   marker. Git history keeps the trace.
 
-Objectives use `complete` (not `done`) and have no `rejected` state
-— they are strategic statements, not attempts. Completing or
-abandoning one is independent of its Project and of any Scope.
-
-Read `docs/FRAMEWORK.md` § Target Resolution and § Terminal States
+Read `docs/FRAMEWORK.md` § Target Resolution, § Terminal States,
+§ Carry-Forward of SPADES-Owned Artefacts, and § Output Format
 before running.
 
 **Flow bodies live in `reference/`.** This file owns the entry
-menus, the routing decision, and the shared bookkeeping-PR
-machinery every flow uses. Read the matching flow file when Step 3
-routes you:
+menus, the routing, and the bookkeeping-PR machinery every flow
+shares. Read the flow file Step 3 routes you to:
 
 | Route | Read |
 |---|---|
@@ -48,210 +40,128 @@ routes you:
 
 ### Output format
 
-Honours `review_format:` per `docs/FRAMEWORK.md § Output Format`.
-Where this skill would print the target to the terminal, HTML mode
-instead auto-opens its existing `.html` via the OPEN_CMD prelude.
-The bookkeeping-PR workflow, sync invocations, and Linear mirror
-calls are identical between modes.
+The target is read from its `.md`. HTML mode opens the target's
+existing `.html` via the OPEN_CMD prelude as the human's view; the
+terminal carries progress, prompts, and the confirmation. CLI mode
+summarises the target inline. After the close-out edit in HTML
+mode, re-dispatch the producing skill's `worker-html-*` so the page
+shows the terminal status.
 
-## Conversational Entry
+## Conversational entry
 
-**Step 0 — Detect the target.**
+**Step 0 — Resolve the target.**
 
-- **Explicit ID** — resolve by prefix: `P-<slug>-<suffix>` → Plan;
+- **Explicit ID** — by prefix: `P-<slug>-<suffix>` → Plan;
   `O-<slug>` → Objective; `S-<slug>` → Scope; `Q-<slug>-<suffix>` →
   Quick item; a bare slug matching `.spades/projects/<slug>.md` →
-  Project. **Resolve `O-` before `S-`/`P-`** to avoid
-  mis-classifying an objective slug.
+  Project. Test `O-` before `S-` and `P-`.
 - **No ID** — ask via `AskUserQuestion`, then run the matching
-  picker: *Plan* (status `approved`, `delivering`, `evaluating`,
-  `shipping`) / *Scope* (any non-terminal) / *Objective* (glob
-  `.spades/objectives/O-*.md`, status `open`) / *Quick item* (glob
-  `.spades/quick/Q-*.md`, status `shipping`) / *Project* (status
-  `active`).
-- **Ambiguous reference** ("close that thing", "the newsletter
-  scope") — surface 1–3 best candidates and ask. Never guess
-  silently.
-- **Quick item resolved → skip Step 1** and go straight to
-  `reference/flow-quick.md`. Quick items have no menu; the action is
-  unambiguous.
+  picker: *Plan* (`approved`, `delivering`, `evaluating`,
+  `shipping`) / *Scope* (any non-terminal) / *Objective* (`open`) /
+  *Quick item* (`shipping`) / *Project* (`active`).
+- **Ambiguous phrase** — offer the best one to three candidates.
+- A Quick item skips Step 1: its action is unambiguous.
 
-**Step 1 — Ask what kind of close.** Read the target's `status:`
-first; the options are conditional on it.
+**Step 1 — Ask what kind of close.** Options depend on the target's
+`status:`.
 
-**Plans**
-
-| Status | Menu |
+| Plan status | Menu |
 |---|---|
 | `draft` | *Leave in draft (no-op)* / *Reject* |
-| `approved` | *Reject* (no pass — not delivered yet) |
-| `delivering` | *Reject* (no pass — not evaluated) |
-| `evaluating` | *Reject* (no pass — not shipped) |
-| `shipping` (has `PR opened:`, no `Shipped`) | *Pass — finalise as shipped (requires merged PR)* / *Reject* |
-| `shipped` / `rejected` | abort: *"Plan `<id>` is already `<status>`. Terminal means terminal."* |
+| `approved`, `delivering`, `evaluating` | *Reject* |
+| `shipping` (has `PR opened:`, no `Shipped`) | *Pass — finalise as shipped* / *Reject* |
+| `shipped`, `rejected` | abort: *"Plan `<id>` is already `<status>`. Terminal means terminal."* |
 
-**Scopes**
-
-| Status | Menu |
+| Scope status | Menu |
 |---|---|
-| `scoped` / `planning` (no Plans started) | *Abandon* (nothing to roll up) |
-| `delivering` / `evaluating` / `shipping` | *Pass — roll up to done* / *Abandon* |
-| `done` / `abandoned` | abort: already terminal |
+| `scoped`, `planning` | *Abandon* |
+| `delivering`, `evaluating`, `shipping` | *Pass — roll up to done* / *Abandon* |
+| `done`, `abandoned` | abort: already terminal |
 
-**Projects**
-
-| Status | Menu |
+| Project status | Menu |
 |---|---|
-| `active` | *Pass — archive (graceful sunset)* / *Abandon* |
-| `archived` / `abandoned` | abort: already terminal |
+| `active` | *Pass — archive* / *Abandon* |
+| `archived`, `abandoned` | abort: already terminal |
 
-**Objectives**
-
-| Status | Menu |
+| Objective status | Menu |
 |---|---|
-| `open` | *Pass — mark complete (team-lead judgement; no gating)* / *Abandon* |
-| `complete` / `abandoned` | abort: already terminal |
+| `open` | *Pass — mark complete* / *Abandon* |
+| `complete`, `abandoned` | abort: already terminal |
 
-Objectives are **ungated** on Pass — completion is judgement, not a
-rollup — and have no `rejected` option.
+**Step 2 — Capture the reason (Reject and Abandon).** Free-form:
+*"Brief reason (one line) — why are you rejecting / abandoning?"*
+An empty answer re-prompts: the audit trail needs the why.
 
-**Step 2 — Capture a reason (Reject / Abandon only).**
+**Step 3 — Route.** *Leave in draft* exits with *"Plan `<id>` left at
+`draft`. Run `/spades:approve` when ready."* Pass on a Plan →
+`flow-plan-pass.md`. Everything else → `flow-status-change.md`. A
+Quick item → `flow-quick.md`.
 
-Free-form follow-up: *"Brief reason (one line) — why are you
-[rejecting / abandoning]?"* **Required.** An empty string
-re-prompts: *"Rejecting / abandoning needs a reason. The audit trail
-loses meaning without one."*
+## Shortcuts
 
-**Step 3 — Route.**
+- `/spades:close P-foo --reject "reason"`
+- `/spades:close S-foo --abandon "reason"`
+- `/spades:close <project-slug> --abandon "reason"`
+- `/spades:close O-foo --abandon "reason"`
 
-- *Leave in draft* → exit cleanly: *"Plan `<id>` left at `draft`.
-  Run `/spades:approve` when ready."*
-- *Pass* on a Plan → `reference/flow-plan-pass.md`.
-- *Pass* on a Scope / Project / Objective, or *Reject* / *Abandon*
-  on anything → `reference/flow-status-change.md`.
-- Quick item → `reference/flow-quick.md` (routed at Step 0).
+Objective completion carries no reason, so it has no flag: run
+`/spades:close O-foo` and pick *Pass*. A flag on the wrong target
+type, or a flag without a reason, aborts with the correct form.
 
-## Power-user Shortcuts
+## Bookkeeping-PR machinery
 
-Two flags skip Step 1's menu but still carry a reason:
-
-- `/spades:close P-foo --reject "reason"` → Plan Reject.
-- `/spades:close S-foo --abandon "reason"` → Scope Abandonment.
-- `/spades:close <project-slug> --abandon "reason"` → Project
-  Abandonment.
-- `/spades:close O-foo --abandon "reason"` → Objective Abandonment.
-
-Objective *completion* has no flag — it carries no reason; run
-`/spades:close O-foo` and pick *Pass*.
-
-Invalid combinations abort clearly:
-
-- `--abandon` with a Plan ID → *"Plans use `rejected`, not
-  `abandoned`. Use `--reject "reason"` instead."*
-- `--reject` with a Scope, Project, or Objective → *"Scopes,
-  Projects, and Objectives use `abandoned`, not `rejected`. Use
-  `--abandon "reason"` instead."*
-- Either flag with no reason → *"<flag> needs a reason. Re-run with
-  `<flag> "reason text here"`."*
-
-## Shared bookkeeping-PR machinery
-
-Every flow except Quick Close uses this. The flow files reference
-these steps by name rather than restating them.
+Every flow except the Quick close uses these steps by name.
 
 ### B1 — Preconditions
 
-1. **Setup + active project.** Read `.spades/config`; abort
-   otherwise.
-2. **`scm: github`.** Anything else → abort: *"`/spades:close` is
-   only meaningful for `scm: github`. Local-git is single-phase —
-   artefacts reach their terminal status in-skill. Nothing to close
-   out."* (For local-git the human edits the file directly.)
-3. **`repo` plugin installed:**
+1. **Setup and active project** from `.spades/config`.
+2. **`scm: github`.** Close finalises through a PR; with
+   `scm: local-git` the artefact reached its terminal status inside
+   `/spades:ship` and there is nothing to close — abort and say so.
+3. **`repo` plugin installed**:
 
    ```bash
    [ -d "$HOME/.claude/plugins/cache/ai-skills/repo" ] && echo found || echo missing
    ```
 
    `missing` → abort: *"`/spades:close` requires the `repo` plugin
-   from the `ai-skills` marketplace (for `/repo:sync` and
-   `/repo:branch`). Re-run `/spades:setup` — it walks through
-   installing the prerequisite plugins."*
-4. **Git state — no prior sync required.** Fetch, and let B2 branch
-   straight off `origin/main`:
+   from the `ai-skills` marketplace. Re-run `/spades:setup` — it
+   walks through installing it."*
+4. **Fetch.** `git fetch origin --quiet`. B2 branches straight off
+   `origin/main`, so the current branch, a stale local `main`, and a
+   dirty tree are all fine: uncommitted artefacts ride onto the
+   bookkeeping branch and B3's sweep stages the SPADES-owned ones.
+   Close is the final catch-all for carried-forward artefacts.
+5. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
+   Resolution → Parent-status precondition`, on the Pass route only.
+   Reject and Abandon create terminal status; Objectives are
+   independent of their Project.
+6. **Open the review surface** per § Output format.
 
-   ```bash
-   git fetch origin --quiet
-   ```
+### B2 — Bookkeeping branch
 
-   - **You do not need to be on `main`.** B2 creates the bookkeeping
-     branch from `origin/main` directly, so close works from wherever
-     the previous phase left you — typically the just-merged feature
-     branch.
-   - **Local `main` does not need fast-forwarding.** `origin/main` is
-     the base, so a stale local `main` is irrelevant. `/repo:sync`
-     brings it forward afterwards.
-   - **A dirty working tree is fine** — no check. Uncommitted
-     artefacts ride onto the new branch and B3's sweep stages the
-     SPADES-owned ones. Close is the final catch-all in
-     `docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts`:
-     anything earlier phases didn't sweep lands here.
-
-5. **Verify ancestors active** per `FRAMEWORK.md § Target Resolution
-   → Parent-status precondition`, **on the Pass route only**. Reject
-   and Abandon are exempt — they *create* terminal status.
-   Objectives are exempt entirely.
-6. **Open the artefact (HTML mode).** Run the OPEN_CMD prelude and
-   open the target's `.html`. **That open page IS the review surface
-   — do not also paste or summarise the body to the CLI.** Short
-   conversational text (progress, the final `✓` confirmation,
-   errors) stays in the CLI either way.
-
-### B2 — Create the bookkeeping branch
-
-Commits on `main` are forbidden (`/repo:branch` Rule 1). Branch off
-it; any uncommitted changes ride along and B3's sweep decides what
-to stage.
-
-The name MUST match `/repo:branch`'s regex:
-
-```
-^(feat|fix|chore|docs|refactor|rnd|hotfix)/[a-z0-9]([a-z0-9-]{0,48}[a-z0-9])?$
-```
-
-Each flow supplies its own `chore/<verb>-<slug>` name. If the slug
-exceeds 50 chars (chained Plan IDs run long), fall back to the
-suffix chain alone — e.g. `chore/close-9xaz-3hyd-28sd`. If the
-branch already exists from an aborted run, abort:
-
-> *Bookkeeping branch `<name>` already exists from a previous run.
-> Either merge its PR on GitHub then re-run `/spades:close`, or
-> delete it (`git branch -D <name>`) and re-run.*
-
-Then branch **off `origin/main`**, not off whatever is checked out:
+Each flow supplies a `chore/<verb>-<slug>` name matching
+`/repo:branch`'s regex
+`^(feat|fix|chore|docs|refactor|rnd|hotfix)/[a-z0-9]([a-z0-9-]{0,48}[a-z0-9])?$`.
+A slug over 50 characters falls back to the suffix chain
+(`chore/close-9xaz-3hyd-28sd`). If the branch already exists from an
+aborted run, abort: *"Bookkeeping branch `<name>` already exists.
+Merge its PR on GitHub then re-run, or delete it (`git branch -D
+<name>`) and re-run."*
 
 ```bash
 git switch -c <bookkeeping-branch> origin/main
 ```
 
-The bookkeeping branch is based on the merged remote tip regardless of
-where the previous phase left you or how stale local `main` is.
-Uncommitted artefacts ride onto the new branch, where B3 stages the
-SPADES-owned ones.
-
-### B3 — Stage + commit
-
-Sweep SPADES-owned paths. **Allowlist only — never `git add -A` or
-`git add .`:**
+### B3 — Stage and commit
 
 ```bash
 git add -- .spades AGENTS.md INTENT.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md 2>/dev/null || true
 ```
 
-Commit with the flow's `chore(spades): <verb> <id>` subject and its
-body. If the sweep picked up paths beyond the flow's own edits, list
-them under an `Outstanding bookkeeping swept up:` block; omit that
-block when it added nothing.
+Commit with the flow's `chore(spades): <verb> <id>` subject and body.
+Paths the sweep picked up beyond the flow's own edits are listed
+under `Outstanding bookkeeping swept up:`.
 
 ### B4 — Open the bookkeeping PR
 
@@ -260,12 +170,9 @@ git push -u origin <bookkeeping-branch>
 gh pr create --title "chore(spades): <verb> <id>" --body "…"
 ```
 
-Body carries a `## Summary`, a `## Linked artefacts` list (the IDs,
-the ship PR + merge SHA where relevant), and `## Files touched`.
-State plainly that there are no code changes — it is pure audit
-trail, plus anything swept from a dirty worktree.
-
-Print the URL prominently:
+Body: `## Summary`, `## Linked artefacts` (IDs, and the ship PR plus
+merge SHA where relevant), `## Files touched`, and a plain statement
+that the PR is audit trail only plus anything swept from the tree.
 
 ```
 ○ Bookkeeping PR opened: <bookkeeping-pr-url>
@@ -274,30 +181,24 @@ Print the URL prominently:
 
 ### B5 — Verify the bookkeeping PR merged
 
-**Check it yourself. Do not ask.** B1 guarantees `scm: github`, so
-`gh` is available — asking a human to report something you can
-determine is a worse answer than determining it:
+`gh` is available (B1), so probe rather than ask:
 
 ```bash
 gh pr view <bookkeeping-pr> --json state,mergeCommit \
   --jq '"\(.state) \(.mergeCommit.oid // "-")"'
 ```
 
-- **`MERGED`** → capture the merge SHA, continue to B6.
-- **`OPEN`** → the human hasn't merged it yet. Say so, and exit
-  cleanly; the PR stays open. Once they merge it on GitHub the
-  recovery path is `/repo:sync` — the close-out is complete at that
-  point and there is no need to re-run `/spades:close` unless Linear
-  mirroring is still wanted. **A driver that opened this PR and can
-  merge it should do so rather than exit here.**
-- **`CLOSED` unmerged** → surface it and stop. The bookkeeping edits
-  are unlanded; re-running close after re-opening or re-creating the
-  PR is the path.
-- **Probe fails** (`gh` error, malformed response) → *only now* ask
-  the human, since you genuinely cannot tell: *Has the bookkeeping PR
-  been merged?* That is what the question was always for.
+- **`MERGED`** → capture the SHA; continue to B6.
+- **`OPEN`** → say so and exit cleanly. Once the human merges it,
+  `/repo:sync` completes the close-out; re-running `/spades:close`
+  is only needed for a Linear mirror. A driver that opened this PR
+  and can merge it merges it here instead of exiting.
+- **`CLOSED` unmerged** → surface it and stop; the edits are
+  unlanded until the PR is re-opened or re-created.
+- **Probe failure** (`gh` error, malformed response) → ask the human
+  whether the PR merged; that is the one case only they can answer.
 
-### B6 — Post-bookkeeping cleanup
+### B6 — Cleanup
 
 ```bash
 git checkout main
@@ -306,49 +207,26 @@ git branch -D <bookkeeping-branch>
 git status --porcelain
 ```
 
-If anything shows in the status, surface it but don't abort — the
-work is done and the human can clear residue.
+Residue in the status is surfaced, not fatal.
 
-### B7 — Linear mirror (when `backend: linear`)
+### B7 — Linear mirror (`backend: linear`)
 
-Runs **only after** the bookkeeping commit is on `main` — Linear is
-the live source of truth and must never lead the audit trail. Each
-flow states its own status transition and comment text.
+Runs after the bookkeeping commit is on `main`, so Linear never
+leads the audit trail. Each flow states its own transition and
+comment. With `backend: local` the file on `main` is the record.
 
-When `backend: local` there is nothing to mirror; the file on `main`
-is the record.
+## With `/repo:sync`
 
-## Workflow integration with `/repo:sync`
+After a ship PR squash-merges: `/spades:close P-<id>` (bookkeeping
+PR, merge verification, Linear mirror), then `/repo:sync` from the
+merged feature branch so it deletes that branch as it brings `main`
+forward. `/spades:loop` runs this sequence itself.
 
-After a `/spades:ship` PR is squash-merged:
+## Edge cases
 
-1. `/spades:close P-<id>` — branches off `origin/main`, opens the
-   bookkeeping PR, verifies the merge, mirrors to Linear.
-2. `/repo:sync` — brings `main` forward and deletes merged feature
-   branches. To have it delete the merged feature branch, be on that
-   branch when you invoke it; its post-merge path only fires for the
-   checked-out branch.
-
-`/spades:loop` automates this sequence.
-
-## Edge Cases
-
-- **Local state isn't post-merge-clean.** Not a problem — B2 branches
-  off `origin/main`, so a stale local `main` and a dirty tree are both
-  fine.
-- **Ship PR isn't merged.** The Plan Pass flow catches it and exits
-  before touching git or files. Re-run after merging.
-- **Bookkeeping branch already exists.** B2 catches it; the human
-  picks recovery.
-- **Bookkeeping PR can't be merged** (branch protection, required
-  reviews). B5 sees `OPEN`, says so, and exits. Once the human merges
-  it by hand, B5's next probe sees `MERGED` and the close-out
-  continues.
-- **Plan was already shipped on `main`** (legacy `/spades:ship` Step
-  6 finalised it without a bookkeeping PR). The resolver returns
-  zero candidates and the skill says so. The Plan is fine; its audit
-  trail just lives in a prior commit.
-- **Target is already terminal.** Each flow's pre-flight catches it
-  and aborts without touching files.
-- **`--abandon` with a Plan ID.** The shortcut validation catches
-  it and explains that Plans use `rejected`.
+- **Ship PR still open** — the Plan Pass flow reports it and exits
+  before touching git or files.
+- **Bookkeeping PR blocked by branch protection** — B5 sees `OPEN`
+  and exits; the next probe after a manual merge continues.
+- **Bookkeeping branch exists from an aborted run** — B2's message
+  gives the two recovery paths.

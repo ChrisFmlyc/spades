@@ -1,131 +1,97 @@
 # Flow — Plan Pass (finalise as shipped)
 
-Reached from `SKILL.md` Step 3 when the target is a Plan in
-`status: shipping` and the human picked *Pass* (or invoked bare
-`/spades:close P-foo` with a merged PR detected).
-
-This is the only flow with real complexity: it verifies a merge it
-did not perform, and it may roll the parent Scope up. Everything
-else is SKILL.md's shared bookkeeping machinery (**B1–B7**), which
-this file references by name rather than restating.
+Reached from `SKILL.md` Step 3 for a Plan at `status: shipping`
+whose human picked *Pass*. This flow verifies a merge it did not
+perform, records the `Shipped` marker on `main`, and may roll the
+parent Scope up. Everything else is SKILL.md's shared machinery
+(**B1–B7**), referenced by name.
 
 ## Contents
 
-- P1 — Pre-flight (B1 plus Plan resolution)
-- P2 — Verify the ship PR is merged
-- P3 — Apply the close-out edits (Plan file, Scope rollup)
+- P1 — Pre-flight and target resolution
+- P2 — Verify the ship PR merged
+- P3 — Close-out edits (Plan, Scope rollup)
 - P4 — Commit, PR, merge, cleanup, mirror
 - P5 — Confirm
 
 ## P1 — Pre-flight
 
-Run **B1** (setup, `scm: github`, `repo` plugin, post-merge git
-state, ancestor check, HTML open), then resolve the target:
+Run **B1**, then resolve the target: artefact type Plan; status
+filter `shipping` with a `PR opened:` line and no later `Shipped`
+line; zero candidates → suggest `/spades:ship P-…`. A single
+candidate with no ID passed is picked and announced.
 
-- **Artefact type:** Plan.
-- **Status filter:** `status: shipping` AND the audit trail contains
-  a `PR opened:` line AND no later `Shipped` line.
-- **Zero candidates:** suggest `/spades:ship P-…` to open a ship PR
-  for an evaluated Plan first.
-- Exactly one candidate and no ID passed → pick it silently and
-  announce. Otherwise run the interactive picker.
+Read the Plan and parent Scope. Capture `plan_id`, `plan_slug`,
+`scope_id`, `project_slug`, and the PR URL from the latest
+`PR opened:` line.
 
-Read the Plan and parent Scope. Capture `plan_id`, `plan_id_lower`,
-`plan_slug`, `scope_id`, `project_slug`, and the PR URL from the
-most recent `PR opened:` line.
-
-## P2 — Verify the ship PR is merged
-
-Parse the PR number (last `/pull/<n>` segment) and query:
+## P2 — Verify the ship PR merged
 
 ```bash
 gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy
 ```
 
-**Probe failure** — `gh` exits non-zero, JSON parse fails, or a
-required field is missing (`state` null/absent, or `mergeCommit.oid`
-missing when `state: MERGED`) — abort cleanly:
+- **Probe failure** (`gh` error, unparseable JSON, `state` missing,
+  or `mergeCommit.oid` missing on `MERGED`) → abort cleanly:
+  *"Couldn't query PR `<URL>`. Check `gh auth status`, network, or
+  rate limits, then re-run `/spades:close <plan_id>`. The Plan is
+  untouched at `status: shipping`."*
+- **`MERGED`** → capture `mergeCommit.oid`, `mergedBy.login`,
+  `mergedAt`. Continue.
+- **`OPEN`** → report it with any CI or review status shown.
+  `AskUserQuestion`: *Wait — re-run later* / *Abort*. Both exit
+  without changes.
+- **`CLOSED`** unmerged → exit with the pointer: *"PR `<URL>` is
+  closed without merge. Re-open it on GitHub to retry, or re-run as
+  `/spades:close <plan_id> --reject "reason"`."* The human picks the
+  flow.
 
-> *Couldn't query PR `<URL>` — `gh` returned an error or incomplete
-> data. Re-run `/spades:close <plan_id>` after fixing the underlying
-> issue (check `gh auth status`, network, GitHub rate limit). The
-> Plan is untouched at `status: shipping`.*
+Then **B2** with the branch `chore/close-<plan_id lower-cased,
+without P->` (e.g. `chore/close-rag-pipeline-lookup-3hyd`).
 
-Nothing destructive happens before P3, so a probe failure is purely
-re-runnable — but stating the remediation stops humans guessing.
+## P3 — Close-out edits
 
-**Probe succeeded** — branch on `state`:
+### P3.1 — Plan
 
-- **`MERGED`** → capture `mergeCommit.oid` (full SHA),
-  `mergedBy.login`, `mergedAt`. Continue to P3.
-- **`OPEN`** → tell the human the PR is still open; show CI/review
-  status if `gh pr view` surfaced it. `AskUserQuestion`: *Wait —
-  re-run later (exit, do nothing)* / *Abort — exit without changes*.
-- **`CLOSED`** (not merged) → exit with a pointer to Reject: *"PR
-  `<URL>` is closed without merge. The Plan can't pass — re-run as
-  `/spades:close <plan_id> --reject "reason"` to mark the Plan
-  rejected, or re-open the PR on GitHub to retry the merge."* The
-  skill never silently switches flows; the human picks Reject.
+In `.spades/plans/<plan_id>.md`: `status: shipped`, `updated:` today,
+and append:
 
-On any non-`MERGED` state, exit **before** P3 — nothing has changed.
+```markdown
+- YYYY-MM-DD: Shipped (github). PR: <pr_url>. Merge: <merge-sha>. Merged by: <login>.
+```
 
-Then run **B2** to create the bookkeeping branch, named
-`chore/close-<lower(plan_id without the P- prefix)>` — e.g.
-`chore/close-rag-pipeline-lookup-3hyd`.
+### P3.2 — Scope rollup
 
-## P3 — Apply the close-out edits
-
-### P3.1 Plan file
-
-In `.spades/plans/<plan_id>.md` (for the Linear backend, the local
-mirror the other skills maintain):
-
-- Frontmatter `status:` → `shipped`; `updated:` → today.
-- Append to `## Audit Trail`:
-
-  ```markdown
-  - YYYY-MM-DD: Shipped (github). PR: <pr_url>. Merge: <merge-sha>. Merged by: <login>.
-  ```
-
-### P3.2 Scope file — mixed-terminal-aware rollup
-
-Read every sibling Plan under `scope_id`, counting this one as
-already `shipped`. Classify each as `shipped` (terminal, success),
-`rejected` (terminal, a prior explicit decision), or anything else
-(still in flight).
+Read every sibling Plan, counting this one as `shipped`, and
+classify each as `shipped`, `rejected`, or in flight.
 
 | Situation | Action |
 |---|---|
-| **Every sibling `shipped`** *and the Scope's acceptance criteria are covered* | Roll up silently. Scope `status:` → `done`, `updated:` → today. Append `- YYYY-MM-DD: All plans shipped. Scope done.` |
-| **Every sibling `shipped`** *but criteria are left uncovered* | **Do not roll up silently** — see below. |
-| **All terminal, mix of `shipped` and `rejected`, ≥1 `shipped`** | Ask the human to acknowledge via `AskUserQuestion`, **listing the rejected siblings** so the acknowledgement is informed. |
-| **Every sibling `rejected`** | No rollup — the Scope shipped nothing. Surface it and stop short of the rollup edit. The Plan's own close-out still proceeds. |
-| **Any sibling still in flight** | No rollup; leave the Scope unchanged. |
+| Every sibling `shipped`, acceptance criteria covered | Scope `status: done`, `updated:` today, append `- YYYY-MM-DD: All plans shipped. Scope done.` |
+| Every sibling `shipped`, criteria left uncovered | Ask first (below). |
+| All terminal, mix of `shipped` and `rejected`, ≥1 `shipped` | `AskUserQuestion` listing the rejected siblings. |
+| Every sibling `rejected` | No rollup; the Scope shipped nothing. Say so; the Plan's own close-out proceeds. |
+| A sibling in flight | No rollup. |
 
-**"All Plans terminal" is not the same as "the Scope is done."** If
-Plans were deferred at planning and never written, *every sibling
-shipped* is true of a Scope whose acceptance criteria are mostly
-untouched — and rolling up would record that they were met. Before
-the silent rollup, read the Scope's acceptance criteria and check the
-shipped Plans actually cover them. If they don't, surface the
-uncovered criteria and ask via `AskUserQuestion`:
+"All Plans terminal" is not "the Scope is done": Plans deferred at
+planning and never written leave criteria untouched. Read the
+Scope's acceptance criteria and check the shipped Plans cover them.
+Where they don't, surface the uncovered criteria via
+`AskUserQuestion`:
 
-- **Leave the Scope open** *(recommended)* — the remaining criteria
-  need Plans. Append `- YYYY-MM-DD: Rollup withheld — <n>/<m>
-  acceptance criteria uncovered: <list>.` and leave the status alone.
-- **Roll up anyway** — the human is asserting the Scope is done
-  regardless. Record which criteria were uncovered in the audit line
-  so the claim is traceable to a decision rather than an oversight.
+- **Leave the Scope open** *(recommended)* — append `- YYYY-MM-DD:
+  Rollup withheld — <n>/<m> acceptance criteria uncovered: <list>.`
+- **Roll up anyway** — record the uncovered criteria in the rollup
+  line so the claim traces to a decision.
 
-On an accepted mixed-terminal acknowledgement, append to the Scope:
+An accepted mixed-terminal rollup appends to the Scope:
 
 ```markdown
 - YYYY-MM-DD: All plans terminal. Shipped: <n>. Rejected: <m>
   (acknowledged: P-<id-1>, P-<id-2>). Scope done.
 ```
 
-If the human declines, the Plan still closes out (`shipped`) but the
-Scope stays unchanged — append to the **Plan's** audit trail:
+A declined one leaves the Scope unchanged and appends to the Plan:
 
 ```markdown
 - YYYY-MM-DD: Scope rollup deferred (mixed-terminal; human declined).
@@ -133,7 +99,7 @@ Scope stays unchanged — append to the **Plan's** audit trail:
 
 ## P4 — Commit, PR, merge, cleanup, mirror
 
-Run **B3** with:
+**B3** with:
 
 ```
 chore(spades): close <plan_id>
@@ -141,26 +107,17 @@ chore(spades): close <plan_id>
 Records the Shipped marker for <plan_id> on main. Original PR:
 <URL>. Squash-merge: <merge-sha> by @<login>.
 
-Scope <scope_id> rolled up to `done`.   # omit if not rolled up
+Scope <scope_id> rolled up to `done`.   # only when rolled up
 ```
 
-Then **B4** (PR body lists the Plan, Scope, ship PR, merge SHA,
-merged-by, and the files touched), **B5** (verify the merge),
-**B6** (cleanup), and **B7** with this mirror:
+Then **B4** (body lists the Plan, Scope, ship PR, merge SHA,
+merged-by, files touched), **B5**, **B6**, and **B7** with:
 
-- Plan's sub-issue → `Done`.
-- Parent Issue → `Done`, but **only if** every sub-issue under it is
-  now `Done`.
+- Plan sub-issue → Done.
+- Parent Issue → Done, only when every sub-issue is Done.
 - Comment on the sub-issue: *"Shipped. PR: `<URL>` (squash-merge
   `<merge-sha>` by `@<login>`). Bookkeeping audit:
   `<bookkeeping-pr-url>`."*
-
-`/spades:close` does not invoke `/spades:learn` inline — P5 surfaces
-it as a suggestion and the human runs it separately. **Omit that
-suggestion when the Plan's audit trail already carries a `Loop —
-learning captured:` or `Loop — learning declined.` line**: a driver
-asked before close ran, and re-offering it contradicts an answer the
-human already gave.
 
 ## P5 — Confirm
 
@@ -168,8 +125,8 @@ human already gave.
 ✓ Ship PR merged:        <URL>  (merge <short-sha> by @<login>)
 ✓ Bookkeeping PR merged: <bookkeeping-pr-url>
 ✓ Plan shipped:          <plan_id>
-✓ Scope:                 <scope_id> (done — all plans shipped)   # omit if not rolled up
-✓ Linear mirror:         sub-issue Done, parent Issue Done       # omit when backend: local
+✓ Scope:                 <scope_id> (done — all plans shipped)   # when rolled up
+✓ Linear mirror:         sub-issue Done, parent Issue Done       # backend: linear
 ✓ Working tree:          clean, on main
 ✓ Status:                shipped
 
@@ -177,3 +134,7 @@ Next:
   /spades:learn                            — capture a learning
   /spades:status                           — see what's still open
 ```
+
+Omit the `/spades:learn` suggestion when the Plan's audit trail
+already carries a `Loop — learning captured:` or `Loop — learning
+declined.` line; that question was answered before close ran.

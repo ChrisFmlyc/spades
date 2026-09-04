@@ -1,29 +1,30 @@
 # AGENTS.md marker-block content
 
-The consumer-facing operating rules `/spades:setup` Step 6 writes
+The consumer-facing operating rules `/spades:setup` Step 12 writes
 between the `SPADES-FRAMEWORK-START` / `SPADES-FRAMEWORK-END`
 markers in a consumer repo's `AGENTS.md`.
 
-This is a **template, written verbatim** — not instructions for you
-to act on. Copy everything inside the fenced block below into the
-markers, stamping the marker line with `agents_version` from
-`.spades/version`. Never edit content outside the markers.
+This is a template, written verbatim. Copy everything inside the
+fenced block below into the markers, stamping the marker line with
+`agents_version` from `.spades/version`. Content outside the markers
+is untouched.
 
-This block is a compressed subset of the framework's canonical
-rules. It is versioned by `agents_version`: change anything inside
-the fence and that version must bump, because consumer repos carry
-this content and the marker tells them when their copy went stale.
+The block is a compressed subset of the framework's canonical rules,
+versioned by `agents_version`: any change inside the fence bumps
+that version, because consumer repos carry this content and the
+marker tells them when their copy went stale.
 
 ## Contents
 
 - Operating Principles — the four agile pillars and their skill map
-- SPADES Skills — the 21-skill table
+- SPADES Skills — the 22-skill table
 - The SPADES Loop — six phases, ownership, the fast-track exception
 - Phase Rules — per-phase contracts for Scope through Ship
 - Fast-Track Path — the 10-criterion gate
+- Artefacts Carry Forward
 - Architecture Constraints
 - Freshness Before Read-Across
-- Defer to the `repo` Plugin for Git Operations
+- Defer to the `repo` and `codereview` Plugins
 - Versioning
 - Audit Trail
 
@@ -57,26 +58,26 @@ skill, and every gate ladder back to four pillars. Hold these as the
    ceremony.
 3. **Reflect.** Evaluate is a real gate, not a rubber stamp.
    PASS / PARTIAL / FAIL is captured with reasoning. Every Plan
-   produces an evaluation HTML the human can revisit. The next
+   produces an evaluation record the human can revisit. The next
    pass starts with reflection on the last one.
-4. **Improve.** Learnings (`/spades:learn`) are first-class. INTENT,
-   ARCHITECTURE, PATTERNS, ANTI-PATTERNS all carry a
-   `last_reviewed` field and get refreshed when reality drifts.
-   Drift between docs and code is a signal to act, not paper
-   over.
+4. **Improve.** Learnings (`/spades:learn`) and Leads
+   (`/spades:leads`) are first-class. INTENT, ARCHITECTURE,
+   PATTERNS, ANTI-PATTERNS all carry a `last_reviewed` field and
+   get refreshed when reality drifts. Drift between docs and code
+   is a signal to act.
 
 Skill mapping:
 
 | Pillar | Where it lives |
 |--------|----------------|
 | Collaborate | Scope, Plan, Approve, Review |
-| Deliver | Do, Ship, Quick, Loop |
-| Reflect | Evaluate, Status |
-| Improve | Learn, Intent / Architecture / Patterns / Anti-Patterns refresh |
+| Deliver | Do, Ship, Close, Quick, Loop |
+| Reflect | Evaluate, Status, List |
+| Improve | Learn, Leads, Intent / Architecture / Patterns / Anti-Patterns refresh |
 
 ## SPADES Skills
 
-The SPADES plugin (`spades`) provides these 21 skills:
+The SPADES plugin (`spades`) provides these 22 skills:
 
 | Skill | What it does |
 |-------|-------------|
@@ -87,14 +88,15 @@ The SPADES plugin (`spades`) provides these 21 skills:
 | `/spades:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope |
 | `/spades:approve` | Present a Plan for human review and record routing |
 | `/spades:do` | Execute an approved Plan (routed AI / human / hybrid) |
-| `/spades:evaluate` | Check delivered output against the Plan |
-| `/spades:ship` | Open PR + review + merge (code) or record deliverable (artefact / action) |
-| `/spades:close` | Conversational close-out: pass / reject / abandon based on target. Pass finalises (Plan → shipped, Scope → done, Project → archived); reject (Plans) and abandon (Scopes, Projects) require a reason. Opens a bookkeeping PR. |
-| `/spades:loop` | Drive one Scope from Plan to closed-out unattended — plan → approve → do → evaluate → **human sign-off** → ship → bot review → merge → sync → close. Slash-only; never writes a Scope. |
+| `/spades:evaluate` | Check delivered output against the Scope's acceptance criteria |
+| `/spades:ship` | Open the PR (code) or record the deliverable (artefact / action) |
+| `/spades:close` | Conversational close-out: pass / reject / abandon based on target. Pass finalises (Plan → shipped, Scope → done, Project → archived, Objective → complete); reject (Plans) and abandon (Scopes, Projects, Objectives) require a reason. Lands via a bookkeeping PR. |
+| `/spades:loop` | Drive one Scope from Plan to closed-out — plan → approve → do → evaluate → **human sign-off** → ship → bot review → merge → close → sync. Slash-only; never writes a Scope. |
 | `/spades:quick` | Fast-track for trivial work — quick-item marker file (`.spades/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |
-| `/spades:research` | Read-only research via an isolated Opus subagent |
+| `/spades:leads` | Record ideas noticed while working, out of scope by construction, under `.spades/leads/`; `--promote` turns them into work |
+| `/spades:research` | Read-only research via an isolated researcher subagent |
 | `/spades:list` | List active scopes, filterable by phase |
 | `/spades:status` | Show current SPADES phase + dependency graph |
 | `/spades:intent` | Maintain `INTENT.md` — the durable project statement (why) |
@@ -108,29 +110,29 @@ Every unit of work follows six phases:
 
     SCOPE → PLAN → APPROVE → DO → EVALUATE → SHIP
 
-- Humans own Scope, Approve gate, and Evaluate gate.
-- AI owns Plan, Do (when routed AI-auto), and Ship (when the deliverable
+- Humans own Scope, the Approve gate, and the Evaluate gate.
+- AI owns Plan, Do (when routed AI), and Ship (when the deliverable
   is code).
 - Approve records a routing decision (`ai` / `human` / `hybrid`) that
   determines who executes Do.
 
-Never skip a phase or combine phases without explicit human
-instruction.
+Every phase runs, in order, unless the human explicitly instructs
+otherwise.
 
 **Exception — the fast-track path.** Trivial work can use
 `/spades:quick` instead of the full loop. See "Fast-Track Path" below.
 
 **Running the phases.** Drive them one command at a time, or run
 `/spades:loop` after the Scope exists to walk Plan → Ship → close-out
-in one invocation. The loop executes the same gates rather than
-skipping them: it pauses for the human to sign off the Evaluate
-verdict, and pauses again on any failed approval check, sensitive-area
-Plan, human review comment, or red CI check.
+in one invocation. The loop executes the same gates: it pauses for
+the human to sign off an evaluation that needed a human to verify
+part of it, and pauses again on a failed approval check, a human
+review comment, or a red CI check.
 
 ## Phase Rules
 
 ### 1. Scope (Human-owned)
-- Never begin planning or writing code without a signed-off Scope.
+- Planning and coding begin from a signed-off Scope.
 - A Scope must include: intent, acceptance criteria, constraints,
   dependencies, context, out-of-scope, risk, delivery preference,
   priority.
@@ -143,36 +145,39 @@ Plan, human review comment, or red CI check.
 - Plans declare dependencies on prior Plans via `depends_on:`.
 - Each task in a Plan declares an execution posture (`specify-first`,
   `discover-first`, `iterate`, `spike`, `straight-through`).
-- Do NOT begin Do-phase work until the Plan is approved.
+- Do-phase work begins once the Plan is approved.
 
 ### 3. Approve (Human gate)
 - After producing a Plan, STOP and wait for human approval.
 - Approval records a `delivery:` routing on the Plan (`ai`, `human`,
-  `hybrid`) and a `deliverable_type:` (`code`, `artefact`, `action`).
-- If revised or rejected, do not begin delivery.
+  `hybrid`); the Plan already carries its `deliverable_type:`
+  (`code`, `artefact`, `action`).
+- A revised or rejected Plan does not enter delivery.
 
 ### 4. Do (AI or Human — routed)
 - Execute the approved Plan. Routing comes from the Plan's `delivery:`
   field set at Approve time.
-- For `ai`: run the work autonomously, committing as you go.
-- For `human`: record the assignment in the backend; do not auto-do.
+- For `ai`: run the work autonomously on a feature branch, committing
+  as you go.
+- For `human`: record the assignment in the backend and stand down.
 - For `hybrid`: split per the Plan's task-level routing.
 - Run tests and verify before moving the Plan to Evaluate.
 
 ### 5. Evaluate (Human-owned, AI assists)
-- Check delivered output against the Plan's acceptance criteria.
+- Check delivered output against the Scope's acceptance criteria.
 - Verdict is PASS / PARTIAL / FAIL.
 - AI may assist but a human signs off the verdict.
 
 ### 6. Ship (Mixed)
 - For `deliverable_type: code` — routed by the `scm:` field in
   `.spades/config`:
-  - **`scm: github`** — two-phase: Phase 1 pushes the Do branch and
-    opens the PR; address CodeRabbit feedback on the same branch;
-    after squash-merge, run `/repo:sync`, then re-invoke
-    `/spades:ship` to record the merge SHA and mark `shipped`.
+  - **`scm: github`** — `/spades:ship` pushes the Do branch and
+    opens the PR; review feedback lands on the same branch; after the
+    squash-merge, `/spades:close P-<id>` verifies the merge, records
+    the `Shipped` marker on main via a bookkeeping PR, and
+    `/repo:sync` brings main forward.
   - **`scm: local-git`** — single-phase: push to the configured
-    remote (if any), record commit SHA, mark `shipped`. No PR loop.
+    remote (if any), record the commit SHA, mark `shipped`.
 - For `deliverable_type: artefact` — record the artefact reference.
 - For `deliverable_type: action` — record evidence of completion.
 - Ship is the moment the deliverable becomes real to the outside world.
@@ -181,8 +186,8 @@ Plan, human review comment, or red CI check.
 
 Not every change deserves a Scope. Trivial work — typos, one-line
 tweaks, small config nudges, docs changes — uses `/spades:quick`. On
-this path the PR description is the audit artefact; no separate Scope
-or Plan is created.
+this path the quick-item marker file is the audit artefact; no
+separate Scope or Plan is created.
 
 ### The gate — ALL must be true
 
@@ -197,46 +202,36 @@ or Plan is created.
 9. Revertible as one commit
 10. Existing tests cover the area
 
-If any criterion fails, fall back to the full loop.
+If any criterion fails, use the full loop.
 
-## Artefacts Carry Forward — Never Block on Pending Files
+## Artefacts Carry Forward
 
 Every phase writes artefacts, and in a git repo they land as
 uncommitted changes that accumulate as work progresses.
 
-**Uncommitted SPADES-owned paths never block a phase.** No skill
-pauses, prompts, or aborts because artefacts are pending; they carry
+**Uncommitted SPADES-owned paths never block a phase.** They carry
 forward and are swept into the next commit the pipeline makes.
-
 SPADES-owned paths are exactly `.spades/`, `AGENTS.md`, `INTENT.md`,
 `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`. Every
-committing phase (`do`, `ship`, `close`, `quick`) sweeps that
-allowlist — **allowlist only, never `git add -A`**. Files outside it
-are your work in progress: never auto-staged, never blocking,
-mentioned once so you know they're there.
-
-Waiting for artefacts to reach a PR before starting the next phase is
-the failure this prevents — otherwise every phase needs its own
-commit and its own PR, and you end up merging bookkeeping instead of
-shipping work. `/spades:close` is the deliberate final catch-all: it
-tolerates a dirty tree by design and sweeps whatever earlier phases
-left behind.
+committing phase (`do`, `ship`, `close`, `quick`) stages that
+allowlist and only that allowlist. Files outside it are your work in
+progress: left unstaged, mentioned once so you know they're there.
+`/spades:close` is the final catch-all: it tolerates a dirty tree
+and sweeps whatever earlier phases left behind.
 
 ## Architecture Constraints
 
 Before generating any Plan, read these files if they exist:
 - `ARCHITECTURE.md` — system architecture and constraints
 - `PATTERNS.md` — approved patterns and conventions
-- `ANTI-PATTERNS.md` — things you must not do
+- `ANTI-PATTERNS.md` — things this project deliberately avoids
 
 Flag any conflicts between proposed solutions and these documents.
 
 ## Freshness Before Read-Across
 
 SPADES skills read files from the local filesystem, not from
-`origin`. A stale local `main` produces stale findings — audits flag
-issues already shipped, plans reference removed code, do-phase work
-branches off the wrong base.
+`origin`. A stale local `main` produces stale findings.
 
 **The rule:** before any SPADES skill that reads cross-cutting state
 or branches off `main`, verify the local checkout is in sync with
@@ -255,16 +250,16 @@ context-switching to a new SPADES skill.
 
 **Subagent prompts:** skills that spawn read-across subagents
 (`/spades:review`, `/spades:research`) include the freshness check
-in the subagent's own prompt — the subagent halts on stale-main
+in the subagent's own prompt — the subagent halts on a stale main
 rather than producing findings against a stale snapshot.
 
 The full contract lives in `docs/FRAMEWORK.md § Freshness`.
 
 ## Defer to the `repo` and `codereview` Plugins
 
-SPADES does not own git-level operations or CodeRabbit triage. The
+SPADES does not own git-level operations or review-bot triage. The
 `repo` and `codereview` plugins (from the `ai-skills` marketplace) do.
-Use the appropriate slash command — never reinvent the equivalent
+Use the appropriate slash command rather than re-implementing the
 logic inside a SPADES skill.
 
 | When you need to… | Use |
@@ -283,14 +278,13 @@ invoke `/repo:sync` directly. The dependency is **one-directional**:
 SPADES → `repo` / `codereview`, never the reverse.
 
 **If you don't have a git repo yet**, `/spades:setup` runs
-`/repo:init` for you automatically as its first prerequisite — you
-don't run it by hand or re-invoke setup afterwards. Setup is the
-single entry point and drives `/repo:init` inline (a one-directional
-`setup → repo:init` edge). SPADES expects an initialised repo — it
-scaffolds files (`AGENTS.md`, `ARCHITECTURE.md`, `.spades/config`)
-under git's expectation that they will be committed — so setup
-guarantees the repo exists before it scaffolds. See
-`docs/FRAMEWORK.md § Bootstrap Order`.
+`/repo:init` for you automatically as its first prerequisite —
+setup is the single entry point and drives `/repo:init` inline (a
+one-directional `setup → repo:init` edge). SPADES expects an
+initialised repo — it scaffolds files (`AGENTS.md`,
+`ARCHITECTURE.md`, `.spades/config`) under git's expectation that
+they will be committed — so setup guarantees the repo exists before
+it scaffolds. See `docs/FRAMEWORK.md § Bootstrap Order`.
 
 ## Versioning
 

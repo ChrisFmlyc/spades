@@ -1,164 +1,93 @@
 ---
 name: ship
 description: Ship a delivered Plan in spades-anywhere — a confirmation walk through the project's INTENT.md success criteria, capturing evidence per criterion. Branches on `deliverable_type:` — `artefact` records a reference (URL, file, doc); `action` records evidence of a real-world action completed. Use after `/spades-anywhere:evaluate` has issued a PASS, when someone says "ship this", "release this", "mark it done", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 0.1.2
+version: 0.2.0
 ---
 
 # /spades-anywhere:ship
 
-You are shipping the deliverable from an evaluated Plan. Ship is
-the moment the work becomes real to the project — the artefact is
-filed, the action is evidenced, the success criteria are confirmed
-against the project's `INTENT.md`.
+You are shipping the deliverable of an evaluated Plan. Ship is the
+moment the work becomes real to the project: the artefact is filed
+or the action is evidenced, and the human confirms, criterion by
+criterion, how it moved the project's `INTENT.md` success criteria
+forward. The Plan reaches `shipping` here; `/spades-anywhere:close`
+flips it to `shipped` and rolls the Scope up.
 
-Unlike the sister `spades` plugin, this skill has **no SCM**, **no
-PR**, **no merge SHA**. There is no `deliverable_type: code`
-branch. Ship in `spades-anywhere` is a confirmation walk against
-the project's stated success criteria.
-
-Read `docs/FRAMEWORK.md` § Hierarchy (`deliverable_type` semantics),
-§ Target Resolution, and § Audit Trail (the `Shipped` marker)
-before running.
+Read `docs/FRAMEWORK.md` § Hierarchy (`deliverable_type` and the two
+layers of intent), § Target Resolution, § Audit Trail (the
+`Shipped` marker), and § Output Format before running.
 
 ### Output format
 
-This skill honours `review_format:` from `.spades-anywhere/config`
-per `docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. In HTML
-mode, auto-open both the Plan's and parent Scope's `.html` files
-via the OPEN_CMD prelude at the start of the confirmation walk so
-the human can see what's being shipped. In CLI mode, summarise
-inline as today. The confirmation walk and audit-trail writes are
-identical between modes.
+The Plan, Scope, and `INTENT.md` are read from their `.md` files.
+HTML mode opens the Plan's and Scope's existing `.html` via the
+OPEN_CMD prelude as the human's view; the terminal carries the
+per-criterion prompts, evidence capture, and confirmation. CLI mode
+summarises inline. After the audit-trail writes in HTML mode,
+re-render the Plan's `.html`.
 
 ## Pre-Flight
 
-1. **Confirm setup + active project.** Abort otherwise.
-2. **Resolve the target Plan** per `docs/FRAMEWORK.md` § Target
-   Resolution. This skill's parameters:
-   - **Artefact type:** Plan (no type-question needed).
-   - **Status filter:** `evaluating` with a PASS verdict in the
-     audit trail. Parse the audit trail to surface only
-     PASS-verdict plans first; PARTIAL plans appear below with an
-     annotation; FAIL plans are excluded.
-   - **Zero-candidate suggestion:** `/spades-anywhere:evaluate
-     P-…` to verify a delivered plan.
+1. **Confirm setup and active project.**
+2. **Read `backend:` and `review_format:`.**
+3. **Resolve the target Plan** per `docs/FRAMEWORK.md § Target
+   Resolution` — status filter `evaluating` with a PASS verdict
+   (PASS first, PARTIAL annotated below, FAIL excluded); zero
+   candidates → `/spades-anywhere:evaluate P-…`.
+4. **Read the Plan, its parent Scope, and `INTENT.md`.** The Scope's
+   criteria are about this slice of work; INTENT's success criteria
+   are about the project. Ship confirms the slice moved the project.
+   A missing or unfilled `INTENT.md` aborts: *"Ship walks the
+   project's success criteria from `INTENT.md`. Run
+   `/spades-anywhere:intent`, then re-run ship."*
+5. **Verify ancestors active**; hard abort on an `abandoned` Scope or
+   an `abandoned` / `archived` Project.
+6. **Verify the verdict.** `evaluating` + PASS → ship. `evaluating`
+   + PARTIAL → ask whether to ship with the gaps accepted (recorded)
+   or return to `/spades-anywhere:do`. FAIL or any other status →
+   abort.
+7. **Open the review surface** per § Output format.
 
-   If the human passed a Plan ID, resolve directly; otherwise run
-   the interactive picker.
-3. **Read the Plan, parent Scope, and the project's INTENT.md.**
-   The Scope's acceptance criteria are about *this slice of work*;
-   `INTENT.md`'s success criteria are about *the project's broader
-   purpose*. Ship confirms the work moved the project-level
-   criteria forward.
-4. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
-   Resolution → Parent-status precondition`. If the parent Scope is
-   `abandoned`, or its parent Project is `abandoned` / `archived`,
-   abort hard with the canonical error shape. No override.
-5. **Verify status.** The Plan must be `status: evaluating` with a
-   PASS verdict recorded in the audit trail. Acceptable variations:
-   - `evaluating` + PASS → ship
-   - `evaluating` + PARTIAL → ask the human if they want to ship
-     anyway (PARTIAL with explicit acceptance of remaining gaps) or
-     route back to `/spades-anywhere:do`
-   - `evaluating` + FAIL → abort; not shippable
-   - any other status → abort with a clear message
+## Step 1 — Mark shipping
 
-6. **Capture a one-line description** (light, optional). Ask via
-   `AskUserQuestion`:
+Capture an optional one-line description via `AskUserQuestion`:
+**Type a brief description** (free-form, ≤140 characters, the
+human's own words) / **Skip**.
 
-   - *Type a brief description of this ship (one line)*
-   - *Skip — proceed without a description*
-
-   For *Type*, follow up with a free-form prompt: *"Brief description
-   (one line) — e.g. 'venue confirmed, deposit paid'."* Capture the
-   reply verbatim (≤140 chars; truncate with `…` if longer). The
-   description is the human's words; do not paraphrase. Hold it for
-   the audit-trail line in Step 1 (added by the existing audit writer).
-   Skip is fine — the structured evidence captured in Step 3 stands on
-   its own.
-
-7. **Append the Ship-phase-started line.** Write to the Plan's audit
-   trail before the deliverable-type branch:
-
-   ```markdown
-   - YYYY-MM-DD: Ship phase started[ — "<description>"].
-   ```
-
-   Omit the ` — "<description>"` clause when Step 6 was skipped.
-8. **Open the artefacts (HTML mode only).** When `review_format:
-   html`, run the OPEN_CMD prelude and open both the Plan's `.html`
-   and the parent Scope's `.html`. **In HTML mode the open `.html`
-   files ARE the review surface — do NOT also paste / summarise
-   the Plan body, Scope content, or the cumulative INTENT-criteria
-   evidence table to the CLI; the human has the browser tabs.**
-   Short conversational text (the per-INTENT-criterion
-   `AskUserQuestion` polls, evidence-capture follow-ups, the final
-   `✓ Plan shipped …` confirmation, error messages) stays CLI as
-   today. In CLI mode, summarise inline as today. See
-   `docs/FRAMEWORK.md § Output Format → What counts as review-form
-   text` for the canonical line.
-
-## Step 1 — Update Status
-
-Move the Plan to `status: shipping` and `updated: <today>`.
-
-Append to the audit trail:
+Set `status: shipping`, `updated: <today>`, and append:
 
 ```markdown
-- YYYY-MM-DD: Ship phase started — deliverable_type: <artefact|action>.
+- YYYY-MM-DD: Ship phase started — deliverable_type: <artefact|action>[ — "<description>"].
 ```
 
-## Step 2 — INTENT success-criteria confirmation walk
+With `backend: linear`, move the sub-issue to its `shipping` state.
 
-This is the heart of `/spades-anywhere:ship`. Read each success
-criterion from `INTENT.md` (the `## Success` section, per
-`/spades-anywhere:intent`'s template) and walk the human through
-them one at a time. For each criterion:
+## Step 2 — INTENT confirmation walk
 
-1. **Surface the criterion** verbatim back to the human via
-   `AskUserQuestion`:
-   - *Yes — this Plan moved it forward, and I have evidence*
-   - *Partially — it moved forward but not all the way*
-   - *No — this Plan didn't move this criterion forward*
-   - *Not applicable to this Plan*
+For each criterion under `INTENT.md § Success`, in turn:
 
-2. For *Yes* or *Partially*, ask via a free-form follow-up:
-   "What evidence? URL / file path / photo / note / record ID."
-   Capture whatever the human supplies.
+1. Surface it verbatim via `AskUserQuestion`: **Yes — this Plan
+   moved it forward, and I have evidence** / **Partially** / **No**
+   / **Not applicable to this Plan**.
+2. Yes or Partially → free-form: *"What evidence? URL, file path,
+   photo, note, record ID."*
+3. No or Not applicable → an optional one-line justification.
 
-3. For *No* or *Not applicable*, capture a brief justification
-   (optional but recommended).
+The collected `(criterion, verdict, evidence)` list is the
+shipment record. When every criterion comes back Not applicable,
+ask once whether the Plan should ship at all; a confirmed yes is
+recorded as the human's override.
 
-Record each (criterion, verdict, evidence) tuple. The collected
-list is the **shipment record**.
+## Step 3 — Record the shipment
 
-If `INTENT.md` is missing or unfilled, surface that — recommend
-`/spades-anywhere:intent` to capture project intent first, then
-re-run ship. Do not silently substitute the Scope's acceptance
-criteria for INTENT's success criteria; the two levels are
-distinct (see `docs/FRAMEWORK.md § Hierarchy → Two layers of
-"intent"`).
+### `artefact`
 
-## Step 3 — Branch on deliverable_type and record the shipment
-
-### Branch A: `deliverable_type: artefact`
-
-The deliverable is a tangible thing — a document, a video, a
-filed record. Beyond the per-criterion evidence captured in Step
-2, ask via `AskUserQuestion` for the *primary* artefact reference:
-
-- **URL** (doc link, video link, photo album link)
-- **File path** (within the user's filesystem or cloud drive)
-- **Record in a system** (Notion page ID, Google Doc ID,
-  Confluence page ID)
-
-Capture the reference. Where reasonable, verify reachability — for
-URLs, attempt a quick fetch; for file paths, stat them. If the
-artefact isn't reachable, surface it and ask whether to proceed
-anyway.
-
-Call `record_shipment(plan_id, artefact_ref, intent_criteria_evidence)`.
-Append to the audit trail:
+Ask via `AskUserQuestion` for the primary reference: **URL** /
+**File path** / **Record in a system** (Notion page, Google Doc,
+Confluence ID). Verify reachability where possible; an unreachable
+artefact is surfaced and the human decides. Then
+`record_shipment(plan_id, artefact_ref, intent_criteria_evidence)`
+and append:
 
 ```markdown
 - YYYY-MM-DD: Shipped (artefact). Ref: <ref>.
@@ -167,25 +96,14 @@ Append to the audit trail:
   - <criterion 2> — …
 ```
 
-### Branch B: `deliverable_type: action`
+### `action`
 
-The deliverable is a one-off human action — a party hosted, a
-trip taken, an interview round run, a difficult conversation had.
-The thing itself isn't a file; the evidence of completion is.
-
-Ask the human (free-form) what was done — a one-line summary.
-
-Then ask for evidence (multiple items fine):
-
-- Photos (file paths or album links)
-- Confirmation emails (forwarded thread reference, message ID)
-- Receipts / order numbers / booking refs
-- Signed documents (path or URL)
-- A note in a system of record (URL or record ID)
-- Witness signatures (free-form note: "confirmed by <name>")
-
-Call `record_shipment(plan_id, evidence_list,
-intent_criteria_evidence)`. Append to the audit trail:
+Ask free-form what was done (one line), then for evidence — photos,
+confirmation emails or message IDs, receipts or booking references,
+signed documents, a note in a system of record, a witness note
+("confirmed by <name>"). Several items are fine. Then
+`record_shipment(plan_id, evidence_list, intent_criteria_evidence)`
+and append:
 
 ```markdown
 - YYYY-MM-DD: Shipped (action). Description: <description>. Evidence:
@@ -193,65 +111,32 @@ intent_criteria_evidence)`. Append to the audit trail:
   - <evidence 2>
   INTENT success criteria evidence:
   - <criterion 1> — <yes|partial|no|n/a> — <evidence>
-  - <criterion 2> — …
 ```
 
-## Step 4 — Update status
+## Step 4 — Confirm
 
-Plan status → `shipping`. `updated: <today>`.
-
-The Plan stays at `shipping` until `/spades-anywhere:close` runs. The
-two-step ship → close split mirrors the sister `spades` plugin's
-process: `/ship` captures the evidence, `/close` finalises the
-metadata (Plan → `shipped`, Scope rollup, Linear mirror). See
-`docs/FRAMEWORK.md § Scope status rollup` for the rollup rules.
-
-When `backend: linear`, mirror only the status transition: sub-issue
-→ "Shipping". `/spades-anywhere:close` handles the final "Done"
-transition and any parent-Issue rollup.
-
-## Step 5 — Suggest a Learning
-
-Most ships produce something worth remembering. Ask via
-`AskUserQuestion`:
-
-- **Capture a learning** (recommended) — invokes
-  `/spades-anywhere:learn`
-- **Skip** — no learning this time
-
-If yes, hand off to `/spades-anywhere:learn` with the plan ID as
-context. The learning will be tagged and stored under
-`.spades-anywhere/learnings/`.
-
-## Step 6 — Confirm
+The Plan stays at `shipping` until `/spades-anywhere:close` finalises
+it — the same two-step shape as the `spades` plugin, so the audit
+trail reads identically.
 
 ```
 ✓ Ship recorded:    P-host-birthday-party-3HyD
 ✓ Plan status:      shipping
 ✓ Deliverable:      action — "Birthday party hosted at venue"
 ✓ Evidence:         4 items (photos, thank-you notes, vendor receipts)
-✓ INTENT criteria:  3/3 met, 0/3 partial
+✓ INTENT criteria:  3/3 moved forward
 
 Next:
   /spades-anywhere:close P-host-birthday-party-3HyD   — finalise (Plan → shipped, Scope rollup, Linear mirror)
+  /spades-anywhere:learn                              — capture a learning
 ```
+
+`/spades-anywhere:learn` is a suggestion the human runs separately.
 
 ## Edge cases
 
-- **`INTENT.md` is missing.** Abort with: *"Ship walks the
-  project's success criteria from `INTENT.md`. Run
-  `/spades-anywhere:intent` to capture them, then re-run
-  `/spades-anywhere:ship`."*
-- **Every INTENT criterion came back `Not applicable`.** Surface
-  this as a confirmation question — "this Plan didn't move any of
-  the project's success criteria. Are you sure it should ship?" —
-  and allow ship to continue if the human confirms, or route back
-  to scope-revision if not. The audit trail captures the human's
-  override.
-- **Partial PASS that the human is shipping anyway.** Recorded
-  in the audit trail; the PARTIAL is preserved as the verdict,
-  and a follow-up Plan may be needed.
-- **The deliverable lives in a system the human can't show you.**
-  Accept a free-form evidence string. The audit trail records what
-  the human attested to; `spades-anywhere` doesn't enforce
-  verifiability.
+- **A PARTIAL the human ships anyway** — the PARTIAL stays the
+  recorded verdict; a follow-up Plan may be needed.
+- **The deliverable lives somewhere you can't see** — accept a
+  free-form evidence string; the audit trail records what the human
+  attested to.

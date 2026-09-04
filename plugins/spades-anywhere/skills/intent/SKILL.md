@@ -1,89 +1,62 @@
 ---
 name: intent
 description: Create or maintain INTENT.md, the project's durable statement of intent — the problem it solves, who it serves, what it does, what success looks like, and its non-goals. Use when someone says "set up INTENT.md", "capture our project intent", "what is this project for", "update the intent doc", "review our non-goals", or when INTENT.md is missing, still an unfilled template, or flagged stale. The human composes the intent; this skill structures and probes but never authors it.
-version: 0.3.0
+version: 0.4.0
 ---
 
-# SPADES Intent
+# /spades-anywhere:intent
+
+You are helping a human create or maintain `INTENT.md` — the durable
+statement of why the project exists. It is a root reference
+document, peer to `ARCHITECTURE.md`, that changes rarely and is the
+backdrop every Scope is measured against: `/spades-anywhere:scope`
+gates on its existence, `/spades-anywhere:ship` walks its success
+criteria, and `/spades-anywhere:review`'s scope guardian checks
+Scopes and Plans against its non-goals.
+
+Read `docs/FRAMEWORK.md` § Hierarchy → Two layers of intent,
+§ Asking the Human, and § Output Format before running.
 
 ### Output format
 
-This skill honours `review_format:` from `.spades-anywhere/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. **`INTENT.md`
-itself stays at the repo root as human-authored Markdown — it is
-not auto-converted to HTML in either mode.** In HTML mode, after
-writing/refreshing `INTENT.md` the skill renders a *transient*
-preview via the sibling
-`${CLAUDE_PLUGIN_ROOT}/skills/intent/template.html` to
-`.spades-anywhere/.tmp/intent.html` and auto-opens it via OPEN_CMD so the
-human can review the refreshed intent in the same B-style format
-they review other artefacts. In CLI mode, no preview is rendered;
-the human reads `INTENT.md` directly. The Socratic facilitate-never-author
-flow is identical between modes.
+- **Both modes** — `INTENT.md` at the root of the project's
+  knowledge store, human-authored Markdown and the canonical record.
+- **HTML mode** — additionally two renders from
+  `${CLAUDE_PLUGIN_ROOT}/skills/intent/template.html`: a persistent
+  `.spades-anywhere/intent.html` saved alongside `INTENT.md`, and a
+  transient `.spades-anywhere/.tmp/intent.html` opened as the review
+  surface for the assembled document. The per-section conversation
+  stays in the terminal.
+- **CLI mode** — the assembled document prints once in the brief.
 
-You are helping a human create or maintain `INTENT.md` — the durable
-statement of why a project exists. `INTENT.md` is a root reference document,
-peer to `ARCHITECTURE.md`. It changes rarely. It is the backdrop every Scope
-is measured against: when a Scope or Plan drifts away from the project's
-purpose, `INTENT.md` is what makes that visible.
+A root document with no backend mirror: Linear is for doing work,
+and project documentation stays in the knowledge store.
 
-## The Core Rule: Facilitate, Never Author
+## The core rule: facilitate, never author
 
-**The human owns the intent. You structure it. You never invent it.**
+The human owns the intent; you structure it. You may ask questions,
+reflect answers back, propose structure, suggest wording for
+something the human has already expressed, and, in Create mode,
+offer an explicitly labelled draft starting point inferred from
+whatever the human has shared (a brief, a README, attached notes)
+for them to accept, reject, or rewrite. Every section lands only
+after the human actively confirms it; silence is not consent.
+Content the human has not said is a question to ask them.
 
-This is the single non-negotiable rule of this skill. SPADES's whole model is
-"humans own the edges — intent and verification" (see `AGENTS.md`). Project
-intent is the most human-owned thing in the entire framework. If an AI quietly
-writes it, the document becomes a fiction and every downstream check built on
-it is checking against that fiction.
+## What `INTENT.md` is
 
-Concretely:
+It owns **why** the project exists and **for whom**: problem, users,
+what it does, success, non-goals, maturity. How the work is
+structured is `ARCHITECTURE.md`. It is durable rather than
+strategic: OKRs and roadmaps are volatile and live upstream; a
+section that would expire in 90 days belongs there. One living
+document, edited in place, unlike a Scope (one unit of work) or a
+learning (a small retrospective entry).
 
-- **You MAY** ask questions, reflect answers back, propose *structure*,
-  suggest *wording* for something the human has already expressed, and — in
-  Create mode — offer an explicitly-labelled *draft starting point* inferred
-  from the repo (README, docs) for the human to accept, reject, or rewrite.
-- **You MUST NOT** write a section the human has not supplied or confirmed;
-  present inferred content as established fact; invent non-goals, success
-  criteria, audiences, or claims the human did not state; or save `INTENT.md`
-  before the human has seen and approved every section.
-- **Silence is not consent.** Every section — especially every draft you
-  propose — must be actively confirmed by the human before it lands in the
-  file. "Looks fine, moving on" is confirmation; no answer is not.
+## Inline template
 
-If you ever find yourself typing intent content the human did not say, stop
-and ask them instead.
-
-## What INTENT.md Is — and Is Not
-
-`INTENT.md` owns **why** the project exists and **for whom**. It does not own
-**how** it is built — that is `ARCHITECTURE.md`. Keep the boundary crisp:
-
-- Problem, users, what it does (in product terms), success, non-goals,
-  maturity → `INTENT.md`.
-- Tech stack, infrastructure, data flow, patterns → `ARCHITECTURE.md`.
-
-`INTENT.md` is **not** a strategy document. It does not hold OKRs, quarterly
-goals, or a roadmap — those are volatile and live in the tracker. `INTENT.md`
-is the *durable* layer underneath them: it should still be true a year from
-now. If a section reads like it will expire in 90 days, it belongs in an OKR,
-not here.
-
-This skill is distinct from its neighbours, deliberately:
-
-- It is **not** `/spades-anywhere:scope`. A Scope defines one unit of work and becomes a
-  tracker issue that flows through the loop and then closes. `INTENT.md` is one
-  durable document, edited in place, that never closes.
-- It is **not** `/spades-anywhere:learn`. Learnings are many small immutable retrospective
-  entries. `INTENT.md` is a single living document about the project's purpose.
-
-See `examples/example-intent.md` (or `.spades-anywhere/examples/example-intent.md` in a
-consumer repo) for a worked example.
-
-## Inline INTENT.md Template
-
-When this skill needs to scaffold a fresh `INTENT.md`, use exactly this
-shape — never copy from an external template file:
+The scaffold `/spades-anywhere:setup` writes and Create mode fills.
+Exactly this shape:
 
 ```markdown
 ---
@@ -125,262 +98,94 @@ last_reviewed: YYYY-MM-DD
      sunsetting — in a sentence or two. -->
 ```
 
-Leave the placeholder comments in place if the human picks "start
-blank" — they're the prompts that walk them through filling each
-section.
-
-## Where INTENT.md Lives
-
-`INTENT.md` lives at the **repository root**, alongside `ARCHITECTURE.md`. This
-skill reads and writes `./INTENT.md` in the current project. It is a plain
-Markdown file with a small YAML frontmatter block (`last_reviewed`).
+The placeholder comments stay when the human starts blank.
 
 ## Modes
 
-Determine the mode by inspecting `./INTENT.md`:
+Inspect `./INTENT.md`: **Missing** → Create; **unfilled** (two or
+more placeholder comments) → Create in place; **filled** → Edit.
+Confirm via `AskUserQuestion` when the request is ambiguous.
 
-- **No `INTENT.md`** → **Create mode**.
-- **`INTENT.md` exists but is still an unfilled template** — it contains two or
-  more `<!-- Describe … -->` / `<!-- List … -->` style markers → **Create
-  mode** (you are filling the scaffolded template in place).
-- **`INTENT.md` exists and is filled in** → **Edit mode**.
+**Create.** Offer via `AskUserQuestion`: **Draft a starting point
+from what's already shared, then I correct it** / **Start blank**.
 
-If the human's request is ambiguous (e.g. a filled `INTENT.md` exists but they
-said "set up our intent doc"), confirm the mode with `AskUserQuestion` rather
-than guessing.
+**Edit.** Scope via `AskUserQuestion`: **Refresh `last_reviewed`
+only** / **Revise specific sections** / **Full review pass**. Show
+each section's current content before discussing changes.
 
-### Create Mode
+## Conversational style
 
-Walk the human through all six sections from scratch (or fill the scaffolded
-template). Before starting, offer — via `AskUserQuestion` — to draft a starting
-point inferred from the repo's README and docs:
+One section at a time: ask, listen, reflect back, confirm. Probe
+vague answers ("it helps the family" — who, needing what, and what
+is unacceptable without it?). Suggest sharper wording for the
+human's own point. Be a sparring partner on the non-goals. Match the
+ceremony to the work.
 
-- *Draft a starting point from the README, then I correct it*
-- *Start blank — I'll describe it myself*
+## The six sections
 
-If they choose the draft, read the README and any obvious docs, propose a
-draft **per section, clearly labelled as an inference you need them to
-correct**, and treat their corrections as the real content. If they choose
-blank, ask about each section directly.
+A locked schema.
 
-### Edit Mode
+1. **Problem** — the pain, friction, or gap, and for whom.
+2. **Users** — the primary audiences and what each needs; who it
+   is not for.
+3. **What it does** — outcomes for those users, in plain terms.
+4. **Success** — outcomes, not features. `/spades-anywhere:ship`
+   walks these, so each should be confirmable with evidence.
+5. **Non-goals** — the load-bearing section. Explicit, checkable
+   statements. Good: *"We don't book anything non-refundable before
+   the guest count is confirmed."* Bad: *"We won't overdo it."*
+6. **Maturity** — where the project is today.
 
-The human wants to refine an existing `INTENT.md`, or a SPADES skill flagged it
-(staleness nudge from `/spades-anywhere:plan`, or an update suggestion from
-`/spades-anywhere:evaluate`). Use `AskUserQuestion` to scope the edit:
+## `last_reviewed`
 
-- *Refresh `last_reviewed` only — the content is still accurate*
-- *Revise specific sections*
-- *Full review pass — walk every section*
+Set to today's date on every Create and every meaningful Edit,
+including a "still accurate" pass. `/spades-anywhere:plan` reads it
+for the staleness reminder.
 
-For "revise specific sections", ask which. For a full pass, walk all six.
-Show the current content of each section before discussing changes.
+## Writing the file
 
-## Conversational Style
+Write `./INTENT.md` once the human has confirmed every section in
+play: Create writes the whole file; Edit applies the confirmed
+changes and preserves untouched sections.
 
-This is an interactive, guided conversation — not a form, and not a document
-you write for them.
+**HTML mode** — after the write, render twice from the template per
+`docs/FRAMEWORK.md § Output Format → HTML rendering`, identical
+inputs, different paths: `.spades-anywhere/intent.html` (persistent)
+and `.spades-anywhere/.tmp/intent.html` (transient, opened).
 
-1. **One section at a time.** Ask, listen, reflect back, confirm, move on.
-   Never dump all six sections at once.
-2. **Probe vague answers.** "It helps the security team" is not enough — who
-   on the team, doing what, and what is unacceptable without the project?
-3. **Suggest sharper wording, not new substance.** If the human's point is
-   sound but loosely worded, offer a tighter phrasing of *their* point — and
-   let them accept or reject it.
-4. **Be a sparring partner on the non-goals.** This is the section humans
-   under-invest in. Push for specifics (see below).
-5. **Reflect and confirm before moving on.** After each section, show what you
-   captured and let the human correct it.
-6. **Match ceremony to the work.** A first-time Create for a serious project
-   deserves a real conversation; a `last_reviewed` refresh is two lines.
+- `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
+  plugin_version, maturity_stage }`
+- `users_count`, `non_goals_count` *(scalars)*
+- `blocks`:
+  - `users-items` — one per Users bullet. Field: `html`.
+  - `non-goals-items` — one per Non-goals bullet. Field: `html`.
+  - `objective-banner` — the project's sole `open` Objective
+    `{ id, title }` when exactly one exists, else `[]`.
+- `prose_sections`: `{ problem_html, what_it_does_html,
+  success_html, maturity_html }`
 
-## The Six Sections
+Required markers: `users-items`, `non-goals-items`.
 
-`INTENT.md` has exactly six sections. The set is a locked schema — do not add,
-drop, or rename them. Guide the human through each:
+## Brief
 
-### 1. Problem
-What pain, friction, or gap does this project exist to address, and for whom?
-Push for the concrete situation that is unacceptable without the project.
+**HTML mode:**
 
-### 2. Users
-Who is this for? The primary audiences or personas and what each needs. It is
-also worth naming who it is explicitly *not* for.
+```
+✓ INTENT.md written (last reviewed YYYY-MM-DD)
+○ .spades-anywhere/intent.html opened in browser
+Next: /spades-anywhere:architecture · /spades-anywhere:scope <title>
+```
 
-### 3. What it does
-What the project does in **product terms** — capabilities framed as outcomes
-for the users above. Not a technical description; implementation belongs in
-`ARCHITECTURE.md`.
+**CLI mode:** the write confirmation, the assembled `INTENT.md`
+once, the same `Next:` line. Remind the human to save the file to
+their knowledge store.
 
-### 4. Success
-What success looks like as **outcomes, not features**. What signals would show
-the project is achieving its purpose? Push back on feature lists here.
+## Quality check
 
-### 5. Non-goals
-**The load-bearing section.** What the project deliberately will *not* do.
-This is the project-level boundary that `/spades-anywhere:review`'s `scope-guardian`
-checks Scopes and Plans against — a vague non-goal cannot catch drift.
-
-Good: "Argus does not take automated remediation action on devices — it
-informs human decisions; it never quarantines, patches, or disables a device."
-
-Bad: "We won't over-engineer it."
-
-Push for explicit, checkable statements: "we will never X", "Y is out of scope
-until Z". If the human cannot name any non-goals, that is itself worth
-probing — almost every project has them.
-
-### 6. Maturity
-The current stage — prototype, in production, maintenance, sunsetting — in a
-sentence or two. Where the project genuinely is today.
-
-## The `last_reviewed` Field
-
-`INTENT.md` carries a `last_reviewed: YYYY-MM-DD` field in its YAML
-frontmatter. Whenever this skill finishes a Create or a meaningful Edit —
-including a "still accurate" review pass with no content change — set
-`last_reviewed` to **today's date**. That date is what `/spades-anywhere:plan` reads to
-decide whether to surface a staleness reminder; keeping it honest is the point
-of the field.
-
-## Decision Prompts (AskUserQuestion)
-
-Intent **content** is open-ended composition and stays free-form — never force
-a problem statement or a non-goal into a fixed-option list. But the **fixed
-decisions** this skill makes along the way use `AskUserQuestion` (per
-`docs/FRAMEWORK.md` § "Asking the Human"):
-
-- **Mode confirmation** when Create vs Edit is ambiguous.
-- **Create-mode start** — *Draft a starting point from the README* / *Start
-  blank*.
-- **Edit-mode scope** — *Refresh `last_reviewed` only* / *Revise specific
-  sections* / *Full review pass*.
-
-## Writing the File
-
-Write `./INTENT.md` only after the human has reviewed every section in play:
-
-- **Create mode** — write the full file: the `last_reviewed` frontmatter, a
-  short `# Project Intent` heading, and the six `##` sections with the human's
-  confirmed content. Remove any template fill markers.
-- **Edit mode** — apply the confirmed changes and update `last_reviewed`.
-  Preserve sections the human did not touch.
-
-**In HTML mode (`review_format: html`), also write a persistent
-`.spades-anywhere/intent.html` alongside `INTENT.md`.** Use the
-same template the transient preview uses
-(`${CLAUDE_PLUGIN_ROOT}/skills/intent/template.html`) with the
-same placeholder substitutions described under "Transient HTML
-preview" below — the only difference is the destination path and
-lifecycle:
-
-- `.spades-anywhere/intent.html` is **persistent** (saved
-  alongside `INTENT.md` in the chat-surface knowledge store the
-  human is using — Claude Project files, ChatGPT GPT files,
-  Gemini Gem references, Notion, wherever). It is the human's
-  steady-state view of the project's intent.
-- `.spades-anywhere/.tmp/intent.html` (covered below) is
-  **transient**. It exists only for the in-flight edit review
-  and is recreated each time `/spades-anywhere:intent` runs.
-
-Both files use the same template content; they just live in
-different places for different jobs. In CLI mode,
-`.spades-anywhere/intent.html` is NOT written — only `INTENT.md`
-exists.
-
-Principle landed: artefacts the AI reads stay Markdown
-(`INTENT.md`); artefacts the human views in HTML mode get a
-persistent HTML rendering. There is **no SCM** in spades-anywhere
-— no branch, no PR, no wait-for-merge gate. The framework just
-writes the file; the human saves both to their knowledge store
-on their own cadence.
-
-Then confirm what changed and remind the human that `INTENT.md`
-is a living document the SPADES loop reads.
-
-There is no Linear step — `INTENT.md` is the project's durable
-root document, not a tracker artefact.
-
-### Transient HTML preview (HTML mode only)
-
-**Read `review_format:` from `.spades-anywhere/config`.** When
-`review_format: html`, after the `INTENT.md` write succeeds:
-
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-blocks below match the markers in the actual file before
-substituting; abort and surface any mismatch. See
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
-use the bundled template` for the canonical rule.
-
-1. Read the template at
-   `${CLAUDE_PLUGIN_ROOT}/skills/intent/template.html`.
-2. Validate it contains the block markers listed below; if any are
-   missing, abort.
-3. Substitute placeholders per
-   `docs/FRAMEWORK.md § Output Format`:
-   - `{{spades.project_slug}}`, `{{spades.last_reviewed}}`,
-     `{{spades.rendered_at}}`, `{{spades.plugin_version}}`,
-     `{{spades.maturity_stage}}`.
-   - `{{spades.users_count}}` — the number of `users-items` (bullets
-     under `## Users`). Drives the deck.
-   - `{{spades.non_goals_count}}` — the number of `non-goals-items`
-     (bullets under `## Non-goals`). Drives the deck.
-   - The prose sections render via direct substitutions:
-     `{{spades.problem_html}}`, `{{spades.what_it_does_html}}`,
-     `{{spades.success_html}}`, `{{spades.maturity_html}}`.
-   - `<!-- SPADES-BLOCK:users-items -->` — repeated once per bullet
-     under `## Users`. Per-item: `{{block.html}}`.
-   - `<!-- SPADES-BLOCK:non-goals-items -->` — repeated once per
-     bullet under `## Non-goals`. Per-item: `{{block.html}}`.
-   - `<!-- SPADES-BLOCK:objective-banner -->` — repeated 0 or 1
-     times, per `docs/FRAMEWORK.md § Objective banner`. Per-item:
-     `{{block.id}}`, `{{block.title}}`. For this project-level doc,
-     pass the project's sole `open` Objective when EXACTLY ONE exists
-     (scan `.spades-anywhere/objectives/*.md` for the active project);
-     else emit nothing (`[]`).
-4. Write to `.spades-anywhere/.tmp/intent.html` (creating
-   `.spades-anywhere/.tmp/` if missing — auto-gitignored by
-   `/spades-anywhere:setup` Step 5.5).
-5. Auto-open via the OPEN_CMD prelude
-   (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`) so the human
-   can review the refreshed intent in the B-style format.
-
-**In HTML mode the open `.html` preview IS the review surface — do
-NOT also paste / summarise the assembled INTENT body to the CLI;
-the human has the browser tab.** The Socratic interview's
-conversational back-and-forth (the per-section probing questions,
-the human's free-form answers, the per-section confirmations) all
-stay CLI as today — those are conversational. What must NOT go to
-the CLI in HTML mode is the *assembled INTENT document* shown for
-review. See `docs/FRAMEWORK.md § Output Format → What counts as
-review-form text` for the canonical line.
-
-`INTENT.md` itself stays Markdown in both modes — only the transient
-preview is HTML, and only in HTML mode. In CLI mode this step is
-skipped entirely; the human reads `INTENT.md` from disk if they
-want to review the final assembled document.
-
-## Quality Checks
-
-Before finishing, verify:
-
-- [ ] All six sections are present and filled — no template markers remain.
-- [ ] Every section's content came from the human, not from you.
-- [ ] Non-goals are specific and checkable, not platitudes.
-- [ ] Success is stated as outcomes, not a feature list.
-- [ ] Nothing in `INTENT.md` duplicates `ARCHITECTURE.md` (how) or reads like a
-      quarterly OKR (volatile).
-- [ ] `last_reviewed` is set to today's date.
-
-## What This Skill Must Never Do
-
-- **Author intent.** You do not decide what the project is for. Ever.
-- **Present inference as fact.** A draft from the README is a proposal the
-  human must correct, and you must say so.
-- **Save `INTENT.md` without section-by-section human confirmation.**
-- **Invent non-goals, users, or success criteria** to fill a silent section —
-  ask the human instead.
-- **Add, drop, or rename sections** — the six-section schema is locked.
-- **Render or file anything** — `INTENT.md` is a plain root document.
+- [ ] All six sections present and filled; no placeholders remain.
+- [ ] Every section's content came from the human.
+- [ ] Non-goals are specific and checkable.
+- [ ] Success is stated as confirmable outcomes.
+- [ ] Nothing duplicates `ARCHITECTURE.md` or reads like a
+      quarterly OKR.
+- [ ] `last_reviewed` is today.

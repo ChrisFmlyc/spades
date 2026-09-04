@@ -1,29 +1,24 @@
 # Review report format
 
-Read this when you reach "Presenting the Report" in
-`skills/review/SKILL.md`. It owns the envelope schema, the
-dispatch-mode banner, the tiered inline digest, and the persisted
-report — everything about *how the panel's output is shaped*. The
-merge that produces the findings is SKILL.md's job, not this file's.
+Read this at "Presenting the report" in `skills/review/SKILL.md`. It
+owns the envelope schema, the dispatch-mode banner, the tiered
+digest, and the persisted report — how the panel's output is shaped.
+The merge that produces the findings is SKILL.md's job.
 
 ## Contents
 
-- **Report envelope (v2.0.0)** — the JSON block, required fields, and
-  the Plan frontmatter stamp
-- **Dispatch-mode banner** — the three-point agreement check
-- **Tiered inline report** — CLI vs HTML branching, ordering, budgets,
-  and both worked shapes (normal and degraded)
-- **Persisted full report** — canonical `.md`, the
-  `worker-html-review` dispatch, failure fallback
+- Report envelope — the JSON block, its fields, and the Plan stamp
+- Dispatch-mode banner — the three-point agreement check
+- Tiered digest — CLI vs HTML, ordering, budgets, both shapes
+- Persisted report — canonical `.md`, `worker-html-review`,
+  failure fallback
 
 ---
 
-## Report envelope (v2.0.0)
+## Report envelope
 
-The merged report carries a top-level envelope so downstream tooling
-can parse it without inspecting Markdown prose. It appears as a
-`json` code block immediately after the banner and MUST be valid
-JSON.
+A JSON code block immediately after the banner, valid JSON, for
+downstream tooling:
 
 ```json
 {
@@ -37,78 +32,54 @@ JSON.
 
 | Field | Contract |
 |---|---|
-| `schema_version` | `"2.0.0"` for this contract. A consumer seeing a different version falls back to prose parsing or flags the mismatch. Independent of `.spades/version` and of the fragment-marker mechanism `/spades:setup` uses. |
-| `dispatch_mode` | `subagent-dispatch` \| `sequential-inproc` \| `degraded`. Same value as the banner. |
-| `personas_spawned` | Integer count actually invoked. Always `4` under v2.0.0. |
-| `personas_completed` | Personas whose `spades-findings` block parsed successfully. **Count them; do not estimate.** A persona whose JSON failed to parse still shows its prose but does **not** increment this. |
-| `findings_total` | Length of the final merged list, counted after convergence merging. Do not estimate. |
+| `schema_version` | `"2.0.0"`. Independent of `.spades/version` and of the setup marker. Bumps when finding shape changes. |
+| `dispatch_mode` | `subagent-dispatch` \| `sequential-inproc` \| `degraded`; the banner's value. |
+| `personas_spawned` | Personas actually invoked: `4`. |
+| `personas_completed` | Personas whose `spades-findings` block parsed. Counted, not estimated; a parse failure shows its prose and does not count. |
+| `findings_total` | Length of the merged list after convergence. Counted. |
 
-**When the target is a Plan, stamp the tally onto that Plan** —
-write `panel_blocking`, `panel_major`, `panel_minor` (merged finding
-counts by severity) into its frontmatter. This is the review writing
-to the artefact it reviewed, not a cross-skill call. The Plan
-template reads these; absent → it shows `not run`.
-
-v2.0.0 is the M-994 redesign: four personas, `nit` removed from
-`severity`, `confidence` recast to a `high | low` string, and no
-merge-side confidence filter. The v1.1 sixth field
-`findings_filtered_low_confidence` is gone with the filter it
-counted. If finding shape changes again, bump `schema_version`.
+**Plan targets get a stamp.** Write `panel_blocking`, `panel_major`,
+`panel_minor` (merged counts by severity) into the Plan's
+frontmatter. The Plan template reads them; absent, it shows
+`not run`.
 
 ## Dispatch-mode banner
 
-Both artefacts begin with the banner (the value recorded during
-spawning) then the envelope JSON. **`Dispatch mode: <value>` is
-always the first line of output** — before any prose, the envelope,
-or the title — so `head -n 1` or a top-of-report regex surfaces the
-mode without parsing JSON.
+`Dispatch mode: <value>` is the first line of both artefacts, before
+the envelope, so `head -n 1` surfaces it. The section title follows
+the mode: `PANEL SECOND OPINION` for `subagent-dispatch` and
+`sequential-inproc`; `SINGLE-CONTEXT SIMULATION (degraded)` for
+`degraded`, whose header and framing prose describe the run as a
+single context re-prompted per persona.
 
-The section title depends on the mode:
+**Three-point agreement.** The banner line, the envelope's
+`dispatch_mode`, and the section title agree. A reader confirms a
+genuine multi-context panel by checking all three; disagreement
+means the report is malformed. This holds in the digest and the
+file alike, and is what lets a consumer citing "multi-persona
+review" in an audit trail know what produced it.
 
-- `subagent-dispatch` / `sequential-inproc` → `PANEL SECOND OPINION`
-- `degraded` → `SINGLE-CONTEXT SIMULATION (degraded)`, and the words
-  "panel" and "multi-persona" MUST NOT appear anywhere in the header
-  or framing prose.
+## Tiered digest
 
-**Three-point agreement check.** The mode is asserted in three places
-that must agree: the banner's first line, the envelope's
-`dispatch_mode`, and the section title. A reader confirms a run was
-a genuine multi-context panel by checking all three agree and none
-say `degraded`. Disagreement means the report is malformed. This is
-what makes it impossible to silently present a degraded run as a
-panel, and it holds in the inline digest and the persisted file
-alike.
-
-## Tiered inline report
-
-**Read `review_format:` from `.spades/config` and branch.**
-
-- **CLI mode** — this digest IS the human's review surface; print it
-  in full.
-- **HTML mode** — do **not** print it. The rendered `.html` is the
-  review surface; the terminal gets only `✓ Review written: <path>`
-  plus conversational text.
-
-Both modes still write the canonical `.md`. The digest content is
-identical between surfaces — only where it renders differs.
+**CLI mode** — the digest is the review surface; print it in full.
+**HTML mode** — the rendered `.html` is the surface; the terminal
+gets `✓ Review written: <path>` and conversational text. Both modes
+write the canonical `.md`.
 
 Order:
 
-1. Banner and envelope JSON.
+1. Banner and envelope.
 2. Section title.
-3. **Persona summaries** — each persona's prose **verbatim**. Never
-   summarise a persona in your own words; the point is that the human
-   sees each independent view unfiltered.
+3. **Persona summaries** — each persona's prose verbatim, so the
+   human sees each independent view unfiltered.
 4. **Convergence** — every merged finding with a non-empty
-   `also_flagged_by`, in full. Convergence is the panel's strongest
-   signal, so it leads.
-5. **Blocking and major.** Every `blocking` finding in full, always —
-   blocking is never suppressed or collapsed. `major` findings then
-   fill an inline budget of roughly 5–7 findings total (convergence
-   and blocking already shown count toward it). Overflow collapses to
-   `+N more major finding(s) — see full report`.
-6. **Minor** never prints individually — one count line: `N minor
-   finding(s) — see full report`.
+   `also_flagged_by`, in full.
+5. **Blocking and major** — every `blocking` finding in full, always;
+   `major` findings fill a budget of roughly 5–7 findings total
+   (convergence and blocking count toward it); overflow collapses
+   to `+N more major finding(s) — see full report`.
+6. **Minor** — one count line: `N minor finding(s) — see full
+   report`.
 7. `Full report: <path>`.
 
 ### Shape — `subagent-dispatch` or `sequential-inproc`
@@ -164,8 +135,6 @@ Full report: .spades/reviews/s-add-ai-helper-bot-2026-05-17.md
 
 ### Shape — `degraded`
 
-Identical structure, with the honest framing swapped in:
-
 ```
 Dispatch mode: degraded
 
@@ -201,86 +170,65 @@ Full report: .spades/reviews/s-add-ai-helper-bot-2026-05-17.md
 ════════════════════════════════════════════════════════════
 ```
 
-## Persisted full report
+## Persisted report
 
-On **every** run — `degraded` included — write the full report under
-`.spades/reviews/`, **before** the inline digest prints.
+Written on every run, `degraded` included, before the digest prints.
 
 ### Canonical `.md` (both modes)
 
-- **Path:** `.spades/reviews/<slug>-<date>.md`. `<slug>` is the
-  reviewed Scope or Plan's tracker identifier lower-cased (e.g.
-  `s-add-ai-helper-bot`), or a short kebab-case slug from its title
-  when there is no identifier. `<date>` is `YYYY-MM-DD`.
-- **Collision rule:** if the path exists — a repeat run on the same
-  date — append a numeric suffix (`-2`, then `-3`, …). **Never
-  overwrite an existing review file**; each run is its own audit
-  record.
+- **Path:** `.spades/reviews/<slug>-<date>.md` — `<slug>` the
+  reviewed artefact's ID lower-cased (`s-add-ai-helper-bot`), or a
+  short kebab-case slug of its title without one; `<date>`
+  `YYYY-MM-DD`.
+- **Collision:** a repeat run on the same date appends `-2`, `-3`, …
+  Each run is its own audit record.
 - **Contents:** banner, envelope, section title, every persona's
-  prose verbatim, **every** merged finding at every severity in full
-  (the file is not tiered — it is the complete record), and the
-  cross-model synthesis.
-- `.spades/reviews/` is gitignored by default — a local audit
-  artefact, not committed output. Create the directory lazily on
+  prose verbatim, every merged finding at every severity in full,
+  and the cross-model synthesis.
+- `.spades/reviews/` is gitignored by default and created lazily on
   first write.
 
-### `worker-html-review` dispatch (HTML mode only)
+### `worker-html-review` (HTML mode)
 
-When `review_format: html`, dispatch `worker-html-review` per
-`docs/FRAMEWORK.md § worker-html-* — parallel HTML rendering`, in the
-same wave as the `.md` write. No inline render.
+Dispatched per `docs/FRAMEWORK.md § worker-html-*` in the same wave
+as the `.md` write:
 
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html`
-- `output_path`: `.spades/reviews/<slug>-<date>.html` — same slug and
-  collision rules as the `.md`
-- `frontmatter`: `{ target_id, mode (Scope|Plan|Full), personas_count,
-  dispatch_mode, verdict_class, verdict_label, blocking_count,
-  major_count, minor_count, nit_count, rendered_at, plugin_version,
-  project }`, also embedded verbatim in
-  `<script id="spades-frontmatter">`. `project` is the active project
-  slug, for the properties rail; it is the only optional one (the
-  template gives it a `|—` fallback).
-
-  `verdict_class` is substituted as a CSS class, so it must be one of
-  the values the template styles — `clean` / `no-blocking` green the
-  BLOCKING deck number out. `verdict_label` is the human string beside
-  it. The four `*_count` scalars drive the deck; pass `0`, never an
-  empty string.
+- `output_path`: `.spades/reviews/<slug>-<date>.html`, same slug and
+  collision rules
+- `frontmatter`: `{ target_id, mode (Scope|Plan|Full),
+  personas_count, dispatch_mode, verdict_class, verdict_label,
+  blocking_count, major_count, minor_count, nit_count, rendered_at,
+  plugin_version, project }`, embedded verbatim in
+  `<script id="spades-frontmatter">`. `project` is optional (the
+  template falls back to `—`). `verdict_class` is a CSS class the
+  template styles — `clean` / `no-blocking` green the BLOCKING deck
+  number; `verdict_label` is the human string beside it. The four
+  `*_count` scalars are numbers, `0` when zero.
 - `blocks`:
   - `objective-banner` — 0 or 1 item `{ id, title }` per
-    `FRAMEWORK.md § Objective banner`. Resolve from the reviewed
-    target's `strategy_link` (a Scope's, or a Plan's parent Scope's),
-    counting it **only** when it matches an existing
-    `.spades/objectives/O-<slug>.md`; otherwise `[]`.
-  - `persona-cards` — one per persona (4). Fields: `persona_id,
-    persona_class, findings_count, summary_html`. `persona_class` is
-    substituted as a CSS class and colours the card's spine.
-  - `findings` — one per merged finding, every severity, ungated.
-    Fields: `severity, title_html, source, body_html`. `severity` is
-    substituted as a CSS class.
+    `docs/FRAMEWORK.md § Objective banner`, from the reviewed
+    target's `strategy_link` (a Scope's, or a Plan's parent
+    Scope's); else `[]`.
+  - `persona-cards` — one per persona. Fields: `persona_id,
+    persona_class, findings_count, summary_html`. `persona_class`
+    is a CSS class colouring the card's spine.
+  - `findings` — one per merged finding, every severity. Fields:
+    `severity, title_html, source, body_html`. `severity` is a CSS
+    class.
   - `convergence-cards` — one per cluster. Fields: `title,
     corroborated_by, desc_html`.
 
-No `prose_sections` — the template has no synthesis placeholder. The
-coordinator's cross-model synthesis goes in the `.md` and the inline
-digest only.
+The template has no synthesis placeholder; the cross-model synthesis
+lives in the `.md` and the digest. Field names are the template's:
+the worker substitutes them literally, so a wrong name renders as
+visible placeholder text or a broken class.
 
-Required markers: `<!-- SPADES-BLOCK:persona-cards -->`,
-`<!-- SPADES-BLOCK:findings -->`,
-`<!-- SPADES-BLOCK:convergence-cards -->`.
-
-**These field names are the template's, verified against
-`skills/review/template.html`.** They are not free-form: the worker
-substitutes them literally, so a wrong name renders as visible
-`{{block.…}}` text — and for the two class-bearing fields, as a
-broken CSS class that silently loses its colour.
+Required markers: `persona-cards`, `findings`, `convergence-cards`.
 
 ### Failure fallback
 
-The inline report's `Full report:` pointer names the file just
-written. If a write fails, say so plainly inline (`Full report: write
-failed — <reason>`) and continue — **a failed persistence write never
-aborts the review.** If the `.md` and/or `.html` write failed in HTML
-mode, print the digest to the CLI as a backup so the human still sees
-the panel output. In CLI mode this is moot; the digest is already the
-primary display.
+A failed persistence write never aborts the review. Say so inline
+(`Full report: write failed — <reason>`) and continue. In HTML mode,
+when the `.md` or `.html` write failed, print the digest to the CLI
+as the backup surface.

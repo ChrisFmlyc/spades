@@ -7,6 +7,46 @@ signal that the public surface may iterate.
 The consumer-repo marker block in `AGENTS.md` carries the **AGENTS.md
 version** via `<!-- SPADES-ANYWHERE-FRAMEWORK-START vX.Y.Z -->`.
 
+## [0.16.0] — 2026-09-04
+
+- **minor**: every skill rewritten green-field, ported from the
+  sister `spades` change. Each SKILL.md states the correct behaviour
+  once, in positive terms; the bodies are about 45% shorter (6.5k →
+  3.6k lines).
+
+  Adaptations settled in the port:
+
+  - **`plan` and `approve` speak the anywhere schema** —
+    `deliverable_type` is `artefact | action`, routing is `human |
+    hybrid`, and per-task `Routing: ai` means the AI assists with a
+    draft while the human acts.
+  - **The `.md` is what the AI reads in both modes**; the `.html` is
+    re-rendered after consumer-skill writes. `setup`'s review-format
+    prompt says HTML is additive.
+  - **Skill isolation matches `spades`:** `scope` and `approve` point
+    at `/spades-anywhere:review` and `intent` rather than invoking
+    them inline; `ship` and `close` suggest `learn` in the brief;
+    `setup` scaffolds the docs rather than invoking the facilitators.
+  - `evaluate`'s quick path is its own section rather than spliced
+    into Pre-Flight; `do` opens the Scope's page as well as the
+    Plan's in HTML mode; `newproject` treats `repos:` as "places" that
+    may be empty; `architecture` renders both the persistent and the
+    transient page.
+  - `list` and `status` no longer filter on a non-existent `approval`
+    status; `learn` suggests saving to the knowledge store instead of
+    a commit.
+
+- Skills bumped: `anti-patterns` 1.1.0 → 1.2.0, `approve` 0.1.1 →
+  0.2.0, `architecture` 1.1.0 → 1.2.0, `close` 1.3.0 → 1.4.0, `do`
+  0.1.2 → 0.2.0, `evaluate` 0.5.0 → 0.6.0, `intent` 0.3.0 → 0.4.0,
+  `learn` 0.2.0 → 0.3.0, `list` 0.3.0 → 0.4.0, `newproject` 0.3.0 →
+  0.4.0, `objective` 1.1.0 → 1.2.0, `patterns` 1.1.0 → 1.2.0, `plan`
+  0.2.0 → 0.3.0, `quick` 0.2.0 → 0.3.0, `research` 0.1.0 → 0.2.0,
+  `review` 0.3.0 → 0.4.0, `scope` 0.2.0 → 0.3.0, `setup` 0.5.0 →
+  0.6.0, `ship` 0.1.2 → 0.2.0, `status` 0.3.0 → 0.4.0.
+- `agents_version` 1.1.0 → 1.2.0 (marker block: objective row,
+  Close in the pillar map, ship → close two-step, positive phrasing).
+
 ## [0.15.0] — 2026-08-10
 
 - **minor**: Every SKILL.md body is now **under 500 lines**, ported

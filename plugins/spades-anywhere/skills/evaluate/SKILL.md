@@ -1,431 +1,192 @@
 ---
 name: evaluate
 description: Check delivered work against a Plan's parent Scope acceptance criteria. Returns PASS / PARTIAL / FAIL. Human-only verdict — no test execution, no automated checks. Use after `/spades-anywhere:do` has marked a Plan as delivering and the human has done the work, when someone says "evaluate this", "check if this is done", "verify the work", or when a Plan is in status `delivering` or `evaluating`. If not PASS, this skill routes the work back to `/spades-anywhere:do` and the human keeps going.
-version: 0.5.0
+version: 0.6.0
 ---
 
 # /spades-anywhere:evaluate
 
-You are evaluating delivered work against a Plan's acceptance
-criteria. In `spades-anywhere`, evaluation is **human-only** —
-there is no test suite, no automated check. The human walks the
-Scope's acceptance criteria one by one and judges each as
-*met / partial / not met*. The verdict aggregates to
-PASS / PARTIAL / FAIL.
+You are running the Evaluate gate. The human walks the Scope's
+acceptance criteria one by one and judges each *met / partial / not
+met*; the verdicts aggregate to PASS / PARTIAL / FAIL, and the human
+owns the result. For human work a first pass is often PARTIAL: the
+skill routes back to `/spades-anywhere:do` on anything below PASS,
+and the loop runs until PASS.
 
-The Do → Evaluate loop is intentional: for human work, first
-attempts often produce PARTIAL. The skill routes back to
-`/spades-anywhere:do` on anything below PASS and the human keeps
-going. Loop until PASS.
-
-Read `docs/FRAMEWORK.md` § Hierarchy, § Target Resolution, and
-§ Audit Trail before running.
+Read `docs/FRAMEWORK.md` § Hierarchy, § Target Resolution, § Asking
+the Human, § Audit Trail, and § Output Format before running.
 
 ### Output format
 
-This skill honours `review_format:` from `.spades-anywhere/config`
-per `docs/FRAMEWORK.md § Output Format (CLI vs HTML)`.
+Two review surfaces in both modes: the locked verification plan
+before the walk (Step 1) and the report after (Step 4). The verdict
+lives as audit-trail lines on the Plan's `.md`.
 
-The flow is **a two-surface review** in both modes — once before
-the verdict-walk starts (the locked verification plan) and once
-after (the final report). The logic, prompts, and audit-trail
-writes are identical between modes; only the human's review
-surface differs:
-
-1. **Surface 1 — Verification plan** (Pre-Flight Step 5).
-   Presents the upcoming acceptance-criteria walk as a table.
-   Every verdict shows `PENDING` until Step 1 fills them in.
-   - **CLI mode** — Step 1's per-criterion walk IS the locked
-     review surface; an anchor line marks it.
-   - **HTML mode** — renders page 1 via the bundled template, writes
-     to `.spades-anywhere/evaluations/<plan-id>-<date>-plan.html`,
-     and auto-opens it; the CLI gets only a brief "opened" nudge.
-2. **Surface 2 — Evaluation report** (Step 2.5). Presents the
-   same rows with verdicts and notes filled in, plus the
-   aggregated verdict and the human's free-form rationale.
-   - **CLI mode** — Step 2's aggregated verdict + rationale IS
-     the closing report surface; an anchor line names the verdict.
-   - **HTML mode** — renders page 2 via the same template with
-     `{{spades.mode}}: report` framing, writes to
-     `.spades-anywhere/evaluations/<plan-id>-<date>-report.html`,
-     and auto-opens it; the CLI gets only a brief "opened" nudge.
-
-In `spades-anywhere`, the evaluator is **always the human** —
-there is no `delivery:` routing; render `{{spades.evaluator}}` as
-`human` in every report. In CLI mode the Plan's audit-trail line
-is the only file written; HTML mode adds the two eval pages on top.
+- **CLI mode** — the table printed in each step is the surface,
+  anchored by a one-line pointer.
+- **HTML mode** — each surface is a page rendered from
+  `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html` into
+  `.spades-anywhere/evaluations/` and auto-opened; the terminal gets
+  a one-line nudge. `{{spades.mode}}` (`plan` | `report`) sets the
+  page's brand, heading, tagline, and title. The evaluator is
+  always `human`. This skill opens its own two pages only.
 
 ## Pre-Flight
 
-1. **Confirm setup + active project.** Abort otherwise.
-2. **Resolve the target** per `docs/FRAMEWORK.md` § Target
-   Resolution. This skill can take a Plan, a Scope (whole-scope
-   evaluation when every Plan under it is done), or a Quick item.
-   - **If the human passed an ID,** resolve by prefix:
-     `P-<slug>-<suffix>` → Plan; `S-<slug>` → Scope;
-     `Q-<slug>-<suffix>` → Quick item → jump to **Quick-Path
-     Branch** (below) and skip the rest of Pre-Flight.
-   - **If invoked bare,** ask via `AskUserQuestion`:
-     - *One plan* → Plan picker, status filter `delivering` or
-       `evaluating`.
-     - *Whole scope* → Scope picker, status filter `evaluating`.
-     - *Quick item* → Quick-item picker; glob
-       `.spades-anywhere/quick/Q-*.md`, filter to active project,
-       list items with no `Evaluate — verdict:` line yet.
-   - **Zero-candidate suggestions:**
-     - No Plans in `delivering` / `evaluating` →
-       `/spades-anywhere:do P-…` on an approved plan first.
-     - No Scopes in `evaluating` → keep delivering Plans.
-     - No unevaluated Quick items → none yet — run
-       `/spades-anywhere:quick` first or pick a Plan/Scope.
+1. **Confirm setup and active project.**
+2. **Read `backend:` and `review_format:`.**
+3. **Resolve the target** per `docs/FRAMEWORK.md § Target
+   Resolution` — a Plan, a Scope (whole-scope evaluation), or a
+   Quick item.
+   - **ID passed** — `P-…` → Plan; `S-…` → Scope; `Q-…` → § Quick
+     path.
+   - **Bare invocation** — `AskUserQuestion`: *One plan*
+     (`delivering` / `evaluating`), *Whole scope* (`evaluating`),
+     *Quick item* (markers without an `Evaluate — verdict:` line).
+   - **Zero candidates** — no Plans → `/spades-anywhere:do P-…`; no
+     Scopes → keep delivering; no Quick items →
+     `/spades-anywhere:quick`.
+4. **Read the target** — Plan plus parent Scope, or Scope plus every
+   Plan — from the `.md` files.
+5. **Verify ancestors active**; hard abort on an `abandoned` Scope or
+   an `abandoned` / `archived` Project. Quick items sit outside the
+   hierarchy.
+6. **Verify the Plan has been through Do.** `approved` →
+   `/spades-anywhere:do P-…` first; evaluating undelivered work is
+   meaningless.
+7. **Append** `- YYYY-MM-DD: Evaluation started — routing: human.`
 
-## Quick-Path Branch
+## Step 1 — Present the locked verification plan
 
-If the target ID begins with `Q-` (a quick-item marker file under
-`.spades-anywhere/quick/`), or — for `backend: linear` — the target
-issue carries a `spades:quick` label, this is a fast-track item.
-Skip the full evaluation and validate the recorded action directly:
+One row per acceptance criterion, each verified by the human.
 
-1. **Read the marker file** at `.spades-anywhere/quick/<Q-id>.md`.
-   Pull `type`, `evidence_ref`, `delivery`, and the Gate Check
-   retrospect from the body.
-2. **Verify the recorded action and evidence.** Did the human do
-   what the marker says they did? Is the evidence reference
-   reachable / parseable / corroborated?
-3. **Validate the gate retrospectively** — does the recorded action
-   still satisfy every fast-track criterion the Gate Check ticked?
-4. **Verdict** (via `AskUserQuestion`):
-   - **PASS** — action completed, evidence holds, gate retrospect
-     still holds
-   - **PARTIAL** — small follow-up needed
-   - **FAIL** — gate violated retrospectively; the action should
-     have been a Scope. Open a `/spades-anywhere:scope` to capture
-     the work properly.
+**CLI mode** — print one anchor and continue:
 
-5. **If PARTIAL, route the follow-up.** Don't leave the human
-   guessing what comes next. Immediately follow up with a second
-   `AskUserQuestion`:
+```
+○ Verification plan locked — I'll walk each criterion next.
+```
 
-   > *Follow-up route:*
-   > - **Update this marker** — the follow-up is a clarifying
-   >   message or a missing piece of evidence on the same action.
-   >   Edit `.spades-anywhere/quick/<Q-id>.md` directly to add the
-   >   evidence reference, then re-run `/spades-anywhere:evaluate
-   >   Q-<id>` when ready.
-   > - **Open a new quick item** — the follow-up is a separate
-   >   action. Run `/spades-anywhere:quick` again; reference this
-   >   Q-id in the new item's *Why* field so the linkage is
-   >   readable in the audit trail.
-   > - **Re-route through the full loop** — the work is bigger than
-   >   the quick-path gate allowed. Run `/spades-anywhere:scope` to
-   >   capture it properly.
+**HTML mode — page 1.** Render from the template per
+`docs/FRAMEWORK.md § Output Format → HTML rendering`:
 
-   Print the exact next-command for the chosen route as the last
-   conversational line (e.g. *"Next: edit
-   `.spades-anywhere/quick/Q-<id>.md` to add the receipt photo,
-   then re-run `/spades-anywhere:evaluate Q-<id>`."*).
+- `output_path`:
+  `.spades-anywhere/evaluations/<plan_id_lower>-<YYYY-MM-DD>-plan.html`
+  (create the directory when missing)
+- `frontmatter`: `{ mode: "plan", brand_label: "Verification Plan",
+  h1_prefix: "Verification plan", page_title: "Verification",
+  tagline: "What we're about to walk through. One row per
+  acceptance criterion. After you answer each, the completed report
+  appears as page 2.", verdict: "PENDING", verdict_class:
+  "pending", verdict_summary_html: "<p>Walk-through not started
+  yet. The completed report appears once you've answered each
+  criterion.</p>", pass_count: 0, partial_count: 0, fail_count: 0,
+  plan_id, plan_title, scope_id, scope_title, project, evaluated,
+  evaluator: "human", plugin_version }`
+- `blocks`:
+  - `objective-banner` — 0 or 1 item `{ id, title }` per
+    `docs/FRAMEWORK.md § Objective banner`, from the parent Scope's
+    `strategy_link`; else `[]`.
+  - `verification-rows` — one per criterion. Fields: `step` (the
+    criterion as a concrete check — "Confirm the venue was set up on
+    time"), `criterion_ref` (`C1`, …), `verifier` (`Human`),
+    `verifier_class` (`human`), `method` (`Eyes-on` until the human
+    names one), `verdict` (`PENDING`), `verdict_class` (`pending`),
+    `notes` (empty).
+  - `audit-events` — Plan audit entries whose `desc` contains
+    `Evaluation`. Fields: `date, desc`.
 
-6. **Append to the marker's audit trail:**
+Required markers: `verification-rows`, `audit-events`. Then:
 
-   ```markdown
-   - YYYY-MM-DD: Evaluate — verdict: <PASS|PARTIAL|FAIL>. <one-line rationale>.[ Follow-up: <route>.]
-   ```
+```
+○ Verification plan opened: .spades-anywhere/evaluations/<plan-id>-<date>-plan.html
+○ I'll walk you through each row next.
+```
 
-   The ` Follow-up: <route>` clause is appended only when the
-   verdict is PARTIAL; omit otherwise. Routes are `update-marker` /
-   `new-quick` / `full-loop` — short tokens for grep-friendly audit
-   trails.
+## Step 2 — Walk the criteria
 
-   When `backend: linear`, also post a one-line comment on the
-   Linear issue: *"`/spades-anywhere:evaluate` verdict:
-   `<PASS|PARTIAL|FAIL>` — `<rationale>`.[ Follow-up: `<route>`.]"*
+For each criterion in turn, `AskUserQuestion`: *"Criterion <N>:
+'<text>'. How did this turn out?"*
 
-No sub-issues are ever created for quick-path items. The marker
-file remains the canonical record.
-3. **Read the target.** Plan + parent Scope, OR Scope + every Plan
-   under it.
-4. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
-   Resolution → Parent-status precondition`. For a Plan target,
-   check the parent Scope and grandparent Project. For a Scope
-   target, check the parent Project. If any ancestor is `abandoned`
-   (or, for Projects, `archived`), abort hard with the canonical
-   error shape. No override. (Quick items handled above in the
-   Quick-Path Branch skip this rule — they are independent of the
-   Scope/Project hierarchy.)
-5. **Do NOT auto-open the Plan's or Scope's `.html` in HTML
-   mode.** This is a deliberate change from prior versions. The
-   Plan/Scope `.html` files are not the eval review surface; the
-   verification-plan HTML (page 1, written at Pre-Flight Step 6
-   below) is. Opening the wrong page caused confusion in the
-   field. The eval pages carry the Plan ID + parent Scope in
-   their breadcrumb if the human wants to cross-check.
+- **Met** — optionally a one-line note (evidence, how confirmed).
+- **Partial** — a one-line note on what is missing.
+- **Not met** — a one-line note on why (blocked, out of time, scope
+  changed, deprioritised).
+- **Defer — come back later** — for criteria with delayed
+  verification ("guests reported a good time" needs a few days).
+  Recorded as `deferred`, counted as partial.
 
-6. **Present the locked verification plan.** Both modes have this
-   step — only the surface differs.
+Free-form follow-up after each is welcome ("met, but the cake was a
+different flavour") and lands in the note. Record each `(criterion,
+verdict, note)` in the audit trail as you go.
 
-   **CLI mode** — the per-criterion walk in Step 1 IS the locked
-   review surface. Print one anchor line so the human knows the
-   walk is the gate:
+A criterion whose text no longer matches what was done is recorded
+as `not met` with the explanation; the Scope is revised via
+`/spades-anywhere:scope` (Edit mode) before re-evaluating rather
+than the criterion being reworded to fit.
 
-   ```
-   ○ Verification plan locked — I'll walk each criterion next.
-   ```
+## Step 3 — Aggregate and confirm
 
-   Then proceed to Step 1.
+Derive: every criterion met → **PASS**; at least one met and at
+least one partial or not met (or deferred) → **PARTIAL**; every
+criterion not met → **FAIL**.
 
-   **HTML mode** — render the upcoming acceptance-criteria walk
-   as a table the human can preview *before* Step 1 starts asking
-   per-criterion questions. This is the "before we start" page,
-   paired with page 2 written at Step 2.5.
-
-   **You MUST render via the bundled `template.html`. Do NOT
-   hand-roll the HTML.**
-
-   1. **Read the template** at
-      `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html`.
-   2. **Validate** it contains:
-      - `<!-- SPADES-BLOCK:verification-rows -->`
-      - `<!-- SPADES-BLOCK:audit-events -->`
-
-      Abort if either is missing.
-   3. **Substitute placeholders** with `mode: plan`:
-      - `{{spades.mode}}` = `plan`
-      - `{{spades.brand_label}}` = `Verification Plan`
-      - `{{spades.h1_prefix}}` = `Verification plan`
-      - `{{spades.page_title}}` = `Verification`
-      - `{{spades.tagline}}` = `What we're about to walk through. One row per acceptance criterion. After you answer each, the completed report appears as page 2.`
-      - `{{spades.verdict}}` = `PENDING`
-      - `{{spades.verdict_class}}` = `pending`
-      - `{{spades.verdict_summary_html}}` = `<p>Walk-through not started yet. The completed report appears at Step 2.5 once you've answered each criterion.</p>`
-      - `{{spades.pass_count}}` = `0`, `{{spades.partial_count}}` =
-        `0`, `{{spades.fail_count}}` = `0` — in `mode: plan`
-        (pre-verification) no verdicts exist yet, so the deck shows
-        the |default.
-      - `{{spades.plan_id}}`, `{{spades.plan_title}}`,
-        `{{spades.scope_id}}`, `{{spades.scope_title}}`,
-        `{{spades.project}}` (the active project slug from
-        `.spades-anywhere/config`, for the properties rail;
-        optional),
-        `{{spades.evaluated}}` (today's date),
-        `{{spades.evaluator}}` = `human` (always in
-        spades-anywhere),
-        `{{spades.plugin_version}}`.
-      - `<!-- SPADES-BLOCK:objective-banner -->` — 0 or 1 item
-        `{{block.id}}`, `{{block.title}}` per `docs/FRAMEWORK.md §
-        Objective banner`. Resolve from the evaluated Plan's parent
-        Scope's `strategy_link`, counting it ONLY when it matches an
-        existing `.spades-anywhere/objectives/O-<slug>.md` file —
-        then pass `[{ id, title }]` (title read from that file);
-        otherwise `[]`.
-      - `<!-- SPADES-BLOCK:verification-rows -->` — one row per
-        acceptance criterion from the parent Scope. Per-item:
-        - `{{block.step}}` — the criterion text rephrased as a
-          concrete check action ("Verify the venue was set up
-          on time", "Confirm guests were happy with the food").
-        - `{{block.criterion_ref}}` — `C1`, `C2`, etc.
-        - `{{block.verifier}}` = `Human` (always).
-        - `{{block.verifier_class}}` = `human`.
-        - `{{block.method}}` = `Eyes-on` (placeholder; the human
-          fills in the actual method in their note at Step 1).
-        - `{{block.verdict}}` = `PENDING`.
-        - `{{block.verdict_class}}` = `pending`.
-        - `{{block.notes}}` = empty.
-      - `<!-- SPADES-BLOCK:audit-events -->` — every audit-trail
-        entry on the Plan whose `desc` contains `Evaluation`
-        (likely empty at this point — just the audit line about
-        the evaluation having started).
-   4. **Write** to
-      `.spades-anywhere/evaluations/<plan_id_lower>-<YYYY-MM-DD>-plan.html`
-      (creating `.spades-anywhere/evaluations/` if missing).
-   5. **Auto-open** via the OPEN_CMD prelude. Print:
-
-      ```
-      ○ Verification plan opened: .spades-anywhere/evaluations/<plan-id>-<date>-plan.html
-      ○ I'll walk you through each row next.
-      ```
-
-   Both branches then continue to Step 1 — the per-criterion walk
-   is identical between modes.
-
-## Step 1 — Walk the Scope's acceptance criteria
-
-This is the whole skill. Read the Scope's `## Acceptance
-Criteria` section. For each criterion in turn, ask the human via
-`AskUserQuestion`:
-
-> *Criterion <N>: "<criterion text>". How did this turn out?*
-
-Options:
-
-- **Met** — the criterion is fully satisfied. Optionally capture a
-  one-line note (what evidence / how confirmed).
-- **Partial** — moved forward but not all the way. Capture a
-  one-line note on what's missing.
-- **Not met** — not done; capture a one-line note on why (blocked,
-  ran out of time, scope changed, deprioritised).
-
-Free-form follow-up after each is fine — for example, the human
-might say "met, but the cake was a different flavour than planned"
-and the note records that nuance.
-
-Record each `(criterion, verdict, note)` tuple in the audit trail
-as you go.
-
-## Step 2 — Aggregate the overall verdict
-
-Apply the rule:
-
-- **PASS** — every criterion is *met*. (Notes are still captured
-  for the record.)
-- **PARTIAL** — at least one *met* and at least one *partial* or
-  *not met*. The work moved forward but isn't complete.
-- **FAIL** — every criterion is *not met*, OR the human chose
-  *FAIL — fundamental approach was wrong* via the override below.
-
-Confirm the aggregated verdict back to the human via
-`AskUserQuestion`:
+Confirm via `AskUserQuestion`:
 
 - **PASS** — proceed to `/spades-anywhere:ship`
-- **PARTIAL** — route back to `/spades-anywhere:do` and keep going
-- **FAIL — fundamental approach was wrong** — route back to
-  `/spades-anywhere:plan` (or `/spades-anywhere:scope` if the
-  problem was mis-scoped)
-- **FAIL — keep this as-is, mark rejected** — record `status:
-  rejected`; the human has decided this Plan isn't worth
-  continuing
+- **PARTIAL** — back to `/spades-anywhere:do`
+- **FAIL — the approach was wrong** — back to
+  `/spades-anywhere:plan` (or `/spades-anywhere:scope`)
+- **FAIL — keep as-is, mark rejected** — `status: rejected`
 
-The human owns the final verdict. The aggregation above is a
-suggestion; the override lets the human pick a different verdict
-when context (frustration with the approach, schedule pressure,
-new information) trumps the mechanical aggregation.
+The derivation is a proposal; the human can pick a different verdict
+when context (schedule pressure, new information) outweighs the
+mechanical count. Then capture a rationale free-form: *"In a
+sentence or two, why this verdict? What should the next reader take
+away?"*
 
-**Then capture a one-paragraph rationale.** After the verdict
-choice, ask free-form: *"In a sentence or two, why this verdict?
-What's the take-away the next reader should have?"* The reply
-becomes `{{spades.verdict_summary_html}}` in page 2's
-summary card.
+## Step 4 — Present the report
 
-## Step 2.5 — Present the evaluation report
-
-**Read `review_format:` from `.spades-anywhere/config` and branch.**
-Step 2 picked the aggregated verdict and captured the rationale;
-this step presents the completed report as the closing review
-surface. Both modes have a Step 2.5 — only the surface differs.
-
-### CLI mode
-
-The aggregated verdict + rationale emitted during Step 2 IS the
-closing report surface — leave it on screen. Print one anchor line
-so the verdict is unambiguous:
+**CLI mode** — print the table of rows with verdicts and notes, then:
 
 ```
-✓ Evaluation report above — verdict: <PASS|PARTIAL|FAIL>. Plan audit-trail line records the same verdict.
+✓ Evaluation report above — verdict: <PASS|PARTIAL|FAIL>. The Plan's audit-trail line records the same verdict.
 ```
 
-### HTML mode
+**HTML mode — page 2.** Same template, `output_path` ending
+`-report.html`, `mode: "report"`, `brand_label: "Evaluation
+Report"`, `h1_prefix: "Evaluation report"`, `page_title:
+"Evaluation"`, `tagline: "All verdicts confirmed. The Plan's
+audit-trail line is the authoritative record; this report is your
+rich view."`, the verdict and `verdict_class` (`pass` / `partial` /
+`fail`), the rationale as `verdict_summary_html`, and the counts from
+the rows. `verification-rows` carry `method` from the human's note,
+`verdict` (`PASS` / `PARTIAL` / `FAIL` / `NA` for deferred) with the
+matching class, and `notes`. Then:
 
-After Step 2 captures the verdict and rationale, produce the
-completed evaluation report. Same template as page 1; different
-`mode` framing.
+```
+○ Evaluation report opened: .spades-anywhere/evaluations/<plan-id>-<date>-report.html
+```
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.**
+The human saves both pages to their knowledge store on their own
+cadence.
 
-1. **Read the template** at
-   `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html`.
-2. **Validate** it contains:
-   - `<!-- SPADES-BLOCK:verification-rows -->`
-   - `<!-- SPADES-BLOCK:audit-events -->`
+## Step 5 — Write the verdict (fan-out)
 
-   Abort if either is missing.
-3. **Substitute placeholders** with `mode: report`:
-   - `{{spades.mode}}` = `report`
-   - `{{spades.brand_label}}` = `Evaluation Report`
-   - `{{spades.h1_prefix}}` = `Evaluation report`
-   - `{{spades.page_title}}` = `Evaluation`
-   - `{{spades.tagline}}` = `All verdicts confirmed. The Plan's audit-trail line on \`.spades-anywhere/plans/<plan-id>.md\` is the authoritative record; this report is your rich view.`
-   - `{{spades.verdict}}` — `PASS` / `PARTIAL` / `FAIL` from
-     Step 2.
-   - `{{spades.verdict_class}}` — `pass` / `partial` / `fail`.
-   - `{{spades.verdict_summary_html}}` — the one-paragraph
-     rationale captured at Step 2, HTML-escaped and wrapped in
-     `<p>` tags.
-   - `{{spades.pass_count}}`, `{{spades.partial_count}}`,
-     `{{spades.fail_count}}` — the counts of the
-     `verification-rows` by their `verdict` (PASS / PARTIAL /
-     FAIL), from Step 1's per-criterion walk.
-   - `{{spades.plan_id}}`, `{{spades.plan_title}}`,
-     `{{spades.scope_id}}`, `{{spades.scope_title}}`,
-     `{{spades.project}}` (the active project slug from
-     `.spades-anywhere/config`, for the properties rail; optional),
-     `{{spades.evaluated}}` (today's date),
-     `{{spades.evaluator}}` = `human` (always),
-     `{{spades.plugin_version}}`.
-   - `<!-- SPADES-BLOCK:objective-banner -->` — same resolution as
-     page 1: 0 or 1 item `{{block.id}}`, `{{block.title}}` per
-     `docs/FRAMEWORK.md § Objective banner`, resolved from the
-     evaluated Plan's parent Scope's `strategy_link`, else `[]`.
-   - `<!-- SPADES-BLOCK:verification-rows -->` — same rows as
-     page 1, now with verdicts filled in from Step 1's
-     per-criterion walk. Per-item:
-     - `{{block.step}}` — the criterion text as a concrete
-       check action (same as page 1).
-     - `{{block.criterion_ref}}` — `C1`, `C2`, etc.
-     - `{{block.verifier}}` = `Human` (always).
-     - `{{block.verifier_class}}` = `human`.
-     - `{{block.method}}` — the concrete method, taken from the
-       human's note at Step 1 if they mentioned one (`Eyes-on`,
-       `Asked guest for feedback`, `Compared to photo brief`).
-     - `{{block.verdict}}` — `PASS` (met) / `PARTIAL` (partial) /
-       `FAIL` (not met); `NA` if deferred.
-     - `{{block.verdict_class}}` — `pass` / `partial` / `fail` /
-       `na`.
-     - `{{block.notes}}` — the one-line note the human captured.
-   - `<!-- SPADES-BLOCK:audit-events -->` — every audit-trail
-     entry on the Plan whose `desc` contains `Evaluation`, in
-     chronological order. Per-item: `{{block.date}}`,
-     `{{block.desc}}`.
-4. **Write** to
-   `.spades-anywhere/evaluations/<plan_id_lower>-<YYYY-MM-DD>-report.html`
-   (note the `-report.html` suffix — distinct from page 1's
-   `-plan.html`).
-5. **Auto-open** via the OPEN_CMD prelude. Print the file path
-   with "open this in your browser" if `OPEN_CMD` is empty.
-
-There is **no SCM in spades-anywhere** — no branch, no PR, no
-wait-for-merge gate. The human saves both pages to their
-chat-surface knowledge store (Claude Project files, ChatGPT GPT
-files, Gemini Gem references, Notion, wherever) on their own
-cadence. The framework just writes the files; persistence beyond
-that is the human's call.
-
-In CLI mode the audit-trail line written by the fan-out below is
-the only file artefact — no HTML pages are written. The CLI
-surfaces emitted at Pre-Flight Step 5 and Step 2.5 are the human's
-review record.
-
-## Step 3 — Write the verdict (fan-out dispatch)
-
-Apply the fan-out pattern from
-`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`. Spawn the
-following sub-agents **in parallel in a single assistant message
-with multiple `Agent` tool calls** (`subagent_type:
-general-purpose`):
+One wave per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`:
 
 | Sub-agent | Resource owned | Returns |
-|-----------|---------------|---------|
-| `worker-file-plan-evaluate` | `.spades-anywhere/plans/P-<…>.<ext>` — update Plan frontmatter (PASS: keep `status: evaluating`; PARTIAL: roll back to `status: delivering` so `/spades-anywhere:do` can resume; FAIL-rejected: `status: rejected`; FAIL-replan: keep `status: evaluating` and append a "needs re-plan" note) and append to audit trail: `- YYYY-MM-DD: Evaluation — verdict: <PASS\|PARTIAL\|FAIL>. Criteria: <met/partial/not-met counts>. Notes: <…>.` | `{ status: ok }` |
-| `worker-file-scope-evaluate` *(only when this evaluation triggers a Scope rollup)* | `.spades-anywhere/scopes/S-<scope-slug>.<ext>` — update rollup per `docs/FRAMEWORK.md § Hierarchy → Scope status rollup` and append audit-trail entry. Skip this sub-agent when no rollup change is required. | `{ status: ok }` |
-| `worker-linear-evaluate` *(only when `backend: linear`)* | Linear — call `record_evaluation(plan_id, verdict, notes)`: post the verdict + per-criterion notes as a comment on the sub-issue and update sub-issue status. | `{ status: ok }` |
+|---|---|---|
+| `worker-file-plan-evaluate` | `.spades-anywhere/plans/P-<…>.md` — PASS keeps `status: evaluating`; PARTIAL rolls back to `delivering`; FAIL-replan keeps `evaluating` with a "needs re-plan" note; FAIL-rejected sets `rejected`. Appends `- YYYY-MM-DD: Evaluation — verdict: <verdict>. Criteria: <met/partial/not-met counts>. Notes: <rationale>.` | `{ status: ok }` |
+| `worker-file-scope-evaluate` *(Scope rollup only)* | `.spades-anywhere/scopes/S-<…>.md` — `status: evaluating` on the first PASS, plus an audit line | `{ status: ok }` |
+| `worker-linear-evaluate` *(`backend: linear`)* | Linear — `record_evaluation(plan_id, verdict, notes)`: the verdict and per-criterion notes as a sub-issue comment, the matching workflow state | `{ status: ok }` |
 
-After sub-agents return, the coordinator collects results per the
-failure semantics in `FRAMEWORK.md § Sub-agent Dispatch`. No
-back-write — `linear_issue_id` is already in the files. Record
-the dispatch mode in the confirmation output.
+In HTML mode, re-render the Plan's `.html` after the write. After
+the wave: all ok → record the dispatch mode; plan file failed →
+abort; scope file failed → surface for a manual patch; Linear failed
+→ keep local files, offer a retry.
 
-## Step 4 — Route to the next phase
+## After the verdict
 
-### PASS
 ```
 ✓ Plan evaluated: P-host-birthday-party-3HyD
 ✓ Verdict:        PASS (3/3 criteria met)
@@ -435,21 +196,19 @@ Next:
   /spades-anywhere:ship P-host-birthday-party-3HyD   — confirm against INTENT success criteria
 ```
 
-### PARTIAL
 ```
 ⚠ Plan evaluated: P-host-birthday-party-3HyD
 ⚠ Verdict:        PARTIAL (2 met, 1 partial)
-⚠ Note:           Photographer didn't show; got phone-camera photos instead
+⚠ Note:           Photographer didn't show; phone-camera photos instead
 ⚠ Status:         delivering (returning to /spades-anywhere:do)
 
 Next:
   /spades-anywhere:do P-host-birthday-party-3HyD   — keep going on the partial criterion
 ```
 
-### FAIL — replan
 ```
 ✗ Plan evaluated: P-host-birthday-party-3HyD
-✗ Verdict:        FAIL — fundamental approach was wrong
+✗ Verdict:        FAIL — the approach was wrong
 ✗ Status:         evaluating
 
 Next:
@@ -457,42 +216,35 @@ Next:
   /spades-anywhere:scope S-plan-birthday-party  — re-scope if the problem was misunderstood
 ```
 
-### FAIL — rejected
-```
-✗ Plan evaluated: P-host-birthday-party-3HyD
-✗ Verdict:        FAIL — abandoned
-✗ Status:         rejected
-
-Next:
-  Consider whether the parent Scope still holds, or revise it.
-```
+A rejected FAIL reads `Status: rejected` and suggests revisiting the
+parent Scope.
 
 ## Scope-level evaluation
 
-When the target is a Scope (not a single Plan), evaluate every
-Plan under it in turn. The Scope's overall verdict is the **floor**
-of the individual Plan verdicts:
+For a Scope target, evaluate every Plan in turn and surface the
+matrix (Plan, verdict, notes). The Scope's verdict is the floor:
+any FAIL → FAIL; any PARTIAL → PARTIAL; all PASS → PASS.
 
-- Every Plan PASS → Scope PASS.
-- Any Plan PARTIAL → Scope PARTIAL.
-- Any Plan FAIL → Scope FAIL.
+## Quick path
 
-Surface the matrix to the human (each Plan, its verdict, notes)
-before confirming the Scope-level aggregate.
+Reached for a `Q-…` target, or with `backend: linear` an issue
+labelled `spades:quick`. The marker is the whole record; the check
+is against the recorded action.
 
-## Edge cases
-
-- **Acceptance criteria changed mid-flight.** If the human said
-  "the criterion text doesn't match what we actually did" — capture
-  it as a `not met` with the explanation, then suggest revising the
-  Scope (`/spades-anywhere:scope` edit mode) before re-evaluating.
-  Don't silently retcon criteria to match outcome.
-- **Plan was never run through `/spades-anywhere:do`.** If status
-  is `approved` (not `delivering` / `evaluating`), abort and
-  suggest `/spades-anywhere:do P-…` first. Evaluating undelivered
-  work is meaningless.
-- **The human can't answer a criterion yet.** Allow *Defer — come
-  back later* as an option. Record `deferred` in the audit trail;
-  treat as PARTIAL for aggregation; the human re-runs `evaluate`
-  later. Useful for criteria that have a delayed verification
-  (e.g. "guests reported a good time" — needs a few days).
+1. **Read the marker** `.spades-anywhere/quick/<Q-id>.md`: `type`,
+   `evidence_ref`, `delivery`, and the Gate Check.
+2. **Verify the action and evidence** — did the human do what the
+   marker says, and is the evidence reachable or corroborated?
+3. **Re-walk the gate** against what happened.
+4. **Verdict** via `AskUserQuestion`: **PASS** / **PARTIAL** (a small
+   follow-up) / **FAIL** (the gate was violated; the work belongs
+   in a Scope).
+5. **On PARTIAL, route the follow-up** via a second
+   `AskUserQuestion`: **Update this marker** (`update-marker` — add
+   the missing evidence and re-run) / **Open a new quick item**
+   (`new-quick` — reference this Q-id in the new Why) / **Re-route
+   through the full loop** (`full-loop` — `/spades-anywhere:scope`).
+   Print the exact next command.
+6. **Append** `- YYYY-MM-DD: Evaluate — verdict: <verdict>.
+   <rationale>.[ Follow-up: <route>.]`, and with `backend: linear`
+   post the same line as a comment on the issue.

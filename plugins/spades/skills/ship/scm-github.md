@@ -1,97 +1,71 @@
 # Ship driver — `scm: github`
 
-This file is the GitHub driver for `/spades:ship`. SKILL.md loads it
-when `.spades/config` has `scm: github` and the Plan being shipped is
-`deliverable_type: code`. It is not a skill on its own — it has no
-frontmatter and is not invoked directly. Read it from SKILL.md, follow
-the phase that matches the current run, then return.
+The GitHub driver for `/spades:ship` Branch A (`deliverable_type:
+code`). It is a resource file, not a skill: `/spades:ship` reads it
+when `.spades/config` has `scm: github`, follows it, and takes
+control back at the end.
 
-Two phases:
+GitHub is a two-phase SCM. This file is Phase 1: publish the branch
+as a PR and exit with the Plan at `status: shipping`. Phase 2 —
+verifying the squash-merge, writing the `Shipped` marker to `main`
+through a bookkeeping PR, and mirroring to Linear — is
+`/spades:close P-<id>`, run after the PR merges.
 
-- **Phase 1 — Fresh ship.** Push the branch, open the PR, exit. The
-  Plan stays in `status: shipping`.
-- **Phase 2 — Resume after merge.** Triggered when SKILL.md's Step 0
-  finds a `PR opened:` marker in the audit trail with no later
-  `Shipped:` marker. Verifies the merge, records the merge SHA, marks
-  the Plan `shipped`.
+## 1. Verify the branch
 
-SKILL.md decides which phase you're in and points you here. If you
-arrived from Step 2 (fresh) → run Phase 1. If you arrived from Step 6
-(resume) → run Phase 2.
+```bash
+git rev-parse --abbrev-ref HEAD
+```
 
-## Phase 1 — Fresh ship
+- On `main` / `master` → abort; `/spades:do` creates the feature
+  branch, so something upstream went wrong and the human checks.
+- Compare with the `Do phase started — … branch:` line in the Plan's
+  audit trail. On a mismatch ask via `AskUserQuestion`: **Push the
+  current branch anyway** / **Switch to the recorded branch and
+  continue** / **Abort**.
 
-`/spades:do` created the branch and committed; this phase publishes
-via PR. No auto-merge — squash-merge happens in GitHub after
-CodeRabbit review.
+## 2. Pre-push sweep
 
-### 1. Verify on the right branch
-
-- `git rev-parse --abbrev-ref HEAD` — current branch
-- If on `main` / `master`: error. `/spades:do` should have created a
-  feature branch. Abort and suggest the human verifies what
-  happened.
-- Read the Plan's audit trail. Find the `Do phase started — branch:`
-  line. If the current branch doesn't match, warn via
-  `AskUserQuestion`:
-  - *Push the current branch anyway (overrides the audit-trail
-    branch)*
-  - *Switch to the recorded branch and continue*
-  - *Abort*
-
-### 2. Pre-push sweep
-
-Per `docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts`,
-this is the **last chance for pending artefacts to reach the
-deliverable PR**. Sweep them in — do not prompt, do not stash, do not
-wait for a later phase:
+The last chance for pending SPADES artefacts to reach the deliverable
+PR (`docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts`):
 
 ```bash
 git add -- .spades AGENTS.md INTENT.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md 2>/dev/null || true
 ```
 
-If that staged anything, commit it before pushing:
+If anything was staged, commit it:
 
 ```bash
 git commit -m "chore(spades): carry forward audit artefacts for <plan_id>"
 ```
 
-Allowlist only — **never `git add -A` or `git add .`**.
+Uncommitted files outside the allowlist are the human's work in
+progress: they stay in the tree, out of the PR, and are named in one
+line of the push report. Commits on the branch that don't belong to
+this Plan are a review question for the human — surface them and
+ask whether to rebase, split, or proceed.
 
-- **Uncommitted files outside the allowlist** are the human's work in
-  progress. Leave them uncommitted; they stay in the tree and out of
-  the PR. Note them in one line of the push report so the human knows
-  they were not included. Do not prompt, and do not block the push.
-- **Commits on the branch that don't belong to this Plan** — surface
-  them and ask whether to rebase / split or proceed. This one still
-  asks: unrelated *commits* in a PR is a review problem the human
-  should decide about, unlike pending artefacts, which have a defined
-  home.
-
-### 3. Push
-
-Push the branch to origin:
+## 3. Push
 
 ```bash
 git push -u origin <branch>
 ```
 
-Capture the output.
+## 4. Open the PR
 
-### 4. Open the PR
+```bash
+gh pr create --title "<title>" --body "<body>"
+```
 
-Open a PR via `gh pr create`. Title and body derived from the Plan:
-
-**Title** — short, descriptive. Suggested form:
-`<verb> <thing> (<plan-id>)`. e.g.
+**Title** — `<verb> <thing> (<plan-id>)`, e.g.
 `Add RAG pipeline lookup (P-rag-pipeline-lookup-3HyD)`.
 
-**Body** — generated from the Plan:
+**Body** — from the Plan:
 
 ```markdown
 ## Summary
 
-<2-3 sentences from the Plan's Technical Approach>
+<2–3 sentences from the Plan's Technical Approach>
 
 ## SPADES audit trail
 
@@ -105,16 +79,15 @@ Open a PR via `gh pr create`. Title and body derived from the Plan:
 
 - [x] Task 1: <title>
 - [x] Task 2: <title>
-- [x] Task 3: <title>
 
 ## Test plan
 
 <from the Plan's Testing & Verification section>
 ```
 
-Capture the PR URL from `gh pr create`'s output.
+Capture the PR URL from the output.
 
-### 5. Record Phase 1 completion and exit
+## 5. Record and exit
 
 Append to the Plan's audit trail:
 
@@ -122,75 +95,29 @@ Append to the Plan's audit trail:
 - YYYY-MM-DD: PR opened: <URL>.
 ```
 
-Plan stays in `status: shipping`. Print the hand-off:
+The Plan stays at `status: shipping`. Print the hand-off and return
+to `/spades:ship`, which exits:
 
 ```
 ✓ PR opened: <URL>
-○ CodeRabbit will run automatically (if installed on the repo).
-○ Address review feedback by committing to this branch.
+○ Review bots run automatically where installed; address feedback
+  by committing to this branch.
 
 Once the PR is squash-merged:
-  /spades:close P-<plan-id>  — open a small bookkeeping PR that
-                               records the `Shipped` marker on main,
-                               wait for you to merge it, then mirror
-                               to Linear if applicable.
-  /repo:sync                 — afterwards, clean up main + delete the
-                               merged feature branch (from the `repo`
-                               plugin).
-
-Plan stays in `shipping` until `/spades:close` finishes.
-
-(Legacy fallback: `/spades:ship P-<plan-id>` still works via this
-skill's Step 6 and does the merge-verification half inline, but the
-`/spades:close` + `/repo:sync` pair is the recommended path — it
-splits the SPADES-specific close-out (close) from the SCM-agnostic
-git cleanup (sync), and adds a bookkeeping audit commit on main.)
+  /spades:close P-<plan-id>  — verifies the merge, records the
+                               Shipped marker on main via a
+                               bookkeeping PR, mirrors to Linear
+  /repo:sync                 — then brings main forward and deletes
+                               the merged feature branch
 ```
 
-**Exit here.** Do NOT continue past Phase 1 — return to SKILL.md, which
-exits without running Steps 3+ on a Phase 1 run.
+## Edge cases
 
-## Phase 2 — Resume after merge
-
-You arrive here because SKILL.md's Step 0 detected a `PR opened:` line
-in the audit trail with no `Shipped:` line, and SKILL.md routed to
-Step 6 → this driver's Phase 2.
-
-1. **Parse the PR URL** from the most recent `PR opened:` line.
-   Extract the PR number (last segment of `/pull/<n>`).
-2. **Verify merge state:**
-
-   ```bash
-   gh pr view <number> --json state,mergeCommit,mergedAt,mergedBy
-   ```
-
-   - `state == "MERGED"` → capture `mergeCommit.oid` and
-     `mergedAt`. Continue.
-   - `state == "OPEN"` → tell the human the PR is still open; show
-     a one-line summary (CI status, reviews). Ask via
-     `AskUserQuestion`:
-     - *Wait — re-run later*
-     - *Abort — record nothing, exit*
-   - `state == "CLOSED"` (not merged) → ask the human how to
-     handle: re-open the PR (manual), mark the Plan rejected, or
-     abort.
-
-3. **Record the shipment.** Append to the audit trail:
-
-   ```markdown
-   - YYYY-MM-DD: Shipped (github). PR: <URL>. Merge: <sha>. Merged by: <login>.
-   ```
-
-4. **Return to SKILL.md Step 3** to finalise the Plan status.
-
-## Edge cases (GitHub-specific)
-
-- **The PR fails to open.** Common causes: branch not pushed, no remote
-  set, `gh` not authenticated. Surface the exact error and offer
-  remediation. Do NOT mark the Plan shipped.
-- **Merge conflicts.** The Plan author resolves these as fix commits.
-  `/spades:ship` resumes when the branch is clean again.
-- **`gh` not installed or unauthenticated.** Show the human exactly
-  what command they'd run to open the PR manually (`git push -u
-  origin <branch>`, then a `gh pr create` invocation), then capture
-  the resulting URL once they've completed it.
+- **The PR fails to open** — branch not pushed, no remote, `gh`
+  unauthenticated. Surface the exact error with the remediation; the
+  Plan stays at `shipping`.
+- **`gh` missing or unauthenticated** — show the human the exact
+  `git push -u origin <branch>` and `gh pr create` invocation to run
+  by hand, then capture the resulting URL and record it as in § 5.
+- **Merge conflicts** — resolved as fix commits on the branch;
+  re-run `/spades:ship` once the branch is clean.

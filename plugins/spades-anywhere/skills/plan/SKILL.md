@@ -1,221 +1,115 @@
 ---
 name: plan
 description: Generate a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 0.2.0
+version: 0.3.0
 ---
 
 # /spades-anywhere:plan
 
-You are generating a Plan for an approved Scope. A Plan is a first-class
-artefact: it gets written to `.spades-anywhere/plans/`, mirrored to the backend,
-and reviewed at the Approve gate. Plans can depend on prior plans
-within the same scope, and the dependency chain is encoded in the
-filename.
+You are drafting a Plan for a Scope. A Plan is a first-class
+artefact: written to `.spades-anywhere/plans/`, mirrored to the
+backend, and gated at `/spades-anywhere:approve` before the human
+starts the work. Plans can depend on earlier Plans in the same
+Scope; the dependency chain is encoded in the filename and held in
+`depends_on:`.
 
-Read `docs/FRAMEWORK.md` § ID Format, § .spades-anywhere/ Local Layout,
-§ Target Resolution, and § Execution Posture before running. Schemas
-below mirror those contracts.
+Read `docs/FRAMEWORK.md` § ID Format, § .spades-anywhere/ Local
+Layout, § Target Resolution, § Execution Posture, and § Output
+Format before running.
 
 ### Output format
 
-This skill honours `review_format:` from
-`.spades-anywhere/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML) → Universal
-rule`. In **both** modes, write
-`.spades-anywhere/plans/P-<…>.md` — this is the AI-readable
-source of truth and the canonical record. In HTML mode,
-**additionally** render via the sibling
-`${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html` (includes the
-expandable task-card pattern) and write
-`.spades-anywhere/plans/P-<…>.html` for the human's view, then
-auto-open. HTML mode is additive — the `.md` always exists;
-the `.html` is added in HTML mode.
-
-**HTML mode is review-via-file, not review-via-CLI.** Do NOT paste
-the Plan body (tasks, technical approach, risks, etc.) to the CLI
-for the human's approval before Step 5 writes the file. The file IS
-the review surface. Step 5 writes a working draft and auto-opens it;
-the human reviews in the browser. To iterate, apply targeted edits
-to the file (the human reloads to see changes) — never re-paste a
-new full draft to the CLI. In CLI mode the existing draft-then-paste
-workflow is fine.
+- **Both modes** — `.spades-anywhere/plans/P-<…>.md`, the canonical
+  record.
+- **HTML mode** — additionally `.spades-anywhere/plans/P-<…>.html`
+  from `${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html`,
+  auto-opened as the review surface; iteration is a targeted `.md`
+  edit plus a re-render.
+- **CLI mode** — Step 4 pastes the draft and iterates before Step 5
+  writes it.
 
 ## Pre-Flight
 
-1. **Confirm setup + active project.** Abort otherwise.
-2. **Read the backend** from `.spades-anywhere/config`.
-3. **Resolve the target Scope** per `docs/FRAMEWORK.md` § Target
-   Resolution. This skill's parameters:
-   - **Artefact type:** Scope (no type-question needed).
-   - **Status filter:** `scoped`, `planning`.
-   - **Zero-candidate suggestion:** `/spades-anywhere:scope <title>` to create
-     one.
+1. **Confirm setup and active project.**
+2. **Read `backend:` and `review_format:`.**
+3. **Resolve the target Scope** per `docs/FRAMEWORK.md § Target
+   Resolution` — status filter `scoped`, `planning`; zero candidates
+   → `/spades-anywhere:scope <title>`.
+4. **Verify ancestors active** per § Target Resolution →
+   Parent-status precondition; hard abort on an `abandoned` Scope or
+   an `abandoned` / `archived` Project.
+5. **Verify Scope readiness** — a Scope missing required sections
+   goes back to `/spades-anywhere:scope <slug>` (Edit mode).
 
-   If the human passed an ID (`S-<slug>`), a slug, or a title in the
-   invocation, fuzzy-resolve directly via `find_scope_fuzzy` and
-   confirm if ambiguous. Otherwise run the interactive picker.
-4. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
-   Resolution → Parent-status precondition`. If the parent Scope is
-   `abandoned`, or its parent Project is `abandoned` / `archived`,
-   abort hard with the canonical error shape. No override.
-5. **Verify Scope readiness.** If the Scope is missing required fields,
-   abort and suggest `/spades-anywhere:scope <slug>` (Edit mode) first.
+## Step 1 — Read context
 
-## Step 1 — Read Context
+1. **The Scope** — intent, acceptance criteria, constraints,
+   dependencies, risks.
+2. **`INTENT.md`, `ARCHITECTURE.md`, `PATTERNS.md`,
+   `ANTI-PATTERNS.md`** — the Plan conforms to them; a conflict is
+   flagged in Risks & Assumptions for the human at Approve.
+3. **Prior learnings.** Glob `.spades-anywhere/learnings/*.md`,
+   skipping `private/` and `status: archived`. A learning matches
+   on `scope_ref` equal to this Scope, or on `tags` appearing in the
+   Scope's title or `ARCHITECTURE.md`. Under 20 active learnings one
+   tag suffices; from 20 upward require two.
+4. **Existing Plans under this Scope** via `list_plans(scope_id)`.
 
-Before drafting the Plan:
+## Step 2 — Show your understanding
 
-1. **Read the Scope.** Understand intent, acceptance criteria,
-   constraints, dependencies, risks.
-2. **Read `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`** at the
-   repo root. The Plan must conform to these.
-3. **Surface prior learnings.** Glob `.spades-anywhere/learnings/*.md` (skip
-   `private/` and `status: archived`). For each, check whether its
-   `scope_ref` matches the current Scope ID, OR whether any of its
-   `tags` (case-insensitive) appear in the Scope's title or in the
-   tech stack section of `ARCHITECTURE.md`.
-
-   Cold-start threshold: if there are fewer than 20 active learnings,
-   one matching tag is enough; once there are 20+, require two. The
-   `scope_ref` path is unaffected by the threshold.
-
-4. **List existing plans under this scope.** Call the backend's
-   `list_plans(scope_id)`. The human will pick which of them (if any)
-   the new Plan depends on.
-
-## Step 2 — Show Your Understanding
-
-Before producing tasks, summarise what you understand from the Scope in
-3–4 sentences. Ask the human to confirm or correct. This catches
-misunderstandings early.
+Summarise the Scope in three or four sentences; the human confirms
+or corrects before any tasks are drafted.
 
 ## Step 3 — Identify the Plan
 
-Ask the human for the plan's title — a short description like
-*"RAG Pipeline Lookup"* or *"Create Initial Mastra Bot"*. Derive the
-slug exactly as for scopes (lowercase, hyphens, ≤64 chars).
-
-### Mint the own-suffix
-
-Generate a random 4-character base62 ID (`[A-Za-z0-9]{4}`). Before
-using it, check the existing plans under this scope: if any plan has
-the same `id_suffix`, mint a fresh one. Collisions in a 4-char base62
-space are rare (~14M combinations) but cheap to detect.
-
-### Identify dependencies
-
-Show the human the existing plans for this scope and ask via
-`AskUserQuestion`:
-
-- **No dependencies** — this plan stands alone
-- **Depends on <P-foo-28sD>** — prior plan
-- **Depends on multiple** — opens a follow-up free-form prompt for the
-  list
-
-The `depends_on:` list contains the prior plans' `id_suffix` values,
-in order (most recent dependency first if multiple).
-
-### Build the filename
-
-Compose: `P-<plan-slug>-<own-suffix>[-<dep-suffix>...].md`
-
-Worked examples:
-
-- No deps: `P-create-initial-mastra-bot-28sD.md`
-- One dep: `P-rag-pipeline-lookup-3HyD-28sD.md`
-- Two deps (`3HyD` and `28sD`): `P-deploy-bot-9XaZ-3HyD-28sD.md`
-
-Show the computed filename to the human; confirm before proceeding.
+Ask for a short title. Derive the slug as for Scopes. Mint a random
+4-character base62 suffix, re-minting on collision under this
+Scope. Ask about dependencies via `AskUserQuestion`: **No
+dependencies** / **Depends on `<P-…>`** / **Depends on multiple**
+(free-form list). Compose
+`P-<plan-slug>-<own-suffix>[-<dep-suffix>…].md` and confirm it.
 
 ## Step 4 — Draft the Plan
 
-**Read `review_format:` from `.spades-anywhere/config` and branch.**
-Both modes iterate on the same draft conceptually; only the iteration
-surface differs.
+Sections:
 
-### CLI mode
+- **Approach** — two or three sentences on how the work will be
+  done.
+- **Risks & Assumptions** — what might go wrong, what is assumed,
+  any `ANTI-PATTERNS.md` conflict.
+- **Prior Learnings Considered** — only when Step 1 matched
+  something: title, filename, one line on how the Plan honours it,
+  and `Match reason: …`.
+- **Tasks (3–7)** — each with:
+  - **Posture:** `specify-first` | `discover-first` | `iterate` |
+    `spike` | `straight-through` per `docs/FRAMEWORK.md § Execution
+    Posture`; `straight-through` carries its justification.
+  - **Effort:** brief (<1h) | moderate (1–4h) | significant (4h+)
+  - **Depends on:** task numbers, or none
+  - **Routing:** `human` | `ai` — present only when the Plan will be
+    `delivery: hybrid`. `ai` means the AI assists (a draft, a
+    research summary, an outline); the human still acts. Draft it
+    as a best guess; `/spades-anywhere:approve` confirms per task.
+  - **Description**, **Approach**, **Evidence** (what shows this
+    task is done).
+- **Delivery Sequence** — order, noting what can run in parallel.
+- **Testing & Verification** — the evidence that demonstrates
+  completion overall; what "shipped" looks like.
+- **`deliverable_type`** — `artefact` (a document, a booking record,
+  a dataset) or `action` (a party hosted, a call made, an interview
+  run). This drives `/spades-anywhere:ship`.
 
-Propose the full draft Plan inline in the terminal, then ask: *"Does
-the task breakdown feel right? Anything I'm underestimating? Should
-any tasks be human-delivered instead?"* Iterate by re-pasting revised
-sections until the human is satisfied; do NOT write the file yet.
+**CLI mode.** Paste the full draft with the proposed
+`deliverable_type`; ask *"Does the breakdown feel right? Anything
+I'm underestimating? Should the AI help with any task?"*; iterate;
+confirm `deliverable_type` via `AskUserQuestion`; write in Step 5.
 
-### HTML mode
+**HTML mode.** Confirm the shape verbally and go to Step 5; the
+`deliverable_type` question comes once the page is open (Step 6).
 
-Do NOT paste the Plan body to the CLI. Confirm the high-level shape
-verbally (number of tasks, headline approach, deliverable type), then
-proceed straight to Step 5 — that step writes the working `.md` and
-auto-opens the rendered `.html`. The human reviews the rendered file
-and tells you what to change; iterate via targeted file edits (they
-reload to see changes). Never re-paste a new full draft to the CLI.
+## Step 5 — Write the Plan
 
-The Plan structure:
-
-### Technical Approach Summary
-2–3 sentence overview of how the work will be done.
-
-### Risks & Assumptions
-- What might go wrong?
-- What am I assuming?
-- Any ANTI-PATTERNS.md conflicts to flag?
-
-### Prior Learnings Considered (if any matched)
-For each matched learning, list:
-- The title (verbatim from frontmatter).
-- The filename in parentheses.
-- A one-line note on how the Plan honours it.
-- A match-reason log line: `Match reason: scope_ref=S-…` OR
-  `Match reason: tags matched [tag1, tag2]`.
-
-Skip this section entirely if nothing matched. Silence is cheaper than
-"no matches found" padding.
-
-### Tasks (3–7)
-For each task, declare:
-- **Title**: short, descriptive
-- **Description**: what needs to be built
-- **Posture**: `specify-first` | `discover-first` | `iterate` | `spike`
-  | `straight-through`. See `docs/FRAMEWORK.md` § Execution Posture.
-  No silent defaults — if you pick `straight-through`, justify it on
-  the task line.
-- **Effort**: brief (<1h) | moderate (1–4h) | significant (4+h)
-- **Depends on**: task numbers within this Plan, or "none"
-- **Routing**: `ai` | `human`. **Required when the Plan's
-  `delivery:` field will be `hybrid`; omit otherwise** — single-mode
-  Plans (`ai`-only or `human`-only) inherit Plan-level routing. At
-  Plan-draft time the routing decision usually isn't fixed yet, so
-  draft the field with the planner's best guess and let
-  `/spades-anywhere:approve` confirm or revise per task before approval.
-
-### Testing & Verification
-- What tests pass to consider this complete? (for code)
-- What evidence demonstrates completion? (for non-code)
-
-### Delivery Sequence
-Tasks in recommended execution order, noting which can run in
-parallel.
-
-### Deliverable Type
-
-Ask the human (via `AskUserQuestion`):
-- **`code`** — produces code merged via a PR (default for software work)
-- **`artefact`** — produces a tangible thing (document, dataset, config)
-- **`action`** — a one-off human action (server install, vendor call)
-
-This drives what `/spades-anywhere:ship` does later.
-
-## Step 5 — Write the Plan File
-
-**Read `review_format:` from `.spades-anywhere/config` and branch.** This step
-MUST write a file — never exit Step 5 with the Plan content only
-pasted to the CLI, **and never paste the Plan body (tasks, approach,
-risks, etc.) to the CLI for human approval before this step writes
-the file in HTML mode**. The file IS the review surface in HTML mode
-(see § Output format above).
-
-### Step 5.A — Write the canonical `.md` (both modes)
-
-Write `.spades-anywhere/plans/<filename>.md` with this exact frontmatter:
+### The canonical `.md` (both modes)
 
 ```yaml
 ---
@@ -223,25 +117,23 @@ id: P-<plan-slug>-<own-suffix>
 id_suffix: <own-suffix>
 scope: S-<scope-slug>
 title: "<title>"
-depends_on: [<dep-suffix-1>, <dep-suffix-2>]    # or [] if none
+depends_on: [<dep-suffix-1>]           # [] when none
 status: draft
-# delivery: omitted at draft time — /spades-anywhere:approve sets `human` or `hybrid`
-evaluation: undecided                            # /spades-anywhere:evaluate sets this
-deliverable_type: code | artefact | action
+delivery: undecided                    # set by /spades-anywhere:approve (human | hybrid)
+evaluation: human
+deliverable_type: artefact | action
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-linear_issue_id: <id>                            # only when backend: linear
+linear_issue_id: <id>                  # backend: linear, injected in Step 7
 ---
 ```
-
-### Body template
 
 ```markdown
 # <title>
 
 ## Technical Approach
 
-<2-3 sentence summary>
+<2–3 sentence summary>
 
 ## Risks & Assumptions
 
@@ -250,184 +142,113 @@ linear_issue_id: <id>                            # only when backend: linear
 
 ## Prior Learnings Considered
 
-<this section omitted if no learnings matched>
-
 - *<learning title>* (`<filename>`) — <one-line note>
   Match reason: tags matched [<tag1>, <tag2>]
 
 ## Tasks
 
 ### Task 1: <title>
-- **Posture:** discover-first   # or specify-first / iterate / spike / straight-through
+- **Posture:** discover-first
 - **Effort:** moderate
 - **Depends on:** none
-- **Routing:** ai            # only required when Plan `delivery: hybrid` (see below). For Plans with a single Plan-level routing (`ai` or `human`), omit this field — every task inherits.
+- **Routing:** human               # hybrid Plans only
 - **Description:** <what needs doing>
-- **Approach:** <how it'll be done>
-- **Tests:** <what tests cover this>
+- **Approach:** <how it will be done>
+- **Evidence:** <what shows it is done>
 
 ### Task 2: <title>
-...
+…
 
 ## Delivery Sequence
 
 1. Task 1 (no deps, start immediately)
 2. Task 2 (depends on Task 1)
-3. Task 3 and Task 4 (parallel, both depend on Task 2)
 
 ## Testing & Verification
 
-<overall test strategy and what "shipped" looks like>
+<the evidence that demonstrates completion; what "shipped" looks like>
 
 ## Audit Trail
 
-<!-- Auto-appended by /spades-anywhere:approve, /spades-anywhere:do, /spades-anywhere:evaluate,
-     /spades-anywhere:ship. Do not edit by hand. -->
+<!-- Appended by /spades-anywhere:approve, do, evaluate, ship, close. -->
 ```
 
-### Step 5.B — Additionally render the HTML (HTML mode only)
+Omit Prior Learnings when nothing matched. The `## Technical
+Approach` heading is the schema's name for the approach section.
 
-When `review_format: html`, after the `.md` in Step 5.A is
-written, render the HTML companion file. The `.md` is unchanged;
-the `.html` is **additive**.
+### The `.html` (HTML mode)
 
+Rendered from `${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html` to
+`.spades-anywhere/plans/<filename>.html` per `docs/FRAMEWORK.md §
+Output Format → HTML rendering`:
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-blocks below match the markers in the actual file before
-substituting; abort and surface any mismatch. See
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
-use the bundled template` for the canonical rule.
+- `frontmatter`: `{ id, title, status, scope, deliverable_type,
+  delivery, depends_on, created, updated }`, embedded verbatim in
+  `<script id="spades-frontmatter">`
+- `routing_ai`, `routing_hybrid`, `routing_human` *(scalars)*: task
+  counts by `routing`
+- `panel_blockers`, `panel_findings` *(scalars)*: from
+  `panel_blocking` / `panel_major` / `panel_minor` frontmatter keys
+  when a review stamped them (`"<major> / <minor>"`); the literal
+  `not run` when absent
+- `blocks`:
+  - `tasks` — one card per task. Fields: `num, title_html, posture,
+    posture_short, effort, routing, depends_on, description_html,
+    approach_html, tests_html` (the Evidence bullet).
+  - `objective-banner` — 0 or 1 item `{ id, title }`, inherited from
+    the parent Scope's `strategy_link`; else `[]`.
+  - `risks-items` — one per Risks & Assumptions bullet. Field: `html`.
+  - `delivery-sequence` — one per step. Field: `html`.
+  - `audit-events` — one per audit entry. Fields: `date, desc`.
+- `prose_sections`: `{ technical_approach_html,
+  testing_verification_html }`
 
-1. **Read the template** at
-   `${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html`.
-2. **Validate** it contains the block markers listed below; if any
-   are missing, abort.
-3. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
-   Format`:
-   - Frontmatter values fill `{{spades.id}}`, `{{spades.title}}`,
-     `{{spades.status}}`, `{{spades.scope}}`, `{{spades.deliverable_type}}`,
-     `{{spades.delivery}}`, `{{spades.depends_on}}`, `{{spades.created}}`,
-     `{{spades.updated}}`, and any others present in the template.
-   - The frontmatter YAML block also goes verbatim into the
-     `<script type="application/yaml" id="spades-frontmatter">` tag.
-   - `{{spades.routing_ai}}`, `{{spades.routing_hybrid}}`,
-     `{{spades.routing_human}}` — counts of the Plan's tasks by
-     their `routing` field.
-   - `{{spades.panel_blockers}}`, `{{spades.panel_findings}}` —
-     review-echo scalars, both defaulting to the literal string
-     `not run`. Fill these ONLY from a prior
-     `/spades-anywhere:review` of this Plan that stamped its panel
-     counts onto the Plan (frontmatter keys, e.g. `panel_blocking` /
-     `panel_major` / `panel_minor`). When those keys are absent,
-     emit `not run` (NEVER `0`). `panel_blockers` = the blocking
-     count; `panel_findings` = `"<major> / <minor>"`.
-   - `<!-- SPADES-BLOCK:objective-banner -->` — repeated 0 or 1
-     times, per `docs/FRAMEWORK.md § Objective banner`. Per-item:
-     `{{block.id}}`, `{{block.title}}`. Inherit from this Plan's
-     Scope's `strategy_link` resolution (only when it matches an
-     existing `O-<slug>` objective file); else emit nothing (`[]`).
-   - `<!-- SPADES-BLOCK:tasks -->` — repeated once per task, one
-     card per task. Per-item fields: `{{block.num}}`,
-     `{{block.title_html}}`, `{{block.posture}}`,
-     `{{block.posture_short}}`, `{{block.effort}}`,
-     `{{block.routing}}`, `{{block.depends_on}}`,
-     `{{block.description_html}}`, `{{block.approach_html}}`,
-     `{{block.tests_html}}`.
-   - `<!-- SPADES-BLOCK:risks-items -->` — repeated once per
-     bullet under `## Risks & Assumptions`. Per-item:
-     `{{block.html}}`.
-   - `<!-- SPADES-BLOCK:delivery-sequence -->` — repeated once per
-     step in the `## Delivery Sequence` ordered list. Per-item:
-     `{{block.html}}`.
-   - `<!-- SPADES-BLOCK:audit-events -->` — repeated once per audit
-     trail entry, in both the visible timeline and the
-     `<script type="application/yaml" id="spades-audit-trail">`
-     YAML block. Per-item: `{{block.date}}`, `{{block.desc}}`.
-   - The prose body sections (`Technical Approach`, `Testing &
-     Verification`) are direct `{{spades.<section>_html}}`
-     substitutions, not repeating blocks.
-4. **Write the rendered HTML** to `.spades-anywhere/plans/<filename>.html`
-   (same `<filename>` slug as CLI mode, only the extension changes).
-5. **Auto-open** the file:
-   ```bash
-   case "$(uname -s)" in
-     Darwin)  OPEN_CMD="open" ;;
-     Linux)   OPEN_CMD="xdg-open" ;;
-     MINGW*|MSYS*|CYGWIN*) OPEN_CMD="start" ;;
-     *)       OPEN_CMD="" ;;
-   esac
-   [ -n "$OPEN_CMD" ] && "$OPEN_CMD" ".spades-anywhere/plans/<filename>.html"
-   ```
-   If `OPEN_CMD` is empty (unknown OS), print the file path with a
-   "open this in your browser" message. Never crash.
-6. The `.md` from Step 5.A is unchanged — both files coexist.
+Required markers: `tasks`, `risks-items`, `delivery-sequence`,
+`audit-events`.
 
-## Step 6 — Fan-out: scope-audit update + backend mirror
+## Step 6 — Confirm `deliverable_type` (HTML mode)
 
-Apply the fan-out pattern from
-`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`. **Step 5's plan
-file write joins this step's scope-audit append and Linear sub-issue
-create as a single fan-out wave.** Three sub-agents, each owning a
-distinct resource, dispatched in parallel in a single assistant
-message with multiple `Agent` tool calls
-(`subagent_type: general-purpose`):
+With the page open, ask via `AskUserQuestion`: **`artefact`** /
+**`action`**. A change is a targeted `.md` edit plus a re-render.
+
+## Step 7 — Write and mirror (fan-out)
+
+One wave per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`:
 
 | Sub-agent | Resource owned | Returns |
-|-----------|---------------|---------|
-| `worker-file-plan` | `.spades-anywhere/plans/P-<…>.<ext>` — the plan file rendered per Step 5.A (CLI) or 5.B (HTML). Written **without** `linear_issue_id:` — coordinator injects post-dispatch. | `{ status: ok }` |
-| `worker-file-scope-audit` | `.spades-anywhere/scopes/S-<scope-slug>.<ext>` — update parent Scope frontmatter (`status: planning` if was `scoped`, `updated: <today>`) and append to the audit trail: `- YYYY-MM-DD: Plan drafted — P-<slug>-<suffix>`. | `{ status: ok }` |
-| `worker-linear-plan` *(only when `backend: linear`)* | Linear — create a sub-issue under the parent Scope Issue with title + description matching the Plan; apply labels `ai-planned` + `deliverable_type:<value>`. Includes the Layer-2 freshness probe. | `{ status: ok, linear_issue_id: "<id>" }` |
+|---|---|---|
+| `worker-file-plan` | `.spades-anywhere/plans/P-<…>.md`, without `linear_issue_id:` | `{ status: ok }` |
+| `worker-html-plan` *(HTML mode)* | `.spades-anywhere/plans/P-<…>.html` | `{ status: ok, path, opened }` |
+| `worker-file-scope-audit` | `.spades-anywhere/scopes/S-<…>.md` — `status: planning` when it was `scoped`, `updated: <today>`, `- YYYY-MM-DD: Plan drafted — P-<slug>-<suffix>.` appended; re-render the Scope's `.html` afterwards in HTML mode | `{ status: ok }` |
+| `worker-linear-plan` *(`backend: linear`)* | Linear — a sub-issue under the Scope's parent Issue with the Plan's title and body, labels `ai-planned` and `deliverable_type:<value>` | `{ status: ok, linear_issue_id }` |
 
-After all sub-agents return, the coordinator:
+After the wave: all ok → with Linear, inject `linear_issue_id` into
+the Plan `.md` (and `.html`), record the dispatch mode; plan file
+failed → abort, noting a possible orphaned sub-issue; scope audit
+failed → abort, surface for a manual patch; HTML failed → keep the
+`.md`, continue; Linear failed → keep both files, offer a retry.
 
-- **All ok** *(Linear backend)* → targeted edit on the plan file
-  to inject `linear_issue_id: <id>` into the frontmatter (and the
-  embedded `<script type="application/yaml" id="spades-frontmatter">`
-  block in HTML mode). Record dispatch mode.
-- **All ok** *(local backend, only two sub-agents)* → no
-  back-write needed.
-- **`worker-file-plan` failed** → abort. The Linear sub-issue may
-  exist but the plan file doesn't; surface clearly so the human can
-  delete the orphan or re-run.
-- **`worker-file-scope-audit` failed** → abort. The plan file
-  exists but the parent scope's audit trail is missing the entry;
-  surface so the human can patch manually or re-run.
-- **`worker-linear-plan` failed** → keep both local files
-  (canonical), surface the Linear failure, offer a retry. Do NOT
-  block on Linear failure.
-
-### When `backend: local`
-
-Only the two file sub-agents are dispatched (no Linear). Local files
-are canonical. Nothing else to mirror.
-
-## Step 8 — Confirm and Hand Off
+## Step 8 — Confirm and hand off
 
 ```
-✓ Plan drafted: P-rag-pipeline-lookup-3HyD
-✓ Scope:        S-add-ai-helper-bot
-✓ Depends on:   [28sD]
+✓ Plan drafted: P-book-the-venue-3HyD
+✓ Scope:        S-plan-the-birthday-party
+✓ Depends on:   []
 ✓ Tasks:        4
-✓ Deliverable:  code
+✓ Deliverable:  action
 ✓ Status:       draft
 
 Next:
-  /spades-anywhere:approve P-rag-pipeline-lookup-3HyD    — review and approve
+  /spades-anywhere:approve P-book-the-venue-3HyD    — review and approve
 ```
 
-The Plan is `draft` until `/spades-anywhere:approve` runs. Do NOT begin Do-phase
-work yet.
+The Plan stays `draft` until approved; the work starts after
+`/spades-anywhere:do`.
 
-## Revision (Edit Mode)
+## Revision (Edit mode)
 
-If the human wants to revise an existing Plan:
-
-1. Read the file by its ID.
-2. Show the current content and the parts the human wants to change.
-3. Iterate conversationally.
-4. Write the file back, preserving `id`, `id_suffix`, `scope`, `created`,
-   `depends_on`, `linear_issue_id`. Update `updated`.
-5. If the Plan was previously `approved`, ask whether the revision
-   should re-route through `/spades-anywhere:approve` (recommended) or stay
-   approved.
+Read the Plan by ID, show the parts to change, iterate (CLI) or
+edit and re-render (HTML), write back preserving `id`, `id_suffix`,
+`scope`, `created`, `depends_on`, `linear_issue_id`, and set
+`updated`. An `approved` Plan is offered a trip back through
+`/spades-anywhere:approve`.

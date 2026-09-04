@@ -75,12 +75,17 @@ For SCMs with a review-and-merge layer (GitHub, GitLab, Bitbucket):
   5. Record `PR opened: <URL>` (or `MR opened: <URL>`) in the
      audit trail.
   6. Exit; Plan stays `status: shipping`.
-- **Phase 2 (resume after merge):**
-  1. Step 0 detects the resume via the `PR opened:` marker.
-  2. Query the PR/MR state via the CLI (e.g. `glab mr view`,
+- **Phase 2 (finalise after merge)** — performed by
+  `/spades:close P-<id>`, which lands the marker on `main` through
+  a bookkeeping PR:
+  1. `/spades:ship`, re-invoked on a `shipping` Plan with a
+     `PR opened:` marker, reports the PR state and points at
+     `/spades:close`.
+  2. Close queries the PR/MR state via the CLI (e.g. `glab mr view`,
      `gh pr view`).
   3. On merged: capture the merge SHA, append `Shipped. PR/MR:
-     <URL>. Merge: <sha>` to the audit trail, mark Plan `shipped`.
+     <URL>. Merge: <sha>` to the audit trail, mark the Plan
+     `shipped`, roll the Scope up, and commit via the bookkeeping PR.
   4. On still-open: report state, offer wait or abort.
 
 #### Single-phase (no PR system)
@@ -146,11 +151,12 @@ Verify: `glab auth status`.
 
 ### 4. Add the Ship branch
 
-`/spades:ship`'s Branch A gains a sub-branch `A.gitlab` mirroring
-`A.github`'s two-phase shape but using `glab mr create` and
-`glab mr view`. Use `MR opened:` instead of `PR opened:` in the
-audit trail to be honest about the SCM's vocabulary; Step 0 detects
-both `PR opened:` and `MR opened:` as resume markers.
+`/spades:ship` gains a driver file `skills/ship/scm-gitlab.md`
+mirroring `scm-github.md`'s Phase 1 but using `glab mr create`, and
+`/spades:close` gains the matching `glab mr view` probe for Phase 2.
+Use `MR opened:` instead of `PR opened:` in the audit trail to be
+honest about the SCM's vocabulary; ship's resume step and close's
+picker detect both markers.
 
 ### 5. Update AGENTS.md + the setup fragment
 
