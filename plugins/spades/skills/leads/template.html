@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SPADES template: leads v3.0.1 (matches plugin v5.14.1) -->
+<!-- SPADES template: leads v4.0.0 (matches plugin v5.20.0) -->
 <!--
   Transient leads board (.spades/.tmp/leads.html). Re-rendered on
   every /spades:leads --list.
@@ -10,7 +10,7 @@
   The CSS is list's CSS verbatim — same :root, same Cockpit palette
   (dark deck, lime/teal accents) — with only three changes: the
   artefact classes renamed (.scope-* -> .lead-*, .phase-row ->
-  .area-row), the status pills swapped for kind pills on the same
+  .area-row), the status pills swapped for type pills on the same
   rgba-tint pattern, and .area-row .lbl made monospace and
   uncapitalised because leads' rail labels are file paths, not
   status words.
@@ -19,17 +19,15 @@
   Field names follow SKILL.md 'worker-html-leads'.
 
   Scalars (frontmatter): project_slug, open_count, promoted_count,
-    declined_count, stale_count, conversion_pct (|-), conversion_health,
-    rendered_at, plugin_version
+    closed_count, rendered_at, plugin_version
 
   Required repeating blocks (worker validates BOTH markers):
     area-groups - area, count
-    lead-rows   - id, title, kind, area, size, confidence, source,
-                  source_label, created
+    lead-rows   - id, title, type, area, effort, confidence,
+                  sightings, created
 
-  block.kind is substituted as a .pill class, block.source as a .src
-  class, block.confidence as a .cf- class, and spades.conversion_health
-  as a class on the conversion stat - so they self-colour.
+  block.type is substituted as a .pill class and block.confidence as
+  a .cf- class - so they self-colour.
 -->
 <html lang="en">
 <head>
@@ -121,11 +119,13 @@
   .lead-row .upd { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-2); }
   .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
   .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-  .pill.defect         { background: rgba(255,77,77,0.14);   color: var(--red-soft); }
-  .pill.enhancement    { background: rgba(195,247,58,0.14);  color: var(--lime); }
-  .pill.simplification { background: rgba(56,232,224,0.14);  color: var(--teal); }
-  .pill.risk           { background: rgba(255,159,28,0.14);  color: var(--amber); }
-  .pill.opportunity    { background: rgba(167,139,250,0.14); color: var(--st-evaluating); }
+  .pill.security      { background: rgba(255,77,77,0.14);   color: var(--red-soft); }
+  .pill.bug           { background: rgba(255,159,28,0.14);  color: var(--amber); }
+  .pill.testing       { background: rgba(196,177,251,0.14); color: var(--st-evaluating); }
+  .pill.documentation { background: rgba(170,180,196,0.14); color: var(--st-scoped); }
+  .pill.feature       { background: rgba(195,247,58,0.14);  color: var(--lime); }
+  .pill.enhancement   { background: rgba(56,232,224,0.14);  color: var(--teal); }
+  .pill.maintenance   { background: rgba(95,176,255,0.14);  color: var(--st-delivering); }
 
   footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--panel-2); font-family: ui-monospace, monospace; font-size: 11px; color: #4f5a6b; }
 
@@ -138,16 +138,12 @@
     .lead-main .meta, .lead-main .upd { display: none; }
     .wrap { padding: 0 18px; }
   }
-  .src { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-2); display: flex; align-items: center; gap: 5px; margin-top: 2px; }
-  .src::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--muted-3); }
-  .src.learn::before  { background: var(--green); }
-  .src.review::before { background: var(--amber); }
+  .seen { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-2); margin-top: 2px; }
   .cf-high   { color: var(--green); }
   .cf-medium { color: var(--amber); }
   .cf-low    { color: var(--muted-3); }
   .stat.open .n { color: var(--ink); }
-  .stat.conv .n { color: var(--lime); }
-  .stat.conv.healthy .n { color: var(--green); }
+  .stat.closed .n { color: var(--muted); }
 </style>
 </head>
 <body>
@@ -155,9 +151,7 @@
 project: {{spades.project_slug}}
 open: {{spades.open_count}}
 promoted: {{spades.promoted_count}}
-declined: {{spades.declined_count}}
-stale: {{spades.stale_count}}
-conversion_pct: {{spades.conversion_pct|-}}
+closed: {{spades.closed_count}}
 rendered_at: {{spades.rendered_at}}
 </script>
 
@@ -180,11 +174,11 @@ rendered_at: {{spades.rendered_at}}
   <div class="deck">
     <div class="wrap">
       <h1>Leads</h1>
-      <p class="lede">Ideas recorded while working on <code>{{spades.project_slug}}</code> &mdash; each one out of scope by construction. Evidence-backed first. Promote what you want built; the rest keeps.</p>
+      <p class="lede">Out-of-scope discoveries raised while working on <code>{{spades.project_slug}}</code>. Seen-most-often first. Promote what should become work; close the rest with a reason.</p>
       <div class="deck-grid">
         <div class="stat open"><div class="lbl">OPEN</div><div class="n">{{spades.open_count}}</div><div class="note">awaiting a decision</div></div>
-        <div class="stat"><div class="lbl">PROMOTED</div><div class="n">{{spades.promoted_count}}</div><div class="note">became scopes / quick items</div></div>
-        <div class="stat conv {{spades.conversion_health}}"><div class="lbl">CONVERSION</div><div class="n">{{spades.conversion_pct|-}}%</div><div class="note">healthy 30&ndash;50%</div></div>
+        <div class="stat"><div class="lbl">PROMOTED</div><div class="n">{{spades.promoted_count}}</div><div class="note">confirmed as real work</div></div>
+        <div class="stat closed"><div class="lbl">CLOSED</div><div class="n">{{spades.closed_count}}</div><div class="note">done, not worth it, or duplicate</div></div>
       </div>
     </div>
   </div>
@@ -205,10 +199,10 @@ rendered_at: {{spades.rendered_at}}
         <!-- SPADES-ENDBLOCK -->
       </div>
       <div class="card filter-card">
-        <div class="hd">CLOSED OUT</div>
-        <div class="fr">Declined: <span class="val">{{spades.declined_count}}</span></div>
-        <div class="fr">Stale: <span class="val">{{spades.stale_count}}</span></div>
-        <div class="fr">Hidden here, kept on disk</div>
+        <div class="hd">NOT SHOWN</div>
+        <div class="fr">Promoted: <span class="val">{{spades.promoted_count}}</span></div>
+        <div class="fr">Closed: <span class="val">{{spades.closed_count}}</span></div>
+        <div class="fr">Kept on disk under <span class="lime">.spades/leads/</span></div>
       </div>
     </aside>
 
@@ -217,10 +211,10 @@ rendered_at: {{spades.rendered_at}}
       <section id="leads">
         <div class="sec-head">
           <h2>Open leads ({{spades.open_count}})</h2>
-          <span class="hint">evidence-backed first</span>
+          <span class="hint">most sightings first</span>
         </div>
         <div class="leads">
-          <div class="lead-head"><span>LEAD</span><span>KIND</span><span>SIZE / CONFIDENCE / SOURCE</span><span>RECORDED</span></div>
+          <div class="lead-head"><span>LEAD</span><span>TYPE</span><span>EFFORT / CONFIDENCE / SEEN</span><span>RAISED</span></div>
           <!-- SPADES-BLOCK:lead-rows -->
           <div class="lead-row">
             <div class="lead-main">
@@ -229,8 +223,8 @@ rendered_at: {{spades.rendered_at}}
                 <div class="ltitle">{{block.title}}</div>
                 <div class="flags">{{block.area}}</div>
               </div>
-              <span class="st"><span class="pill {{block.kind}}">{{block.kind}}</span></span>
-              <span class="meta">{{block.size}} &middot; <span class="cf-{{block.confidence}}">{{block.confidence}}</span><span class="src {{block.source}}">{{block.source_label}}</span></span>
+              <span class="st"><span class="pill {{block.type}}">{{block.type}}</span></span>
+              <span class="meta">{{block.effort}} &middot; <span class="cf-{{block.confidence}}">{{block.confidence}}</span><span class="seen">seen {{block.sightings}}&times;</span></span>
               <span class="upd">{{block.created}}</span>
             </div>
           </div>

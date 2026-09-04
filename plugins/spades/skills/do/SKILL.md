@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 3.6.0
+version: 3.7.0
 ---
 
 # /spades:do
@@ -226,18 +226,6 @@ confirmed):
 Next:
   /spades:evaluate P-rag-pipeline-lookup-3HyD   — verify against criteria
 ```
-
-## Step 6 — Record Leads
-
-Anything noticed during delivery that lies outside this Plan is a
-Lead. Invoke **`/spades:leads --from do --plan P-<plan-id>`**: it
-scouts the Plan's diff, files what clears its gate, prints a
-one-line receipt, and renders the board. Capture is a side effect of
-finishing Do — hand-driven or under `/spades:loop` alike — and a
-Leads failure is a warning, not a blocker; the Plan is still
-reported as delivered. A rework after a PARTIAL verdict scouts again
-and `/spades:leads` dedupes against the open board. Skipped when
-`leads: off`.
 
 ## Edge cases
 

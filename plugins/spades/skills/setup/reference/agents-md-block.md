@@ -95,7 +95,7 @@ The SPADES plugin (`spades`) provides these 22 skills:
 | `/spades:quick` | Fast-track for trivial work — quick-item marker file (`.spades/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |
-| `/spades:leads` | Record ideas noticed while working, out of scope by construction, under `.spades/leads/`; `--promote` turns them into work |
+| `/spades:leads` | Raise an out-of-scope discovery as a Lead mid-task without derailing the work; `--list`, `--show`, `--promote`, `--close` manage them |
 | `/spades:research` | Read-only research via an isolated researcher subagent |
 | `/spades:list` | List active scopes, filterable by phase |
 | `/spades:status` | Show current SPADES phase + dependency graph |

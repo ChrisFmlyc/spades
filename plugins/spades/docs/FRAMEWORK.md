@@ -657,12 +657,13 @@ their storage; skills don't need to know how.
 - Scope → parent Issue
 - Plan → sub-issue under the parent
 - Lead → a Linear **Issue on the Project**, titled `L-<slug> — <title>`,
-  labelled `spades:lead`, held in the team's triage/backlog state. It is
-  not a Scope and never becomes one — promoting a Lead closes its issue
-  and opens a Scope issue that links back. Mirrored whenever the
-  project's backend is Linear, on the same terms as every other
-  artefact — the `leads:` key is a kill switch, never a backend
-  selector.
+  labelled `spades:lead` plus its classification, held in the team's
+  triage/backlog state. It is not a Scope and never becomes one —
+  promoting a Lead removes the `spades:lead` label and comments; the
+  work then enters the loop through `/spades:scope` or `/spades:quick`.
+  Mirrored whenever the project's backend is Linear, on the same terms
+  as every other artefact — the `leads:` key is a kill switch, never a
+  backend selector.
 - `record_*` operations → comments on the parent issue
 - Statuses → Linear workflow states
 
