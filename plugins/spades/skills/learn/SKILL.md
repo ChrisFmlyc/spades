@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 4.5.0
+version: 4.6.0
 ---
 
 # /spades:learn
@@ -121,17 +121,6 @@ for. Link code, docs, or prior issues where helpful.
    CLI mode: the write confirmation, the learning body once, the
    same `Next:` line. A private learning's brief names the private
    path.
-
-## After capture — the Lead it implies
-
-A learning is a diagnosis; often it implies a prescription — a
-specific change to this project — and that belongs on the Leads
-board. Invoke **`/spades:leads --from learn --learning <path>`**.
-The scout returns nothing when the learning's action is "remember
-this when planning", which is the correct outcome; budget one. A
-Lead born this way carries `learning_ref:` and sorts to the top of
-the board as evidence-backed. A Leads failure is a warning; the
-learning is already written. Skipped when `leads: off`.
 
 ## Refresh flow (`--refresh`)
 

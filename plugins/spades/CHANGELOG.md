@@ -8,6 +8,31 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.20.0] — 2026-09-04
+
+- **minor**: `/spades:leads` rebuilt as a standing notice-and-raise
+  behaviour, following the spade-framework v4.0.0 Leads model. The
+  agent raises a Lead the moment it notices an out-of-scope
+  discovery, mid-task and without asking, then returns to the work.
+  Each Lead carries exactly one classification from `security`,
+  `documentation`, `testing`, `bug`, `feature`, `enhancement`,
+  `maintenance`, chosen by a fixed precedence; a repeat discovery
+  is recorded as a sighting on the existing Lead rather than a new
+  file. The skill's description is written to make the agent invoke
+  it proactively. Management is `--list`, `--show`, `--promote
+  [<work-id>]`, and `--close "<reason>"`; promotion records the
+  decision and hands off to `/spades:scope` or `/spades:quick`.
+  The board drops the conversion funnel and shows open / promoted /
+  closed with sightings.
+- `do`, `learn`, and `review` no longer invoke `/spades:leads` on
+  completion; capture is the working agent's own behaviour.
+- `FRAMEWORK.md`: the Linear mapping for a Lead now carries the
+  classification label and describes promotion as a label change
+  plus hand-off.
+- Skill versions: leads 2.3.0 → 3.0.0; do 3.6.0 → 3.7.0; learn
+  4.5.0 → 4.6.0; review 3.7.0 → 3.8.0. `agents_version` 2.8.0 →
+  2.9.0 (the `/spades:leads` row in the marker block).
+
 ## [5.19.0] — 2026-09-04
 
 - **minor**: every skill rewritten green-field. Each SKILL.md now
