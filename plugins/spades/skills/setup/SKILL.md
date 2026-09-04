@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 4.8.0
+version: 4.9.0
 ---
 
 # /spades:setup
@@ -17,8 +17,10 @@ is on disk (Step 8). Both edges point away from setup and neither
 points back — the acyclic bootstrap contract in `docs/FRAMEWORK.md
 § Bootstrap Order`.
 
-Re-runs ask every question again, with the current value shown as
-context above each prompt. Step 5 diffs old against new and confirms
+Steps 1 to 4 are one `AskUserQuestion` call each, asked on every
+run; the recorded value is the answer the tool returns, even when
+the repo or the current config makes it look obvious. Re-runs show
+the current value as context above each prompt. Step 5 diffs old against new and confirms
 before any write; Step 6 offers migration on a backend switch.
 Human-written content survives every re-run: Scope, Plan, and
 learning files stay, and the `AGENTS.md` marker block is replaced in
@@ -95,11 +97,12 @@ capture `current_backend`, `current_scm`, `current_project`,
 `current_github_remote`, `current_review_format` (default `cli` on
 older configs), and `current_leads` (default `on`).
 
-## Step 1 — Backend — `AskUserQuestion`
+## Step 1 — Backend
 
 With a current value, print *"Currently configured: `backend:
 <value>`. The choice below replaces it — re-pick or switch."* The
-recommended option is never "keep current".
+recommended option is never "keep current". Ask via
+`AskUserQuestion`:
 
 - **Linear** — artefacts mirrored to Linear Issues (Project, parent
   Issue, sub-issues); requires the Linear MCP.
@@ -127,9 +130,10 @@ Linear Project (existing ones plus **Create new Linear Project**).
 Linear Project is created at Step 8 by `/spades:newproject`'s
 fan-out. Otherwise record `team_id` and `project_id`.
 
-## Step 2 — SCM — `AskUserQuestion`
+## Step 2 — SCM
 
-Same "currently configured" preamble on re-run.
+Same "currently configured" preamble on re-run. Ask via
+`AskUserQuestion`:
 
 - **Local git** — commits to local git; with a remote,
   `/spades:ship` pushes and records the commit. Single-phase ship.
@@ -146,9 +150,10 @@ apt/dnf steps at <https://cli.github.com/manual/installation>), then
 remote), verify `gh auth status` shows the `repo` scope, and re-run
 `/spades:setup`.
 
-## Step 3 — Review format — `AskUserQuestion`
+## Step 3 — Review format
 
-*How should SPADES present reviews and artefacts?*
+Ask via `AskUserQuestion`: *How should SPADES present reviews and
+artefacts?*
 
 - **HTML** *(Recommended)* — every producing skill writes its `.md`
   and additionally an `.html` companion rendered from the bundled
@@ -160,11 +165,12 @@ remote), verify `gh auth status` shows the `repo` scope, and re-run
 Recorded as `review_format:`. The choice changes the presentation
 surface only; every flow, prompt, and decision is the same.
 
-## Step 4 — Active project — `AskUserQuestion`
+## Step 4 — Active project
 
-Offer the existing `.spades/projects/<slug>.md` records plus
-**Create a new project**; with no records, only the latter. Record
-the intent and write nothing yet:
+Ask via `AskUserQuestion`, offering the existing
+`.spades/projects/<slug>.md` records plus **Create a new project**;
+with no records, only the latter. Record the intent and write
+nothing yet:
 
 - **Existing project** → `new_project: <slug>`; clear
   `create_new_project`.

@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 3.5.0
+version: 3.6.0
 ---
 
 # /spades:scope
@@ -105,11 +105,14 @@ say so.
 
 ## Step 4 — Conversation, one field at a time
 
-Scope content is composition, so it stays free-form. Ask one field,
-wait, reflect back what you heard, then move on. Probe vague
-answers for testable detail, propose stronger wording for weak
-criteria, and flag a Scope that looks too large to plan in one
-session.
+Scope content is composition, so it stays free-form. Each field is
+one turn: propose what the description already implies, ask, wait
+for the answer, reflect back what you heard, then move on. A value
+inferred from the description is a proposal until the human
+confirms it, and fields 8, 9, and 10 are each one `AskUserQuestion`
+call whose answer is what gets recorded. Probe vague answers for
+testable detail, propose stronger wording for weak criteria, and
+flag a Scope that looks too large to plan in one session.
 
 ### 1. Statement of Intent
 What is achieved and why it matters — outcome, not activity. One to
@@ -147,19 +150,27 @@ always filled.
 ### 7. Risk / Unknowns
 Known landmines the Plan must respect, or *"None identified"*.
 
-### 8. Delivery Preference — `AskUserQuestion`
+### 8. Delivery Preference
+Ask via `AskUserQuestion`, the inferred value first and marked
+*(Recommended)*:
 - **Mostly AI-delivered** — standard code, config, docs work
 - **Mostly human-delivered** — needs org context, vendor access
 - **Hybrid** — note which tasks are which
 
-### 9. Priority — `AskUserQuestion`
-`urgent` (blocks a release or live incident) · `high` · `this-cycle`
-· `medium` · `low` · `backlog` · `exploratory` (investigating
-whether it is worth doing).
+### 9. Priority
+Ask via `AskUserQuestion`, the inferred value first and marked
+*(Recommended)*:
+- **urgent** — blocks a release or live incident
+- **high** — must complete soon
+- **this-cycle** — the current work cycle
+- **medium** / **low** — important, not time-sensitive
+- **backlog** — nice to have
+- **exploratory** — investigating whether it is worth doing
 
-### 10. Type — `AskUserQuestion`
-`feature` · `bug` · `chore` · `docs` · `refactor` · `investigation`.
-Usually inferable from the description; confirm.
+### 10. Type
+Ask via `AskUserQuestion`, the inferred value first and marked
+*(Recommended)*: **feature** / **bug** / **chore** / **docs** /
+**refactor** / **investigation**.
 
 ### 11. Strategy link (optional)
 Ask once: *"Does this scope trace to a roadmap item, OKR, or epic
@@ -170,7 +181,8 @@ ad-hoc work, omit the field; `origin:` carries the rationale.
 
 ## Step 5 — Quality check
 
-Before writing, confirm:
+With every field answered, including the tool's answers for
+delivery, priority, and type, confirm:
 
 - [ ] Someone could start planning this without a follow-up
       conversation.
@@ -186,8 +198,8 @@ Help the human fix any gap before continuing.
 
 This step always writes the `.md`. In CLI mode, paste the assembled
 draft first and write once the human approves it. In HTML mode,
-write the draft straight away and let the rendered page carry the
-review.
+write the draft once Step 4 is complete and let the rendered page
+carry the review.
 
 ### The canonical `.md` (both modes)
 
