@@ -657,12 +657,13 @@ their storage; skills don't need to know how.
 - Scope → parent Issue
 - Plan → sub-issue under the parent
 - Lead → a Linear **Issue on the Project**, titled `L-<slug> — <title>`,
-  labelled `spades:lead`, held in the team's triage/backlog state. It is
-  not a Scope and never becomes one — promoting a Lead closes its issue
-  and opens a Scope issue that links back. Mirrored whenever the
-  project's backend is Linear, on the same terms as every other
-  artefact — the `leads:` key is a kill switch, never a backend
-  selector.
+  labelled `spades:lead` plus its classification, held in the team's
+  triage/backlog state. It is not a Scope and never becomes one —
+  promoting a Lead removes the `spades:lead` label and comments; the
+  work then enters the loop through `/spades:scope` or `/spades:quick`.
+  Mirrored whenever the project's backend is Linear, on the same terms
+  as every other artefact — the `leads:` key is a kill switch, never a
+  backend selector.
 - `record_*` operations → comments on the parent issue
 - Statuses → Linear workflow states
 
@@ -900,10 +901,8 @@ all-or-nothing.
 ## Execution Posture
 
 When a plan declares tasks, each task picks one execution posture from
-a fixed set shared between `spades` and `spades-anywhere`. The
-posture declares *how* to approach the work, not what to do. The set
-is identical across plugins so a Plan moving between coding and
-non-coding contexts stays legible.
+a fixed set. The posture declares *how* to approach the work, not
+what to do.
 
 - **`specify-first`** — the target is clear and worth pinning down
   before starting. **Code:** write failing tests first, then satisfy
@@ -1180,9 +1179,6 @@ The rule spans every phase and the SCM drivers. Stating it once means
 each inventing its own tolerance for pending files — which is how the
 inconsistency arose: `close` tolerated a dirty tree, `ship` prompted
 about one, and the loop stalled between them.
-
-Not applicable to `spades-anywhere`, which has no SCM: there are no
-commits to sweep into and nothing to block on.
 
 ## Output Format (CLI vs HTML)
 
