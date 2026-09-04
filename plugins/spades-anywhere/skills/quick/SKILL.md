@@ -1,182 +1,111 @@
 ---
 name: quick
-description: Fast-track path for trivial human work in spades-anywhere — tiny errands, one-off actions, quick artefact tweaks, single-message communications that don't warrant a Scope. Use when someone says "just do this small thing", "quick errand", "one-off task", "tiny tweak to the doc", or when you would otherwise invoke /spades-anywhere:scope for a change that clearly meets every gate criterion below. Do NOT use for anything touching project intent, multi-step coordination, financial commitment over a threshold, or work that needs evaluation against acceptance criteria.
-version: 0.2.0
+description: Fast-track path for trivial human work in spades-anywhere — tiny errands, one-off actions, quick artefact tweaks, single-message communications that don't warrant a Scope. Use when someone says "just do this small thing", "quick errand", "one-off task", "tiny tweak to the doc", or when you would otherwise invoke /spades-anywhere:scope for a change that clearly meets every gate criterion below. Work that touches project intent, coordinates several people, commits money over the threshold, or needs evaluation against acceptance criteria takes the full loop via /spades-anywhere:scope.
+version: 0.3.0
 ---
+
+# /spades-anywhere:quick
+
+You are opening a trivial unit of human work through the fast-track
+path. The full loop is the wrong shape for one email, one booking,
+or one typo in a doc; `/spades-anywhere:quick` compresses it into
+**Identify → Declare → Open the marker**, with a quick-item marker
+file as the audit record and no Scope or Plan.
+
+The marker opens at `status: shipping` — the intent is declared and
+the human has not yet acted. When they come back with evidence,
+`/spades-anywhere:close Q-<id>` fills in what happened and flips the
+marker to `shipped`. Like `/spades-anywhere:do`, this skill is a
+marker plus a restatement of done; the human owns the doing.
+
+The path is a privilege gated by ten criteria. Every criterion
+passes or the work goes to `/spades-anywhere:scope`.
+
+Read `docs/FRAMEWORK.md` § ID Format → Quick-item ID before running.
 
 ## Pre-Flight
 
-Read `.spades-anywhere/config` for the active backend and project. If
-missing, abort and suggest `/spades-anywhere:setup`.
+Read `.spades-anywhere/config` for `backend:` and `project:`; a
+missing config points at `/spades-anywhere:setup`.
 
-# SPADES-Anywhere Quick — Fast-Track Path for Small Human Work
+## The gate — all ten must hold
 
-You are opening a trivial unit of human work through the
-spades-anywhere fast-track path. The full loop (Scope → Plan →
-Approve → Do → Evaluate → Ship → Close) is friction theatre for
-sending one email, booking one slot, or fixing one typo in a doc.
-`/spades-anywhere:quick` compresses it into three steps —
-**Identify → Declare → Open marker** — where the quick-item
-marker file is the audit artefact and there is no separate Scope
-or Plan.
+Walk each criterion with the human before anything is written. An
+ambiguous criterion is asked via `AskUserQuestion`: **Continue on
+the quick path** / **Fall back to /spades-anywhere:scope**.
 
-`/spades-anywhere:quick` writes the marker at `status: shipping`
-(intent declared; the human has not yet acted). After the human
-does the thing, they run `/spades-anywhere:close Q-<id>` with
-evidence, which flips the marker to `status: shipped`. This
-two-phase shape mirrors the sister `spades` plugin's `/spades:quick`
-→ `/spades:close` — same vocabulary, same audit-trail grammar,
-just a different trigger: PR-merge for `spades`, human-confirms-with-
-evidence for `spades-anywhere`.
-
-The skill is a marker + AC-restatement artefact, exactly like
-`/spades-anywhere:do`. It does **not** take an assignee, schedule a
-cadence, or chase the human. They do the thing; you run the loop
-around them.
-
-This path mirrors the sister `spades` plugin's `/spades:quick`
-in process; the gate criteria differ because human work isn't
-measured in lines of code.
-
-This path is a privilege, not a default. If *any* gate criterion below
-fails, stop and run `/spades-anywhere:scope` for the full loop instead.
-The gate exists so fast-track does not slowly swallow the framework.
-
-## Conversational Style
-
-Fast-track should feel fast but not reckless.
-
-1. **Confirm the gate explicitly.** Do not silently decide the work is
-   trivial. Walk the gate criteria with the human, even briefly. If one
-   criterion is ambiguous, flag it and ask — don't assume.
-2. **Be willing to bail.** If anything feels bigger than it first looked
-   (the "one email" turns into a chain, the "tiny doc tweak" reveals a
-   structural problem), stop and recommend falling back to
-   `/spades-anywhere:scope`. The cost of restarting is low; the cost of
-   a fast-track action that should have had a Scope is a broken audit
-   trail.
-3. **Keep the human in the loop on classification.** Ask which `type:*`
-   label applies if it's not obvious.
-4. **Do not monologue.** One sentence per step update is enough.
-
-## The Gate — ALL must be true
-
-Walk through each of these before acting. If any one fails, stop and
-invoke `/spades-anywhere:scope` instead.
-
-1. **Single concrete action.** One errand, one email, one tweak. Not
-   "send the email and also follow up with three people."
-2. **≤ 30 minutes of human time.** Soft cap. Hard stop above ~60 min.
-   If you're not sure, bail.
-3. **One artefact or one recipient.** Not spread across multiple
-   documents, multiple people, or multiple systems.
-4. **No new external commitment.** No new contracts, no new vendor
-   relationships, no new financial obligations over the project's
-   stated threshold (see `INTENT.md` § Non-Goals or Constraints).
-5. **No project-intent shift.** The action does not change what the
-   project is *for*. (If it does, you need a Scope.)
-6. **No coordination across multiple people.** A single message to a
-   single person is fine; chairing a four-way thread is not.
-7. **No irreversible commitment.** A "test booking" you can cancel is
+1. **Single concrete action.** One errand, one email, one tweak.
+2. **≤ 30 minutes of human time** (soft cap; hard stop around 60).
+3. **One artefact or one recipient.**
+4. **No new external commitment** — no new contract, vendor, or
+   financial obligation over the project's stated threshold.
+5. **No project-intent shift** — the action doesn't change what the
+   project is for.
+6. **No coordination across multiple people.** One message to one
+   person is fine; chairing a four-way thread is not.
+7. **No irreversible commitment.** A cancellable test booking is
    fine; a non-refundable payment is not.
-8. **No new dependency on external state.** No "waiting for X to
-   reply" or "depends on the supplier confirming". Quick items are
-   self-contained.
-9. **Revertible.** If the action turns out wrong, undoing it is cheap
-   (re-send a correction email, edit the doc back).
-10. **No verification against project success criteria.** Quick items
-    do not run through `INTENT.md` confirmation — they are too small
-    to move project-level criteria. If the work *would* move an INTENT
-    criterion, it deserves a Scope.
+8. **No new dependency on external state** — no "waiting for X to
+   reply".
+9. **Revertible** — undoing it is cheap.
+10. **No verification against project success criteria.** Work that
+    would move an `INTENT.md` criterion deserves a Scope.
 
-### Gate failure
+When a criterion fails:
 
-If any criterion fails, stop immediately and tell the human:
+> This doesn't fit the fast-track gate because <criterion>. Running
+> `/spades-anywhere:scope` for the full loop is the right call here.
 
-> This doesn't fit the fast-track gate because [specific criterion].
-> Running `/spades-anywhere:scope` for the full loop is the right
-> call here.
-
-Do not attempt to "partially" fast-track by skipping just one rule.
-The gate is all-or-nothing.
+The gate holds mid-flight too. An action that grows (the one email
+becomes a thread) stops before any marker is written; the human
+hears which criterion now fails, and the work carries into a Scope.
 
 ## Classification
 
-Every quick-path item gets a `type:*` label. Pick the closest match:
-
-- **`type:bug`** — fixing something that's wrong (a typo, an incorrect
-  detail, an oversight)
-- **`type:tweak`** — small adjustment that isn't strictly a fix
-- **`type:chore`** — administrative or maintenance task (filing,
-  archiving, scheduling)
-- **`type:docs`** — adding or amending a written record (note,
-  document, comment, summary)
-- **`type:errand`** — one-off real-world action (book, buy, send,
-  confirm)
-
-If the work is ambiguous between two types, ask the human via
-`AskUserQuestion` listing the candidate types as options.
+Every quick item carries a `type`: `bug` (fixing something wrong —
+a typo, an incorrect detail), `tweak` (a small adjustment), `chore`
+(filing, archiving, scheduling), `docs` (a written record), or
+`errand` (a one-off real-world action: book, buy, send, confirm).
+When two fit, ask via `AskUserQuestion`.
 
 ## Workflow
 
 ### 1. Identify
 
-- Hear what the human wants done.
-- Walk the gate criteria out loud. Confirm each one. If any fail, bail.
-- Classify with a `type:*` label.
-- If there's a Linear issue, note its ID. If not, decide whether to
-  create one (for traceability) or skip Linear entirely (for the most
-  trivial things, the marker file alone is enough).
+Hear the ask, walk the gate aloud, classify, and mint the ID
+`Q-<slug>-<suffix>` (slug from the action, ≤50 characters; a random
+4-character base62 suffix collision-checked against
+`.spades-anywhere/quick/`). With `backend: linear`, note an existing
+issue's ID or ask whether to create one; for the most trivial items
+the marker alone is enough.
 
 ### 2. Declare
 
-The human is about to go off and do the thing. Your job is to make
-the contract explicit before they leave:
+Make the contract explicit before the human leaves:
 
-- **Restate the action** in one line: what they are about to do,
-  to which artefact or recipient, by when.
-- **Restate what "done" looks like**: the evidence they will bring
-  back (a URL, a file path, a one-line attestation, a forwarded
-  message ID). Light is fine; the standard is "future-me can tell
-  what happened from this evidence alone".
-- Capture nothing else — no cadence, no check-in offer, no "I'll
-  remind you". The human owns the doing; the marker is the
-  contract.
+- **The action** in one line — what, to which artefact or
+  recipient, by when.
+- **What done looks like** — the evidence they will bring back (a
+  URL, a file path, a one-line attestation, a message ID). The
+  standard is that future-you can tell what happened from the
+  evidence alone.
 
-If the action turns out to be bigger than the gate allowed (even
-during this declaration), **stop immediately** — bail to
-`/spades-anywhere:scope`.
+Nothing else is captured — no cadence, no check-in, no reminder.
 
 ### 3. Open the marker
 
-Write the quick-item marker file at `status: shipping`. The
-**Action taken** and **Evidence** body sections are left as
-`<filled in at close>` placeholders — the human has not yet
-acted, so those facts don't exist yet. The marker is the *intent
-contract*; `/spades-anywhere:close Q-<id>` fills in the actuals.
+Write `.spades-anywhere/quick/Q-<slug>-<suffix>.md` at `status:
+shipping`, with the **Action taken** and **Evidence** sections as
+`<filled in at close>` placeholders. Confirm in one line: *"Marker
+opened. Run `/spades-anywhere:close Q-<id>` with evidence when
+done."*
 
-Confirm with a single conversational line: *"Marker opened.
-Run `/spades-anywhere:close Q-<id>` with evidence when done."*
+## The marker file
 
-## Backend Integration
-
-Quick-path work creates a **quick-item marker file** under the active
-project. The file is the local-canonical record — it's what
-`/spades-anywhere:evaluate`, `/spades-anywhere:list`, and
-`/spades-anywhere:status` find when they look for quick-path work.
-The marker exists for **both backends**; when `backend: linear`, the
-Linear issue carries the labels and status as a mirror, but the
-local file is authoritative.
-
-### The marker file
-
-Path: `.spades-anywhere/quick/Q-<slug>-<4-char-suffix>.md`
-
-- `<slug>` is derived from the action description. Same slug rules
-  as Scope IDs (lowercase, `[a-z0-9-]`, ≤ 50 chars).
-- `<4-char-suffix>` is a base62 random suffix.
-
-Frontmatter:
+The canonical record for both backends — what
+`/spades-anywhere:evaluate`, `/spades-anywhere:list`,
+`/spades-anywhere:status`, and `/spades-anywhere:close` read. With
+`backend: linear` the issue mirrors it.
 
 ```yaml
 ---
@@ -185,16 +114,14 @@ id_suffix: 7Mqz
 project: <project-slug>
 title: "<one-line title>"
 type: bug | tweak | chore | docs | errand
-status: shipping               # at marker open. /spades-anywhere:close Q-<id> flips to shipped with evidence.
+status: shipping                 # /spades-anywhere:close Q-<id> flips to shipped with evidence
 evidence_ref: <filled-in-at-close>
-linear_issue_id: <id>          # only when backend: linear
-delivery: human                # always human in spades-anywhere
+linear_issue_id: <id>            # backend: linear
+delivery: human
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 ---
 ```
-
-Body (as written by `/spades-anywhere:quick`):
 
 ```markdown
 # <title>
@@ -208,7 +135,10 @@ Body (as written by `/spades-anywhere:quick`):
 ## Action to take
 <one short paragraph — the action the human is about to take>
 
-## Evidence (filled in at close)
+## Action taken
+<filled in at close>
+
+## Evidence
 <filled in at close>
 
 ## Gate Check (prospective)
@@ -227,86 +157,26 @@ Body (as written by `/spades-anywhere:quick`):
 - YYYY-MM-DD: Quick-path opened. Type: <type>. Action: <one-line restatement>.
 ```
 
-After the human acts, `/spades-anywhere:close Q-<id>` flips
-`status: shipping → shipped`, fills in the **Action taken** and
-**Evidence** sections (replacing the placeholders), and appends a
-`Shipped` audit-trail line that matches the canonical close grammar:
+At close the placeholders are filled, the Gate Check heading becomes
+`(retrospective)` and is re-validated against what happened, and a
+`Shipped` line in the canonical ship grammar is appended. A quick
+item that is started and dropped has its marker deleted; there is
+no terminal status to set.
 
-```markdown
-- YYYY-MM-DD: Shipped (action). Evidence: <ref>.
-```
+### `backend: linear`
 
-The `## Gate Check (prospective)` heading flips to `## Gate Check
-(retrospective)` at close — the gate is revalidated retrospectively
-against what actually happened.
+Alongside the marker, on the issue: apply `spades:quick`,
+`type:<value>`, and `human-delivery`; move it Todo → In Progress;
+comment *"Quick-path opened. Action: `<restatement>`."*; record the
+issue ID in `linear_issue_id:`. The issue is the whole unit of work
+— no sub-issues. In Progress → Done is `/spades-anywhere:close
+Q-<id>`'s transition, after the evidence is in.
 
-### When `backend: linear`
+## Where the quick path stops
 
-In addition to writing the marker file:
-
-1. Apply labels on the Linear issue:
-   - `spades:quick`
-   - One of `type:bug`, `type:tweak`, `type:chore`, `type:docs`, `type:errand`
-   - `human-delivery` (always — spades-anywhere has no AI-delivered branch)
-2. Update issue status: Todo → In Progress. **Do NOT mark Done
-   in `/quick`** — the In Progress → Done transition happens in
-   `/spades-anywhere:close Q-<id>` after the human confirms with
-   evidence. This keeps the Linear state in lock-step with the
-   marker's `status:` field — both flip together.
-3. Post a comment on the Linear issue: *"Quick-path opened.
-   Action: `<one-line restatement>`."*
-4. Record the Linear issue ID in the marker file's `linear_issue_id:`
-   frontmatter field.
-5. **Do NOT create sub-issues.** The Linear issue is the whole unit
-   of work on the quick path. Do not attach a Plan document.
-
-If no Linear issue exists, the marker file alone is the audit trail.
-
-### When `backend: local`
-
-Just the marker file. `linear_issue_id:` is omitted (or left as `null`).
-
-## When the Gate Changes Mid-Flight
-
-If you're partway through a fast-track item and discover the work is
-actually bigger than the gate allows (the "single email" became a
-thread; the "doc tweak" exposed a structural problem),
-**stop immediately**:
-
-1. Do not record a quick-item marker.
-2. Explain to the human what you found and which gate criterion now
-   fails.
-3. Recommend falling back to `/spades-anywhere:scope` for a proper
-   Scope + Plan.
-4. If the human agrees, the in-progress work can be carried into a
-   proper Scope — but not fast-tracked.
-
-It is not a failure to bail out. It is the gate working correctly.
-
-## What `/spades-anywhere:quick` is NOT for
-
-- Decisions that affect project intent (use the full loop)
-- First-pass work on a new initiative, even a small one
-- Anything touching `ARCHITECTURE.md`, `PATTERNS.md`, or `INTENT.md`
-- Anything where you'd want a confirmation walk against INTENT
-  success criteria
-- "Several small things bundled together" — if there are several,
-  write a Scope
-
-## Relationship to the Full Loop
-
-`/spades-anywhere:quick` exists because full-loop ceremony for
-trivial work is wasteful. It is *not* a replacement for the full
-loop, and it is *not* the default. The defaults remain:
-
-- **Non-trivial work** → `/spades-anywhere:scope` →
-  `/spades-anywhere:plan` → `/spades-anywhere:approve` → human acts
-  → `/spades-anywhere:evaluate` → `/spades-anywhere:ship` →
-  `/spades-anywhere:close`
-- **Trivial human work meeting every gate criterion** →
-  `/spades-anywhere:quick`
-
-When in doubt, use the full loop. The cost of full-loop ceremony on
-work that could have been fast-track is a few minutes of friction.
-The cost of fast-tracking work that should have had a Scope is a
-broken audit trail and, eventually, a broken framework.
+Decisions that affect project intent, first-pass work on a new
+initiative, anything touching `INTENT.md`, `ARCHITECTURE.md`, or
+`PATTERNS.md`, anything that warrants a confirmation walk against
+INTENT, and bundles of several small things all take the full loop:
+`/spades-anywhere:scope` → `plan` → `approve` → the human acts →
+`evaluate` → `ship` → `close`.

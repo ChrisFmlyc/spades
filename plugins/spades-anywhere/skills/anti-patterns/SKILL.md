@@ -1,73 +1,60 @@
 ---
 name: anti-patterns
 description: Create or maintain ANTI-PATTERNS.md, the project's durable list of things the team DELIBERATELY AVOIDS in how this work is run — process anti-patterns, communication anti-patterns, tool anti-patterns, and other "we won't do X" rules. Use when someone says "set up ANTI-PATTERNS.md", "document what we don't do", "we should ban X", "we deliberately avoid Y", "what's forbidden here", "add an anti-pattern", "update the anti-patterns doc", "what shouldn't we do", or when ANTI-PATTERNS.md is missing, still an unfilled template, or flagged stale by /spades-anywhere:plan, /spades-anywhere:approve, or /spades-anywhere:review. Also use proactively after a Plan rejection that traces to an unwritten prohibition. The human composes the prohibitions; this skill structures and probes but never authors it. SKIP when the human's intent is per-Plan risk capture (use the Plan's Risks & Assumptions section instead) or when documenting an APPROVED pattern (use /spades-anywhere:patterns).
-version: 1.1.0
+version: 1.2.0
 ---
 
-# SPADES-anywhere Anti-Patterns
+# /spades-anywhere:anti-patterns
+
+You are helping a human create or maintain `ANTI-PATTERNS.md` — the
+durable list of ways of working the team has explicitly decided
+against. A root reference document, peer to `INTENT.md`,
+`ARCHITECTURE.md`, and `PATTERNS.md`, and the prohibition layer
+`/spades-anywhere:plan` and `/spades-anywhere:review` cross-check
+Plans against: a Plan proposing a forbidden practice is a blocking
+finding.
+
+Read `docs/FRAMEWORK.md` § Asking the Human and § Output Format
+before running.
 
 ### Output format
 
-This skill honours `review_format:` from
-`.spades-anywhere/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`.
-**`ANTI-PATTERNS.md` itself stays at the repo root as
-human-authored Markdown.** In HTML mode, after writing/refreshing
-`ANTI-PATTERNS.md` the skill renders a persistent summary at
-`.spades-anywhere/anti-patterns.html` via the sibling
-`${CLAUDE_PLUGIN_ROOT}/skills/anti-patterns/template.html`, and
-a transient preview at `.spades-anywhere/.tmp/anti-patterns.html`
-during the edit flow. In CLI mode, no preview is rendered.
+- **Both modes** — `ANTI-PATTERNS.md` at the root of the knowledge
+  store, the canonical record.
+- **HTML mode** — additionally two renders from
+  `${CLAUDE_PLUGIN_ROOT}/skills/anti-patterns/template.html`: a
+  persistent `.spades-anywhere/anti-patterns.html` and a transient
+  `.spades-anywhere/.tmp/anti-patterns.html` opened as the review
+  surface.
+- **CLI mode** — the assembled document prints once in the brief.
 
-You are helping a human create or maintain `ANTI-PATTERNS.md` —
-the durable list of things the team deliberately avoids in how
-this work is run. In `spades-anywhere`, anti-patterns are
-process-level: ways of working the team has explicitly decided
-NOT to use.
+A root document; no backend mirror.
 
-`ANTI-PATTERNS.md` is a root reference document, peer to
-`INTENT.md`, `ARCHITECTURE.md`, and `PATTERNS.md`. It changes
-infrequently. `/spades-anywhere:plan` and
-`/spades-anywhere:review` cross-check Plans against it.
+## The core rule: facilitate, never author
 
-## The Core Rule: Facilitate, Never Author
+Anti-patterns are the team's prohibitions, usually born from a real
+incident, a hard trade-off, or a principle. Capture them clearly.
+You may ask, reflect back, suggest sharper wording, and, in Create
+mode, offer a small, high-confidence draft from shared context
+(retro notes, post-mortems, prior debriefs). Every rule lands only
+after the human confirms it. A generic rule the team would shrug at
+dilutes the file and produces false positives in review, so a
+prohibition the team has not decided on is a question rather than
+a line.
 
-**The human owns the anti-patterns. You structure them. You
-never invent them.**
+## What `ANTI-PATTERNS.md` is
 
-Anti-patterns are usually born from real incidents or principled
-philosophy. The AI's job is to capture them clearly; it must
-not invent prohibitions the team has not decided on.
+It owns **deliberate prohibitions** — "we don't do Y", the dual of
+`PATTERNS.md`'s "we do X". How the work is structured is
+`ARCHITECTURE.md`; why it exists is `INTENT.md`. A good entry reads
+as a rule with a reason: *"We never start interviews without a
+calibrated scorecard (decided after the Q2 round, where two
+candidates were rejected on incomparable grounds)."*
 
-- **You MAY** ask, reflect, suggest sharper wording, draft a
-  starting point from shared context (retro notes, post-mortems,
-  prior debriefs).
-- **You MUST NOT** invent prohibitions the human did not state;
-  bring in generic "best-practice" anti-patterns from outside;
-  save `ANTI-PATTERNS.md` before the human has reviewed every
-  rule.
+## Inline template
 
-### Why this rule matters most for anti-patterns
-
-A useful ANTI-PATTERNS.md captures rules *this team has actually
-decided on*, ideally tied to a real incident or a deliberate
-trade-off. Generic anti-patterns the team would shrug at are
-worse than nothing — they dilute the file's signal.
-
-## What ANTI-PATTERNS.md Is — and Is Not
-
-`ANTI-PATTERNS.md` owns **deliberate prohibitions**. It does NOT
-own:
-
-- **Why** the project exists / for whom → `INTENT.md`.
-- **How** the work is structured (stages, etc.) →
-  `ARCHITECTURE.md`.
-- **Approved process conventions** → `PATTERNS.md`. (The dual:
-  PATTERNS is "we do X"; ANTI-PATTERNS is "we don't do Y".)
-- **General-purpose bad practices** — only the ones *this team
-  has explicitly decided to ban* belong here.
-
-## Inline ANTI-PATTERNS.md Template
+The scaffold `/spades-anywhere:setup` writes and Create mode fills.
+Exactly this shape:
 
 ```markdown
 ---
@@ -101,117 +88,80 @@ last_reviewed: YYYY-MM-DD
      Each entry: the rule, then a one-line reason. -->
 ```
 
-## Where ANTI-PATTERNS.md Lives
-
-`ANTI-PATTERNS.md` lives at the **repository root** (or
-knowledge store root for chat-surface contexts).
+The placeholder comments stay when the human starts blank. Each ban
+is a discrete item — a short title, why it is banned, what to do
+instead — so the renderer can card and count them.
 
 ## Modes
 
-- **No file** → **Create mode**.
-- **Unfilled template** → **Create mode**.
-- **Filled and complete** → **Edit mode**.
+Inspect `./ANTI-PATTERNS.md`: **Missing** → Create; **unfilled** →
+Create in place; **filled** → Edit. Confirm via `AskUserQuestion`
+when ambiguous.
 
-If ambiguous, confirm via `AskUserQuestion`.
+**Create.** Offer via `AskUserQuestion`: **Draft a starting point
+from what's already shared, then I correct it** / **Start blank**.
+Propose few, high-confidence rules and let the human add the rest.
 
-### Create Mode
+**Edit.** Read the existing file first, then scope via
+`AskUserQuestion`: **Refresh `last_reviewed` only** / **Revise
+specific sections** / **Add a new prohibition** (in the human's own
+wording) / **Full review pass**.
 
-Walk the human through all four sections. **Be especially
-conservative** — propose few, high-confidence anti-patterns;
-let the human add the rest.
+## Conversational style
 
-### Edit Mode
+One section or one rule at a time. Probe for the reason — with no
+incident, trade-off, or principle behind it, a rule is an opinion
+and stays out. Suggest sharper wording: vague rules cannot catch
+drift. Capture the reason inline. Five sharp bans beat fifty vague
+ones.
 
-`AskUserQuestion`:
+## The four sections
 
-- *Refresh `last_reviewed` only*
-- *Revise specific sections*
-- *Add a new prohibition*
-- *Full review pass*
+A locked schema.
 
-**Always read the existing file first** — preserve what's there.
+1. **Process** — steps or sequences the team avoids, with reasons.
+2. **Communication** — patterns the team avoids, with reasons.
+3. **Tools & Resources** — tools or usage the team avoids, with
+   reasons.
+4. **Other Bans** — anything else, each with a one-line reason.
 
-## Conversational Style
+## `last_reviewed`
 
-1. **One section / one rule at a time.**
-2. **Probe for the reason.** No concrete reason → probably
-   shouldn't be in `ANTI-PATTERNS.md`.
-3. **Suggest sharper wording.** Vague rules can't catch drift.
-4. **Capture the reason inline.** One sentence + one-line reason.
-5. **Bias toward fewer, sharper rules.**
+Set to today's date on every Create and every meaningful Edit.
 
-## The Four Sections
+## Writing the file
 
-`ANTI-PATTERNS.md` has exactly four sections. Locked schema.
+Write `./ANTI-PATTERNS.md` once the human has confirmed every rule
+in play.
 
-### 1. Process
-Process steps or sequences the team has explicitly decided to
-avoid. Include the reason.
+**HTML mode** — after the write, render twice from the template per
+`docs/FRAMEWORK.md § Output Format → HTML rendering`, identical
+inputs, different paths: `.spades-anywhere/anti-patterns.html`
+(persistent) and `.spades-anywhere/.tmp/anti-patterns.html`
+(transient, opened).
 
-### 2. Communication
-Communication patterns the team has explicitly decided to
-avoid. Include the reason.
+- `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
+  plugin_version }`
+- `ban_count` *(scalar)*: total bans across the four sections
+- `blocks`:
+  - `process-bans`, `communication-bans`, `tools-bans`,
+    `other-bans-bans` — one card per ban under the matching
+    section. Fields: `title, why_html, instead_html`.
+  - `objective-banner` — the project's sole `open` Objective
+    `{ id, title }` when exactly one exists, else `[]`.
 
-### 3. Tools & Resources
-Tools / resource usage explicitly avoided. Include the reason.
+Required markers: the four `*-bans` blocks.
 
-### 4. Other Bans
-Anything else the team has explicitly decided to avoid.
+## Brief
 
-## The `last_reviewed` Field
+**HTML mode:**
 
-Set to today's date on every Create or meaningful Edit.
+```
+✓ ANTI-PATTERNS.md written (last reviewed YYYY-MM-DD)
+○ .spades-anywhere/anti-patterns.html opened in browser
+Next: /spades-anywhere:scope <title>
+```
 
-## Decision Prompts (AskUserQuestion)
-
-- **Mode confirmation** when ambiguous.
-- **Create-mode start** — *Draft inferred* / *Start blank*.
-- **Edit-mode scope** — *Refresh `last_reviewed` only* /
-  *Revise specific sections* / *Add a new prohibition* /
-  *Full review pass*.
-
-## Writing the File
-
-Write `./ANTI-PATTERNS.md` only after the human has reviewed
-every rule in play.
-
-**In HTML mode, also write a persistent
-`.spades-anywhere/anti-patterns.html` alongside
-`ANTI-PATTERNS.md`.** In CLI mode, the `.html` is NOT written.
-
-There is **no SCM in spades-anywhere** — the human saves both
-files to their chat-surface knowledge store on their own
-cadence.
-
-### Transient HTML preview (HTML mode only)
-
-When `review_format: html`, render to
-`.spades-anywhere/.tmp/anti-patterns.html`:
-
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.**
-
-1. Read the template at
-   `${CLAUDE_PLUGIN_ROOT}/skills/anti-patterns/template.html`.
-2. Validate markers; abort if any of the four required `*-bans`
-   blocks are missing.
-3. Substitute:
-   - Scalars: `{{spades.project_slug}}`,
-     `{{spades.last_reviewed}}`, `{{spades.rendered_at}}`,
-     `{{spades.plugin_version}}`, and `{{spades.ban_count}}`
-     (total documented bans across all four sections).
-   - The four per-section ban blocks (`communication-bans`,
-     `process-bans`, `tools-bans`, `other-bans-bans`) — one item
-     per ban, each with fields `title`, `why_html`, `instead_html`.
-   - `objective-banner` (0 or 1 item — feed one `{id, title}` only
-     when the project rolls up to an O- objective, else feed none).
-   - Authoring: capture each ban as a discrete item — short title,
-     why it's banned, what to do instead.
-4. Write to `.spades-anywhere/.tmp/anti-patterns.html`.
-5. Auto-open via the OPEN_CMD prelude.
-
-**Required markers:** the four `*-bans` blocks —
-`communication-bans`, `process-bans`, `tools-bans`,
-`other-bans-bans`.
-
-`ANTI-PATTERNS.md` itself stays Markdown in both modes.
+**CLI mode:** the write confirmation, the assembled
+`ANTI-PATTERNS.md` once, the same `Next:` line. Remind the human to
+save the file to their knowledge store.

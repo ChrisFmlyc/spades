@@ -1,11 +1,11 @@
 # Backend-switch migration
 
-Read this when `/spades:setup` Step 2.6 fires — i.e. when
+Read this when `/spades:setup` Step 6 fires — i.e. when
 `current_backend != new_backend`. An SCM, project, or Linear
 team/project change alone does **not** reach here; it goes straight
-to Step 3.
+to Step 7.
 
-Return to SKILL.md Step 3 when the walk completes, is skipped, or is
+Return to SKILL.md Step 7 when the walk completes, is skipped, or is
 cancelled.
 
 ## Contents
@@ -93,7 +93,7 @@ links. Skip comments; they are not SPADES artefacts.
 
 - **Linear MCP unreachable mid-walk** — abort gracefully.
   Already-linked items keep their `linear_*_id` frontmatter. On
-  retry, Step 2.6 detects the partial state and offers *Resume
+  retry, Step 6 detects the partial state and offers *Resume
   migration* / *Skip resume* / *Cancel*.
 - **Duplicate title** — disambiguate via `AskUserQuestion` listing
   the candidate Linear IDs. Never blind-pick.

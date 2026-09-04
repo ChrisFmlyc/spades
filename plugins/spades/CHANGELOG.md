@@ -8,6 +8,52 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.19.0] — 2026-09-04
+
+- **minor**: every skill rewritten green-field. Each SKILL.md now
+  states the correct behaviour once, in positive terms, with the
+  history of past corrections removed. The bodies are about 40%
+  shorter (8.7k → 5.4k lines) with no contract dropped.
+
+  Correctness fixes folded into the rewrite:
+
+  - **The `.md` is what the AI reads in both modes.** `approve`,
+    `evaluate`, `plan`, and the `close` flows read and edit the
+    `.md`; in HTML mode the `.html` companion is re-rendered after
+    the write. The `.<ext>`-switching instructions are gone.
+  - **HTML is additive.** `setup`'s review-format prompt now says the
+    `.md` is always written and the `.html` is added in HTML mode.
+  - **`quick` branches on `scm:`.** `scm: github` opens a PR and the
+    marker at `shipping`; `scm: local-git` commits, pushes when a
+    remote exists, and writes the marker at `shipped` — the
+    single-phase path `close` already described.
+  - **`ship` Phase 2 is `/spades:close`.** Re-invoking ship on a
+    `shipping` Plan reports the PR state and points at close, which
+    lands the `Shipped` marker on main via the bookkeeping PR.
+    `scm-github.md` is Phase 1 only; `docs/EXTENDING-SCM.md` and the
+    AGENTS.md marker block say so.
+  - **`review` reads the local `.md`** (canonical in both backends)
+    rather than fetching Linear.
+  - Dead references removed: `docs/FRAMEWORK.md#research`,
+    `#learnings`, `§ Multi-persona Review`; `list` and `status` no
+    longer filter on a non-existent `approval` status.
+  - `newproject` writes `status: active`; `scope` writes
+    `strategy_link` in its frontmatter block; `setup` scaffolds
+    `objectives/` and `quick/`; the marker block gains `/spades:leads`
+    and the 22-skill count.
+
+- Skills bumped: `anti-patterns` 1.4.0 → 1.5.0, `approve` 3.2.0 →
+  3.3.0, `architecture` 1.3.0 → 1.4.0, `close` 4.11.0 → 4.12.0, `do`
+  3.5.2 → 3.6.0, `evaluate` 3.8.0 → 3.9.0, `intent` 4.3.0 → 4.4.0,
+  `leads` 2.2.0 → 2.3.0, `learn` 4.4.0 → 4.5.0, `list` 3.4.0 → 3.5.0,
+  `loop` 1.7.2 → 1.8.0, `newproject` 3.4.0 → 3.5.0, `objective` 1.1.0
+  → 1.2.0, `patterns` 1.3.0 → 1.4.0, `plan` 3.4.0 → 3.5.0, `quick`
+  2.2.0 → 2.3.0, `research` 2.1.0 → 2.2.0, `review` 3.6.1 → 3.7.0,
+  `scope` 3.4.0 → 3.5.0, `setup` 4.7.1 → 4.8.0, `ship` 3.4.0 → 3.5.0,
+  `status` 3.4.0 → 3.5.0.
+- `agents_version` 2.7.2 → 2.8.0 (marker block: leads row, 22-skill
+  count, ship → close finalisation, positive phrasing).
+
 ## [5.18.0] — 2026-08-31
 
 - **minor**: five findings from Greptile's reviews of #85 and #86 were

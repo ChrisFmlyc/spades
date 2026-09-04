@@ -1,10 +1,10 @@
 # Backend-switch migration
 
-Read this when `/spades-anywhere:setup` Step 2.6 fires — i.e. when
+Read this when `/spades-anywhere:setup` Step 5 fires — i.e. when
 `current_backend != new_backend`. A project or review-format change
-alone does **not** reach here; it goes straight to Step 3.
+alone does **not** reach here; it goes straight to Step 6.
 
-Return to SKILL.md Step 3 when the walk completes, is skipped, or is
+Return to SKILL.md Step 6 when the walk completes, is skipped, or is
 cancelled.
 
 ## Contents
@@ -16,10 +16,10 @@ cancelled.
 
 ---
 
-## Step 2.6 — Backend-switch migration
+## Backend-switch migration
 
 Fires **only** when `current_backend != new_backend`. Project /
-Linear team or project changes alone skip to Step 3.
+Linear team or project changes alone skip to Step 6.
 
 ### Direction A — `local → linear`
 
@@ -89,7 +89,7 @@ create.
 
 - **Linear MCP unreachable mid-walk** — abort gracefully;
   already-linked items retain `linear_*_id` frontmatter. On
-  retry, Step 2.6 detects partial state and offers *Resume
+  retry, Step 5 detects partial state and offers *Resume
   migration* / *Skip resume* / *Cancel*.
 - **Duplicate title** — disambiguate via `AskUserQuestion`
   listing Linear IDs. Don't blind-pick.

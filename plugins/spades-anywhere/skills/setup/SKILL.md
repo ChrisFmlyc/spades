@@ -1,7 +1,7 @@
 ---
 name: setup
-description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades-anywhere/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 0.5.0
+description: Configure spades-anywhere in this project — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / INTENT.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades-anywhere/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES here". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
+version: 0.6.0
 ---
 
 # /spades-anywhere:setup
@@ -9,455 +9,230 @@ version: 0.5.0
 Configure `spades-anywhere` in this project. Every other skill
 assumes setup has run and `.spades-anywhere/config` exists.
 
-**Re-runs ask every question again.** Current values appear as a
-*"Currently configured: …"* context line above each
-`AskUserQuestion` but never bias the recommended option. Step 2.5
-diffs old vs new and requires explicit confirm before writes; Step
-2.6 offers migration on backend switch. Setup never destroys
-human-written content — scope / plan / learning files stay; the
-AGENTS.md marker block is replaced in place, content outside the
-markers is untouched.
+Setup is the one command a human runs to adopt the plugin. It
+completes in a single pass and drives its own prerequisite inline: a
+missing project is created via `/spades-anywhere:newproject` after
+the config is on the store (Step 7). The edge points away from setup
+and never back — the acyclic bootstrap contract in
+`docs/FRAMEWORK.md § Bootstrap Order`. There is no git or SCM
+prerequisite: the plugin runs on chat surfaces where there is often
+no repo at all, and a human who keeps `.spades-anywhere/` under
+version control may.
 
-`spades-anywhere` deliberately has **no `/repo` plugin
-prerequisite**, **no SCM selection**, and **no git-repo check**.
-The plugin runs in non-coding contexts (Claude Desktop, ChatGPT,
-web/mobile) where there often is no git repo at all. If the
-consumer chooses to put `.spades-anywhere/` under version control
-they may, but the framework doesn't assume or require it.
+Re-runs ask every question again with the current value shown as
+context. Step 4 diffs old against new and confirms before any
+write; Step 5 offers migration on a backend switch. Human-written
+content survives every re-run.
 
-Read `docs/FRAMEWORK.md` § Hierarchy, § .spades-anywhere/
-Local Layout, and § Bootstrap Order before running — FRAMEWORK.md
-is canonical.
+Read `docs/FRAMEWORK.md` § Hierarchy, § .spades-anywhere/ Local
+Layout, § Bootstrap Order, and § Output Format before running.
 
-## Single-pass contract — setup drives its own prerequisites
+## Self-init guard
 
-`/spades-anywhere:setup` is the **one** command a human runs to start
-using `spades-anywhere` in a project. It completes in a **single
-pass** and NEVER exits to ask the human to run another skill and come
-back. When it needs a project and none exists, it writes
-`.spades-anywhere/config` **first** (so the backend is on the store),
-then invokes `/spades-anywhere:newproject` inline (Step 3.5) — it
-does not bounce the human out to newproject and back. This is the
-acyclic bootstrap contract in `docs/FRAMEWORK.md § Bootstrap Order`:
-the edge points one way (`setup → newproject`) and never back.
-
-(Unlike the sister `spades` plugin, `spades-anywhere` has **no git /
-`/repo:init` prerequisite** — see the note below — so its only
-prerequisite edge is to `newproject`.)
-
-## Self-Init Guard
-
-If this directory IS the SPADES framework repo itself
+When this directory is the SPADES framework repo itself
 (`.claude-plugin/plugin.json` has `name: spades` or
-`name: spades-anywhere`, or `plugins/spades-anywhere/` exists at
-the root), abort:
+`name: spades-anywhere`, or `plugins/spades-anywhere/` exists at the
+root), abort: *"This is the SPADES framework's own repository. Setup
+is for consumer projects."* The framework dogfoods itself only when
+told explicitly *"set up the dogfood project"*.
 
-> This is the SPADES framework's own repository. Setup is for
-> consumer projects that want to *use* `spades-anywhere`, not for
-> the framework itself.
-
-(Dogfood only when explicitly told *"set up the dogfood project"*.)
-
-## Pre-Flight — Capture existing config
+## Pre-Flight — existing config
 
 ```bash
 [ -f .spades-anywhere/config ] && echo present || echo missing
 ```
 
-`missing` (fresh install) → all `current_*` stay unset; Step 2.5
-diff and Step 2.6 migration are skipped. `present` → read and
-capture:
+`missing` → fresh install; Steps 4 and 5 are skipped. `present` →
+capture `current_backend`, `current_project`, `current_linear_team`
+/ `current_linear_project`, and `current_review_format` (default
+`cli` on older configs).
 
-- `current_backend` (`linear` / `local`)
-- `current_project` (slug)
-- `current_linear_team`, `current_linear_project` (UUIDs, if Linear)
-- `current_review_format` (`cli` / `html`; defaults to `cli` on
-  older configs)
+## Step 1 — Backend — `AskUserQuestion`
 
-These feed the *"Currently configured: …"* preamble on Steps 1,
-1.7, 2 and the diff in Step 2.5.
+With a current value, print *"Currently configured: `backend:
+<value>`. The choice below replaces it — re-pick or switch."*
 
-## Step 1 — Backend Selection
+- **Linear** — artefacts mirrored to Linear Issues; requires the
+  Linear MCP.
+- **Local** — artefacts live only as Markdown under
+  `.spades-anywhere/`.
 
-If `current_backend` is set, print above the question (never
-recommend "Keep current"):
+Both keep the local files canonical.
 
-> *Currently configured: `backend: <current_backend>`. The choice
-> below replaces it. Re-pick the same value if nothing's changed,
-> or switch — your call, but please make it explicitly.*
-
-`AskUserQuestion`:
-
-- **`Linear`** — artefacts live as Linear Issues. Requires Linear
-  MCP.
-- **`Local`** — artefacts live as Markdown files under
-  `.spades-anywhere/`. No external tracker; full audit trail
-  in-store.
-
-No "keep current" shortcut on re-run.
-
-### If Linear was chosen
-
-**Probe Linear MCP** (teams-list call). At least one team
-returned → continue to *Bind team and project*.
-
-**Probe fails** (no Linear MCP tool, 401/403, connection refused)
-→ don't abort. Walk the human through install:
+**Linear chosen** → probe the Linear MCP (list teams). A failed
+probe walks the human through the install rather than aborting:
 
 ```bash
 claude mcp add --transport http linear https://mcp.linear.app/mcp
 ```
 
-Scope options: default **local** (this project only), `--scope
-user` (every project on this machine), `--scope project`
-(committed `.mcp.json`, shared with team). Recommend **local**
-for the first run.
+then `/mcp` inside Claude Code → Linear → OAuth in the browser;
+verify with `claude mcp list`; re-run setup. With teams listed:
+`AskUserQuestion` for the team, then for the Linear Project
+(existing ones plus **Create new Linear Project**). *Create new*
+records `team_id` and sets `create_new_project`; the Linear Project
+is created at Step 7. Otherwise record `team_id` and `project_id`.
 
-After adding, the human runs `/mcp` inside Claude Code, picks
-Linear, completes the OAuth flow in the browser. Verify with
-`claude mcp list` outside Claude Code, then `/mcp` inside —
-Linear should show connected with ~25 tools. Re-run
-`/spades-anywhere:setup` once connected.
+## Step 2 — Review format — `AskUserQuestion`
 
-**Bind team and project** (probe succeeded):
+*How should spades-anywhere present reviews and artefacts?*
 
-1. `AskUserQuestion`: which team? (list teams from probe).
-2. `AskUserQuestion`: which Linear Project? (existing under the
-   chosen team + *Create new Linear Project*).
-3. If *Create new* → **do not create it here.** Record `team_id`
-   and set a `create_new_project` flag; the Linear Project is
-   created in Step 3.5, when setup invokes
-   `/spades-anywhere:newproject` inline *after* config is written.
-4. Otherwise record `team_id` + `project_id` for Step 3.
+- **HTML** *(Recommended)* — every producing skill writes its `.md`
+  and additionally an `.html` companion rendered from the bundled
+  template and auto-opened; review happens on the rendered page.
+- **CLI** — the `.md` only; review-form output prints to the
+  terminal.
 
-### If Local was chosen
+Recorded as `review_format:`. The presentation surface changes;
+every flow, prompt, and decision is the same.
 
-Nothing to verify externally.
+## Step 3 — Active project — `AskUserQuestion`
 
-## Step 1.7 — Review format
+Offer the existing `.spades-anywhere/projects/<slug>.md` records plus
+**Create a new project**. Record the intent and write nothing yet:
+an existing project → `new_project: <slug>`; create → keep
+`new_project` unset for Step 7.
 
-If `current_review_format` is set, print *"Currently configured:
-`review_format: <current_review_format>`. Re-pick or switch."*.
+## Step 4 — Diff and confirm
 
-`AskUserQuestion`: *How should `spades-anywhere` present reviews
-and produce artefacts?*
-
-- **HTML — auto-opens nicely formatted pages in your browser**
-  *(Recommended)*. Artefacts under `.spades-anywhere/` are
-  written as `.html`; review-form output auto-opens via `open` /
-  `xdg-open` / `start`.
-- **CLI — pastes plain-text/markdown output to the terminal**.
-  Artefacts as `.md`; review output to CLI.
-
-Recorded as `review_format:` in `.spades-anywhere/config` (Step
-3). The choice toggles per-skill rendering only — the flow
-itself is identical.
-
-## Step 2 — Active Project
-
-If `current_project` is set, print *"Currently active project:
-`<current_project>`. Re-pick or switch."*.
-
-`AskUserQuestion`:
-
-- Existing `.spades-anywhere/projects/<slug>.md` records → offer
-  them + *Create a new project*.
-- No records → *Create a new project* only.
-
-Two outcomes, both **deferred** — Step 2 only records intent:
-
-- **Human picked an existing project** → record the chosen slug
-  into `new_project` for Step 2.5's diff. Clear `create_new_project`.
-- **Human chose *Create a new project*** (or `create_new_project`
-  was set in Step 1) → set `create_new_project`; leave `new_project`
-  unset. **Do not invoke newproject yet, do not exit.** It is
-  created in **Step 3.5**, inline, *after* Step 3 writes
-  `.spades-anywhere/config` — so the backend is on the store and
-  newproject's precondition holds, and its Step 4 can write
-  `project:` back into a config that already exists.
-
-Do **not** write `.spades-anywhere/config` yet.
-
-## Step 2.5 — Diff & Confirm
-
-Diff captured `current_*` vs new answers. Three cases:
-
-### Case A — Fresh install (no config existed)
-
-Skip diff. Go straight to Step 3.
-
-### Case B — Config existed, nothing changed
-
-Every new value matches `current_*`. Print:
-
-> *Nothing changed — backend and active project all match the
-> existing config. Continue to refresh scaffolding (AGENTS.md
-> marker block re-stamp, INTENT.md scaffold prompt, etc.)?*
-
-`AskUserQuestion`: *Yes, refresh* / *Cancel — exit without writes*.
-
-### Case C — Config existed, something changed
-
-Show the diff:
+- **Fresh install** → Step 6.
+- **Nothing changed** → *"Nothing changed — backend, review format,
+  and active project all match. Refresh the scaffolding?"*
+  `AskUserQuestion`: **Yes, refresh** / **Cancel — exit without
+  writes**.
+- **Something changed** → show the diff and confirm:
 
 ```
-Detected pre-existing config. Confirm these changes
-before any writes happen:
+Detected pre-existing config. Confirm these changes before any
+writes happen:
 
   Backend:        <current_backend>  →  <new_backend>
+  Review format:  cli                (unchanged)
   Active project: <current_project>  (unchanged)
-  Linear team:    (unset)            →  <new_linear_team>      # if backend changing or linear chosen
-  Linear project: (unset)            →  <new_linear_project>   # same
+  Linear team:    (unset)            →  <new_linear_team>      # backend: linear
+  Linear project: (unset)            →  <new_linear_project>   # backend: linear
 
-The local `.spades-anywhere/config` and AGENTS.md marker block
-will be updated. Existing scopes / plans / learnings on disk are
-NEVER deleted by this skill.
+.spades-anywhere/config and the AGENTS.md marker block will be
+updated. Existing scopes, plans, and learnings are never deleted
+by this skill.
 ```
 
-`(unchanged)` against fields where new = current. Only list
-fields present in either old or new config. When
-`create_new_project` is set, the Active-project line reads
-`<current_project> → (new project, created after config is written)`
-— the slug doesn't exist until Step 3.5.
+`AskUserQuestion`: **Apply changes** (→ Step 5 when the backend
+changed, else Step 6) / **Cancel — exit without writes**.
 
-`AskUserQuestion`:
+## Step 5 — Backend-switch migration
 
-- **Apply changes** — if `backend` is changing → Step 2.6.
-  Otherwise → Step 3.
-- **Cancel — exit without writes** — exits cleanly.
+Fires only when `current_backend != new_backend`. **Read
+[`reference/backend-migration.md`](reference/backend-migration.md)
+and follow it.** It returns here for Step 6 whether the walk ran,
+was skipped, or was cancelled.
 
-## Step 2.6 — Backend-switch migration
-
-Fires **only** when `current_backend != new_backend`. Project or
-review-format changes alone skip to Step 3.
-
-**Read [`reference/backend-migration.md`](reference/backend-migration.md)
-and follow it.** It owns both directions and their error handling,
-and returns here for Step 3 whether the walk ran, was skipped, or
-was cancelled.
-
-## Step 3 — Write `.spades-anywhere/config`
+## Step 6 — Write `.spades-anywhere/config`
 
 ```yaml
 backend: linear            # or: local
-project: <project-slug>    # unset/empty when create_new_project (Step 3.5 fills it)
-review_format: html        # or: cli  (defaults to cli on older configs)
-linear:                    # only when backend: linear
+project: <project-slug>    # unset when create_new_project; Step 7 fills it
+review_format: html        # or: cli
+linear:                    # backend: linear
   team_id: <uuid>
-  project_id: <uuid>       # unset when create_new_project (Step 3.5 fills it)
+  project_id: <uuid>       # unset when create_new_project
 ```
 
-`spades-anywhere` has **no `scm:` field** — non-coding contexts
-have no SCM concern.
+With `create_new_project` on a fresh install, write `project:`
+unset; on a re-run, keep the existing `project:` and
+`linear.project_id` until Step 7 overwrites them. The config is on
+the store before Step 7; that is what makes the inline
+`/spades-anywhere:newproject` legal.
 
-- **Picked an existing project** → write `project:` (and, for
-  Linear, `linear.project_id`) with the chosen values.
-- **`create_new_project` set** →
-  - *Fresh install* — write config now with `project:` unset and,
-    for Linear, `team_id` written but `project_id` unset.
-  - *Re-run* — **keep** the existing `project:` (and
-    `linear.project_id`) untouched; Step 3.5 overwrites them on
-    success, so a cancelled newproject leaves the prior active
-    project intact (re-run safety).
+## Step 7 — Create the project (when `create_new_project`)
 
-  Either way, the config MUST be on the store before Step 3.5 — that
-  on-store backend is what makes the inline
-  `/spades-anywhere:newproject` legal and lets its Step 4 write
-  `project:` back.
+Invoke `/spades-anywhere:newproject` inline as a sub-routine. It
+gathers the details, writes `.spades-anywhere/projects/<slug>.md`
+(and the Linear Project), and sets `project:` (and
+`linear.project_id`). If it fails or the human cancels, surface
+*"No project was created — re-run `/spades-anywhere:setup` or
+`/spades-anywhere:newproject`."* and finish the remaining
+scaffolding.
 
-Re-run safety: preserve values the human didn't change. Never
-blank fields the human still depends on.
+## Step 8 — Write `.spades-anywhere/version`
 
-## Step 3.5 — Create the project (inline, only when `create_new_project`)
-
-Skip entirely when the human picked an existing project.
-
-When `create_new_project` is set, invoke `/spades-anywhere:newproject`
-**inline, as a sub-routine of this run**. Config is now on the store
-(Step 3) with the settled backend and — for Linear — `team_id`, so
-newproject's Pre-Flight precondition holds. newproject gathers the
-project details, writes `.spades-anywhere/projects/<slug>.md` (and,
-for Linear, creates the Linear Project on `team_id`), and sets
-`.spades-anywhere/config`'s `project:` (and `linear.project_id`) in
-its own Step 4. When it returns, setup resumes with `project:`
-populated.
-
-One-directional edge — `setup → /spades-anywhere:newproject` — and
-newproject never bounces back, because setup guaranteed its
-precondition first. If newproject fails or the human cancels it,
-config is left with `project:` unset; surface that and finish the
-remaining scaffolding. Setup does not loop. See
-`docs/FRAMEWORK.md § Bootstrap Order`.
-
-## Step 4 — Write `.spades-anywhere/version`
-
-Read the plugin version from
-`${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` `"version"` and the
-AGENTS.md version from
-`${CLAUDE_PLUGIN_ROOT}/.spades-anywhere/version` (`agents_version=`),
-then write both:
+From `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` and
+`${CLAUDE_PLUGIN_ROOT}/.spades-anywhere/version`:
 
 ```
 spades_anywhere_version=<plugin-version>
 agents_version=<agents-version>
 ```
 
-Idempotent — overwrite is fine.
+## Step 9 — Scaffold `.spades-anywhere/`
 
-## Step 5 — Scaffold the `.spades-anywhere/` subdirectories
+Create when missing, empty: `projects/`, `objectives/`, `scopes/`,
+`plans/`, `quick/`, `learnings/`, `reviews/`.
 
-Create if missing, no files inside:
-
-- `.spades-anywhere/projects/`
-- `.spades-anywhere/scopes/`
-- `.spades-anywhere/plans/`
-- `.spades-anywhere/learnings/`
-- `.spades-anywhere/reviews/`
-
-## Step 5.5 — Ignore transient HTML scratch (only if in a git repo)
-
-`.spades-anywhere/.tmp/` holds regenerated HTML for status /
-list / intent and must not be committed.
+## Step 10 — Ignore transient scratch (git only)
 
 ```bash
 git rev-parse --is-inside-work-tree 2>/dev/null
 ```
 
-**Not in a git repo** → skip entirely. No `.gitignore` to
-maintain. (Common case for Claude Desktop projects, ChatGPT,
-mobile.)
+Outside a git repo, skip. Inside one, idempotently ensure
+`.gitignore` lists `.spades-anywhere/.tmp/` (create the file with
+that one line, or append it under a one-line comment), leaving the
+rest of the file as it is.
 
-**In a git repo** → idempotent:
+## Step 11 — `AGENTS.md` marker block
 
-1. No `.gitignore` → create with one line:
-   `.spades-anywhere/.tmp/`.
-2. `.gitignore` already lists `.spades-anywhere/.tmp` (with or
-   without trailing `/`) → do nothing.
-3. Otherwise append:
+Create `AGENTS.md` with `# AGENTS.md` and a blank line when it
+doesn't exist. Insert or replace the block between
+`<!-- SPADES-ANYWHERE-FRAMEWORK-START v<agents-version> -->` and
+`<!-- SPADES-ANYWHERE-FRAMEWORK-END -->`, stamped with
+`agents_version`. Markers present → replace in place; absent →
+append; content outside the markers is untouched. **Read
+[`reference/agents-md-block.md`](reference/agents-md-block.md) and
+write its fenced content verbatim** between the markers.
 
-   ```
-   # spades-anywhere transient HTML scratch — regenerated on every status/list/intent run
-   .spades-anywhere/.tmp/
-   ```
-
-Append-only — never rewrite or reorder the rest of `.gitignore`.
-
-## Step 6 — AGENTS.md (idempotent marker block)
-
-If `AGENTS.md` doesn't exist at the repo root, create with one
-line `# AGENTS.md` + blank line.
-
-Insert or replace the block between these markers, stamping the
-**AGENTS.md version** (`agents_version` from `.spades-anywhere/version`)
-— not the plugin version — so the marker only signals stale when the
-rules themselves changed:
-
-```markdown
-<!-- SPADES-ANYWHERE-FRAMEWORK-START v<agents-version> -->
-…the content below…
-<!-- SPADES-ANYWHERE-FRAMEWORK-END -->
-```
-
-Markers exist (any version) → replace in place. Markers absent
-→ append. **Never** edit content outside the markers.
-
-**Read [`reference/agents-md-block.md`](reference/agents-md-block.md)
-and write its fenced content verbatim** between the markers. That
-file is the template; it is versioned by `agents_version`, so any
-edit to it must bump that version.
-
-## Step 7 — Project documentation (per-file ask)
-
-Four durable project-level docs at the repo root (or knowledge
-store root), each owned by its facilitator skill:
+## Step 12 — Project documentation
 
 | File | Skill | Owns |
-|------|-------|------|
+|---|---|---|
 | `INTENT.md` | `/spades-anywhere:intent` | Why the project exists, for whom, success, non-goals |
-| `ARCHITECTURE.md` | `/spades-anywhere:architecture` | How the work is structured (stages, stakeholders, cadence, tools, constraints) |
+| `ARCHITECTURE.md` | `/spades-anywhere:architecture` | How the work is structured — stages, stakeholders, cadence, tools, constraints |
 | `PATTERNS.md` | `/spades-anywhere:patterns` | Approved process conventions |
-| `ANTI-PATTERNS.md` | `/spades-anywhere:anti-patterns` | Explicit prohibitions ("we don't do X") |
+| `ANTI-PATTERNS.md` | `/spades-anywhere:anti-patterns` | Explicit prohibitions |
 
-For each file, in the order above:
+For each, in that order: detect *Missing* / *Scaffolded but
+unfilled* (two or more placeholder comments) / *Complete*. Complete
+→ `✓ INTENT.md complete (last reviewed YYYY-MM-DD).` Otherwise ask
+via `AskUserQuestion`: **Scaffold an empty template** *(recommended
+on a first run)* — the facilitator's inline template verbatim with
+`last_reviewed: <today>` / **Skip**. The facilitator skills fill the
+content when the human runs them.
 
-### 7.A — Detect state
-
-1. **Missing** — file doesn't exist.
-2. **Scaffolded but unfilled** — file exists and contains ≥ 2
-   `<!-- Describe … -->` / `<!-- List … -->` placeholder markers.
-3. **Complete** — file exists, < 2 placeholder markers.
-
-### 7.B — Skip if complete
-
-Print one line: `✓ INTENT.md complete (last reviewed YYYY-MM-DD).`
-Don't prompt; don't re-scaffold; don't invoke the skill.
-
-### 7.C — Otherwise ask per file via `AskUserQuestion`
-
-> *<filename> — how would you like to handle this?*
->
-> - **Create / complete now** *(recommended for the first run)* —
->   invokes the facilitator skill inline. After it returns, Step
->   7 continues to the next file.
-> - **Scaffold an empty template** — write the inline template
->   the facilitator's SKILL.md documents. Doesn't invoke the
->   skill; no content questions.
-> - **Skip** — write nothing. The file stays missing. The
->   facilitator can be invoked later.
-
-### 7.D — Template content for "Scaffold empty"
-
-Read each facilitator SKILL.md's *"Inline ... Template"* section
-and write its content verbatim. Set `last_reviewed: <today>` in
-frontmatter so staleness detection doesn't immediately flag.
-
-- `INTENT.md` → `/spades-anywhere:intent` § *Inline INTENT.md Template*
-- `ARCHITECTURE.md` → `/spades-anywhere:architecture` § *Inline ARCHITECTURE.md Template*
-- `PATTERNS.md` → `/spades-anywhere:patterns` § *Inline PATTERNS.md Template*
-- `ANTI-PATTERNS.md` → `/spades-anywhere:anti-patterns` § *Inline ANTI-PATTERNS.md Template*
-
-### 7.E — Re-run safety
-
-Previously *Scaffolded* files now *Complete* → skip silently.
-Previously *Skipped* files (still missing) → asked again.
-Idempotent.
-
-## Step 8 — Confirm and summarise
-
-Print a concise summary. Show `→` transitions for re-runs that
-changed; append `(unchanged)` for unchanged fields. Use `✓` done,
-`○` skipped, `✗` failed.
+## Step 13 — Confirm
 
 ```
 ✓ Backend:        local → linear   (team: <name>, project: <name>)
-✓ Active project: spades-framework (unchanged)
-✓ Migrated:       1 project, 3 scopes, 11 plans → Linear      # only if Step 2.6 walked
-                  (4 learnings stayed local by design)
+✓ Review format:  html
+✓ Active project: family-events (unchanged)
+✓ Migrated:       1 project, 3 scopes, 11 plans → Linear      # Step 5 walked
 ✓ Config:         .spades-anywhere/config
 ✓ Version:        plugin <plugin-version>, rules <agents-version>
-✓ Updated:        AGENTS.md (marker block re-stamped from v2.0.0 → v<agents-version>)
+✓ Updated:        AGENTS.md (marker block re-stamped)
 ✓ Created:        ARCHITECTURE.md, PATTERNS.md, ANTI-PATTERNS.md  (templates)
-○ Skipped:        INTENT.md (re-run /spades-anywhere:intent to scaffold)
+○ Skipped:        INTENT.md (run /spades-anywhere:intent to scaffold)
 
 Next steps:
-  /spades-anywhere:newproject       — if you haven't created one yet
+  /spades-anywhere:intent           — fill INTENT.md with real content
   /spades-anywhere:scope <title>    — start a new Scope
 ```
 
-If Step 2.6 ran on *Skip migration*, the Migrated line becomes:
+Fresh installs show chosen values without transitions. Keep it
+brief.
 
-```
-○ Migration:      skipped — local artefacts stay on disk; new
-                  Linear-side work starts empty.
-```
+## Why `AGENTS.md`
 
-On fresh installs (no prior config), `(unchanged)` doesn't apply.
-Be brief — the human should confirm correctness in 10 seconds.
-
-## Why AGENTS.md, not CLAUDE.md
-
-`AGENTS.md` is the cross-agent convention — Claude Code, Cursor,
-Codex, Aider, Claude Desktop, ChatGPT, and most agentic tools
-honour it. A consumer gets one operating-rules file every agent
-reads, not one per vendor. Don't write `CLAUDE.md`, `CURSOR.md`,
-or similar per-agent variants.
+`AGENTS.md` is the cross-agent convention. A consumer gets one
+operating-rules file every agent reads — pasted into the
+instructions field of Claude Projects, a Custom GPT, a Gem, or
+whatever surface they use — and it is the only agent file the plugin
+maintains.

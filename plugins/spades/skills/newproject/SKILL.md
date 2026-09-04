@@ -1,124 +1,84 @@
 ---
 name: newproject
 description: Create a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.4.0
+version: 3.5.0
 ---
 
 # /spades:newproject
 
-You are creating a new Project record. A Project is the long-lived
-container above Scopes — typically a repo or set of repos that share an
-identity (a service, a product surface, a marketing site).
+You are creating a Project record — the long-lived container above
+Scopes, typically a repo or set of repos sharing one identity (a
+service, a product surface, a marketing site).
 
-Read `docs/FRAMEWORK.md` § Hierarchy and § .spades/ Local Layout before
-running. The Project frontmatter schema below mirrors that contract.
+Read `docs/FRAMEWORK.md` § Hierarchy, § .spades/ Local Layout,
+§ Bootstrap Order, and § Output Format before running.
 
 ### Output format
 
-This skill honours `review_format:` from `.spades/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML) → Universal
-rule`. In **both** modes, write the Project record as
-`.spades/projects/<slug>.md` — this is the AI-readable source
-of truth and the canonical record. In HTML mode,
-**additionally** render via the sibling
-`${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html` and write
-`.spades/projects/<slug>.html` for the human's view, then
-auto-open via the OPEN_CMD prelude. HTML mode is additive — the
-`.md` always exists; the `.html` is added in HTML mode.
-
-**HTML mode is review-via-file, not review-via-CLI.** Do NOT paste
-the Project record body to the CLI for the human's approval before
-Step 3 writes the file. The file IS the review surface. Step 3
-writes a working draft and auto-opens it; the human reviews in the
-browser. To iterate, apply targeted edits to the file (the human
-reloads to see changes) — never re-paste a new full draft to the
-CLI. In CLI mode the existing draft-then-paste workflow is fine.
+- **Both modes** — `.spades/projects/<slug>.md`, the canonical
+  record.
+- **HTML mode** — additionally `.spades/projects/<slug>.html` from
+  `${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html` via
+  `worker-html-project`, auto-opened as the review surface;
+  iteration is a targeted `.md` edit plus a re-render.
+- **CLI mode** — the record is pasted for confirmation before the
+  write.
 
 ## Pre-Flight
 
-1. **Require a backend (read `.spades/config`).** This skill needs to
-   know the backend, which lives in `.spades/config`. Probe for it:
+1. **Require a backend.** Probe `.spades/config`:
 
    ```bash
    [ -f .spades/config ] && echo present || echo missing
    ```
 
-   - **`present`** → read `backend:` and proceed. This is also the
-     state when `/spades:setup` invokes this skill inline during
-     first-run bootstrap: setup writes `.spades/config` (Step 3)
-     *before* the inline call (Step 3.5), so the backend is always
-     on disk by the time this skill runs. `project:` may be unset at
-     that point — that's expected; this skill's Step 4 fills it in.
-   - **`missing`** → `/spades:setup` has not run. Abort with:
-     *"Run `/spades:setup` first — it configures the backend and, on
-     that same single pass, creates your first project. You don't
-     need to run `/spades:newproject` before setup."* Do **not** try
-     to bootstrap config here, and do **not** tell the human to run
-     setup *and then re-run this skill* — setup creates the project
-     itself. This edge is one-directional (`setup → newproject`);
-     newproject never drives setup, so there is no cycle. See
-     `docs/FRAMEWORK.md § Bootstrap Order`.
-2. **Read the backend** from `.spades/config`'s `backend:` field. The
-   branches below act according to that value.
+   `present` → read `backend:` and `review_format:`. This is also
+   the state when `/spades:setup` invokes this skill inline during
+   bootstrap: setup writes the config before the call, with
+   `project:` unset for Step 4 to fill.
 
-## Step 1 — Gather Project Information
+   `missing` → abort: *"Run `/spades:setup` first — it configures the
+   backend and, on the same pass, creates your first project."*
+   Setup creates the project itself, so the human is never sent
+   back here; the `setup → newproject` edge points one way.
 
-Ask the human (conversationally, not as a form) for:
+## Step 1 — Gather
 
-- **Title** — human-readable name. e.g. *"Closed Door Security Website"*.
-  Derive the slug from this via the rule below.
-- **Description** — 2–3 sentences. What is this project? Why does it
-  exist? Who owns it?
-- **Repos** — list of repository URLs that compose the project. At
-  least one. Multiple is fine.
-- **Owners** — list of email addresses or handles. At least one.
+Conversationally, not as a form:
 
-### Slug derivation
+- **Title** — *"Closed Door Security Website"*. The slug derives
+  from it.
+- **Description** — two or three sentences: what it is, why it
+  exists, who owns it.
+- **Repos** — the repository URLs that compose the project, at least
+  one.
+- **Owners** — email addresses or handles, at least one.
 
-The slug is the project's stable ID. Derive it from the title:
+### Slug
 
-1. Lowercase the whole thing.
-2. Replace spaces and any non-`[a-z0-9-]` runs with single hyphens.
+1. Lowercase.
+2. Replace runs outside `[a-z0-9-]` with a single hyphen.
 3. Trim leading and trailing hyphens.
 4. Truncate to 64 characters.
-5. Reject if the result is empty, starts with a hyphen, contains `..`,
-   or matches an existing project file.
+5. Reject an empty result, a leading hyphen, `..`, or a slug that
+   matches an existing project file.
 
-Example: *"Closed Door Security Website"* → `closed-door-security-website`.
+*"Closed Door Security Website"* → `closed-door-security-website`.
+Confirm via `AskUserQuestion`: **Use this slug** / **Edit the slug**.
 
-Show the derived slug to the human and ask (via `AskUserQuestion`):
+## Step 2 — Collision check
 
-- **Use this slug** (recommended)
-- **Edit the slug** (free-form fallback for unusual cases)
+- **Local** — an existing `.spades/projects/<slug>.md` aborts:
+  *"A project named `<slug>` already exists. Pick a different title
+  or edit the existing project."*
+- **Linear** (`backend: linear`) — an existing Linear Project of the
+  same name → ask via `AskUserQuestion`: **Bind to the existing
+  Linear Project** (recommended) / **Create a separate one** (with a
+  differentiated name).
 
-## Step 2 — Collision Check
+## Step 3 — Write and mirror (fan-out)
 
-Before writing anything:
-
-1. **Local check.** If `.spades/projects/<slug>.md` already exists,
-   abort with: *"A project named `<slug>` already exists. Pick a
-   different title or edit the existing project."*
-2. **Linear check** (only when `backend: linear`). Query the backend
-   for an existing Linear Project with the same name. If one exists,
-   ask the human whether to:
-   - **Bind to the existing Linear Project** (recommended — reuses it)
-   - **Create a separate Linear Project** (you'll be asked to pick a
-     differentiated name)
-
-## Step 3 — Create the Project
-
-**Read `review_format:` from `.spades/config` and branch on the file
-format.** Step 3 MUST write a Project file before exiting — never
-print the project record to the CLI only, **and never paste the
-project body to the CLI for human approval before this step writes
-the file in HTML mode**. The file IS the review surface in HTML
-mode (see § Output format above).
-
-### When `backend: local`
-
-#### Step 3.A — Write the canonical `.md` (both modes)
-
-Write `.spades/projects/<slug>.md` with this exact shape:
+### The canonical `.md` (both modes)
 
 ```markdown
 ---
@@ -131,8 +91,10 @@ repos:
 owners:
   - <owner-1>
   - <owner-2>
+status: active
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
+linear_project_id: <uuid>        # backend: linear, injected after the wave
 ---
 
 # <title>
@@ -151,129 +113,84 @@ updated: YYYY-MM-DD
 
 ## Scopes
 
-<!-- /spades:list will populate this on demand; do not maintain by hand -->
+<!-- /spades:list renders the live view; this section is not maintained by hand -->
+
+## Audit Trail
+
+- YYYY-MM-DD: Project created.
 ```
 
-#### Step 3.B — HTML render is a parallel worker (HTML mode only)
+### `worker-html-project` (HTML mode)
 
-When `review_format: html`, the `.html` companion is rendered by
-`worker-html-project` dispatched in the same fan-out wave as
-`worker-file-project` (see fan-out table below). The skill body
-never renders HTML inline.
-
-Worker inputs:
-
-- `template_path`:
-  `${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html`
+- `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html`
 - `output_path`: `.spades/projects/<slug>.html`
-- `frontmatter`: `{ id, title, description, created, updated,
-  status, … }` — `status` is optional (the project's status; the
-  template defaults it to `active`). Also embedded verbatim in
-  `<script id="spades-frontmatter">`.
+- `frontmatter`: `{ id, title, description, status, created,
+  updated }`, embedded verbatim in `<script id="spades-frontmatter">`
 - `blocks`:
-  - `objective-banner` — 0 or 1 item per
-    `docs/FRAMEWORK.md § Objective banner`. Pass the project's sole
-    `open` Objective `{ id, title }` when EXACTLY ONE exists in
-    `.spades/objectives/`, else `[]`.
+  - `objective-banner` — the project's sole `open` Objective
+    `{ id, title }` when exactly one exists, else `[]`
   - `repos-items` — one per repo. Fields: `url, label`.
-  - `owners-items` — one per owner. Fields: `name, email|—`.
-  - `status-filters` — one per status filter chip in the
-    embedded Scopes section. Fields: `label, count`.
-  - `scopes-rows` — one per Scope row. Fields: `id, title,
-    status, plans, updated`.
+  - `owners-items` — one per owner. Fields: `name, email` (`—` when
+    absent).
+  - `status-filters` — one chip per Scope status. Fields: `label,
+    count`.
+  - `scopes-rows` — one per Scope. Fields: `id, title, status,
+    plans, updated`.
   - `audit-events` — one per audit entry. Fields: `date, desc`.
 
-Required template markers:
-`<!-- SPADES-BLOCK:objective-banner -->`,
-`<!-- SPADES-BLOCK:repos-items -->`,
-`<!-- SPADES-BLOCK:owners-items -->`,
-`<!-- SPADES-BLOCK:status-filters -->`,
-`<!-- SPADES-BLOCK:scopes-rows -->`,
-`<!-- SPADES-BLOCK:audit-events -->`.
+Required markers: `objective-banner`, `repos-items`, `owners-items`,
+`status-filters`, `scopes-rows`, `audit-events`.
 
-### When `backend: linear` — fan-out dispatch
+### The wave
 
-Apply the fan-out pattern from
-`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`. Spawn the two
-sub-agents below **in parallel in a single assistant message with
-multiple `Agent` tool calls** (`subagent_type: general-purpose`):
+Per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`, in one
+assistant message, `subagent_type: general-purpose`:
 
 | Sub-agent | Resource owned | Returns |
-|-----------|---------------|---------|
-| `worker-file-project` | `.spades/projects/<slug>.md` — the canonical project `.md`. The file is written **without** `linear_project_id` — the coordinator injects it post-dispatch. | `{ status: ok }` (or `fail` + `error`) |
-| `worker-html-project` *(only when `review_format: html`)* | `.spades/projects/<slug>.html` — see Step 3.B for inputs. | `{ status: ok, path, opened }` |
-| `worker-linear-project` | Linear — create a Project with the given title and description on the team recorded in `.spades/config`'s `linear.team_id`. | `{ status: ok, linear_project_id: <uuid> }` (or `fail`) |
+|---|---|---|
+| `worker-file-project` | `.spades/projects/<slug>.md`, written without `linear_project_id` | `{ status: ok }` |
+| `worker-html-project` *(HTML mode)* | `.spades/projects/<slug>.html` | `{ status: ok, path, opened }` |
+| `worker-linear-project` *(`backend: linear`)* | Linear — a Project with the title and description on `linear.team_id`. Carries the freshness probe. | `{ status: ok, linear_project_id }` |
 
-The Linear sub-agent's prompt includes the Layer-2 freshness probe
-(per `FRAMEWORK.md § Sub-agent Dispatch`). Each sub-agent's prompt
-is self-contained and includes its scope, inputs, and return schema.
+With `backend: local` the wave has no Linear worker. After the wave:
+all ok → inject `linear_project_id` into the `.md` (and the `.html`
+frontmatter block), record the dispatch mode; file worker failed →
+abort, noting a Linear Project may be orphaned; HTML worker failed →
+keep the `.md`, surface, continue; Linear worker failed → keep the
+local file, surface, offer a retry.
 
-After both sub-agents return, the coordinator (this skill body)
-collects results per the failure semantics in
-`FRAMEWORK.md § Sub-agent Dispatch`:
+## Step 4 — Active project
 
-- **Both ok** → targeted edit on the local project file to inject
-  `linear_project_id: <uuid>` into the frontmatter (and into the
-  embedded `<script type="application/yaml" id="spades-frontmatter">`
-  block in HTML mode). Record the dispatch mode used.
-- **File sub-agent failed** → abort; the Linear project may have
-  been created but is orphaned. Surface clearly so the human can
-  delete it from Linear or re-run.
-- **Linear sub-agent failed** → keep the local file (canonical),
-  surface the failure with the offer to retry the Linear mirror
-  later.
+Ask via `AskUserQuestion`: **Set as active project** (recommended)
+/ **Leave the active project unchanged**. When invoked inline by
+`/spades:setup` during bootstrap (`project:` unset), set it active
+without asking and return to setup.
 
-The local file is the canonical SPADES record; the Linear Project is
-the tracker mirror. Both should always exist when `backend: linear`.
-
-## Step 4 — Update Active Project
-
-Ask the human (via `AskUserQuestion`):
-
-- **Set as active project** (recommended) — updates `.spades/config`'s
-  `project:` field to the new slug.
-- **Leave active project unchanged** — keeps whatever was active.
-
-**When invoked inline by `/spades:setup` during bootstrap** (config's
-`project:` is unset — this is the repo's first project), don't ask:
-setting it active is the only sensible outcome, so set it active and
-return to setup without the question.
-
-If chosen "set as active" (or bootstrap):
-
-1. Read `.spades/config`.
-2. Set `project: <new-slug>` — replace the existing `project:` line,
-   or **insert one** if the line is absent or blank (the bootstrap
-   case, where setup wrote config with `project:` unset).
-3. When `backend: linear`, likewise set `linear.project_id` to the
-   new Linear Project ID — replacing or inserting the line as needed.
+Setting active: replace or insert `project: <slug>` in
+`.spades/config`, and with `backend: linear` likewise
+`linear.project_id`.
 
 ## Step 5 — Confirm
-
-Print a short summary:
 
 ```
 ✓ Project created: <slug>
 ✓ Title:           <title>
 ✓ Repos:           2
 ✓ Owners:          2
-✓ Linear Project:  <id>    (only when backend: linear)
+✓ Linear Project:  <id>    (backend: linear)
 ✓ Active project:  <slug>  (or: unchanged)
 
 Next:
   /spades:scope <title>   — define your first Scope under this project
 ```
 
-## Edge Cases
+## Edge cases
 
-- **No repos yet.** If the human says the project doesn't have a repo
-  yet, accept a placeholder like `tbd` in `repos:` and warn that
-  `/spades:ship` will not function for `deliverable_type: code` plans
-  until at least one real repo is recorded. Suggest re-running
-  `/spades:newproject` to update.
-- **Owners not on the human's team.** Accept email/handle strings as
-  given; SPADES does not validate identity.
-- **Re-binding a repo to a different project.** SPADES doesn't support
-  this directly — `.spades/config` names exactly one active project.
-  If the human needs to switch, they re-run `/spades:setup` and pick
-  the other project there.
+- **No repo yet** — accept a placeholder such as `tbd` in `repos:`
+  and say that `code` deliverables cannot ship until a real repo is
+  recorded; re-run to update.
+- **Owners outside the team** — accept the strings as given;
+  identity is not validated.
+- **Switching a repo to a different project** — `.spades/config`
+  names one active project; the human re-runs `/spades:setup` to
+  pick another.

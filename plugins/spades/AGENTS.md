@@ -12,7 +12,7 @@ rest. SPADES deliberately does **not** ship a `CLAUDE.md`,
 
 ## SPADES Skills (v2.0)
 
-This repo ships SPADES itself, so the plugin's 21 skills are available
+This repo ships SPADES itself, so the plugin's 22 skills are available
 when working in it. Invoke the main ones by their namespaced names:
 
 | Skill | What it does |
@@ -26,11 +26,12 @@ when working in it. Invoke the main ones by their namespaced names:
 | `/spades:approve` | Present a Plan for review; record routing (AI / human / hybrid) |
 | `/spades:do` | Execute an approved Plan, routed per the approval decision |
 | `/spades:evaluate` | Check delivered output against acceptance criteria |
-| `/spades:ship` | Open PR + review + merge (code) or record deliverable (artefact / action) |
+| `/spades:ship` | Open the PR (code) or record the deliverable (artefact / action) |
 | `/spades:close` | Conversational close-out entry. Asks pass / reject / abandon based on target type. Pass = finalise (Plan → shipped, Scope → done, Project → archived, Objective → complete). Reject (Plans) and Abandon (Scopes, Projects, Objectives) require a reason. Objective completion is ungated and has no cascade. Opens a bookkeeping PR for any file change. |
 | `/spades:quick` | Fast-track for trivial work — quick-item marker file (`.spades/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |
+| `/spades:leads` | Record ideas noticed while working, out of scope by construction, under `.spades/leads/`; `--promote` turns them into work |
 | `/spades:research` | Read-only research via an isolated Opus subagent |
 | `/spades:list` | List active scopes, filterable by phase or project |
 | `/spades:status` | Show current SPADES phase + dependency graph |
@@ -203,10 +204,11 @@ See `docs/FRAMEWORK.md § Hierarchy → Objectives` for the full contract.
 - After a PASS verdict, run `/spades:ship`. Behaviour branches on
   `deliverable_type:`:
   - **`code`** — routed by the `scm:` field in `.spades/config`:
-    - **`scm: github`** — two-phase: push + `gh pr create` (Phase
-      1), then resume after squash-merge to record the merge SHA
-      (Phase 2). CodeRabbit feedback commits to the same branch
-      between phases.
+    - **`scm: github`** — two-phase: `/spades:ship` pushes and
+      opens the PR (Phase 1); review-bot feedback commits to the
+      same branch; after the squash-merge `/spades:close P-<id>`
+      verifies the merge and records the `Shipped` marker on main
+      via a bookkeeping PR (Phase 2).
     - **`scm: local-git`** — single-phase: push to the configured
       remote (if any), record the commit SHA, mark shipped. No PR,
       no CodeRabbit.

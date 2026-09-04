@@ -1,266 +1,197 @@
 ---
 name: scope
 description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 3.4.0
+version: 3.5.0
 ---
 
 # /spades:scope
 
 You are creating or editing a Scope. A Scope is the contract that
-everything downstream is measured against. Every field matters — a
-weak Scope produces a weak Plan.
+everything downstream is measured against: the Plan is drafted from
+it, Evaluate verifies against its acceptance criteria, and Ship is
+the moment it becomes real. A weak Scope produces a weak Plan.
 
-Read `docs/FRAMEWORK.md` § ID Format and § .spades/ Local Layout before
-running. Schemas below mirror that contract.
+Read `docs/FRAMEWORK.md` § ID Format, § .spades/ Local Layout, and
+§ Output Format before running. The schema below mirrors that
+contract.
 
 ### Output format
 
-This skill honours `review_format:` from `.spades/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML) → Universal
-rule`. In **both** modes, write `.spades/scopes/S-<slug>.md` —
-this is the AI-readable source of truth and the canonical
-record. In HTML mode, **additionally** render via the sibling
-`${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html` and write
-`.spades/scopes/S-<slug>.html` for the human's view, then
-auto-open via the OPEN_CMD prelude. HTML mode is additive —
-the `.md` always exists; the `.html` is added in HTML mode.
+This skill produces one artefact per `docs/FRAMEWORK.md § Output
+Format`:
 
-**HTML mode is review-via-file, not review-via-CLI.** Do NOT paste
-the Scope body (or any substantive excerpt of it) to the CLI for
-the human's approval before Step 7 writes the file. The file IS the
-review surface. Step 7 writes a working draft and auto-opens it; the
-human reviews in the browser. To iterate, apply targeted edits to
-the file (the human reloads to see changes) — never re-paste a new
-full draft to the CLI. In CLI mode the existing draft-then-paste
-workflow is fine.
+- **Both modes** — `.spades/scopes/S-<slug>.md`, the canonical
+  record every skill and sub-agent reads.
+- **HTML mode** — additionally `.spades/scopes/S-<slug>.html`,
+  rendered from `${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html`
+  by `worker-html-scope` and auto-opened. The open page is the
+  human's review surface: Step 6 writes the working draft, the
+  human reviews it in the browser, and iteration is a targeted edit
+  to the `.md` followed by a re-render.
+- **CLI mode** — the draft is pasted to the terminal for review
+  before Step 6 writes it.
 
 ## Pre-Flight
 
-1. **Confirm setup.** If `.spades/config` is missing, abort and suggest
-   `/spades:setup` first.
-2. **Confirm active project.** Read `project:` from `.spades/config`.
-   If missing, abort and suggest `/spades:newproject` to create one.
-3. **Verify Project active** per `docs/FRAMEWORK.md § Target
-   Resolution → Parent-status precondition`. If the active Project's
-   status is `abandoned` or `archived`, abort hard with the canonical
-   error shape. In Edit mode, also verify the parent Project of the
-   resolved target Scope (after Step 2 resolves it). No override.
-4. **INTENT.md gate.** A Scope is measured against the project's
-   `INTENT.md` (the durable statement of *why* this project exists).
-   Scoping without INTENT means scope drift is silent — there is no
-   north star to measure against.
-
-   Probe:
+1. **Confirm setup.** `.spades/config` must exist; otherwise point
+   at `/spades:setup` and stop.
+2. **Confirm the active project.** Read `project:` from
+   `.spades/config`; if unset, point at `/spades:newproject` and stop.
+3. **Read `backend:` and `review_format:`** from `.spades/config`.
+4. **Verify the Project is active** per `docs/FRAMEWORK.md § Target
+   Resolution → Parent-status precondition`. An `abandoned` or
+   `archived` Project is a hard abort with the canonical error
+   shape. In Edit mode, re-check after Step 2 resolves the target.
+5. **INTENT gate.** A Scope is measured against `INTENT.md`, the
+   durable statement of why the project exists. Probe:
 
    ```bash
    [ -f INTENT.md ] && echo present || echo missing
    ```
 
-   - **`present`** → proceed.
-   - **`missing`** → **hard gate**. Ask via `AskUserQuestion`:
-     - **Exit — run `/spades:intent` first** *(Recommended)* —
-       exit cleanly with: *"INTENT.md is missing. Run
-       `/spades:intent` to compose it, then re-run
-       `/spades:scope`."* No inline invocation.
-     - **Override and proceed without INTENT** — only for
-       throwaway / sandbox / prototype repos. Record the override
-       in the new Scope's audit trail (see Step 7) with the line:
-       `- YYYY-MM-DD: Scope created without INTENT.md (override).`
-       Drift risk accepted by the human.
+   `present` → continue. `missing` → ask via `AskUserQuestion`:
 
-   Do not silently proceed if INTENT is missing. The cost of
-   running `/spades:intent` is minutes; the cost of months of
-   silent scope drift is much higher. Friction is the feature.
+   - **Exit and run `/spades:intent` first** *(Recommended)* — print
+     *"INTENT.md is missing. Run `/spades:intent` to compose it,
+     then re-run `/spades:scope`."* and stop.
+   - **Proceed without INTENT** — for throwaway or prototype repos.
+     Step 6 records `- YYYY-MM-DD: Scope created without INTENT.md
+     (override).` in the audit trail so the drift risk is on record.
 
-5. **Read the backend.** Branches below act according to `.spades/config`'s
-   `backend:` field.
+## Step 1 — Fast-track check
 
-## Step 1 — Fast-Track Check First
-
-Before scoping, walk the fast-track gate (10 criteria — see
-`docs/FRAMEWORK.md` § Fast-Track Path). If every criterion passes, stop
-and suggest `/spades:quick` instead:
+Walk the ten fast-track criteria in `docs/FRAMEWORK.md § Fast-Track
+Path`. If every one passes, offer the quick path:
 
 > This looks like fast-track work — it meets every gate criterion.
 > Want me to run `/spades:quick` and skip the full scope flow?
 
-Only continue with `/spades:scope` if the human confirms or any gate
-criterion fails.
+Continue with this skill when any criterion fails or the human
+prefers the full loop.
 
-## Step 2 — Mode (Create vs Edit)
+## Step 2 — Mode
 
-The skill operates in two modes:
+- **Create** (default) — a new Scope.
+- **Edit** — refining an existing Scope.
 
-- **Create mode** (default) — new scope.
-- **Edit mode** — refining an existing scope.
-
-If the human's input names a slug, an `S-<slug>` ID, or a title that
-matches an existing scope (fuzzy), default to Edit mode. Otherwise,
-Create mode.
+When the input names an `S-<slug>` ID, a slug, or a title that
+fuzzy-matches an existing Scope, default to Edit.
 
 ### Fuzzy match
 
-When the human provides a description, fuzzy-match it against existing
-scopes:
+1. List the active project's Scopes via the backend interface
+   (`list_scopes(filter)`).
+2. Score each against the input: slug substring, title token
+   overlap, exact ID prefix.
+3. Offer up to three candidates above a soft threshold via
+   `AskUserQuestion` — **Edit `S-<slug>` (<title>)** per candidate,
+   plus **Create a new scope**. With no close candidate, go straight
+   to Create.
 
-1. List scopes for the active project (via the backend interface's
-   `list_scopes(filter)` then filter to active project).
-2. For each scope, compute a similarity score against the human's
-   input — a substring match on the slug, a token-overlap score on
-   the title, and exact-prefix on the ID all count.
-3. Surface candidates with a score above a soft threshold to the human
-   via `AskUserQuestion`:
-   - **Edit `S-<slug>` (<title>)** — top candidate
-   - **Edit `S-<slug2>` (<title2>)** — second candidate (if any)
-   - **Create a new scope** — always offered
-
-Only show up to three candidates; if none look close, just go straight
-to Create mode.
-
-## Step 3 — Slug Derivation (Create mode only)
+## Step 3 — Slug (Create mode)
 
 Derive the slug from the description:
 
 1. Lowercase.
-2. Replace non-`[a-z0-9-]` runs with single hyphens.
+2. Replace runs outside `[a-z0-9-]` with a single hyphen.
 3. Trim leading and trailing hyphens.
-4. Truncate to 64 characters (after the `S-` prefix).
-5. Reject if empty, leading-hyphen, or `..` present.
+4. Truncate to 64 characters after the `S-` prefix.
+5. Reject an empty result, a leading hyphen, or `..`.
 
-Example: *"Add AI Helper Bot"* → `S-add-ai-helper-bot`.
+*"Add AI Helper Bot"* → `S-add-ai-helper-bot`. Confirm via
+`AskUserQuestion`: **Use this ID** / **Edit the slug**. If
+`.spades/scopes/S-<slug>.md` already exists, switch to Edit mode and
+say so.
 
-Show the derived ID to the human and confirm via `AskUserQuestion`:
-**Use this ID** / **Edit the slug**.
+## Step 4 — Conversation, one field at a time
 
-If `.spades/scopes/S-<slug>.md` already exists, this is actually an
-Edit operation — switch modes and warn the human.
-
-## Step 4 — Conversation (One Field at a Time)
-
-Scope content is composition (free-form prose), not a fixed-option
-choice. Run the conversation collaboratively:
-
-1. **One topic at a time.** Ask one field, wait, then the next.
-2. **Probe when answers are vague.** Push for testable detail.
-3. **Suggest improvements.** Propose stronger versions of weak
-   acceptance criteria.
-4. **Be opinionated.** Flag scope that looks too large.
-5. **Summarise before moving on.** After each field, reflect back what
-   you heard so the human can correct early.
-
-The fields to walk through:
+Scope content is composition, so it stays free-form. Ask one field,
+wait, reflect back what you heard, then move on. Probe vague
+answers for testable detail, propose stronger wording for weak
+criteria, and flag a Scope that looks too large to plan in one
+session.
 
 ### 1. Statement of Intent
-What needs to be achieved and why it matters. **Outcome, not activity.**
+What is achieved and why it matters — outcome, not activity. One to
+three sentences.
 
 ✓ *"Device telemetry is flowing into the intelligence platform and
 available for threat analysis."*
 ✗ *"Build the telemetry pipeline."*
 
-One to three sentences.
-
 ### 2. Acceptance Criteria
-Specific, verifiable conditions for "done". Each criterion is a
-checkbox. Aim for 3–7.
+Specific, verifiable conditions for done. One checkbox each; aim for
+3–7.
 
-✓ *"Telemetry data appears in the Elasticsearch index within 5 minutes
-of device transmission."*
+✓ *"Telemetry data appears in the Elasticsearch index within 5
+minutes of device transmission."*
 ✗ *"Telemetry works."*
 
 ### 3. Architectural Constraints
-Reference `ARCHITECTURE.md` and `PATTERNS.md` where relevant. If
-nothing extra applies, state *"No additional constraints beyond
-ARCHITECTURE.md"* explicitly — never blank.
+Reference `ARCHITECTURE.md` and `PATTERNS.md` where they apply.
+When nothing extra applies, record *"No additional constraints
+beyond ARCHITECTURE.md"* explicitly.
 
 ### 4. Dependencies
-Other scopes, services, infrastructure, or access that must be in
-place. State *"None"* if so.
+Other Scopes, services, infrastructure, or access that must be in
+place, or *"None"*.
 
 ### 5. Context
-- **Upstream:** what feeds this?
-- **Downstream:** what depends on this?
-- **Related:** other work in the same area?
+Upstream (what feeds this), downstream (what depends on it),
+related (other work in the area).
 
 ### 6. Out of Scope
-What this scope explicitly does NOT cover. Be specific. Never blank.
+What this Scope explicitly excludes. Be specific; the section is
+always filled.
 
 ### 7. Risk / Unknowns
-Known landmines. The AI uses these when planning to avoid generating
-something that ignores them. State *"None identified"* if so.
+Known landmines the Plan must respect, or *"None identified"*.
 
-### 8. Delivery Preference
-- **Mostly AI-delivered** — standard code/config/docs work
-- **Mostly human-delivered** — needs org context, vendor access, etc.
-- **Hybrid** — specify which tasks AI vs human
+### 8. Delivery Preference — `AskUserQuestion`
+- **Mostly AI-delivered** — standard code, config, docs work
+- **Mostly human-delivered** — needs org context, vendor access
+- **Hybrid** — note which tasks are which
 
-Ask this via `AskUserQuestion` (fixed-option).
+### 9. Priority — `AskUserQuestion`
+`urgent` (blocks a release or live incident) · `high` · `this-cycle`
+· `medium` · `low` · `backlog` · `exploratory` (investigating
+whether it is worth doing).
 
-### 9. Priority
-- **urgent** — blocks a release or live incident
-- **high** — must complete soon
-- **this-cycle** — current work cycle
-- **medium** / **low** — important but not time-sensitive
-- **backlog** — nice to have
-- **exploratory** — investigating whether worth doing
+### 10. Type — `AskUserQuestion`
+`feature` · `bug` · `chore` · `docs` · `refactor` · `investigation`.
+Usually inferable from the description; confirm.
 
-Ask this via `AskUserQuestion` (fixed-option).
+### 11. Strategy link (optional)
+Ask once: *"Does this scope trace to a roadmap item, OKR, or epic
+tracked elsewhere? Paste the link or ID and I'll record it as
+`strategy_link:`; if it's reactive or ad-hoc, say so."* Record a
+supplied reference verbatim as a free-form string. For reactive or
+ad-hoc work, omit the field; `origin:` carries the rationale.
 
-### 10. Type
-- **feature** | **bug** | **chore** | **docs** | **refactor** | **investigation**
+## Step 5 — Quality check
 
-Often inferable from the description; confirm via `AskUserQuestion`.
+Before writing, confirm:
 
-### 11. Strategy / Roadmap link (optional)
+- [ ] Someone could start planning this without a follow-up
+      conversation.
+- [ ] Acceptance criteria are specific and testable.
+- [ ] The Scope is small enough to plan in a single session.
+- [ ] Constraints, dependencies, and risks are explicit, or
+      explicitly "none".
+- [ ] Out of Scope is filled.
 
-Ask once, plainly: *"Does this scope trace to a roadmap item, OKR,
-or epic tracked elsewhere? If yes, paste the link or ID — I'll
-record it as `strategy_link:`. If reactive / ad-hoc, just say so
-and we'll skip it."*
+Help the human fix any gap before continuing.
 
-If the human supplies a link or ID, record it verbatim as the
-`strategy_link:` frontmatter field — free-form string, no shape
-validation (URLs, Linear IDs, Notion page refs, OKR codes all
-acceptable). If they say "reactive" or "ad-hoc", omit the field;
-the existing `origin:` field already captures the rationale.
+## Step 6 — Write the Scope
 
-This bridges the gap from the Strategy / Roadmap layer above SPADES
-into the audit chain. Optional; SPADES never requires it.
+This step always writes the `.md`. In CLI mode, paste the assembled
+draft first and write once the human approves it. In HTML mode,
+write the draft straight away and let the rendered page carry the
+review.
 
-## Step 5 — Quality Checks
+### The canonical `.md` (both modes)
 
-Before finalising, verify:
-
-- [ ] Could someone start planning this without a follow-up conversation?
-- [ ] Are acceptance criteria specific and testable?
-- [ ] Is this small enough to plan in a single session?
-- [ ] Are architectural constraints explicit (or explicitly "none")?
-- [ ] Is out-of-scope clearly defined?
-- [ ] Are dependencies listed (or explicitly "none")?
-- [ ] Are risks acknowledged (or explicitly "none identified")?
-
-If any check fails, flag it and help the human fix before writing.
-
-## Step 6 — (no inline review)
-
-`/spades:scope` does not invoke other skills inline. If the human
-wants a second opinion before planning, the end-of-skill brief
-suggests `/spades:review S-<slug>` as a follow-up command.
-
-## Step 7 — Write the Scope
-
-**Read `review_format:` from `.spades/config` and branch.** This step
-MUST write a file — never exit Step 7 with the Scope content only
-pasted to the CLI, **and never paste the Scope body to the CLI for
-human approval before this step writes the file in HTML mode**. The
-file IS the review surface in HTML mode (see § Output format above).
-
-### Step 7.A — Write the canonical `.md` (both modes)
-
-### Filename
-
-`.spades/scopes/S-<description-slug>.md`
-
-### Frontmatter (exactly this shape)
+Path: `.spades/scopes/S-<description-slug>.md`
 
 ```yaml
 ---
@@ -271,13 +202,12 @@ status: scoped
 type: feature | bug | chore | docs | refactor | investigation
 priority: urgent | high | this-cycle | medium | low | backlog | exploratory
 origin: okr | reactive | ad-hoc
+strategy_link: <URL | ID | ref>   # only when supplied in Step 4.11
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
-linear_issue_id: <id>          # only when backend: linear AND synced
+linear_issue_id: <id>             # only when backend: linear, injected in Step 7
 ---
 ```
-
-### Body template
 
 ```markdown
 # <title>
@@ -294,7 +224,7 @@ linear_issue_id: <id>          # only when backend: linear AND synced
 
 ## Architectural Constraints
 
-<reference ARCHITECTURE.md and PATTERNS.md, or explicit "none">
+<references to ARCHITECTURE.md / PATTERNS.md, or the explicit "none">
 
 ## Dependencies
 
@@ -321,107 +251,93 @@ linear_issue_id: <id>          # only when backend: linear AND synced
 
 ## Audit Trail
 
-<!-- Auto-appended by /spades:plan, /spades:approve, /spades:evaluate,
-     /spades:ship. Do not edit by hand. -->
+<!-- Appended by /spades:plan, /spades:approve, /spades:evaluate,
+     /spades:ship, /spades:close. -->
 ```
 
-### Step 7.B — HTML render is a parallel worker (HTML mode only)
+When the INTENT gate was overridden, the audit trail opens with
+`- YYYY-MM-DD: Scope created without INTENT.md (override).`
 
-When `review_format: html`, the `.html` companion is rendered by
-`worker-html-scope` dispatched in the same fan-out wave as
-`worker-file-scope` (see Step 8 below). The skill body never
-renders HTML inline.
+### `worker-html-scope` (HTML mode)
 
-Worker inputs:
+Dispatched in Step 7's wave per `docs/FRAMEWORK.md § worker-html-*`:
 
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html`
 - `output_path`: `.spades/scopes/S-<description-slug>.html`
 - `frontmatter`: `{ id, title, status, project, type, priority,
-  origin, created, updated }` (also embedded verbatim in
-  `<script id="spades-frontmatter">`)
-- `criteria_count` *(scalar)*: the number of acceptance criteria —
-  the count of `acceptance-items`. Drives the deck.
+  origin, created, updated }`, also embedded verbatim in
+  `<script id="spades-frontmatter">`
+- `criteria_count` *(scalar)*: number of acceptance criteria
 - `blocks`:
-  - `acceptance-items` — one per `## Acceptance Criteria` bullet.
-    Fields: `text, checked` (boolean).
-  - `objective-banner` — 0 or 1 item, fields `{ id, title }`, per
-    `docs/FRAMEWORK.md § Objective banner`. Resolve from this
-    Scope's `strategy_link` (only when it matches an existing
-    `O-<slug>` objective file); else pass `[]`.
-  - `dependencies-items` — one per `## Dependencies` bullet.
-    Field: `text`.
-  - `out-of-scope-items` — one per `## Out of Scope` bullet.
-    Field: `text`.
-  - `audit-events` — one per audit-trail entry. Fields:
-    `date, desc`.
+  - `acceptance-items` — one per criterion. Fields: `text, checked`.
+  - `objective-banner` — 0 or 1 item `{ id, title }` per
+    `docs/FRAMEWORK.md § Objective banner`, resolved from this
+    Scope's `strategy_link` when it names an existing
+    `.spades/objectives/O-<slug>.md`; else `[]`.
+  - `dependencies-items` — one per Dependencies bullet. Field: `text`.
+  - `out-of-scope-items` — one per Out of Scope bullet. Field: `text`.
+  - `audit-events` — one per audit entry. Fields: `date, desc`.
 - `prose_sections`: `{ statement_of_intent_html, constraints_html,
   context_html, risk_unknowns_html, delivery_preference_html }`
 
-Required template markers: `<!-- SPADES-BLOCK:acceptance-items -->`,
-`<!-- SPADES-BLOCK:dependencies-items -->`,
-`<!-- SPADES-BLOCK:out-of-scope-items -->`,
-`<!-- SPADES-BLOCK:audit-events -->`.
+Required markers: `acceptance-items`, `dependencies-items`,
+`out-of-scope-items`, `audit-events`.
 
-## Step 8 — Backend Mirror (fan-out dispatch)
+## Step 7 — Write and mirror (fan-out)
 
-### When `backend: linear`
-
-Apply the fan-out pattern from
-`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`. **Step 7's file
-write and this step's Linear create are dispatched together in a
-single fan-out wave** — Step 7 is the file sub-agent, this step is
-the Linear sub-agent. Spawn both **in parallel in a single assistant
-message with multiple `Agent` tool calls** (`subagent_type:
-general-purpose`):
+Dispatch one wave per `docs/FRAMEWORK.md § Sub-agent Dispatch
+(Fan-Out)` — every sub-agent in a single assistant message,
+`subagent_type: general-purpose`:
 
 | Sub-agent | Resource owned | Returns |
-|-----------|---------------|---------|
-| `worker-file-scope` | `.spades/scopes/S-<slug>.md` — the canonical scope `.md`. Written **without** `linear_issue_id:` — the coordinator injects it post-dispatch. | `{ status: ok }` |
-| `worker-html-scope` *(only when `review_format: html`)* | `.spades/scopes/S-<slug>.html` — see Step 7.B for inputs. | `{ status: ok, path, opened }` |
-| `worker-linear-scope` | Linear — create a parent Issue on the active Linear Project with title + description matching the Scope, status "Scoped". Includes the Layer-2 freshness probe. | `{ status: ok, linear_issue_id: "<id>" }` |
+|---|---|---|
+| `worker-file-scope` | `.spades/scopes/S-<slug>.md`, written without `linear_issue_id:` | `{ status: ok }` |
+| `worker-html-scope` *(HTML mode)* | `.spades/scopes/S-<slug>.html` per Step 6 | `{ status: ok, path, opened }` |
+| `worker-linear-scope` *(`backend: linear`)* | Linear — a parent Issue on the active Linear Project with the Scope's title and body, workflow state for `scoped`. Carries the freshness probe. | `{ status: ok, linear_issue_id }` |
 
-After both return, the coordinator:
+With `backend: local` the wave has no Linear worker; the local file
+is the whole record.
 
-- **Both ok** → targeted edit on the scope file to inject
-  `linear_issue_id: <id>` into the frontmatter (and the embedded
-  `<script type="application/yaml" id="spades-frontmatter">` block
-  in HTML mode). Record dispatch mode.
-- **File sub-agent failed** → abort with the error; the Linear
-  Issue may exist but is orphaned. Surface clearly.
-- **Linear sub-agent failed** → keep the local file (canonical),
-  surface the failure, recommend a manual re-run later. Do NOT
-  block on Linear failure.
+After the wave, the coordinator:
 
-### When `backend: local`
+- **All ok** → inject `linear_issue_id: <id>` into the `.md`
+  frontmatter (and the embedded frontmatter block of the `.html`).
+  Record the dispatch mode.
+- **File worker failed** → abort with the error; a Linear Issue may
+  exist without a file, so say so.
+- **HTML worker failed** → keep the `.md`, surface the render error,
+  continue.
+- **Linear worker failed** → keep the local file, surface the
+  failure, offer a retry. The local file is canonical.
 
-No fan-out — Step 7 writes the file synchronously and exits. The
-local file IS canonical. Nothing else to mirror.
-
-## Step 9 — Confirm
+## Step 8 — Confirm
 
 ```
 ✓ Scope created: S-add-ai-helper-bot
 ✓ Title:         Add AI Helper Bot
 ✓ Project:       closed-door-security-website
 ✓ Status:        scoped
-✓ Linear Issue:  M-1234   (only when backend: linear)
+✓ Linear Issue:  M-1234   (backend: linear only)
 
 Next:
   /spades:plan S-add-ai-helper-bot     — break this scope into plans
   /spades:review S-add-ai-helper-bot   — optional second opinion before planning
 ```
 
-## Edit Mode
+The second-opinion suggestion is a pointer; this skill invokes no
+other skill.
 
-When editing an existing scope:
+## Edit mode
 
-1. Read the file.
-2. Show the current content and highlight any weak/missing fields.
-3. Walk the human through filling the gaps.
-4. Write the file back, preserving the `id:` and `created:`, updating
-   `updated:` to today.
-5. If `backend: linear` and `linear_issue_id:` is present, also push
-   the description update to Linear.
+1. Read the `.md`.
+2. Show the current content and highlight weak or missing fields.
+3. Walk the human through the gaps, one field at a time.
+4. Write the file back, preserving `id:` and `created:`, setting
+   `updated:` to today, and appending
+   `- YYYY-MM-DD: Scope edited — <fields changed>.` to the audit
+   trail. In HTML mode, re-dispatch `worker-html-scope`.
+5. With `backend: linear` and a `linear_issue_id:`, push the updated
+   description to the Linear Issue.
 
-Never silently overwrite a scope file. If the human's edits conflict
-with current content, ask before clobbering.
+Where the human's edits conflict with existing content, ask before
+replacing it.

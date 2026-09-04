@@ -1,123 +1,70 @@
 ---
 name: newproject
-description: Create a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades-anywhere:setup asks for an active project that doesn't exist yet. Writes .spades-anywhere/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 0.3.0
+description: Create a new SPADES Project record — the long-lived container above Scopes (a real-world initiative, a service area, a long-lived effort). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades-anywhere:setup asks for an active project that doesn't exist yet. Writes .spades-anywhere/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
+version: 0.4.0
 ---
 
 # /spades-anywhere:newproject
 
-You are creating a new Project record. A Project is the long-lived
-container above Scopes — typically a repo or set of repos that share an
-identity (a service, a product surface, a marketing site).
+You are creating a Project record — the long-lived container above
+Scopes: a family's events, a hiring function, a house move, a book.
 
-Read `docs/FRAMEWORK.md` § Hierarchy and § .spades-anywhere/ Local Layout before
-running. The Project frontmatter schema below mirrors that contract.
+Read `docs/FRAMEWORK.md` § Hierarchy, § .spades-anywhere/ Local
+Layout, § Bootstrap Order, and § Output Format before running.
 
 ### Output format
 
-This skill honours `review_format:` from
-`.spades-anywhere/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML) → Universal
-rule`. In **both** modes, write the Project record as
-`.spades-anywhere/projects/<slug>.md` — this is the AI-readable
-source of truth and the canonical record. In HTML mode,
-**additionally** render via the sibling
-`${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html` and write
-`.spades-anywhere/projects/<slug>.html` for the human's view,
-then auto-open via the OPEN_CMD prelude. HTML mode is additive
-— the `.md` always exists; the `.html` is added in HTML mode.
-
-**HTML mode is review-via-file, not review-via-CLI.** Do NOT paste
-the Project record body to the CLI for the human's approval before
-Step 3 writes the file. The file IS the review surface. Step 3
-writes a working draft and auto-opens it; the human reviews in the
-browser. To iterate, apply targeted edits to the file (the human
-reloads to see changes) — never re-paste a new full draft to the
-CLI. In CLI mode the existing draft-then-paste workflow is fine.
+- **Both modes** — `.spades-anywhere/projects/<slug>.md`, the
+  canonical record.
+- **HTML mode** — additionally `.spades-anywhere/projects/<slug>.html`
+  from `${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html`,
+  auto-opened as the review surface; iteration is a targeted `.md`
+  edit plus a re-render.
+- **CLI mode** — the record is pasted for confirmation before the
+  write.
 
 ## Pre-Flight
 
-1. **Require a backend (read `.spades-anywhere/config`).** This skill
-   needs to know the backend, which lives in the config. Probe:
+Probe `.spades-anywhere/config`. `present` → read `backend:` and
+`review_format:` (this is also the state when
+`/spades-anywhere:setup` invokes this skill inline during bootstrap,
+with `project:` unset for Step 4 to fill). `missing` → abort: *"Run
+`/spades-anywhere:setup` first — it configures the backend and, on
+the same pass, creates your first project."* Setup creates the
+project itself; the `setup → newproject` edge points one way.
 
-   ```bash
-   [ -f .spades-anywhere/config ] && echo present || echo missing
-   ```
+## Step 1 — Gather
 
-   - **`present`** → read `backend:` and proceed. This is also the
-     state when `/spades-anywhere:setup` invokes this skill inline
-     during first-run bootstrap: setup writes the config (Step 3)
-     *before* the inline call (Step 3.5), so the backend is always
-     on the store by the time this skill runs. `project:` may be
-     unset then — expected; this skill's Step 4 fills it in.
-   - **`missing`** → `/spades-anywhere:setup` has not run. Abort:
-     *"Run `/spades-anywhere:setup` first — it configures the backend
-     and, on that same single pass, creates your first project."* Do
-     **not** bootstrap config here, and do **not** tell the human to
-     run setup *and then re-run this skill* — setup creates the
-     project itself. One-directional edge (`setup → newproject`); no
-     cycle. See `docs/FRAMEWORK.md § Bootstrap Order`.
-2. **Read the backend** from `.spades-anywhere/config`'s `backend:` field. The
-   branches below act according to that value.
+Conversationally:
 
-## Step 1 — Gather Project Information
+- **Title** — *"Family events"*, *"Q3 hiring round"*. The slug
+  derives from it.
+- **Description** — two or three sentences: what it is, why it
+  exists, who owns it.
+- **Places** — where the project's material lives: a shared drive
+  folder, a Notion space, a repo URL. Recorded under `repos:`; may
+  be empty for now.
+- **Owners** — names, handles, or email addresses, at least one.
 
-Ask the human (conversationally, not as a form) for:
+### Slug
 
-- **Title** — human-readable name. e.g. *"Closed Door Security Website"*.
-  Derive the slug from this via the rule below.
-- **Description** — 2–3 sentences. What is this project? Why does it
-  exist? Who owns it?
-- **Repos** — list of repository URLs that compose the project. At
-  least one. Multiple is fine.
-- **Owners** — list of email addresses or handles. At least one.
+Lowercase; runs outside `[a-z0-9-]` to a single hyphen; trim;
+truncate to 64 characters; reject empty, a leading hyphen, `..`, or
+a slug that matches an existing project file. *"Family events"* →
+`family-events`. Confirm via `AskUserQuestion`: **Use this slug** /
+**Edit the slug**.
 
-### Slug derivation
+## Step 2 — Collision check
 
-The slug is the project's stable ID. Derive it from the title:
+- **Local** — an existing `.spades-anywhere/projects/<slug>.md`
+  aborts: *"A project named `<slug>` already exists."*
+- **Linear** (`backend: linear`) — an existing Linear Project of the
+  same name → `AskUserQuestion`: **Bind to the existing Linear
+  Project** (recommended) / **Create a separate one**.
 
-1. Lowercase the whole thing.
-2. Replace spaces and any non-`[a-z0-9-]` runs with single hyphens.
-3. Trim leading and trailing hyphens.
-4. Truncate to 64 characters.
-5. Reject if the result is empty, starts with a hyphen, contains `..`,
-   or matches an existing project file.
+## Step 3 — Write and mirror (fan-out)
 
-Example: *"Closed Door Security Website"* → `closed-door-security-website`.
-
-Show the derived slug to the human and ask (via `AskUserQuestion`):
-
-- **Use this slug** (recommended)
-- **Edit the slug** (free-form fallback for unusual cases)
-
-## Step 2 — Collision Check
-
-Before writing anything:
-
-1. **Local check.** If `.spades-anywhere/projects/<slug>.md` already exists,
-   abort with: *"A project named `<slug>` already exists. Pick a
-   different title or edit the existing project."*
-2. **Linear check** (only when `backend: linear`). Query the backend
-   for an existing Linear Project with the same name. If one exists,
-   ask the human whether to:
-   - **Bind to the existing Linear Project** (recommended — reuses it)
-   - **Create a separate Linear Project** (you'll be asked to pick a
-     differentiated name)
-
-## Step 3 — Create the Project
-
-**Read `review_format:` from `.spades-anywhere/config` and branch on the file
-format.** Step 3 MUST write a Project file before exiting — never
-print the project record to the CLI only, **and never paste the
-project body to the CLI for human approval before this step writes
-the file in HTML mode**. The file IS the review surface in HTML
-mode (see § Output format above).
-
-### When `backend: local`
-
-#### Step 3.A — Write the canonical `.md` (both modes)
-
-Write `.spades-anywhere/projects/<slug>.md` with this exact shape:
+### The canonical `.md` (both modes)
 
 ```markdown
 ---
@@ -125,167 +72,102 @@ id: <slug>
 title: "<title>"
 description: "<description>"
 repos:
-  - <repo-url-1>
-  - <repo-url-2>
+  - <place-1>
 owners:
   - <owner-1>
-  - <owner-2>
+status: active
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
+linear_project_id: <uuid>        # backend: linear, injected after the wave
 ---
 
 # <title>
 
-<description, expanded into prose if helpful>
+<description>
 
-## Repos
+## Places
 
-- <repo-url-1>
-- <repo-url-2>
+- <place-1>
 
 ## Owners
 
 - <owner-1>
-- <owner-2>
 
 ## Scopes
 
-<!-- /spades-anywhere:list will populate this on demand; do not maintain by hand -->
+<!-- /spades-anywhere:list renders the live view; not maintained by hand -->
+
+## Audit Trail
+
+- YYYY-MM-DD: Project created.
 ```
 
-#### Step 3.B — Additionally render the HTML (HTML mode only)
+### The `.html` (HTML mode)
 
-When `review_format: html`, after the `.md` in Step 3.A is
-written, render the HTML companion file. The `.md` is unchanged;
-the `.html` is **additive**.
+Rendered from `${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html`
+to `.spades-anywhere/projects/<slug>.html` per `docs/FRAMEWORK.md §
+Output Format → HTML rendering`:
 
+- `frontmatter`: `{ id, title, description, status, created,
+  updated }`, embedded verbatim in `<script id="spades-frontmatter">`
+- `blocks`:
+  - `objective-banner` — the project's sole `open` Objective
+    `{ id, title }` when exactly one exists, else `[]`
+  - `repos-items` — one per place. Fields: `url, label`.
+  - `owners-items` — one per owner. Fields: `name, email` (`—` when
+    absent).
+  - `status-filters` — one chip per Scope status. Fields: `label,
+    count`.
+  - `scopes-rows` — one per Scope. Fields: `id, title, status,
+    plans, updated`.
+  - `audit-events` — one per audit entry. Fields: `date, desc`.
 
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.** Validate the template exists and the named
-blocks below match the markers in the actual file before
-substituting; abort and surface any mismatch. See
-`docs/FRAMEWORK.md § Output Format → HTML rendering: validate and
-use the bundled template` for the canonical rule.
+Required markers: `objective-banner`, `repos-items`, `owners-items`,
+`status-filters`, `scopes-rows`, `audit-events`.
 
-1. **Read the template** at
-   `${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html`.
-2. **Validate** it contains the block markers listed below; if any
-   are missing, abort.
-3. **Substitute placeholders** per `docs/FRAMEWORK.md § Output
-   Format`:
-   - `{{spades.id}}`, `{{spades.title}}`, `{{spades.description}}`,
-     `{{spades.created}}`, `{{spades.updated}}`, `{{spades.status}}`
-     (optional — the project's status; the template defaults it to
-     `active`), and any additional fields the template requires.
-   - The frontmatter YAML block also goes verbatim into the
-     `<script type="application/yaml" id="spades-frontmatter">` tag.
-   - `<!-- SPADES-BLOCK:objective-banner -->` — 0 or 1 item per
-     `docs/FRAMEWORK.md § Objective banner`. Pass the project's
-     sole `open` Objective `{{block.id}}`, `{{block.title}}` when
-     EXACTLY ONE exists in `.spades-anywhere/objectives/`, else `[]`.
-   - `<!-- SPADES-BLOCK:repos-items -->` — repeated once per repo.
-     Per-item: `{{block.url}}`, `{{block.label}}`.
-   - `<!-- SPADES-BLOCK:owners-items -->` — repeated once per
-     owner. Per-item: `{{block.name}}`, `{{block.email|—}}`.
-   - `<!-- SPADES-BLOCK:status-filters -->` — repeated once per
-     status filter chip rendered in the Scopes section. Per-item:
-     `{{block.label}}`, `{{block.count}}`.
-   - `<!-- SPADES-BLOCK:scopes-rows -->` — repeated once per Scope
-     row in the embedded Scopes table. Per-item: `{{block.id}}`,
-     `{{block.title}}`, `{{block.status}}`, `{{block.plans}}`,
-     `{{block.updated}}`.
-   - `<!-- SPADES-BLOCK:audit-events -->` — repeated once per audit
-     entry in both the visible timeline and the
-     `<script type="application/yaml" id="spades-audit-trail">`
-     YAML block. Per-item: `{{block.date}}`, `{{block.desc}}`.
-4. **Write the rendered HTML** to `.spades-anywhere/projects/<slug>.html`.
-5. **Auto-open** via the OPEN_CMD prelude
-   (`docs/FRAMEWORK.md § OPEN_CMD detection prelude`). Print the file
-   path with "open this in your browser" if `OPEN_CMD` is empty.
-6. The `.md` from Step 3.A is unchanged — both files coexist.
+### The wave
 
-### When `backend: linear` — fan-out dispatch
-
-Apply the fan-out pattern from
-`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`. Spawn the two
-sub-agents below **in parallel in a single assistant message with
-multiple `Agent` tool calls** (`subagent_type: general-purpose`):
+Per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`:
 
 | Sub-agent | Resource owned | Returns |
-|-----------|---------------|---------|
-| `worker-file-project` | `.spades-anywhere/projects/<slug>.<ext>` — the local project file in the format chosen by Step 3.A/3.B (CLI → `.md`, HTML → render from sibling `template.html` + auto-open). The file is written **without** `linear_project_id` — the coordinator injects it post-dispatch. | `{ status: ok }` (or `fail` + `error`) |
-| `worker-linear-project` | Linear — create a Project with the given title and description on the team recorded in `.spades-anywhere/config`'s `linear.team_id`. | `{ status: ok, linear_project_id: <uuid> }` (or `fail`) |
+|---|---|---|
+| `worker-file-project` | `.spades-anywhere/projects/<slug>.md`, without `linear_project_id` | `{ status: ok }` |
+| `worker-html-project` *(HTML mode)* | `.spades-anywhere/projects/<slug>.html` | `{ status: ok, path, opened }` |
+| `worker-linear-project` *(`backend: linear`)* | Linear — a Project with the title and description on `linear.team_id` | `{ status: ok, linear_project_id }` |
 
-The Linear sub-agent's prompt includes the Layer-2 freshness probe
-(per `FRAMEWORK.md § Sub-agent Dispatch`). Each sub-agent's prompt
-is self-contained and includes its scope, inputs, and return schema.
+After the wave: all ok → inject `linear_project_id` into the `.md`
+(and the `.html`), record the dispatch mode; file worker failed →
+abort, noting a Linear Project may be orphaned; HTML failed → keep
+the `.md`, continue; Linear failed → keep the local file, offer a
+retry.
 
-After both sub-agents return, the coordinator (this skill body)
-collects results per the failure semantics in
-`FRAMEWORK.md § Sub-agent Dispatch`:
+## Step 4 — Active project
 
-- **Both ok** → targeted edit on the local project file to inject
-  `linear_project_id: <uuid>` into the frontmatter (and into the
-  embedded `<script type="application/yaml" id="spades-frontmatter">`
-  block in HTML mode). Record the dispatch mode used.
-- **File sub-agent failed** → abort; the Linear project may have
-  been created but is orphaned. Surface clearly so the human can
-  delete it from Linear or re-run.
-- **Linear sub-agent failed** → keep the local file (canonical),
-  surface the failure with the offer to retry the Linear mirror
-  later.
-
-The local file is the canonical SPADES record; the Linear Project is
-the tracker mirror. Both should always exist when `backend: linear`.
-
-## Step 4 — Update Active Project
-
-Ask the human (via `AskUserQuestion`):
-
-- **Set as active project** (recommended) — updates `.spades-anywhere/config`'s
-  `project:` field to the new slug.
-- **Leave active project unchanged** — keeps whatever was active.
-
-**When invoked inline by `/spades-anywhere:setup` during bootstrap**
-(config's `project:` is unset — the store's first project), don't
-ask: setting it active is the only sensible outcome, so set it
-active and return to setup.
-
-If chosen "set as active" (or bootstrap):
-
-1. Read `.spades-anywhere/config`.
-2. Set `project: <new-slug>` — replace the existing `project:` line,
-   or **insert one** if it's absent or blank (the bootstrap case,
-   where setup wrote config with `project:` unset).
-3. When `backend: linear`, likewise set `linear.project_id` to the
-   new Linear Project ID — replacing or inserting the line as needed.
+`AskUserQuestion`: **Set as active project** (recommended) / **Leave
+the active project unchanged**. When invoked inline by setup during
+bootstrap (`project:` unset), set it active without asking and
+return. Setting active replaces or inserts `project: <slug>` (and
+`linear.project_id` with Linear) in `.spades-anywhere/config`.
 
 ## Step 5 — Confirm
-
-Print a short summary:
 
 ```
 ✓ Project created: <slug>
 ✓ Title:           <title>
-✓ Repos:           2
+✓ Places:          1
 ✓ Owners:          2
-✓ Linear Project:  <id>    (only when backend: linear)
+✓ Linear Project:  <id>    (backend: linear)
 ✓ Active project:  <slug>  (or: unchanged)
 
 Next:
   /spades-anywhere:scope <title>   — define your first Scope under this project
 ```
 
-## Edge Cases
+## Edge cases
 
-- **No repos yet.** If the human says the project doesn't have a repo
-  yet, accept a placeholder like `tbd` in `repos:` and warn that
-  `/spades-anywhere:ship` will not function for `deliverable_type: code` plans
-  until at least one real repo is recorded. Suggest re-running
-  `/spades-anywhere:newproject` to update.
-- **Owners not on the human's team.** Accept email/handle strings as
-  given; SPADES does not validate identity.
-- **Re-binding a repo to a different project.** SPADES doesn't support
-  this directly — `.spades-anywhere/config` names exactly one active project.
-  If the human needs to switch, they re-run `/spades-anywhere:setup` and pick
-  the other project there.
+- **No place yet** — `repos:` may be `[]`; the human re-runs to
+  add one.
+- **Owners outside the team** — accept the strings as given.
+- **Switching to a different project** — `.spades-anywhere/config`
+  names one active project; the human re-runs
+  `/spades-anywhere:setup` to pick another.

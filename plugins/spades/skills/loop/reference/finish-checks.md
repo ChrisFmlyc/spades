@@ -1,25 +1,24 @@
 # Finish checks — deploy gate and the FINISHED assertions
 
 The probe mechanics for `/spades:loop` Stage 9 (deploy gate) and
-Stage 15 (FINISHED). The stages own *what must be true*; this file
-owns *how you find out*.
+Stage 15 (FINISHED). The stages own what must be true; this file
+owns how you find out.
 
 ## Contents
 
 - Thread sweep — the canonical unresolved-threads query
-- Deploy gate — is deployment configured, did it succeed, what to do
-  when it fails or never arrives
-- FINISHED — the four assertions and the exact probe for each
-- What "nothing open in GitHub" means
+- Deploy gate — is deployment configured, did it succeed
+- FINISHED — the four assertions and the probe for each
 
 ---
 
 ## Thread sweep
 
 The canonical query for unresolved review threads. Stage 7's final
-sweep uses it, Stage 8 re-runs it immediately before merging (a bot
-can post between the sweep and the merge), and FINISHED assertion 2
-uses it on both PRs.
+sweep uses it, Stage 8 re-runs it immediately before merging, and
+FINISHED assertion 2 uses it on both PRs. It is duplicated from
+`bot-review.md` so that this file reads whole; a reference file
+points only at SKILL.md, never at another reference.
 
 ```bash
 gh api graphql -f query='
@@ -32,16 +31,15 @@ gh api graphql -f query='
   }' -F owner=<owner> -F repo=<repo> -F pr=<n>
 ```
 
-A thread is outstanding when `isResolved == false`. Who opened it
-decides who handles it — any `[bot]` goes to `/codereview:loop`, and a
-**human** is never touched and is always a pause.
+A thread is outstanding when `isResolved == false`. A `[bot]` author
+goes to `/codereview:loop`; a human author is a pause.
 
 ---
 
 ## Deploy gate (Stage 9)
 
-A deploy is triggered by the merge to `main`, so it runs against the
-**ship PR's merge SHA**. Two questions, in order.
+A deploy triggered by the merge to `main` runs against the ship PR's
+merge SHA. Two questions, in order.
 
 ### 1. Does this repo deploy at all?
 
@@ -49,22 +47,8 @@ A deploy is triggered by the merge to `main`, so it runs against the
 gh api "repos/{owner}/{repo}/deployments" --jq 'length'
 ```
 
-`0` → **this repo has no deployments configured.** That is a
-perfectly fine state. Record it and continue:
-
-```markdown
-- YYYY-MM-DD: Loop — deploy: not configured.
-```
-
-**Never report "deploy successful" when nothing deployed.** Saying a
-deploy passed when none ran is worse than not checking — it puts a
-claim in the audit trail that no evidence supports. The FINISHED
-block shows `not configured` explicitly for the same reason.
-
-Some stacks (Vercel, Netlify, some GitHub Actions setups) report
-deploys as **check runs** rather than Deployments. If the count is
-`0`, also look for a deploy-shaped check on the merge commit before
-concluding nothing deploys:
+`0` → check for deploy-shaped check runs, since some stacks (Vercel,
+Netlify, some GitHub Actions setups) report deploys that way:
 
 ```bash
 gh api "repos/{owner}/{repo}/commits/<merge-sha>/check-runs" \
@@ -72,8 +56,13 @@ gh api "repos/{owner}/{repo}/commits/<merge-sha>/check-runs" \
         | {name, status, conclusion}]'
 ```
 
-Treat a matching check exactly like a deployment below: `SUCCESS`
-passes, a failure pauses, anything unfinished is polled.
+Nothing in either → the repo has no deployments configured. Record
+`- YYYY-MM-DD: Loop — deploy: not configured.` and continue; the
+FINISHED block shows `not configured` explicitly, so the audit trail
+claims only what happened.
+
+A matching check run is treated exactly like a deployment below:
+`SUCCESS` passes, a failure pauses, anything unfinished is polled.
 
 ### 2. Did it succeed?
 
@@ -85,20 +74,15 @@ gh api "repos/{owner}/{repo}/deployments/<id>/statuses" --jq '.[0] | {state, env
 | `state` | Action |
 |---|---|
 | `success` | Record `Loop — deploy: success (<environment_url>).` and continue to Stage 10. |
-| `failure`, `error` | **Pause.** The Plan shipped but the deploy is broken — that is exactly the moment a human should look. Do not close. |
-| `pending`, `queued`, `in_progress` | Poll at ~60–90s. Deploys are slower than CI. |
-| no deployment for this SHA yet | Poll. If none appears after ~15 minutes while the repo clearly deploys, pause and say so rather than guessing. |
-
-**Deploy failure never closes.** Close writes `status: shipped`, and
-a Plan whose deploy failed has not shipped in any sense the word
-carries. Pause and let the human decide.
+| `failure`, `error` | Pause. The Plan shipped but the deploy is broken; close would write `shipped` over a broken deploy. |
+| `pending`, `queued`, `in_progress` | Poll at 60–90 seconds. Deploys are slower than CI. |
+| no deployment for this SHA yet | Poll. After about 15 minutes in a repo that clearly deploys, pause and say so. |
 
 ---
 
 ## FINISHED (Stage 15)
 
-Four assertions. Verify every one against GitHub — never from memory
-of what the loop did earlier in the run.
+Four assertions, each verified against GitHub.
 
 ### 1. Ship PR squash-merged
 
@@ -106,22 +90,17 @@ of what the loop did earlier in the run.
 gh pr view <ship-pr> --json state,mergeCommit --jq '"\(.state) \(.mergeCommit.oid)"'
 ```
 
-Must be `MERGED` with a merge SHA.
+`MERGED` with a merge SHA.
 
 ### 2. Nothing open in GitHub
 
-Three things, all on both the ship PR and the bookkeeping PR:
+Three things, on both the ship PR and the bookkeeping PR:
 
-**Zero unresolved review threads** — the § Thread sweep query above,
-run on both PRs. (It is duplicated from `bot-review.md` on purpose:
-pointing at that file from this one would be a nested reference, and
-those get partially read. Two copies beat an unreliable read.) Count `isResolved == false` regardless of author: a
-human thread left open counts, and so does a bot's.
+**Zero unresolved review threads** — the § Thread sweep query on
+both PRs, counting `isResolved == false` regardless of author.
 
-**Every check green on the merge commit.** Separate *still running*
-from *failed* — a check in flight has `conclusion: null`, and
-treating that as a failure would pause a Scope that is merely a
-minute from done:
+**Every check green on the merge commit.** A check still running has
+`conclusion: null`; it is pending, not failed:
 
 ```bash
 gh api "repos/{owner}/{repo}/commits/<merge-sha>/check-runs" \
@@ -132,14 +111,13 @@ gh api "repos/{owner}/{repo}/commits/<merge-sha>/check-runs" \
                     and .conclusion != "skipped")] | length) }'
 ```
 
-- `failed > 0` → **not finished**; pause with the failing checks.
-- `pending > 0` → **not yet knowable**; poll at ~60–90s. Post-merge
-  runs on `main` routinely trail the merge by a minute or two. Do not
-  report this as a check failure.
+- `failed > 0` → not finished; pause with the failing checks.
+- `pending > 0` → not yet knowable; poll at 60–90 seconds. Post-merge
+  runs on `main` routinely trail the merge by a minute or two.
 - both `0` → green.
 
-**Any linked issue closed.** `gh pr view --json` has no field for
-this; use GraphQL:
+**Every linked issue closed.** `gh pr view --json` has no field for
+this, so use GraphQL:
 
 ```bash
 gh api graphql -f query='
@@ -149,24 +127,22 @@ gh api graphql -f query='
   }' -F owner=<owner> -F repo=<repo> -F pr=<n>
 ```
 
-Any node with `state: OPEN` → not finished; the PR claimed to close
-an issue and didn't.
+A node with `state: OPEN` → not finished; the PR claimed to close an
+issue and didn't.
 
-### 3. Deploy successful — or not configured
+### 3. Deploy successful, or not configured
 
-Re-read the `Loop — deploy:` marker written at Stage 9. `success` or
-`not configured` both pass; anything else means Stage 9 paused and
-you should not be here.
+Re-read the `Loop — deploy:` marker from Stage 9. `success` and `not
+configured` both pass.
 
 ### 4. Close bookkeeping PR squash-merged
 
-Same probe as assertion 1, against the bookkeeping PR.
+The assertion-1 probe against the bookkeeping PR.
 
 ---
 
-## If any assertion fails
+## When an assertion fails
 
-**Do not print FINISHED.** Pause with the specific assertion that
-failed and its evidence. A FINISHED block that isn't true is worse
-than no block at all — it is the one output the human relies on
-without checking, which is precisely why it must be earned.
+Pause with the specific assertion and its evidence; the FINISHED
+block is printed only when all four hold. It is the one output the
+human trusts without checking, which is why it has to be earned.

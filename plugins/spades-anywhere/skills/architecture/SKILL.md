@@ -1,78 +1,63 @@
 ---
 name: architecture
 description: Create or maintain ARCHITECTURE.md, the project's durable statement of HOW the work is structured — stages, stakeholders, cadence, tools, constraints. Use when someone says "set up ARCHITECTURE.md", "document our process", "what stages does this work move through", "who's involved at each stage", "what's our cadence", "what tools do we use", "what are our hard constraints", "update the architecture doc", "refresh the operating model", or when ARCHITECTURE.md is missing, still an unfilled template, or flagged stale by /spades-anywhere:plan, /spades-anywhere:approve, or /spades-anywhere:review. Also use proactively after a stakeholder change, tool migration, or cadence revision that exposes drift between the doc and reality. The human composes the architecture; this skill structures and probes but never authors it. SKIP when the human's intent is per-Scope acceptance criteria (use /spades-anywhere:scope instead) or process conventions / quality bar (use /spades-anywhere:patterns).
-version: 1.1.0
+version: 1.2.0
 ---
 
-# SPADES-anywhere Architecture
+# /spades-anywhere:architecture
+
+You are helping a human create or maintain `ARCHITECTURE.md` — the
+durable statement of how this project's work is structured. In
+`spades-anywhere` the architecture is the **operating model**: for a
+recurring hiring round, the stages, who is involved, how often it
+runs, and what tools support it; for a party, the venue, suppliers,
+guest list, and timing. A root reference document, peer to
+`INTENT.md`, `PATTERNS.md`, and `ANTI-PATTERNS.md`, that
+`/spades-anywhere:plan`, `/spades-anywhere:approve`, and
+`/spades-anywhere:review` cross-check Plans against.
+
+Read `docs/FRAMEWORK.md` § Asking the Human and § Output Format
+before running.
 
 ### Output format
 
-This skill honours `review_format:` from
-`.spades-anywhere/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`.
-**`ARCHITECTURE.md` itself stays at the repo root as
-human-authored Markdown.** In HTML mode, after writing/refreshing
-`ARCHITECTURE.md` the skill renders a persistent summary at
-`.spades-anywhere/architecture.html` via the sibling
-`${CLAUDE_PLUGIN_ROOT}/skills/architecture/template.html`, and
-a transient preview at `.spades-anywhere/.tmp/architecture.html`
-during the edit flow. In CLI mode, no preview is rendered. The
-Socratic facilitate-never-author flow is identical between modes.
+- **Both modes** — `ARCHITECTURE.md` at the root of the knowledge
+  store, the canonical record.
+- **HTML mode** — additionally two renders from
+  `${CLAUDE_PLUGIN_ROOT}/skills/architecture/template.html`: a
+  persistent `.spades-anywhere/architecture.html` and a transient
+  `.spades-anywhere/.tmp/architecture.html` opened as the review
+  surface for the assembled document.
+- **CLI mode** — the assembled document prints once in the brief.
 
-You are helping a human create or maintain `ARCHITECTURE.md` —
-the durable statement of HOW this project's work is structured.
-In `spades-anywhere`, "architecture" is not tech-stack: it's the
-**operating model** of the work. For a recurring hiring round,
-ARCHITECTURE describes the stages, who's involved, how often it
-happens, what tools support it. For a party, it's venue + suppliers
-+ guest list + timing. For a trip, it's the itinerary + bookings
-+ logistics.
+A root document; no backend mirror.
 
-`ARCHITECTURE.md` is a root reference document, peer to
-`INTENT.md`, `PATTERNS.md`, and `ANTI-PATTERNS.md`. It changes
-infrequently. `/spades-anywhere:plan` and
-`/spades-anywhere:review` cross-check Plans against it.
+## The core rule: facilitate, never author
 
-## The Core Rule: Facilitate, Never Author
+The human's team made real decisions about how this work operates;
+capture them. You may ask, reflect back, propose structure, suggest
+wording, and, in Create mode, offer an explicitly labelled draft
+inferred from what the human shares (process docs, a kickoff brief,
+attached files). Every section lands only after the human confirms
+it; stages, stakeholders, cadences, or constraints the human has
+not stated are questions to ask.
 
-**The human owns the architecture. You structure it. You never
-invent it.**
+## What `ARCHITECTURE.md` is
 
-Same non-negotiable rule as `/spades-anywhere:intent`. The
-human's team has made real decisions about how this work
-operates — your job is to capture them, not invent new ones.
+It owns **how** the work operates. Why it exists is `INTENT.md`;
+approved process conventions are `PATTERNS.md`; deliberate
+avoidances are `ANTI-PATTERNS.md`; per-Scope acceptance criteria
+live on the Scope.
 
-Concretely:
+## Inline template
 
-- **You MAY** ask questions, reflect answers back, propose
-  *structure*, suggest *wording* for something the human has
-  already expressed, and — in Create mode — offer an
-  explicitly-labelled *draft starting point* inferred from
-  whatever the human shares (existing process docs, a kickoff
-  brief, attached files) for the human to accept, reject, or
-  rewrite.
-- **You MUST NOT** invent stages, stakeholders, cadences, or
-  constraints the human did not state; save `ARCHITECTURE.md`
-  before the human has reviewed every section.
-- **Silence is not consent.**
-
-## What ARCHITECTURE.md Is — and Is Not
-
-`ARCHITECTURE.md` owns **how** the work operates. It does NOT
-own:
-
-- **Why** the project exists / for whom → `INTENT.md`.
-- **Approved process conventions** → `PATTERNS.md`.
-- **Things we deliberately avoid** → `ANTI-PATTERNS.md`.
-- **Specific Scope acceptance criteria** — those live on the
-  Scope itself.
-
-## Inline ARCHITECTURE.md Template
+The scaffold `/spades-anywhere:setup` writes and Create mode fills.
+Exactly this shape:
 
 ```markdown
 ---
 last_reviewed: YYYY-MM-DD
+cadence:   # one-off, or the recurrence, e.g. "quarterly"
 ---
 
 # Architecture
@@ -85,16 +70,20 @@ last_reviewed: YYYY-MM-DD
 
 ## Stages
 
-<!-- The phases the work moves through. For a hiring round:
+<!-- The phases the work moves through, one `### <name>` heading
+     each with a one-line description. For a hiring round:
      sourcing -> screening -> interviews -> offer. For a party:
-     concept -> venue -> guest list -> day-of. Capture the
-     sequence and what gets handed off between stages. -->
+     concept -> venue -> guest list -> day-of. Capture what gets
+     handed off between stages. -->
+
+### Stage name
+
+<!-- What happens in this stage and what it hands off. -->
 
 ## Stakeholders
 
-<!-- Who's involved at each stage. Roles + responsibilities.
-     Be specific: name the human owners, name the consulted
-     parties. -->
+<!-- Who's involved at each stage, one `- <name> — <role>` bullet
+     each. Name the owners and the consulted parties. -->
 
 ## Cadence
 
@@ -114,144 +103,86 @@ last_reviewed: YYYY-MM-DD
      to fit inside? -->
 ```
 
-## Where ARCHITECTURE.md Lives
-
-`ARCHITECTURE.md` lives at the **repository root** (or knowledge
-store root for chat-surface contexts), alongside `INTENT.md`,
-`PATTERNS.md`, `ANTI-PATTERNS.md`.
+The placeholder comments stay when the human starts blank. Stages
+as `### <name>` headings and stakeholders as `<name> — <role>`
+bullets let the renderer card and count them.
 
 ## Modes
 
-- **No file** → **Create mode**.
-- **Filled template with placeholder markers** → **Create mode**.
-- **Filled and complete** → **Edit mode**.
+Inspect `./ARCHITECTURE.md`: **Missing** → Create; **unfilled** (two
+or more placeholder comments) → Create in place; **filled** → Edit.
+Confirm via `AskUserQuestion` when ambiguous.
 
-If ambiguous, confirm via `AskUserQuestion`.
+**Create.** Offer via `AskUserQuestion`: **Draft a starting point
+from what's already shared, then I correct it** / **Start blank**.
 
-### Create Mode
+**Edit.** Read the existing file first, then scope via
+`AskUserQuestion`: **Refresh `last_reviewed` only** / **Revise
+specific sections** / **Full review pass**. Untouched sections are
+preserved.
 
-Walk the human through all six sections. Before starting, offer:
+## Conversational style
 
-- *Draft a starting point from what's already shared, then I
-  correct it*
-- *Start blank — I'll describe it myself*
+One section at a time. Probe vague answers ("we have stages" — name
+them). Suggest sharper wording for the human's own point. Reflect
+and confirm before moving on. Match the ceremony to the work.
 
-### Edit Mode
+## The six sections
 
-Use `AskUserQuestion` to scope:
+A locked schema.
 
-- *Refresh `last_reviewed` only*
-- *Revise specific sections*
-- *Full review pass*
+1. **Overview** — what this work is, who it is for, how often.
+2. **Stages** — the phases in sequence and what each hands off.
+3. **Stakeholders** — who is involved at each stage, named, with
+   roles.
+4. **Cadence** — one-off or recurring; per-stage timelines and
+   deadlines. Confirm the `cadence` frontmatter key here; it drives
+   the page's deck.
+5. **Tools & Resources** — the tools in use and where each artefact
+   lives.
+6. **Constraints** — budget, deadline, headcount, vendor
+   availability, regulatory.
 
-**Always read the existing file first** — preserve what's there.
+## `last_reviewed`
 
-## Conversational Style
+Set to today's date on every Create and every meaningful Edit.
 
-1. **One section at a time.**
-2. **Probe vague answers.** "We have stages" — name them.
-3. **Suggest sharper wording, not new substance.**
-4. **Reflect and confirm before moving on.**
-5. **Match ceremony to the work.**
+## Writing the file
 
-## The Six Sections
+Write `./ARCHITECTURE.md` once the human has confirmed every
+section in play.
 
-`ARCHITECTURE.md` has exactly six sections. Locked schema.
+**HTML mode** — after the write, render twice from the template per
+`docs/FRAMEWORK.md § Output Format → HTML rendering`, identical
+inputs, different paths: `.spades-anywhere/architecture.html`
+(persistent) and `.spades-anywhere/.tmp/architecture.html`
+(transient, opened).
 
-### 1. Overview
-What this work is at a high level. Two or three paragraphs.
+- `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
+  plugin_version, cadence }` — `cadence` from the file's own
+  frontmatter, `—` when unset
+- `stages_count`, `stakeholders_count` *(scalars)*
+- `blocks`:
+  - `stages` — one per `### <name>` heading. Fields: `name, desc`.
+  - `stakeholders` — one per `<name> — <role>` bullet. Fields:
+    `name, role`.
+  - `objective-banner` — the project's sole `open` Objective
+    `{ id, title }` when exactly one exists, else `[]`.
+- `prose_sections`: `{ overview_html, cadence_html, tools_html,
+  constraints_html }`
 
-### 2. Stages
-The phases the work moves through. Capture the sequence and
-what gets handed off between stages.
+Required markers: `stages`, `stakeholders`.
 
-### 3. Stakeholders
-Who's involved at each stage. Roles + responsibilities, named.
+## Brief
 
-### 4. Cadence
-Timing. One-off vs recurring? Per-stage timelines, deadlines.
+**HTML mode:**
 
-### 5. Tools & Resources
-The tools and resources the work uses. Where each artefact
-lives.
+```
+✓ ARCHITECTURE.md written (last reviewed YYYY-MM-DD)
+○ .spades-anywhere/architecture.html opened in browser
+Next: /spades-anywhere:patterns · /spades-anywhere:anti-patterns
+```
 
-### 6. Constraints
-Hard constraints: budget, deadline, headcount, regulatory.
-
-## The `last_reviewed` Field
-
-Set to today's date on every Create or meaningful Edit.
-
-## Decision Prompts (AskUserQuestion)
-
-- **Mode confirmation** when ambiguous.
-- **Create-mode start** — *Draft inferred* / *Start blank*.
-- **Edit-mode scope** — *Refresh `last_reviewed` only* / *Revise
-  specific sections* / *Full review pass*.
-
-## Writing the File
-
-Write `./ARCHITECTURE.md` only after the human has reviewed
-every section in play.
-
-**In HTML mode, also write a persistent
-`.spades-anywhere/architecture.html` alongside `ARCHITECTURE.md`.**
-Same template as the transient preview. In CLI mode,
-`.spades-anywhere/architecture.html` is NOT written.
-
-There is **no SCM in spades-anywhere** — no branch, no PR, no
-wait-for-merge gate. The human saves both files to their
-chat-surface knowledge store on their own cadence.
-
-### Per-section review surface (mode-branched)
-
-**Read `review_format:` from `.spades-anywhere/config` and branch.**
-Both modes need a stable review surface alongside the Socratic
-walk — only the surface differs.
-
-#### CLI mode
-
-The per-section reflect-and-confirm summary printed inline during
-the walk IS the review surface. After each section, print the
-captured content as a self-contained block the human can scroll
-back to. No file preview is rendered.
-
-#### HTML mode — transient preview
-
-When `review_format: html`, also render to
-`.spades-anywhere/.tmp/architecture.html` during the edit flow.
-
-**You MUST render via the bundled `template.html`. Do NOT
-hand-roll the HTML.**
-
-1. Read the template at
-   `${CLAUDE_PLUGIN_ROOT}/skills/architecture/template.html`.
-2. Validate the placeholders listed below are present; abort if
-   any are missing.
-3. Substitute:
-   - `{{spades.project_slug}}`, `{{spades.last_reviewed}}`,
-     `{{spades.rendered_at}}`, `{{spades.plugin_version}}`.
-   - Deck scalars: `{{spades.cadence}}` (from ARCHITECTURE.md
-     frontmatter; falls back to `—`), `{{spades.stages_count}}` =
-     number of `stages` items, `{{spades.stakeholders_count}}` =
-     number of `stakeholders` items.
-   - The prose sections via direct substitutions:
-     `{{spades.overview_html}}`, `{{spades.cadence_html}}`,
-     `{{spades.tools_html}}`, `{{spades.constraints_html}}`.
-   - Repeating blocks:
-     - `stages` — one per workflow stage. Fields: `name, desc`.
-     - `stakeholders` — one per stakeholder/role. Fields: `name, role`.
-     - `objective-banner` — 0 or 1 item; per
-       `docs/FRAMEWORK.md § Objective banner` (the project's sole
-       `open` Objective `{ id, title }` when exactly one exists, else
-       an empty list → banner hidden).
-   Required markers: `<!-- SPADES-BLOCK:stages -->`,
-   `<!-- SPADES-BLOCK:stakeholders -->`.
-   Capture Stages as discrete items (`### <name>` + one-line desc) and
-   Stakeholders as `<name> — <role>`, plus `cadence` in the frontmatter,
-   so these substitutions are reliable.
-4. Write to `.spades-anywhere/.tmp/architecture.html`.
-5. Auto-open via the OPEN_CMD prelude.
-
-`ARCHITECTURE.md` itself stays Markdown in both modes — only the
-preview is HTML.
+**CLI mode:** the write confirmation, the assembled
+`ARCHITECTURE.md` once, the same `Next:` line. Remind the human to
+save the file to their knowledge store.

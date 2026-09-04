@@ -1,233 +1,121 @@
 ---
 name: approve
-description: Present a SPADES Plan for human review against the approval checklist, then record the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`. The biggest risk in SPADES is a weak Approval gate.
-version: 0.1.1
+description: Present a SPADES Plan for human review against the approval checklist, then record the routing decision (human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`. The biggest risk in SPADES is a weak Approval gate.
+version: 0.2.0
 ---
 
 # /spades-anywhere:approve
 
-You are running the Approve gate on a drafted Plan. Approval is a gate,
-not a rubber stamp. You walk the human through a fixed checklist, ask
-for the routing decision (who does the work — AI, human, or hybrid),
-and write the result back to the Plan record.
+You are running the Approve gate on a drafted Plan. Approval is a
+gate, not a rubber stamp: you walk a fixed checklist with your own
+assessment of each point, ask the human for the decision, record
+the routing (`human` or `hybrid` — the human does the work in
+`spades-anywhere`; the AI at most assists), and write the result to
+the Plan.
 
 Read `docs/FRAMEWORK.md` § .spades-anywhere/ Local Layout, § Target
-Resolution, and § Asking the Human before running.
+Resolution, § Asking the Human, and § Output Format before running.
 
 ### Output format
 
-This skill honours `review_format:` from `.spades-anywhere/config` per
-`docs/FRAMEWORK.md § Output Format (CLI vs HTML)`. Anywhere this
-skill would today paste the Plan body (and optionally the parent
-Scope) to the terminal for the human's approval review, in HTML
-mode it auto-opens the Plan's existing `.html` file (already written
-by `/spades-anywhere:plan`) via the OPEN_CMD prelude instead. The approval
-prompts and audit-trail writes stay identical between modes.
+The Plan and Scope are read from their `.md` files. CLI mode pastes
+the Plan body alongside the checklist. HTML mode opens the Plan's
+existing `.html` via the OPEN_CMD prelude as the review surface;
+the terminal carries the assessments, prompts, and confirmation.
+After the decision is written in HTML mode, re-render the `.html`.
 
 ## Pre-Flight
 
-1. **Confirm setup + active project.** Abort otherwise.
-2. **Resolve the target Plan** per `docs/FRAMEWORK.md` § Target
-   Resolution. This skill's parameters:
-   - **Artefact type:** Plan (no type-question needed).
-   - **Status filter:** `draft`.
-   - **Zero-candidate suggestion:** `/spades-anywhere:plan S-…` to draft a
-     plan on a Scope.
+1. **Confirm setup and active project.**
+2. **Read `backend:` and `review_format:`.**
+3. **Resolve the target Plan** per `docs/FRAMEWORK.md § Target
+   Resolution` — status filter `draft`; zero candidates →
+   `/spades-anywhere:plan S-…`.
+4. **Read the Plan `.md` and its parent Scope `.md`.**
+5. **Verify ancestors active**; hard abort on an `abandoned` Scope or
+   an `abandoned` / `archived` Project.
+6. **Read `INTENT.md`, `ARCHITECTURE.md`, `PATTERNS.md`,
+   `ANTI-PATTERNS.md`.**
+7. **Read any panel report** at
+   `.spades-anywhere/reviews/<plan-id-lower>-*.md`.
+8. **Open the review surface** per § Output format.
 
-   If the human passed a Plan ID, resolve directly; otherwise run the
-   interactive picker.
-3. **Read the Plan file.** Locate `.spades-anywhere/plans/<filename>.<ext>`
-   where `<ext>` is `md` in CLI mode and `html` in HTML mode (read
-   `review_format:` from `.spades-anywhere/config` first). Same for the parent
-   Scope at `.spades-anywhere/scopes/S-<scope-slug>.<ext>`.
-4. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
-   Resolution → Parent-status precondition`. If the parent Scope is
-   `abandoned`, or its parent Project is `abandoned` / `archived`,
-   abort hard with the canonical error shape. No override.
-5. **Read `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`** so you
-   can assess alignment.
-6. **Open the artefact (HTML mode only).** When `review_format: html`,
-   run the OPEN_CMD prelude from
-   `docs/FRAMEWORK.md § OPEN_CMD detection prelude` and open
-   `.spades-anywhere/plans/<filename>.html` so the human can review it in the
-   browser. Do NOT also paste the plan body to the CLI in this mode —
-   the browser view is the review surface. In CLI mode, present the
-   Plan body in the terminal as the existing checklist describes.
+Before the checklist, offer the second opinion in one line: *"Want
+an independent review first? Run `/spades-anywhere:review P-<id>`,
+then re-run `/spades-anywhere:approve`."*
 
-## The Approval Checklist
+## The checklist
 
-Present each check with your own assessment, then ask for the human's
-decision. Scale review depth to the risk — architecture-touching work
-gets a deep review; granular low-risk tasks get a light one.
+Present each check with your own assessment, scaled to the risk.
 
-### 1. Architecture Alignment
-
-- Does the Plan conform to `ARCHITECTURE.md`?
-- Does it use approved patterns from `PATTERNS.md`?
-- Does it avoid everything in `ANTI-PATTERNS.md`?
-- Any new dependencies, frameworks, or major patterns being introduced?
-
-**Your assessment:** <state alignment, flag concerns>
+### 1. Alignment
+Serves `INTENT.md`; fits the operating model in `ARCHITECTURE.md`;
+follows `PATTERNS.md`; avoids everything in `ANTI-PATTERNS.md`;
+names any new tool, vendor, or commitment it introduces.
 
 ### 2. Completeness
-
-- Are there obvious gaps or missing edge cases?
-- Does the Plan cover the Scope's acceptance criteria?
-- Is error handling addressed?
-- Is the testing approach sufficient for the risk level?
-
-**Your assessment:** <state any gaps>
+Covers the Scope's acceptance criteria; handles the obvious
+contingencies; the evidence per task is specific.
 
 ### 3. Feasibility
-
-- Can this actually be built this way?
-- Are effort estimates realistic?
-- Are task dependencies correctly identified?
-- Are external dependencies (APIs, services, access) accounted for?
-
-**Your assessment:** <state feasibility>
+Doable as described; realistic effort; task dependencies and
+external dependencies (people, bookings, access) accounted for.
 
 ### 4. Risk
+Assumptions valid; risks genuine and none missing; the worst case
+understood; a fallback exists.
 
-- Are the AI's assumptions valid?
-- Are identified risks genuine? Anything missing?
-- What is the worst case if the Plan is wrong?
-- Is there a fallback approach?
+### 5. Scope and granularity
+Tasks the right size; the dependency graph to sibling Plans correct.
 
-**Your assessment:** <state risk picture>
+### 6. Deliverable fit
+`deliverable_type` matches reality: `artefact` has a clear home and
+reference; `action` has a specific evidence-of-completion criterion.
 
-### 5. Scope and Granularity
+## Decision — `AskUserQuestion`
 
-- Is the task breakdown at the right size?
-- Tasks too big? Too small? Should some merge or split?
-- Is the dependency graph between this Plan and other Plans in the same
-  Scope correct?
+1. **Approve.**
+2. **Approve with notes** — capture the concerns (free-form).
+3. **Revise** — capture what changes (free-form).
+4. **Reject** — the approach is wrong; back to scoping.
 
-**Your assessment:** <state granularity>
+## Routing — `AskUserQuestion` (Approve outcomes only)
 
-### 6. Deliverable Fit
+1. **Human** — the human does every task; `/spades-anywhere:do`
+   marks the start and restates the acceptance criteria.
+2. **Hybrid** — per task. Walk every task: *"Task <N> — '<title>'.
+   Who does this one — human, or ai (the AI drafts, researches, or
+   structures; you act)?"*, offering the planner's draft as the
+   recommended option. Every task carries a `- **Routing:** human |
+   ai` bullet before the approval is saved.
 
-- Does the Plan's `deliverable_type:` match reality? (`code` vs
-  `artefact` vs `action`)
-- For `code`: is the work PR-able as a single coherent change?
-- For `artefact`: is the artefact form clear (where it'll live, how
-  it'll be referenced)?
-- For `action`: is the evidence-of-completion criterion specific?
+## Write the decision (fan-out)
 
-**Your assessment:** <state deliverable fit>
-
-## Optional Second Opinion
-
-Before the decision step, offer (via `AskUserQuestion`):
-
-- **Yes, run `/spades-anywhere:review`** on this Scope + Plan
-- **No, skip**
-
-If yes, invoke `/spades-anywhere:review` in Full Review mode (Scope + Plan
-together). After the review, resume here.
-
-This is always optional and never replaces the checklist.
-
-## Decision
-
-Ask the human (via `AskUserQuestion`):
-
-1. **Approve** — Plan is good. Proceed.
-2. **Approve with notes** — Plan is acceptable; note concerns to watch.
-3. **Revise** — Plan needs changes. Specify what.
-4. **Reject** — Fundamental approach is wrong. Back to scoping.
-
-When "Approve with notes" or "Revise" is chosen, follow up with a
-free-form prompt for the notes.
-
-## Routing Decision (Only When Approved)
-
-If the decision was Approve or Approve-with-notes, ask via
-`AskUserQuestion`. `spades-anywhere` has no AI-autonomous branch —
-the human always does the work — so routing has two options only:
-
-1. **Human** — `/spades-anywhere:do` records the assignment in the backend;
-   a human picks this up and does the work.
-2. **Hybrid** — split per task. The human owns most tasks; AI assists
-   on selected tasks by producing drafts, research, structure, or
-   decision frames — the human reviews and applies. Per-task routing
-   is recorded as a `- **Routing:** ai | human` bullet under each task
-   in the Plan body (the Plan template already provisions this field;
-   see `/spades-anywhere:plan` § Tasks).
-
-   When the human picks Hybrid, walk each task and ask:
-
-   > *Task <N> — "<title>". Who does this one — ai or human?*
-
-   Update the Plan body's Routing field for each task accordingly.
-   If the Plan was drafted with Routing guesses by `/spades-anywhere:plan`,
-   show those guesses as the recommended option in the per-task
-   AskUserQuestion; the human can accept or revise.
-
-   Plans MUST have a Routing field on every task before approval
-   completes when `delivery: hybrid`. If any task is missing it,
-   refuse to save the approval and re-prompt.
-
-Notes:
-- For `deliverable_type: action` (server install, vendor call),
-  Human is the typical choice.
-- For `deliverable_type: code`, Hybrid is the typical choice — AI
-  drafts, the human reviews and commits.
-
-## Write the Decision (fan-out dispatch)
-
-Apply the fan-out pattern from
-`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`. Spawn the
-following sub-agents **in parallel in a single assistant message
-with multiple `Agent` tool calls** (`subagent_type:
-general-purpose`):
+One wave per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`:
 
 | Sub-agent | Resource owned | Returns |
-|-----------|---------------|---------|
-| `worker-file-plan-approve` | `.spades-anywhere/plans/P-<…>.<ext>` — update frontmatter (`status: approved` \| `rejected` \| keep `draft`; `delivery: human \| hybrid`; `updated: <today>`) and append to audit trail: `- YYYY-MM-DD: Approved by <human> — routing: <routing>. Notes: <any notes>.` For `delivery: hybrid` also write the per-task Routing fields under each task. | `{ status: ok }` |
-| `worker-file-scope-approve` | `.spades-anywhere/scopes/S-<scope-slug>.<ext>` — update Scope frontmatter (`updated: <today>` only; status stays at `planning` — the Plan's own `status: approved` carries the approval gate decision; the Scope advances when the first child Plan transitions into `delivering`) and append a short audit-trail entry referencing the plan ID. | `{ status: ok }` |
-| `worker-linear-approve` *(only when `backend: linear`)* | Linear — call `record_approval(plan_id, decision, routing, notes)`: (1) post a comment on the Plan's sub-issue with decision + routing, (2) update sub-issue status to "Approval", (3) apply routing label (`human-delivery`, `hybrid-delivery`). Includes the Layer-2 freshness probe. | `{ status: ok }` |
+|---|---|---|
+| `worker-file-plan-approve` | `.spades-anywhere/plans/P-<…>.md` — `status: approved` (or `rejected`, or `draft` on Revise), `delivery: human \| hybrid`, `updated: <today>`, per-task `Routing:` for hybrid, audit line `- YYYY-MM-DD: Approved by <human> — routing: <routing>. Notes: <notes>.` (or `Revise requested: …` / `Rejected at approve: …`) | `{ status: ok }` |
+| `worker-file-scope-approve` | `.spades-anywhere/scopes/S-<…>.md` — `updated: <today>` and a one-line audit entry; the Scope stays `planning` | `{ status: ok }` |
+| `worker-linear-approve` *(`backend: linear`)* | Linear — `record_approval(plan_id, decision, routing, notes)`: a comment on the sub-issue, the `approved` workflow state (or `plan-rejected` label), routing label `human-delivery` / `hybrid-delivery` | `{ status: ok }` |
 
-No back-write — `linear_issue_id` is already in the Plan file from
-`/spades-anywhere:plan`. After sub-agents return, the coordinator collects
-results per the failure semantics in
-`FRAMEWORK.md § Sub-agent Dispatch`:
+In HTML mode, re-render the Plan's `.html` after the write. After
+the wave: all ok → record the dispatch mode; plan file failed →
+abort; scope file failed → surface for a manual patch; Linear
+failed → keep local files, offer a retry.
 
-- **All ok** → record dispatch mode and proceed to Confirm.
-- **`worker-file-plan-approve` failed** → abort with the error;
-  surface partial state to the human.
-- **`worker-file-scope-approve` failed** → surface the failure;
-  the plan file is correct, scope rollup needs manual patch.
-- **`worker-linear-approve` failed** → keep local files
-  (canonical), surface the Linear failure, offer retry. Do NOT
-  block.
-
-### When `backend: local`
-
-Only the two file sub-agents are dispatched (no Linear). Local
-files are canonical.
-
-## Confirm and Hand Off
+## Confirm and hand off
 
 ```
-✓ Plan approved: P-rag-pipeline-lookup-3HyD
-✓ Routing:       ai (auto-delivery)
+✓ Plan approved: P-book-the-venue-3HyD
+✓ Routing:       human
 ✓ Status:        approved
-✓ Notes:         "watch for rate limits on the embedding API"
+✓ Notes:         "confirm the deposit is refundable before paying"
 
 Next:
-  /spades-anywhere:do P-rag-pipeline-lookup-3HyD   — begin delivery
+  /spades-anywhere:do P-book-the-venue-3HyD   — start the work
 ```
 
-## If Revise
-
-- Apply a `plan-rejected` label (Linear) or note (local).
-- Hand back to `/spades-anywhere:plan` to apply the human's feedback.
-- Do NOT begin Do-phase work.
-
-## If Reject
-
-- Apply `plan-rejected`.
-- Discuss with the human whether the Scope itself needs revision or a
-  different approach is needed.
-- Do NOT attempt to salvage the Plan after a hard reject.
+**Revise** → the Plan stays `draft`; back to `/spades-anywhere:plan`
+with the notes. **Reject** → `rejected`; discuss whether the Scope
+needs revision, and start a fresh Plan.
