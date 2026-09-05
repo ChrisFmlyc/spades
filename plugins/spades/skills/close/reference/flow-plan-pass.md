@@ -11,7 +11,7 @@ parent Scope up. Everything else is SKILL.md's shared machinery
 - P1 — Pre-flight and target resolution
 - P2 — Verify the ship PR merged
 - P3 — Close-out edits (Plan, Scope rollup)
-- P4 — Commit, PR, merge, cleanup, mirror
+- P4 — Commit, PR, merge, retention, mirror
 - P5 — Confirm
 
 ## P1 — Pre-flight
@@ -46,14 +46,19 @@ gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy
   `/spades:close <plan_id> --reject "reason"`."* The human picks the
   flow.
 
-Then **B2** with the branch `chore/close-<plan_id lower-cased,
-without P->` (e.g. `chore/close-rag-pipeline-lookup-3hyd`).
+Identify every code Plan in this Scope participating in the same verified
+PR. Use the Scope's recorded PR branch and each Plan's `PR opened:` marker;
+recover a missing post-push marker from the PR association and approved
+records, without claiming unrelated Plans shipped. Then **B2** with the
+Scope close-out description and preferred `chore/close-<scope-slug>` name.
+One bookkeeping PR records the shared shipment.
 
 ## P3 — Close-out edits
 
 ### P3.1 — Plan
 
-In `.spades/plans/<plan_id>.md`: `status: shipped`, `updated:` today,
+For each participating code Plan in the bookkeeping worktree, set
+`.spades/plans/<plan_id>.md` to `status: shipped`, `updated:` today,
 and append:
 
 ```markdown
@@ -62,7 +67,8 @@ and append:
 
 ### P3.2 — Scope rollup
 
-Read every sibling Plan, counting this one as `shipped`, and
+Read every sibling Plan, counting the verified PR's participating Plans
+as `shipped`, and
 classify each as `shipped`, `rejected`, or in flight.
 
 | Situation | Action |
@@ -97,7 +103,7 @@ A declined one leaves the Scope unchanged and appends to the Plan:
 - YYYY-MM-DD: Scope rollup deferred (mixed-terminal; human declined).
 ```
 
-## P4 — Commit, PR, merge, cleanup, mirror
+## P4 — Commit, PR, merge, retention, mirror
 
 **B3** with:
 
@@ -113,9 +119,9 @@ Scope <scope_id> rolled up to `done`.   # only when rolled up
 Then **B4** (body lists the Plan, Scope, ship PR, merge SHA,
 merged-by, files touched), **B5**, **B6**, and **B7** with:
 
-- Plan sub-issue → Done.
+- Each participating Plan sub-issue → Done.
 - Parent Issue → Done, only when every sub-issue is Done.
-- Comment on the sub-issue: *"Shipped. PR: `<URL>` (squash-merge
+- Comment on each participating sub-issue: *"Shipped. PR: `<URL>` (squash-merge
   `<merge-sha>` by `@<login>`). Bookkeeping audit:
   `<bookkeeping-pr-url>`."*
 
@@ -124,10 +130,10 @@ merged-by, files touched), **B5**, **B6**, and **B7** with:
 ```
 ✓ Ship PR merged:        <URL>  (merge <short-sha> by @<login>)
 ✓ Bookkeeping PR merged: <bookkeeping-pr-url>
-✓ Plan shipped:          <plan_id>
+✓ Plans shipped:         <participating-plan-ids>
 ✓ Scope:                 <scope_id> (done — all plans shipped)   # when rolled up
 ✓ Linear mirror:         sub-issue Done, parent Issue Done       # backend: linear
-✓ Working tree:          clean, on main
+✓ Working tree:          retained at <worktree-path>
 ✓ Status:                shipped
 
 Next:

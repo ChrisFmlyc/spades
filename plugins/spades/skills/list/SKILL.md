@@ -1,7 +1,7 @@
 ---
 name: list
 description: List active SPADES Scopes (and Objectives), optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "list objectives", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades/config`.
-version: 3.5.0
+version: 3.6.0
 ---
 
 # /spades:list
@@ -42,15 +42,24 @@ and prints a one-line brief with the path.
 
 ### `backend: local`
 
+Discover records across registered worktrees, including Scopes not yet
+merged. Group by Scope ID and use its recorded branch's worktree while it
+is active. For a completed delivery PR, use the verified close-out records
+in its bookkeeping worktree or merged default-branch history. Report
+conflicting copies rather than silently selecting by timestamp. Read-only
+reporting does not switch, pull or clean any checkout. Classify dependencies
+using `docs/FRAMEWORK.md § Scope Worktrees`; a confirmed PASS on the same
+branch unblocks delivery without counting as shipped.
+
 1. Glob `.spades/scopes/*.md`; keep those whose `project:` matches.
    Read `status`, `title`, `priority`, `type`.
 2. For each Scope glob `.spades/plans/P-*.md` with `scope:` set to
    it; read `id_suffix`, `status`, `depends_on`. Classify each Plan:
    - **shipped** — `status: shipped`
    - **in progress** — `delivering`, `evaluating`, `shipping`
-   - **ready** — `approved` and every `depends_on` sibling `shipped`
+   - **ready** — `approved` and every dependency ready per § Scope Worktrees
    - **blocked** — not `shipped` / `rejected`, and a `depends_on`
-     sibling not `shipped`
+     sibling not ready per § Scope Worktrees
    - **draft** — `draft` and not blocked
    - **rejected** — `rejected`
 
@@ -142,14 +151,14 @@ empty.
     Run /spades:scope S-add-ai-helper-bot to fill the gaps
   ```
 
-- A `delivering` Plan with unshipped dependencies → `⚠ blocked`.
+- A `delivering` Plan with dependencies not ready per § Scope Worktrees → `⚠ blocked`.
 - An `approved` Plan with `delivery: undecided` → `⚠ routing not
   set`; re-run `/spades:approve`.
 - A Scope with blocked Plans gets one warning line per blocked Plan:
 
   ```
   ⚠ S-add-newsletter has 1 blocked Plan:
-      P-launch-announcement-7QkP — waiting on P-deploy-bot-9XaZ to ship
+      P-launch-announcement-7QkP — waiting on P-deploy-bot-9XaZ to pass evaluation or ship
   ```
 
 ### Drift (`backend: linear`)

@@ -1,7 +1,7 @@
 ---
 name: do
 description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 3.7.0
+version: 3.8.0
 ---
 
 # /spades:do
@@ -47,59 +47,23 @@ so the page stays current.
      `/spades:plan` for that ancestor — rejections do not cascade,
      so the human replans it (or rejects the dependants) first. See
      `docs/FRAMEWORK.md § Plan rejection — no cascade`.
-   - A dependency not yet `shipped` → ask via `AskUserQuestion`:
+   - A dependency neither `shipped` nor ready on the same Scope branch
+     per § Scope Worktrees → ask via `AskUserQuestion`:
      **Wait** (abort, finish the dependency first) / **Proceed
      anyway** (record the override in the audit trail).
 8. **Open the review surface** per § Output format.
 
-## Step 1 — Feature branch (`deliverable_type: code`)
+## Step 1 — Scope worktree
 
-Do-phase commits land on a branch named for this Plan; `/spades:ship`
-pushes it later. `artefact` and `action` Plans skip this step.
+Resolve the parent Scope's branch and enter its worktree per
+`docs/FRAMEWORK.md § Scope Worktrees`, using `/repo:newbranch --resume
+<branch>`. Scope already created the branch; Do uses it for every Plan,
+including artefact/action records. Carry the returned path through every
+command and worker dispatch, and record the branch in Step 2's audit line.
 
-Check where you are:
-
-```bash
-git rev-parse --abbrev-ref HEAD
-git status --porcelain
-```
-
-- **On `main` / `master`** → derive the name below, validate it
-  against `/repo:branch`, and run `git switch -c <name>`. Any
-  uncommitted changes ride onto the new branch; SPADES-owned
-  artefacts are swept into the first commit per § Carry-Forward, and
-  other files stay the human's work in progress.
-- **On this Plan's branch** → resume; note it in the audit trail.
-- **On another Plan's branch** → ask via `AskUserQuestion`: **Switch
-  to a new branch off main for this Plan** / **Keep working on this
-  branch (bundling related work)** / **Abort**.
-
-### Branch name
-
-Slug the Plan `title:` per `/repo:newbranch` § Slug generation:
-lowercase, non-`[a-z0-9]` runs to `-`, collapse and trim hyphens,
-truncate at the last `-` at or before 48 characters.
-
-Prefix from the first keyword hit in the lowercased title:
-
-1. `fix`, `bug`, `regression`, `hotfix` → `fix/`
-2. `refactor`, `restructure`, `cleanup`, `rename` → `refactor/`
-3. `doc`, `docs`, `readme`, `comment` → `docs/`
-4. `chore`, `bump`, `config` → `chore/`
-5. otherwise → `feat/`
-
-A title of two words or fewer with no keyword hit is ambiguous: ask
-via `AskUserQuestion`, listing the five prefixes. The result must
-match `/repo:branch`'s regex
-`^(feat|fix|chore|docs|refactor|rnd|hotfix)/[a-z0-9]([a-z0-9-]{0,48}[a-z0-9])?$`;
-an empty or invalid slug means asking the human to rename the Plan.
-
-*"RAG Pipeline Lookup"* → `feat/rag-pipeline-lookup`.
-
-In-place creation with `git switch -c` (rather than
-`/repo:newbranch`'s worktree) keeps Do, Evaluate, and Ship on one
-working tree, sharing the same Plan file. Hold the branch name for
-Step 2's audit line.
+Existing commits belong to this branch's PR. Resolve pre-existing
+uncommitted changes per § Carry-Forward before editing or committing;
+reuse decisions already recorded for this run.
 
 ## Step 2 — Mark delivering
 
@@ -138,16 +102,11 @@ parent Issue to their `delivering` workflow states.
      spike code is not merged.
    - **`straight-through`** — a mechanical change covered by
      existing tests.
-4. Commit as you go, one commit per task by default, with
-   conventional messages. Each commit sweeps the SPADES allowlist so
-   artefacts travel with the work:
-
-   ```bash
-   git add -- .spades AGENTS.md INTENT.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md 2>/dev/null || true
-   ```
-
-   Files outside the allowlist are the human's work in progress and
-   stay unstaged.
+4. Commit as you go, one commit per task by default, with conventional
+   messages. Include the task's changes and approved pending artefacts
+   using `docs/FRAMEWORK.md § Carry-Forward → Commit contents`. Verify the
+   whole proposed commit, including any pre-existing index entries, and
+   preserve excluded staged and unstaged work.
 5. When the Plan turns out to be wrong mid-task, stop and surface
    the discrepancy: revise via `/spades:plan` and `/spades:approve`,
    or push through with a documented deviation in the audit trail —

@@ -1,7 +1,7 @@
 ---
 name: approve
 description: Present a SPADES Plan for human review against the approval checklist, then record the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`. The biggest risk in SPADES is a weak Approval gate.
-version: 3.3.0
+version: 3.3.1
 ---
 
 # /spades:approve
@@ -108,7 +108,7 @@ One wave per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`,
 |---|---|---|
 | `worker-file-plan-approve` | `.spades/plans/P-<…>.md` — frontmatter `status: approved` (or `rejected`, or `draft` on Revise), `delivery: ai \| human \| hybrid`, `updated: <today>`; per-task `Routing:` bullets for hybrid; audit line `- YYYY-MM-DD: Approved by <human> — routing: <routing>. Notes: <notes>.` (or `Revise requested: <notes>.` / `Rejected at approve: <reason>.`) | `{ status: ok }` |
 | `worker-file-scope-approve` | `.spades/scopes/S-<…>.md` — `updated: <today>` and a one-line audit entry naming the Plan and decision. The Scope's `status:` stays `planning`; the Plan's own status carries the gate. | `{ status: ok }` |
-| `worker-linear-approve` *(`backend: linear`)* | Linear — `record_approval(plan_id, decision, routing, notes)`: comment on the sub-issue, workflow state for `approved` (or `plan-rejected` label on Revise / Reject), routing label `ai-delivered` / `human-delivery` / `hybrid-delivery`. Carries the freshness probe. | `{ status: ok }` |
+| `worker-linear-approve` *(`backend: linear`)* | Linear — `record_approval(plan_id, decision, routing, notes)`: comment on the sub-issue, workflow state for `approved` (or `plan-rejected` label on Revise / Reject), routing label `ai-delivered` / `human-delivery` / `hybrid-delivery`. Carries the resolved worktree context per § Freshness. | `{ status: ok }` |
 
 In HTML mode, re-dispatch `worker-html-plan` after the file write so
 the page shows the decision.

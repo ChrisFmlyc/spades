@@ -46,3 +46,6 @@ node_modules/
 # The committed `.spades/config` carries the shared handoff settings; this
 # file never is. See .claude/skills/spades-handoff/SKILL.md.
 .spades/handoff.local
+
+# Local Playwright MCP debug output.
+.playwright-mcp/

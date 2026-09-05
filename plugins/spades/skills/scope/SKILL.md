@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 3.6.0
+version: 3.7.0
 ---
 
 # /spades:scope
@@ -79,6 +79,10 @@ fuzzy-matches an existing Scope, default to Edit.
 
 ### Fuzzy match
 
+Include active Scopes in registered worktrees when using the local backend;
+a new Scope may not yet exist in the primary checkout. Report the matching
+branch and use that worktree when editing.
+
 1. List the active project's Scopes via the backend interface
    (`list_scopes(filter)`).
 2. Score each against the input: slug substring, title token
@@ -87,6 +91,19 @@ fuzzy-matches an existing Scope, default to Edit.
    `AskUserQuestion` — **Edit `S-<slug>` (<title>)** per candidate,
    plus **Create a new scope**. With no close candidate, go straight
    to Create.
+
+## Step 2.5 — Enter the Scope worktree
+
+**Create:** invoke `/repo:newbranch` with the Scope description and
+configured SCM remote. Use its returned worktree for the conversation's
+repo reads, all records, HTML and workers. Retain `branch` and `base_commit`
+for the Scope frontmatter. Default-branch preparation belongs entirely to
+that skill; surface its refusal without implementing a second path.
+
+**Edit:** resolve the existing Scope's worktree per
+`docs/FRAMEWORK.md § Scope Worktrees`, then re-read the Scope there. Resume
+its branch; pre-existing uncommitted changes require the human's inclusion
+decision before incorporation.
 
 ## Step 3 — Slug (Create mode)
 
@@ -203,7 +220,12 @@ carry the review.
 
 ### The canonical `.md` (both modes)
 
-Path: `.spades/scopes/S-<description-slug>.md`
+Preserve `branch:` and `base_commit:` on every Edit and render round-trip.
+Include them in file-worker payloads; HTML is a view of the same record.
+
+Path: `.spades/scopes/S-<description-slug>.md` in the returned worktree.
+On creation append `Scope worktree established. Branch: <branch>. Base:
+<base_commit>.` to its audit trail.
 
 ```yaml
 ---
@@ -211,6 +233,8 @@ id: S-<slug>
 title: "<title>"
 project: <active-project-slug>
 status: scoped
+branch: <branch returned by /repo:newbranch>
+base_commit: <verified starting commit>
 type: feature | bug | chore | docs | refactor | investigation
 priority: urgent | high | this-cycle | medium | low | backlog | exploratory
 origin: okr | reactive | ad-hoc
@@ -277,7 +301,7 @@ Dispatched in Step 7's wave per `docs/FRAMEWORK.md § worker-html-*`:
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html`
 - `output_path`: `.spades/scopes/S-<description-slug>.html`
 - `frontmatter`: `{ id, title, status, project, type, priority,
-  origin, created, updated }`, also embedded verbatim in
+  origin, branch, base_commit, created, updated }`, also embedded verbatim in
   `<script id="spades-frontmatter">`
 - `criteria_count` *(scalar)*: number of acceptance criteria
 - `blocks`:
@@ -305,7 +329,7 @@ Dispatch one wave per `docs/FRAMEWORK.md § Sub-agent Dispatch
 |---|---|---|
 | `worker-file-scope` | `.spades/scopes/S-<slug>.md`, written without `linear_issue_id:` | `{ status: ok }` |
 | `worker-html-scope` *(HTML mode)* | `.spades/scopes/S-<slug>.html` per Step 6 | `{ status: ok, path, opened }` |
-| `worker-linear-scope` *(`backend: linear`)* | Linear — a parent Issue on the active Linear Project with the Scope's title and body, workflow state for `scoped`. Carries the freshness probe. | `{ status: ok, linear_issue_id }` |
+| `worker-linear-scope` *(`backend: linear`)* | Linear — a parent Issue on the active Linear Project with the Scope's title and body, workflow state for `scoped`. Carries the resolved worktree context per § Freshness. | `{ status: ok, linear_issue_id }` |
 
 With `backend: local` the wave has no Linear worker; the local file
 is the whole record.

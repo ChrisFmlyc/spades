@@ -1,7 +1,7 @@
 ---
 name: close
 description: The single conversational entry point for closing out a Plan, Scope, Project, or Objective. Asks the human what they're doing — finalise as shipped/done/archived/complete (the happy path), reject (Plans only), or abandon (Scopes, Projects, and Objectives). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "close O-…", "complete this objective", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging" — the skill figures out which flow applies.
-version: 4.12.0
+version: 4.13.0
 ---
 
 # /spades:close
@@ -127,47 +127,46 @@ Every flow except the Quick close uses these steps by name.
    `missing` → abort: *"`/spades:close` requires the `repo` plugin
    from the `ai-skills` marketplace. Re-run `/spades:setup` — it
    walks through installing it."*
-4. **Fetch.** `git fetch origin --quiet`. B2 branches straight off
-   `origin/main`, so the current branch, a stale local `main`, and a
-   dirty tree are all fine: uncommitted artefacts ride onto the
-   bookkeeping branch and B3's sweep stages the SPADES-owned ones.
-   Close is the final catch-all for carried-forward artefacts.
+4. **Working context.** Resolve the source Scope/worktree and approved
+   pending records per § Scope Worktrees and § Carry-Forward. Keep the
+   source unchanged while preparing the bookkeeping handoff. Default-branch
+   checks and pulling belong to `/repo:newbranch` in B2.
+
 5. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
    Resolution → Parent-status precondition`, on the Pass route only.
    Reject and Abandon create terminal status; Objectives are
    independent of their Project.
 6. **Open the review surface** per § Output format.
 
-### B2 — Bookkeeping branch
+### B2 — Bookkeeping worktree
 
-Each flow supplies a `chore/<verb>-<slug>` name matching
-`/repo:branch`'s regex
-`^(feat|fix|chore|docs|refactor|rnd|hotfix)/[a-z0-9]([a-z0-9-]{0,48}[a-z0-9])?$`.
-A slug over 50 characters falls back to the suffix chain
-(`chore/close-9xaz-3hyd-28sd`). If the branch already exists from an
-aborted run, abort: *"Bookkeeping branch `<name>` already exists.
-Merge its PR on GitHub then re-run, or delete it (`git branch -D
-<name>`) and re-run."*
+The flow supplies its close-out description and preferred `chore/` name.
+Invoke `/repo:newbranch` with those and the configured remote; it owns
+validation, default-branch preparation and worktree creation. All remaining
+steps operate in the returned absolute directory. Re-read the records
+there before applying edits. Transfer only approved pending source changes,
+merging them with the fresh records and verifying the result. Preserve the
+source worktree's files and index.
 
-```bash
-git switch -c <bookkeeping-branch> origin/main
-```
+On resume, locate the existing bookkeeping PR/branch for the same target
+and call `/repo:newbranch --resume <branch>`; use the recorded worktree
+rather than requiring deletion and recreating it.
 
 ### B3 — Stage and commit
 
-```bash
-git add -- .spades AGENTS.md INTENT.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md 2>/dev/null || true
-```
-
-Commit with the flow's `chore(spades): <verb> <id>` subject and body.
-Paths the sweep picked up beyond the flow's own edits are listed
-under `Outstanding bookkeeping swept up:`.
+Follow `docs/FRAMEWORK.md § Carry-Forward → Commit contents`. Include only
+this flow's edits and approved transferred records, verifying the complete
+proposed commit. Commit through `/repo:branch` with the flow's
+`chore(spades): <verb> <id>` subject and describe any approved extra records.
 
 ### B4 — Open the bookkeeping PR
 
+Pass the draft title/body through `/repo:pr` and write its result to a
+body file. Use the configured remote and explicit head/base branches.
+
 ```bash
-git push -u origin <bookkeeping-branch>
-gh pr create --title "chore(spades): <verb> <id>" --body "…"
+git push -u <configured-remote> <bookkeeping-branch>
+gh pr create --head <bookkeeping-branch> --base <default-branch> --title "<title>" --body-file <body-file>
 ```
 
 Body: `## Summary`, `## Linked artefacts` (IDs, and the ship PR plus
@@ -190,24 +189,19 @@ gh pr view <bookkeeping-pr> --json state,mergeCommit \
 
 - **`MERGED`** → capture the SHA; continue to B6.
 - **`OPEN`** → say so and exit cleanly. Once the human merges it,
-  `/repo:sync` completes the close-out; re-running `/spades:close`
-  is only needed for a Linear mirror. A driver that opened this PR
+  re-run `/spades:close` in the bookkeeping worktree to verify the merge
+  and finish any Linear mirror. A driver that opened this PR
   and can merge it merges it here instead of exiting.
 - **`CLOSED` unmerged** → surface it and stop; the edits are
   unlanded until the PR is re-opened or re-created.
 - **Probe failure** (`gh` error, malformed response) → ask the human
   whether the PR merged; that is the one case only they can answer.
 
-### B6 — Cleanup
+### B6 — Retain the worktree
 
-```bash
-git checkout main
-git pull --ff-only
-git branch -D <bookkeeping-branch>
-git status --porcelain
-```
-
-Residue in the status is surfaced, not fatal.
+Verify the bookkeeping PR is merged and retain its branch, worktree and
+remaining state. Report the merge reference and any uncommitted residue.
+Completion requires no checkout switch, pull or branch/worktree deletion.
 
 ### B7 — Linear mirror (`backend: linear`)
 
@@ -215,12 +209,11 @@ Runs after the bookkeeping commit is on `main`, so Linear never
 leads the audit trail. Each flow states its own transition and
 comment. With `backend: local` the file on `main` is the record.
 
-## With `/repo:sync`
+## Subsequent work
 
-After a ship PR squash-merges: `/spades:close P-<id>` (bookkeeping
-PR, merge verification, Linear mirror), then `/repo:sync` from the
-merged feature branch so it deletes that branch as it brings `main`
-forward. `/spades:loop` runs this sequence itself.
+Close verifies shipment and records its audit PR. The next piece of work
+calls `/repo:newbranch`; default-branch preparation happens there. Cleanup
+is a separate explicit request and does not gate close-out.
 
 ## Edge cases
 
@@ -228,5 +221,5 @@ forward. `/spades:loop` runs this sequence itself.
   before touching git or files.
 - **Bookkeeping PR blocked by branch protection** — B5 sees `OPEN`
   and exits; the next probe after a manual merge continues.
-- **Bookkeeping branch exists from an aborted run** — B2's message
-  gives the two recovery paths.
+- **Bookkeeping branch exists from an interrupted run** — B2 resumes
+  its worktree and PR.

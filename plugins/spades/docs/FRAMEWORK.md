@@ -386,6 +386,8 @@ title: "Add AI Helper Bot"
 project: closed-door-security-website
 status: scoped | planning | delivering | evaluating | shipping | done | abandoned
 type: feature | bug | chore | docs | refactor | investigation
+branch: <prefix>/<slug>             # Scope branch; legacy records may omit
+base_commit: <sha>                  # verified starting commit; legacy records may omit
 created: 2026-05-29
 updated: 2026-05-29
 priority: urgent | high | this-cycle | medium | low | backlog | exploratory
@@ -523,14 +525,14 @@ never meet:
 /spades:setup            (bootstrap — drives prerequisites inline)
    └─► /repo:init, /spades:newproject
                     ⋮
-        human writes the Scope   ← /spades:scope (human-owned, never automated)
+        human writes the Scope   ← /spades:scope → /repo:newbranch + worktree
                     ⋮
 /spades:loop             (delivery — drives phases, aborts on prerequisites)
    ├─► /spades:plan ──────► /spades:approve ──► /spades:do ──► /spades:evaluate
    ├─► /spades:ship ──────► skills/ship/scm-github.md
    ├─► /codereview:loop ──► /codereview:fix
    ├─► /spades:close ─────► (bookkeeping PR)
-   └─► /repo:sync
+   └─► /repo:newbranch     (delegated by Scope and Close)
 ```
 
 ### The three rules that keep it acyclic
@@ -696,6 +698,11 @@ The pattern: **decisions are structured; composition is free-form.**
 ---
 
 ## Target Resolution
+
+After resolving a Scope or a child Plan, establish its working directory
+per § Scope Worktrees before reading delivery inputs or writing records.
+New Scope creation delegates to `/repo:newbranch`; existing work resumes
+its recorded branch. Read-only discovery may search worktrees for the ID.
 
 Several skills act on an existing Scope or Plan: `review`, `plan`,
 `approve`, `do`, `evaluate`, `ship`. If the human invokes one without
@@ -1048,137 +1055,148 @@ SCM drivers MUST emit the prefix; the suffix is free-form within the
 contract. Plans NEVER transition to `status: shipped` without a
 matching audit line.
 
+## Scope Worktrees
+
+A new Scope owns one branch and one worktree. `/spades:scope` delegates
+creation to `/repo:newbranch` before composing or writing the Scope, then
+uses the returned absolute directory for every phase and worker. The
+branch prefix describes the work (`feat/`, `fix/`, `chore/`, and the other
+repo prefixes); all its commits belong to its PR. Scope records `branch:`
+and `base_commit:` in its frontmatter. Paths are machine-local: resolve
+`branch:` through `/repo:newbranch --resume <branch>`, not a committed
+absolute path.
+
+`/repo:newbranch` alone owns default-branch cleanliness, remote discovery,
+pulling available updates, and verifying the starting commit. A caller
+passes its configured remote and the work description; it does not
+reimplement those checks or call `/repo:sync` as a prerequisite. Main or
+master is clean and equal to its remote before new work starts. Existing
+branches and worktrees remain in place.
+
+### Entering or resuming work
+
+Resolve the Scope (or a Plan's parent), call `/repo:newbranch --resume
+<branch>`, and re-read its records in the returned worktree before any
+edits. Explicit working directories also apply to shell commands, HTML
+renderers and subagents. Reuse the current run's validated context; a new
+phase does not create another branch or repeat settled inclusion questions.
+
+For older Scopes without `branch:`, recover the branch from their Do audit
+trail and worktree list, then record it. If none exists, ask which existing
+branch owns the Scope, or delegate a new branch to `/repo:newbranch` and
+copy only the human-approved Scope/Plan records into it. Existing commits
+on a different branch remain with its PR. A missing or merged delivery
+branch is not silently recreated for further delivery: new delivery after
+merge starts a new Scope.
+
+Read-only discovery may inspect other worktrees to locate records. Reports
+name the worktree/revision inspected. A writer operates only in the resolved
+worktree. Standalone writes without a Scope (quick work, setup, project or
+durable-doc maintenance) also enter a worktree through `/repo:newbranch`;
+an explicit continuation resumes its existing branch. Bookkeeping after a
+merge is separate new work, prepared through the same skill.
+
+### Plans share the Scope branch
+
+All Plans in a Scope use its branch. Under `scm: github`, one delivery PR
+contains that Scope's work. A dependency is ready for further work on this
+branch when it is `shipped`, or when it has completed Do and has a confirmed
+PASS after its latest delivery changes. The latter is readiness for local
+execution, not shipment: the Plan stays `evaluating`. Rejected dependencies
+still require replanning. A new change to dependency output invalidates its
+previous PASS and requires relevant dependent verification again.
+
+Before opening or merging the Scope PR, every non-rejected code Plan must
+have a current confirmed PASS and the Scope's accepted criteria must be
+covered. Execute/evaluate siblings first when this is not yet true. Mark
+participating Plans `shipping` together and record the same PR URL on each.
+After merge, close verifies that PR once and records all its participating
+Plans as shipped in one bookkeeping PR. Artefact/action Plans retain their
+own evidence gates; they do not become shipped merely because code merged.
+
+### Retaining work
+
+Merge verification does not switch another worktree's branch or delete
+branches/worktrees. Loop and Close leave their worktrees available. Further
+new work calls `/repo:newbranch`, which prepares the default branch then.
+An explicit cleanup request belongs to `/repo:sync` or the user's tools.
+
+---
+
 ## Freshness
 
-Every SPADES skill reads files from the **local filesystem** — not
-from `origin`. If the local checkout is behind the remote (a PR
-merged on GitHub but `git pull` hasn't run locally), every read is
-against stale code. Audits, plan-drafting, do-phase branch creation,
-and review subagents all silently operate on the wrong source of
-truth.
+New work starts at the clean, current default-branch revision established
+by `/repo:newbranch` (§ Scope Worktrees). Scope, Plan, Do, review, research,
+and other callers delegate that preparation rather than maintaining their
+own default-branch pull, cleanliness or cleanup checks.
 
-### The rule
+Existing Scope work is read from its resolved worktree. Main advancing does
+not turn a Plan's own committed work into unrelated changes or justify
+switching its checkout. Report the inspected branch and commit. When a PR
+needs integration with its updated base, make that a deliberate update to
+the PR branch, then rerun affected checks.
 
-Before any skill that performs cross-cutting reads or branches off
-`main`, the local checkout MUST be in sync with `origin/main`.
-
-How to verify, in one command:
-
-```bash
-git fetch origin --quiet && git rev-list --count main..origin/main
-```
-
-- Returns `0` → local is fresh. Proceed.
-- Returns non-zero → local is behind by N commits. Stop. Run
-  `/repo:sync` (from the `repo` plugin), then re-run the skill.
-
-Skills that read repo state outside their own deliverable
-(`/spades:plan`, `/spades:do`, `/spades:review`, `/spades:research`,
-`/spades:scope`, `/spades:approve`, `/spades:status`,
-`/spades:list`) implicitly depend on this check. Skills that already
-own the sync responsibility (`/repo:sync` is the sync itself)
-satisfy it directly. `/spades:close` is exempt for a different
-reason: it branches off `origin/main`, so local staleness cannot
-affect it.
-
-### Two-layer enforcement
-
-**Layer 1 — Behavioural.** When `/repo:sync`'s "Ready." handoff
-fires (i.e. a feature branch was cleaned up after merge), the
-operator MUST sync before context-switching to a new SPADES skill.
-This is captured as an operating rule in `AGENTS.md § Freshness
-Before Read-Across`.
-
-**Layer 2 — Subagent prompts.** Skills that spawn read-across
-subagents (`/spades:review`'s panel, `/spades:research`'s
-researcher) include a freshness pre-flight directly in the
-subagent's prompt: *"Before reading any files, run `git rev-list
---count main..origin/main` — if non-zero, stop and report that local
-main is behind origin; the user must `/repo:sync` first."* The
-subagent halts before it produces stale findings.
-
-### Why this lives in FRAMEWORK.md
-
-Freshness is not skill-specific — it's a contract every skill
-participates in. Defining it once here means individual skills don't
-repeat the rule; they reference it. Adding a new skill that does
-cross-cutting reads? The skill author reads this section, references
-it in their skill's prose, and the convention propagates.
+Pass the absolute worktree path and intended revision to read-across
+subagents. A review worker must see the PR/Scope revision being reviewed;
+existence of the named files alone is not enough. A worker that receives a
+different checkout returns the mismatch before editing. Default-branch
+preparation stays in `/repo:newbranch`; workers verify their assigned
+context rather than pulling or switching main.
 
 ---
 
 ## Carry-Forward of SPADES-Owned Artefacts
 
-Every phase writes artefacts. Scope writes a Scope file, Plan writes
-a Plan file, Approve and Do append audit-trail lines, Evaluate writes
-evaluation pages. In a repo with an SCM these land as **uncommitted
-changes**, and they accumulate as the loop progresses.
+Scope, Plan, approval and evaluation records accumulate inside the Scope's
+worktree and travel in its PR. Current-run artefacts are authorised work;
+they need no separate permission at every phase. Existing committed work
+on that branch already belongs to its PR and needs no inclusion question.
 
-### The rule
+### Existing uncommitted work
 
-> **Uncommitted SPADES-owned paths never block a phase.** They are
-> carried forward and swept into the next commit the pipeline makes.
-> No skill pauses, prompts, or aborts because SPADES artefacts are
-> pending.
+On entering or resuming a non-default worktree, inspect both staged and
+unstaged changes, including deletions and untracked files, through
+`/repo:newbranch --resume <branch>`. Ask the human which pre-existing
+changes belong in the PR before incorporating them. Reuse an explicit
+answer for the same changes; surface newly discovered unknown edits.
+The decision applies to changes, including overlapping edits in one file,
+rather than assigning ownership to whole paths.
 
-Waiting for artefacts to reach a PR before starting the next phase is
-the failure this rule exists to prevent. Do it and each phase needs
-its own commit and its own PR — the artefact count grows with every
-step, so does the PR count, and the human ends up merging bookkeeping
-instead of shipping work.
+### Commit contents
 
-### The allowlist
+The usual artefact paths are `.spades/`, `AGENTS.md`, `INTENT.md`,
+`ARCHITECTURE.md`, `PATTERNS.md`, and `ANTI-PATTERNS.md`. These locate
+records; path membership does not authorise every change within them.
 
-SPADES-owned paths are exactly:
+Before each commit, inspect the full index and working-tree diff. Assemble
+only current-run changes and pre-existing changes the human approved.
+An ordinary `git commit` includes the entire index, so an allowlisted
+`git add` alone is insufficient. Use a separate temporary index when
+excluded staged content is present, or otherwise select the exact approved
+changes while preserving the user's staged/unstaged state. Full-path
+commits are suitable only when the whole path's diff is approved. For
+mixed ownership within a file, select the approved hunks; ask if their
+separation is ambiguous.
 
-```
-.spades/  AGENTS.md  INTENT.md  ARCHITECTURE.md  PATTERNS.md  ANTI-PATTERNS.md
-```
+Verify the proposed commit diff before committing through `/repo:branch`.
+Afterwards verify its diff and the remaining staged/unstaged content.
+Restore excluded staging relative to the new HEAD, and apply the same
+check before the next commit. Never treat restoring the index as approval
+to include it later. If unrelated work was committed accidentally, stop
+and report it before any push; agree the repair with the human.
 
-Any skill that makes a commit sweeps this allowlist into it:
+### Phase handoffs
 
-```bash
-git add -- .spades AGENTS.md INTENT.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md 2>/dev/null || true
-```
+Do commits its approved code and artefacts. Ship commits remaining approved
+records before pushing. Quick does the same for its marker. Close prepares
+a new bookkeeping worktree through `/repo:newbranch` and transfers only
+approved pending records, preserving their source state until the transfer
+is verified. It applies those changes to the fresh records rather than
+replacing files that may have advanced on main. Every phase leaves excluded
+work in its original worktree. Carry-forward never means switching a dirty
+checkout onto another branch or sweeping an entire directory blindly.
 
-**Allowlist only — never `git add -A` or `git add .`.** The
-distinction is the whole safety property: SPADES stages what SPADES
-wrote, and nothing else.
-
-### Non-SPADES changes
-
-Uncommitted files outside the allowlist are the **human's** work in
-progress. They:
-
-- are never auto-staged by any SPADES skill;
-- never block a phase either;
-- ride along on whatever branch is checked out;
-- are mentioned **once**, in the phase report, so the human knows
-  they are there.
-
-A skill that stages a human's unrelated edits into a Plan's PR has
-committed a worse error than one that leaves them uncommitted.
-
-### Where the sweeps happen
-
-| Phase | Sweep |
-|---|---|
-| `/spades:do` | Each task commit sweeps the allowlist alongside the code it wrote. |
-| `/spades:ship` | Pre-push sweep — the last chance for artefacts to reach the deliverable PR. |
-| `/spades:close` | B3's sweep — the final catch-all, which is why close tolerates a dirty tree by design. |
-| `/spades:quick` | The single quick-path commit sweeps the allowlist. |
-
-Because every committing phase sweeps, the tree is
-**SPADES-clean at every hand-off** and pending artefacts are always
-somebody's to pick up.
-
-### Why this lives in FRAMEWORK.md
-
-The rule spans every phase and the SCM drivers. Stating it once means
-`do`, `ship`, `close`, `quick`, and `loop` reference it rather than
-each inventing its own tolerance for pending files — which is how the
-inconsistency arose: `close` tolerated a dirty tree, `ship` prompted
-about one, and the loop stalled between them.
+---
 
 ## Output Format (CLI vs HTML)
 
@@ -1453,7 +1471,7 @@ prefix, tagline, browser title.
     `.spades/evaluations/<plan-id>-<date>-plan.html` (page 1,
     written at Step 2.5) and
     `.spades/evaluations/<plan-id>-<date>-report.html` (page 2,
-    written at Step 5.5). Both ship in the feature branch's own
+    written at Step 5.5). Both ship in the Scope branch's own
     PR (no separate bookkeeping flow because evaluate runs
     mid-flow, not on `main`).
 
@@ -1569,10 +1587,11 @@ Each sub-agent's prompt should be self-contained and include:
 - **Return schema** — what the coordinator expects back
   (`{ ok: true }` for file writes, `{ linear_issue_id: "<uuid>" }`
   for Linear creates, plus an `error` field on failure).
-- **Freshness probe** (Linear-touching sub-agents only) — the same
-  Layer-2 pre-flight required by `/spades:review` and
-  `/spades:research`: run `git rev-list --count main..origin/main`
-  and abort if local is behind.
+- **Working context** — the absolute worktree path, branch and intended
+  revision per § Freshness. File and read-across workers verify that
+  context before reading or writing; Linear workers receive the same
+  context and the resolved resource IDs. Default-branch preparation
+  remains owned by `/repo:newbranch`.
 
 ### Dispatch modes
 

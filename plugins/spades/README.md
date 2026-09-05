@@ -178,7 +178,7 @@ bookkeeping) are the same sequence every time. `/spades:loop` runs
 it for you:
 
 ```
-/spades:scope "Add the thing"    # you write this — it's the input that matters
+/spades:scope "Add the thing"    # creates the Scope branch/worktree through /repo:newbranch
 /spades:loop                     # everything downstream, unattended
 ```
 
@@ -186,9 +186,8 @@ It stops in exactly one designed place: after `/spades:evaluate`
 derives a verdict, it pauses and asks you to sign the evaluation off
 — and stays in the conversation while you do, so you can ask why a
 row passed or have a check re-run. Say the word and it carries on
-through ship, CodeRabbit/Greptile review, squash-merge, `/repo:sync`,
-`/spades:close`, the bookkeeping PR's own review and merge, and a
-final sync.
+through ship, CodeRabbit/Greptile review, squash-merge, `/spades:close`, and the bookkeeping PR's own review and
+merge. Branches and worktrees remain available after completion.
 
 It also stops for anything that genuinely needs you: a failed
 approval check, a Plan touching auth or schemas, a human review
@@ -221,7 +220,7 @@ SPADES ships 21 skills, grouped by *when you reach for them*:
 
 | Skill | Purpose |
 |-------|---------|
-| `/spades:loop` | Drive one Scope from Plan to closed-out. Chains `plan → approve → do → evaluate → `**you sign off**` → ship → CodeRabbit/Greptile review → squash-merge → /repo:sync → close → review → merge → /repo:sync`, one Plan at a time in dependency order. Slash-only — typing it is your authorization to push, open PRs, resolve **bot** review threads, and squash-merge, bounded to this Scope's own branches and PRs. It never writes a Scope, never resolves a human's review comment, and never signs off its own work. **Use when you say:** "run the loop", "take this scope to done", "just build it". |
+| `/spades:loop` | Drive one Scope from Plan to closed-out. Chains `plan → approve → do → evaluate → `**you sign off**` → ship → CodeRabbit/Greptile review → squash-merge → close → review → merge`, Plans delivered in dependency order in one Scope worktree, then one shared delivery PR. Slash-only — typing it is your authorization to push, open PRs, resolve **bot** review threads, and squash-merge, bounded to this Scope's own branches and PRs. It never writes a Scope, never resolves a human's review comment, and never signs off its own work. **Use when you say:** "run the loop", "take this scope to done", "just build it". |
 
 #### Side path — skip the full loop for trivial work
 

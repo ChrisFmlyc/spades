@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Raises a Lead — a tracked, out-of-scope discovery — the moment one is noticed while doing other work, then returns to that work; also lists, shows, promotes, and closes Leads on demand. A Lead is a bug, tech debt, an improvement, a security smell, a flaky test, a missing doc, or a good idea that is not part of the current task. Invoke it immediately, mid-task and without asking the human, whenever such a thing is spotted during any work in this repo and would otherwise be fixed off-scope, buried in a final summary, or forgotten. Also use when someone says "raise a lead", "log that as a lead", "any leads?", "show leads", "promote lead L-…", or "close lead L-…".
-version: 3.0.0
+version: 3.0.1
 argument-hint: "[--list | --show L-<id> | --promote L-<id> [<work-id>] | --close L-<id> \"<reason>\"]"
 ---
 
@@ -147,7 +147,7 @@ One wave per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`:
 
 | Sub-agent | Resource owned | Returns |
 |---|---|---|
-| `worker-linear-lead` | Linear — `save_issue(team: <linear.team_id>, project: <linear.project_id>, title: "L-<slug> — <title>", description: <body>, labels: ["spades:lead", "<type>"])` in the team's triage or backlog state, creating a missing label when the workspace permits. Carries the freshness probe. | `{ status: ok, linear_issue_id, labels_applied }` |
+| `worker-linear-lead` | Linear — `save_issue(team: <linear.team_id>, project: <linear.project_id>, title: "L-<slug> — <title>", description: <body>, labels: ["spades:lead", "<type>"])` in the team's triage or backlog state, creating a missing label when the workspace permits. Carries the resolved worktree context per § Freshness. | `{ status: ok, linear_issue_id, labels_applied }` |
 
 Inject `linear_issue_id` into the file. The mirror never blocks the
 capture: a failed worker leaves the file standing and the summary

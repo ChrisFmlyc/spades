@@ -5,15 +5,15 @@
     "url": "https://github.com/ChrisFmlyc"
   },
   "metadata": {
-    "description": "SPADES Framework marketplace — the `spades` plugin for coding harnesses (Claude Code, Cursor): a six-phase Scope → Plan → Approve → Do → Evaluate → Ship loop with human gates, an audit-trail-first artefact shape, and Linear or local backends.",
-    "version": "5.21.1"
+    "description": "SPADES Framework marketplace \u2014 the `spades` plugin for coding harnesses (Claude Code, Cursor): a six-phase Scope \u2192 Plan \u2192 Approve \u2192 Do \u2192 Evaluate \u2192 Ship loop with human gates, an audit-trail-first artefact shape, and Linear or local backends.",
+    "version": "5.22.0"
   },
   "plugins": [
     {
       "name": "spades",
       "source": "./plugins/spades",
-      "description": "Scope, Plan, Approve, Do, Evaluate, Ship — six-phase loop with a Project layer and pluggable backends (Linear MCP, local filesystem, more). 22 skills and 5 agents (4 reviewer personas + 1 researcher). Pure Markdown, no bash, no external setup.",
-      "version": "5.21.1",
+      "description": "Scope, Plan, Approve, Do, Evaluate, Ship \u2014 six-phase loop with a Project layer and pluggable backends (Linear MCP, local filesystem, more). 22 skills and 5 agents (4 reviewer personas + 1 researcher). Pure Markdown, no bash, no external setup.",
+      "version": "5.22.0",
       "author": {
         "name": "Chris Powell"
       },

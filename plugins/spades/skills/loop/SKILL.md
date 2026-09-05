@@ -1,7 +1,7 @@
 ---
 name: loop
-description: Drives one existing Scope from Plan to closed-out — plan, approve, do, evaluate, ship, bot review, squash-merge, deploy, close, sync — answering for the human at every step the AI can answer. Not for autonomous use and carries no trigger conditions: it runs only when the user invokes it directly, or when a goal or driver the user set up delegates to it. See "Who may invoke this".
-version: 1.8.0
+description: Drives one existing Scope from Plan to closed-out — plan, approve, do, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. Not for autonomous use and carries no trigger conditions: it runs only when the user invokes it directly, or when a goal or driver the user set up delegates to it. See "Who may invoke this".
+version: 1.9.0
 ---
 
 # /spades:loop
@@ -19,7 +19,7 @@ Artefacts, and § Audit Trail before running.
 
 Invoking this skill authorises the full pipeline on one Scope:
 branch, commit, push, open PRs, resolve bot review threads,
-squash-merge, sync the checkout, and answer the child skills'
+squash-merge, and answer the child skills'
 questions on the human's behalf. The authorisation is bounded to the
 resolved Scope's own Plans, branches, and PRs, to the pauses in
 § Pauses, and to forward motion (no force-push, no `--admin` merge,
@@ -96,7 +96,7 @@ one-line reason beside each `human` row.
 | `/spades:approve` — second-opinion pointer | Decline; `/spades:review` is human-invoked. |
 | `/spades:approve` — the decision | Stage 2. |
 | `/spades:approve`, `/spades:evaluate` — routing | § Routing. |
-| `/spades:do` — a dependency isn't `shipped` | *Wait*; sequencing by `depends_on` means this rarely arises. |
+| `/spades:do` — a dependency is not ready per § Scope Worktrees | *Wait*; deliver and evaluate the dependency first. |
 | `/spades:do` — on a branch for another Plan | *Switch to a new branch off main.* |
 | `/spades:do` — ambiguous branch prefix | The skill's keyword rules; `feat/` when none match. |
 | `/spades:do`, `/spades:ship` — one-line description | *Skip.* |
@@ -104,7 +104,8 @@ one-line reason beside each `human` row.
 | `/spades:evaluate` — confirm the verdict | Stage 5 — yours in 5B, the human's in 5A. |
 | `/spades:ship` — a `Shipped` line already exists | *Exit*, then re-derive the stage. |
 | `/spades:ship` — branch ≠ the audit-trail branch | *Switch to the recorded branch.* |
-| `/spades:ship` — unrelated commits on the branch | Yours from this run → proceed; anything else → pause. |
+| Existing commits on the Scope branch | Already part of its PR; proceed. |
+| Unknown uncommitted changes in the active worktree | Pause for the human's inclusion decision; this cannot be answered by the loop. |
 | `/spades:ship` — artefact reference | The path or URL you produced; pause when a human produced it. |
 | `/spades:close` — acceptance criteria left uncovered | *Leave the Scope open*; Stage 15 picks up the remaining Plans. |
 | `/spades:learn` — approve the draft | Approve. |
@@ -131,14 +132,16 @@ Every failure is an abort with a pointer.
 
 5. `gh` installed and authenticated (`command -v gh`; `gh auth
    status`) — every stage from 7 onward depends on it.
-6. Freshness: `git fetch origin --quiet && git rev-list --count
-   main..origin/main` returns `0` — else `/repo:sync`.
+6. Use the Scope worktree per § Scope Worktrees after resolving the target.
+   Default-branch preparation belongs to `/repo:newbranch` at creation.
 7. Resolve the target Scope per § Target Resolution (any
    non-terminal status; zero candidates → "Write the Scope first").
    A `P-…` argument resolves to its parent Scope and pins that Plan.
 8. Verify ancestors active per § Target Resolution →
    Parent-status precondition.
-9. Announce the Scope, the Plan count, and the resumed stage.
+9. Resume the Scope branch via `/repo:newbranch --resume <branch>`;
+   preserve its returned working directory across every stage and worker.
+   Announce the Scope, branch, worktree, Plan count and resumed stage.
 
 ## Loop state — derived, not stored
 
@@ -148,7 +151,8 @@ indistinguishable and a human can take over at any boundary:
 
 | Observed state | Stage |
 |---|---|
-| Scope has no non-terminal Plan | 1 — Plan |
+| Scope has no Plans | 1 — Plan |
+| All existing Plans terminal | 15 — finished gate; new delivery requires a new Scope |
 | Plan `draft` | 2 — Approve |
 | Plan `approved` / `delivering` | 3 — Do |
 | `evaluating`, no hand-off line and no `Evaluation — verdict:` since the last `Do phase complete` | 4 — Evaluate |
@@ -159,7 +163,7 @@ indistinguishable and a human can take over at any boundary:
 | `shipping`, review clean, PR not `MERGED` | 8 — Merge |
 | `shipping`, PR `MERGED`, no `Loop — learning` line | 9 — Deploy gate → 10 — Learning gate |
 | `shipping`, PR `MERGED`, `Loop — learning` recorded | 11 — Close |
-| `shipped`, no `Loop — plan complete` | 14 — Sync |
+| `shipped`, no `Loop — plan complete` | 14 — Verify completion |
 | `shipped`, `Loop — plan complete` | 15 — Next Plan, or FINISHED |
 
 The loop adds audit lines only for facts SPADES does not otherwise
@@ -185,7 +189,8 @@ record, appended to the Plan's `## Audit Trail`:
 
 Invoke **`/spades:plan S-<scope-slug>`**. With several Plans, take
 them in dependency order: the first whose every `depends_on:` entry
-is `shipped`. Pin it. No Plan produced → pause.
+is ready per § Scope Worktrees (shipped or confirmed PASS on this branch).
+Pin it. No Plan produced → pause.
 
 ## Stage 2 — Approve
 
@@ -277,7 +282,18 @@ the rows and let the skill re-derive.
   Plan is wrong, not the execution.
 - **FAIL** → end the run per the skill's After-verdict brief; pause.
 
-## Stage 6 — Ship
+## Stage 6 — Scope readiness and Ship
+
+A Plan with a confirmed PASS remains `evaluating` while siblings are
+unfinished. Select the next ready sibling and run Stages 2–5 in the same
+Scope worktree. Do not repeatedly select an already-passed Plan. Once every
+non-rejected code Plan has a current confirmed PASS and the Scope's accepted
+criteria are covered, ship the shared branch once. A rejected prerequisite
+still pauses for replanning; artefact/action evidence retains its own gate.
+
+Stages 7–13 apply once to the shared PR and its participating Plans. Every
+code Plan records that same PR URL. Resume from a sibling already in
+`shipping` follows the same PR rather than starting a duplicate shipment.
 
 Invoke **`/spades:ship P-<plan-id>`**. Its GitHub driver sweeps
 pending SPADES artefacts, pushes, opens the PR, records `PR opened:
@@ -324,7 +340,7 @@ gh pr view <n> --json state,mergeable,mergeStateStatus,statusCheckRollup
 - Zero unresolved threads — re-run the sweep from
   `reference/bot-review.md`; a bot can post between sweep and merge.
 
-Then `gh pr merge <n> --squash --delete-branch`. A branch-protection
+Then `gh pr merge <n> --squash`. A branch-protection
 rule blocking the merge is doing its job: pause and say so. Capture
 the merge SHA and append the marker.
 
@@ -355,16 +371,17 @@ delivery is not a learning.
 - **Nothing to carry** → append `Loop — learning declined: <one
   line>.`
 
-The learning stays uncommitted here on purpose: Stage 11's close
-branches off `origin/main` carrying it, and B3's sweep lands it in
-the bookkeeping PR alongside the `Shipped` marker.
+Stage 11 passes authorised pending learning and audit changes to Close.
+Close prepares a bookkeeping worktree through `/repo:newbranch` and applies
+those changes to its fresh records, preserving the source worktree.
 
 ## Stage 11 — Close
 
 Invoke **`/spades:close P-<plan-id>`** and pick *Pass*. It confirms
-the ship PR merged, branches off `origin/main`, writes `shipped`
-plus the `Shipped` marker, rolls the Scope up when every sibling is
-terminal, and opens the bookkeeping PR. A mixed-terminal rollup
+the Scope PR merged, creates its bookkeeping worktree through
+`/repo:newbranch`, writes `shipped` and the `Shipped` marker for all
+participating code Plans, rolls up terminal siblings, and opens one
+bookkeeping PR. A mixed-terminal rollup
 acknowledgement is a human decision — pause there.
 
 Close then reaches **B5**, which probes the bookkeeping PR. It isn't
@@ -387,14 +404,13 @@ fine; only the loop itself is never re-invoked. Close learns the PR
 is merged from its own probe, so the Linear mirror lands after the
 audit trail is on `main`.
 
-## Stage 14 — Sync
+## Stage 14 — Verify completion
 
-With the bookkeeping PR merged, invoke **`/repo:sync`** — the loop's
-only sync. It deletes a merged branch only when that branch is
-checked out, and close leaves you on `main`, so `git switch` to the
-Stage 6 ship branch first if it still exists locally. If sync
-refuses (a dirty tree from a human edit), surface its message and
-pause. Append `Loop — plan complete.`
+After the bookkeeping PR merges, verify its recorded merge and the
+participating Plans' final records in Close's worktree. Leave both delivery
+and bookkeeping branches/worktrees in place; no cleanup or checkout switch
+is required. Append `Loop — plan complete.` for each participating Plan in
+that worktree. Future new work enters through `/repo:newbranch`.
 
 ## Stage 15 — Next Plan, or FINISHED
 
@@ -432,7 +448,7 @@ hold → append `Loop — FINISHED.` and print:
   Deploy        success <url>   |  not configured
   Close PR      #<m> merged        <short-sha>
   Scope         done — <n> plan(s) shipped
-  Working tree  clean, on main, synced
+  Working tree  retained at <worktree-path>
 
   Nothing outstanding. This Scope is closed.
 ════════════════════════════════════════════════════════
@@ -469,7 +485,8 @@ the derived stage.
 Sensitivity is not a pause; the gates that hold auth, secrets,
 migrations, and data deletion are the six Approve checks, the
 verification rows, CI, and bot review. Pending SPADES artefacts are
-not a pause; they carry forward. A child skill's refusal is the
+from this authorised run carry forward. Unknown pre-existing uncommitted
+changes pause for the human's inclusion decision. A child skill's refusal is the
 answer: surface it verbatim and stop.
 
 ## Resuming
@@ -486,8 +503,9 @@ The authorisation in § Who may invoke this is bounded by these:
 - The loop invokes no upstream skill (`/spades:scope`,
   `/spades:setup`, `/spades:newproject`, `/repo:init`) and never
   itself.
-- Every commit lands on a feature or bookkeeping branch, staged from
-  the SPADES allowlist.
+- Every commit lands in its Scope or bookkeeping worktree, following
+  § Carry-Forward → Commit contents. Unknown uncommitted changes always
+  require the human's inclusion decision, even inside artefact paths.
 - PR branches move forward only: no force-push, amend, rebase, or
   history rewrite; no `gh pr merge --admin`, `gh pr close`, `gh pr
   reopen`, PR title or body edits after opening, or review

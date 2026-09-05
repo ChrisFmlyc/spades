@@ -1,7 +1,7 @@
 ---
 name: objective
 description: Create or edit a SPADES Objective — a coherent strategic action associated with a project (Rumelt/OKR sense), prefixed O-. Use when someone says "create an objective", "set an objective", "add an objective", "new objective", "add a milestone for this project", or "/spades:objective <description>". An Objective is independent of Scopes — it never contains, requires, or gates on one. Closing an Objective is done via /spades:close O-<slug>.
-version: 1.2.0
+version: 1.2.1
 ---
 
 # /spades:objective
@@ -140,7 +140,7 @@ assistant message, `subagent_type: general-purpose`:
 |---|---|---|
 | `worker-file-objective` | `.spades/objectives/O-<slug>.md`, written without the Linear IDs | `{ status: ok }` |
 | `worker-html-objective` *(HTML mode)* | `.spades/objectives/O-<slug>.html` | `{ status: ok, path, opened }` |
-| `worker-linear-objective` *(`backend: linear`)* | Linear — both objects: **(1)** `save_milestone(project: <linear.project_id>, name: "O-<slug>", description: <objective text>)`; **(2)** `save_issue(team: <linear.team_id>, project: <linear.project_id>, title: "O-<slug> — <title>", description: <objective text>, milestone: "O-<slug>")`, the sister tracking issue whose Done state is the Objective's completion signal. Carries the freshness probe. | `{ status: ok, linear_milestone_id, linear_issue_id }` |
+| `worker-linear-objective` *(`backend: linear`)* | Linear — both objects: **(1)** `save_milestone(project: <linear.project_id>, name: "O-<slug>", description: <objective text>)`; **(2)** `save_issue(team: <linear.team_id>, project: <linear.project_id>, title: "O-<slug> — <title>", description: <objective text>, milestone: "O-<slug>")`, the sister tracking issue whose Done state is the Objective's completion signal. Carries the resolved worktree context per § Freshness. | `{ status: ok, linear_milestone_id, linear_issue_id }` |
 
 With `backend: local` the file is the whole Objective. After the
 wave: all ok → inject both Linear IDs into the `.md` (and the

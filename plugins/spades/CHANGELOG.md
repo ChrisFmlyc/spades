@@ -8,6 +8,23 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [5.22.0] — 2026-09-05
+
+- **minor**: each new Scope delegates to `/repo:newbranch` and runs its
+  Plans in the returned branch/worktree. Scope metadata records the branch
+  and starting commit; dependent Plans can proceed after a confirmed PASS
+  on that branch, and code Plans ship together in one delivery PR.
+- `newbranch` owns default-branch cleanliness and remote freshness. Do,
+  Quick, Ship, Close, review and reporting use the resolved worktree.
+  Close prepares its bookkeeping worktree through the same entry point;
+  completed work keeps its branches and worktrees.
+- Existing commits remain with their branch's PR. Pre-existing uncommitted
+  changes require an inclusion decision; commits verify the whole index
+  and preserve excluded staged/unstaged work, including overlapping edits.
+- Requires `repo` plugin 0.8.0 (`newbranch` 0.2.0) from `ai-skills`.
+- `agents_version`: 2.10.0 → 2.11.0.
+- Skills bumped: `approve` 3.3.0 → 3.3.1, `close` 4.12.0 → 4.13.0, `do` 3.7.0 → 3.8.0, `evaluate` 3.9.0 → 3.9.1, `leads` 3.0.0 → 3.0.1, `list` 3.5.0 → 3.6.0, `loop` 1.8.0 → 1.9.0, `newproject` 3.6.0 → 3.6.1, `objective` 1.2.0 → 1.2.1, `plan` 3.5.0 → 3.6.0, `quick` 2.3.0 → 2.4.0, `research` 2.2.0 → 2.3.0, `review` 3.8.0 → 3.9.0, `scope` 3.6.0 → 3.7.0, `setup` 4.9.0 → 4.10.0, `ship` 3.5.0 → 3.6.0, `status` 3.5.0 → 3.6.0.
+
 ## [5.21.1] — 2026-09-04
 
 - **patch**: `scope`, `newproject`, and `setup` ask their questions

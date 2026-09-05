@@ -1,7 +1,7 @@
 ---
 name: quick
 description: Fast-track path for trivial work — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when someone says "just fix this small thing", "quick tweak", "one-line change", "typo fix", "rename this variable", or when you would otherwise invoke /spades:scope for a change that clearly meets every gate criterion below. Work that touches architecture, auth, schemas, or public APIs, or needs more than one focused commit, takes the full loop via /spades:scope.
-version: 2.3.0
+version: 2.4.0
 ---
 
 # /spades:quick
@@ -77,15 +77,16 @@ alone; anything behavioural gets an issue.
 
 ### 2. Fix
 
-Create the branch `spades-quick/<slug>` (validate via
-`/repo:branch`; `git switch -c`). Make the change in a **single
-commit** — wanting a second commit is the signal the work is bigger
-than the gate allows. The commit sweeps the SPADES allowlist so the
-marker (Step 4) travels with the fix:
+Invoke `/repo:newbranch` with the quick item's description and configured
+remote. Use the returned branch and worktree for the fix, verification,
+marker and PR. Naming and default-branch preparation belong to that skill.
+On resume, use the marker's recorded branch through `--resume` and resolve
+pre-existing uncommitted work before inclusion.
 
-```bash
-git add -- .spades AGENTS.md INTENT.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md 2>/dev/null || true
-```
+Make the approved fix and marker in a single commit, following
+`docs/FRAMEWORK.md § Carry-Forward → Commit contents`. Existing commits on
+this branch need no inclusion question; inspect the complete proposed
+commit and preserve excluded staged/unstaged changes.
 
 Nearby code stays as it is; tidying "while you're there" is a
 second concern.
@@ -168,7 +169,7 @@ title: "<one-line title>"
 type: bug | tweak | chore | docs | refactor
 status: shipping | shipped        # github opens at shipping; local-git writes shipped
 pr_url: <url>                     # github only
-branch: spades-quick/<slug>
+branch: <branch returned by /repo:newbranch>
 linear_issue_id: <id>             # backend: linear only
 delivery: ai | human
 created: YYYY-MM-DD
