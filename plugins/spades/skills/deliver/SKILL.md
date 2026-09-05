@@ -1,7 +1,7 @@
 ---
 name: deliver
 description: Delivers an approved SPADES Plan in its Scope’s separate delivery branch and worktree. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "deliver this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 4.0.0
+version: 4.0.1
 ---
 
 # /spades:deliver
@@ -25,8 +25,8 @@ the delivery context,
 and that page is the human's view of what is being executed; the
 terminal carries routing acknowledgements, status lines, errors, and
 the hand-off pointer. CLI mode summarises the Plan inline. After
-each audit-trail write in HTML mode, re-dispatch `worker-html-plan`
-so the page stays current.
+each audit-trail write in HTML mode, re-dispatch `worker-html-plan` with
+`open_path: null` so the already-presented page stays current.
 
 ## Pre-Flight
 

@@ -1,4 +1,4 @@
-# SPADES Framework v3.0.0
+# SPADES Framework v3.0.1
 
 SPADES is a human–AI operating model for engineering teams. It is
 backend-agnostic: artefacts can live in Linear (via the Linear MCP), on
@@ -1266,6 +1266,38 @@ the canonical Markdown, and the *medium* of presentation when a
 skill would otherwise paste a large block to the CLI. The skill
 flows, prompts, and decisions don't change between modes.
 
+### Review-page ownership
+
+The active task's skill owns one review page at each presentation step.
+Scope selects the current Scope, Plan the current Plan, and project-document
+skills their own document. Reading reference Markdown is background context;
+rendering a related record or calling a helper keeps the active task's
+presentation target. A switch to another review page follows an explicit
+user request or the next review step in the active workflow.
+
+The coordinator selects one absolute `open_path` for the initial presentation
+and passes it unchanged to HTML workers. A worker opens its output only when
+its resolved `output_path` equals that `open_path`. Background renders use
+`open_path: null`. Once the page is presented, subsequent renders use `null`
+and update the existing file for the human to reload. Direct browser/editor
+opens follow the same ownership rule; helper skills inherit it.
+
+- Producing skills select their own artefact; updates to parent or reference
+  records remain quiet. Plan presents its Plan and refreshes its Scope quietly.
+- Approve, Deliver and Ship select the target Plan; Close selects its resolved
+  target. Related records and subsequent audit refreshes remain quiet.
+- Intent, Architecture, Patterns and Anti-Patterns select only their transient
+  `.spades/.tmp/<name>.html` review copy when that document is the active task.
+  The persistent `.spades/<name>.html` companion is rendered quietly.
+- Evaluate selects its verification page at the verification step and its
+  report at the results step, one page per step. Plan and Scope refreshes
+  remain quiet throughout evaluation.
+- Status, List and the explicitly requested Leads board select their own view.
+  Capturing a Lead during another task keeps that task's presentation context.
+
+In CLI mode, reference documents are read as context and any file presentation
+stays with the active task's target. Existing per-skill CLI output rules apply.
+
 ### Universal rule — `.md` always, `.html` additive in HTML mode
 
 **Every producing skill writes its canonical `.md` in BOTH
@@ -1278,9 +1310,10 @@ repo-root path for project docs: `INTENT.md`,
 
 **In HTML mode, the skill ADDITIONALLY writes an `.html`
 companion alongside the `.md`** — same data, rendered through
-the skill's bundled `template.html` for the human's view, then
-auto-opened via `OPEN_CMD`. The `.html` is purely a human-view
-enrichment; it never replaces the `.md`.
+the skill's bundled `template.html` for the human's view. Opening follows
+§ Review-page ownership: only the active skill's selected review page is
+presented. The `.html` is purely a human-view enrichment; it never replaces
+the `.md`.
 
 This is the load-bearing rule:
 
@@ -1361,7 +1394,8 @@ its flow.
      id="spades-audit-trail">` block (if present) with the audit
      trail entries in chronological order.
   6. Writing the result to `.spades/<dir>/<id>.html`.
-  7. Auto-opening via the OPEN_CMD prelude (see below).
+  7. Opening only the selected `open_path` per § Review-page ownership
+     through the worker contract; other outputs are written quietly.
 
 The Markdown-to-HTML conversion for body sections (Statement of
 Intent, Technical Approach, etc.) follows standard CommonMark; the
@@ -1517,7 +1551,8 @@ prefix, tagline, browser title.
   artefact in the default browser via the OPEN_CMD prelude.
   - For artefact-bound reviews (approve / deliver / ship / close):
     the `.html` already exists at `.spades/<dir>/<id>.html`
-    because the producing skill wrote it. Just open it.
+    because the producing skill wrote it. Open only the target selected
+    under § Review-page ownership; keep related records and refreshes quiet.
     (`evaluate` is **not** in this list — see below; it writes
     its own pair of pages and does NOT open the Plan's `.html`.)
   - For transient cross-cutting views (status / list / intent):
@@ -1539,8 +1574,8 @@ HTML written, no browser opens.
 
 ### OPEN_CMD detection prelude
 
-When a skill needs to open an `.html` file, it runs (once per
-session) this detection:
+For the selected review page authorised by § Review-page ownership, run
+this detection once per session:
 
 ```bash
 case "$(uname -s)" in
@@ -1694,10 +1729,9 @@ acting on any of them. Then:
 
 ### `worker-html-*` — parallel HTML rendering
 
-HTML rendering is slow (template I/O + placeholder substitution
-+ file write + OPEN_CMD invocation), and it's a pure function of
-content the main agent already has. So it parallelises naturally
-with the `.md` write.
+HTML rendering (template I/O, placeholder substitution and file write)
+parallelises naturally with the `.md` write. Browser opening is a separate,
+explicit side effect controlled by the coordinator's `open_path`.
 
 **The rule:** whenever a skill produces both an `.md` and an
 `.html` artefact, the `.html` render is dispatched to a
@@ -1712,6 +1746,10 @@ the `.md` write. The main agent never renders HTML inline.
   - `template_path` — absolute path to
     `${CLAUDE_PLUGIN_ROOT}/skills/<skill>/template.html`.
   - `output_path` — absolute path to the destination `.html`.
+  - `open_path` — optional absolute path selected by the active task's
+    coordinator per § Review-page ownership; defaults to `null` (render only).
+    Workers inherit it rather than selecting a page from their template,
+    helper skill name, or the other HTML files present in the directory.
   - `frontmatter` — the YAML block (verbatim string for the
     embedded `<script type="application/yaml">` tag) plus the
     parsed key/value map for top-level placeholder substitution.
@@ -1725,10 +1763,13 @@ the `.md` write. The main agent never renders HTML inline.
      listed in the per-skill SKILL.md (abort if any missing).
   2. Substitute placeholders and repeating blocks.
   3. Write the output `.html`.
-  4. Invoke the OPEN_CMD prelude
-     (`§ OPEN_CMD detection prelude`). If `OPEN_CMD` is empty,
-     don't fail — return `opened: false`; the coordinator prints
-     the path with "open this in your browser".
+  4. When `open_path` is set and its resolved absolute path equals this
+     worker's resolved `output_path`, invoke the OPEN_CMD prelude for that
+     single file. Return `opened: true` only when the opener succeeds.
+     Otherwise finish the render with `opened: false`.
+     An empty or failed opener is non-fatal; the coordinator offers a manual
+     open link only for the selected review page. Quiet renders produce no
+     browser invocation or manual-open prompt.
 - **Returns:**
   - `{ status: ok, path: "<output_path>", opened: true|false }`
   - `{ status: fail, error: "<message>" }` on template-read,
@@ -1741,11 +1782,14 @@ dispatches one wave with both workers in parallel:
 
 ```
 Agent { type: general-purpose, prompt: worker-file-<x> spec }
-Agent { type: general-purpose, prompt: worker-html-<x> spec }
+Agent { type: general-purpose, prompt: worker-html-<x> spec + open_path }
 [+ Agent { worker-linear-<x> } when backend: linear]
 ```
 
-All workers return before the coordinator prints the brief.
+All workers return before the coordinator prints the brief. At most one
+worker in a presentation wave receives an output matching `open_path`;
+workers writing other files render quietly. Report an opened page only from
+its worker's `opened: true` result.
 
 **Failure semantics:**
 
@@ -1763,13 +1807,17 @@ check) rather than blocking on the render.
 own dispatch wave. Wave 1 renders the evaluation plan; wave 2
 runs only after the human has executed verification, and renders
 the report. Each wave pairs `worker-file-evaluation` with
-`worker-html-evaluation`.
+`worker-html-evaluation` and selects only that step's evaluation output as
+`open_path`. Related Plan/Scope refreshes use `open_path: null`.
 
 **Skills that produce persistent + transient HTML** (`intent`,
 `architecture`, `patterns`, `anti-patterns`): two `.html` files
 (persistent under `.spades/<name>.html`, transient under
 `.spades/.tmp/<name>.html`). Same content, two output paths —
-dispatch as two parallel `worker-html-<skill>` sub-agents.
+dispatch as two parallel `worker-html-<skill>` sub-agents, both inheriting
+the transient review path as `open_path` for initial presentation. Only the
+transient worker matches; the persistent worker renders quietly. For later
+refreshes, or when these documents are background context, use `null`.
 
 ### Why this lives in FRAMEWORK.md
 

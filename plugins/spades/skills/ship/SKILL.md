@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.6.1
+version: 3.6.2
 ---
 
 # /spades:ship
@@ -16,13 +16,13 @@ SPADES-Owned Artefacts, and § Output Format before running.
 
 ### Output format
 
-The Plan and Scope are read from their `.md` files. HTML mode opens
-both existing `.html` pages via the OPEN_CMD prelude at the start;
-they are the human's view of what is being shipped, and the terminal
-carries the progress lines, driver messages, prompts, and the final
-confirmation. CLI mode summarises inline. After each audit-trail
-write in HTML mode, re-dispatch `worker-html-plan` (and
-`worker-html-scope` when the Scope changed).
+The Plan and Scope are read from their `.md` files. HTML mode opens the
+target Plan's existing `.html` as the review page for shipping. The Scope
+is background context. The terminal carries progress, driver messages,
+prompts and the final confirmation; CLI mode summarises inline. After each
+audit-trail write in HTML mode, re-dispatch `worker-html-plan` and, when
+needed, `worker-html-scope`, both with `open_path: null`. These refreshes
+keep the files current while the Plan remains the active review page.
 
 ## Pre-Flight
 

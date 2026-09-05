@@ -1,7 +1,7 @@
 ---
 name: patterns
 description: Create or maintain PATTERNS.md, the project's durable list of APPROVED patterns and conventions — code organisation, error handling, testing, naming. Use when someone says "set up PATTERNS.md", "document our conventions", "what patterns do we use", "update the patterns doc", or when PATTERNS.md is missing, still an unfilled template, or flagged stale. The human composes the patterns; this skill structures and probes but never authors it.
-version: 1.4.0
+version: 1.4.1
 ---
 
 # /spades:patterns
@@ -137,9 +137,12 @@ play.
 
 **HTML mode** — after the write, dispatch two `worker-html-patterns`
 sub-agents in one wave per `docs/FRAMEWORK.md § worker-html-*`,
-identical inputs, different `output_path`: `.spades/patterns.html`
+shared content and `open_path`, different `output_path`: `.spades/patterns.html`
 (persistent) and `.spades/.tmp/patterns.html` (transient, opened).
 
+- `open_path`: the absolute `.spades/.tmp/patterns.html` path for initial
+  presentation when this document is the active task; `null` for refreshes
+  or background use. Both workers inherit it per § Review-page ownership.
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/patterns/template.html`
 - `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
   plugin_version }`
@@ -156,11 +159,13 @@ Required markers: the four `*-rules` blocks.
 
 ## Brief
 
-**HTML mode:**
+**HTML mode** (report “opened” only from `opened: true`; if opening was
+requested but failed, link that selected page for manual opening. With
+`open_path: null`, report the write only):
 
 ```
 ✓ PATTERNS.md written (last reviewed YYYY-MM-DD)
-○ .spades/patterns.html opened in browser
+○ .spades/.tmp/patterns.html opened in browser
 Next: /spades:anti-patterns · /spades:scope <title>
 ```
 

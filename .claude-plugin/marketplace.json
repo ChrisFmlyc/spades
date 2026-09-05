@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "SPADES Framework marketplace \u2014 the `spades` plugin for coding harnesses (Claude Code, Cursor): a six-phase Scope \u2192 Plan \u2192 Approve \u2192 Deliver \u2192 Evaluate \u2192 Ship loop with human gates, an audit-trail-first artefact shape, and Linear or local backends.",
-    "version": "6.0.0"
+    "version": "6.0.1"
   },
   "plugins": [
     {
       "name": "spades",
       "source": "./plugins/spades",
       "description": "Scope, Plan, Approve, Deliver, Evaluate, Ship \u2014 six-phase loop with a Project layer and pluggable backends (Linear MCP, local filesystem, more). 22 skills and 5 agents (4 reviewer personas + 1 researcher). Pure Markdown, no bash, no external setup.",
-      "version": "6.0.0",
+      "version": "6.0.1",
       "author": {
         "name": "Chris Powell"
       },

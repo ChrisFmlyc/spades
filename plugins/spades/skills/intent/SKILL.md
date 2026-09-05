@@ -1,7 +1,7 @@
 ---
 name: intent
 description: Create or maintain INTENT.md, the project's durable statement of intent — the problem it solves, who it serves, what it does, what success looks like, and its non-goals. Use when someone says "set up INTENT.md", "capture our project intent", "what is this project for", "update the intent doc", "review our non-goals", or when INTENT.md is missing, still an unfilled template, or flagged stale. The human composes the intent; this skill structures and probes but never authors it.
-version: 4.4.0
+version: 4.4.1
 ---
 
 # /spades:intent
@@ -179,9 +179,12 @@ changes and preserves untouched sections.
 
 **HTML mode** — after the write, dispatch two `worker-html-intent`
 sub-agents in one wave per `docs/FRAMEWORK.md § worker-html-*`,
-identical inputs, different `output_path`: `.spades/intent.html`
+shared content and `open_path`, different `output_path`: `.spades/intent.html`
 (persistent) and `.spades/.tmp/intent.html` (transient, opened).
 
+- `open_path`: the absolute `.spades/.tmp/intent.html` path for initial
+  presentation when this document is the active task; `null` for refreshes
+  or background use. Both workers inherit it per § Review-page ownership.
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/intent/template.html`
 - `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
   plugin_version, maturity_stage }`
@@ -198,11 +201,13 @@ Required markers: `users-items`, `non-goals-items`.
 
 ## Brief
 
-**HTML mode:**
+**HTML mode** (report “opened” only from `opened: true`; if opening was
+requested but failed, link that selected page for manual opening. With
+`open_path: null`, report the write only):
 
 ```
 ✓ INTENT.md written (last reviewed YYYY-MM-DD)
-○ .spades/intent.html opened in browser
+○ .spades/.tmp/intent.html opened in browser
 Next: /spades:architecture · /spades:scope <title>
 ```
 

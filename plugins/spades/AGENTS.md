@@ -265,6 +265,16 @@ Completion retains branches and worktrees. New work prepares its own base;
 cleanup is a separate explicit request. The full contracts live in
 `docs/FRAMEWORK.md § Scope Worktrees` and § Freshness.
 
+## Review-page ownership
+
+Present only the active skill's review page: Scope opens its Scope, Plan its
+Plan, and project-document skills their own document. Read reference Markdown
+and refresh related HTML quietly. The coordinator selects one `open_path` per
+presentation step; workers open only that exact output. Use `open_path: null`
+for background renders and refreshes of an already-presented page. Helpers
+inherit the active task's presentation context. See `docs/FRAMEWORK.md
+§ Review-page ownership` for consumer targets and Evaluate's staged pages.
+
 ## Artefacts Carry Forward
 
 Authorised records produced during the current run travel in its branch's

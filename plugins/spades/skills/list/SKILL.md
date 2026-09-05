@@ -1,7 +1,7 @@
 ---
 name: list
 description: List active SPADES Scopes (and Objectives), optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "list objectives", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades/config`.
-version: 3.6.1
+version: 3.6.2
 ---
 
 # /spades:list
@@ -203,6 +203,9 @@ or `/spades:close P-…`.
 `docs/FRAMEWORK.md § worker-html-*`, using the wave to run the
 drift probe in parallel:
 
+- `open_path`: the absolute `output_path` for this skill’s initial review
+  presentation; `null` for refreshes or background use, per
+  `docs/FRAMEWORK.md § Review-page ownership`.
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/list/template.html`
 - `output_path`: `.spades/.tmp/list.html`
 - `frontmatter`: `{ project_slug, filter_label, rendered_at,

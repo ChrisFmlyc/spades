@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Creates or edits a SPADES Scope in the current documentation session and records its intended delivery branch for later execution. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 4.0.0
+version: 4.0.1
 ---
 
 # /spades:scope
@@ -299,6 +299,9 @@ When the INTENT gate was overridden, the audit trail opens with
 
 Dispatched in Step 7's wave per `docs/FRAMEWORK.md § worker-html-*`:
 
+- `open_path`: the absolute `output_path` for this skill’s initial review
+  presentation; `null` for refreshes or background use, per
+  `docs/FRAMEWORK.md § Review-page ownership`.
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html`
 - `output_path`: `.spades/scopes/S-<description-slug>.html`
 - `frontmatter`: `{ id, title, status, project, type, priority,

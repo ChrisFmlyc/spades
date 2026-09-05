@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generate a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 3.7.0
+version: 3.7.1
 ---
 
 # /spades:plan
@@ -209,6 +209,9 @@ Omit the Prior Learnings section when nothing matched.
 
 Dispatched in Step 7's wave per `docs/FRAMEWORK.md § worker-html-*`:
 
+- `open_path`: the absolute `output_path` for this skill’s initial review
+  presentation; `null` for refreshes or background use, per
+  `docs/FRAMEWORK.md § Review-page ownership`.
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html`
 - `output_path`: `.spades/plans/<filename>.html`
 - `frontmatter`: `{ id, title, status, scope, deliverable_type,
@@ -240,7 +243,8 @@ Required markers: `tasks`, `risks-items`, `delivery-sequence`,
 
 With the page open, ask via `AskUserQuestion`: **`code`** (default)
 / **`artefact`** / **`action`**. A change is a targeted edit to the
-`.md` frontmatter followed by a re-dispatch of `worker-html-plan`.
+`.md` frontmatter followed by a re-dispatch of `worker-html-plan` with
+`open_path: null` to refresh the already-presented page.
 
 ## Step 7 — Write and mirror (fan-out)
 
@@ -252,7 +256,7 @@ general-purpose`:
 |---|---|---|
 | `worker-file-plan` | `.spades/plans/P-<…>.md`, written without `linear_issue_id:` | `{ status: ok }` |
 | `worker-html-plan` *(HTML mode)* | `.spades/plans/P-<…>.html` per Step 5 | `{ status: ok, path, opened }` |
-| `worker-file-scope-audit` | `.spades/scopes/S-<scope-slug>.md` — `status: planning` when it was `scoped`, `updated: <today>`, and `- YYYY-MM-DD: Plan drafted — P-<slug>-<suffix>.` appended. In HTML mode the Scope's `.html` is re-rendered afterwards by `worker-html-scope`. | `{ status: ok }` |
+| `worker-file-scope-audit` | `.spades/scopes/S-<scope-slug>.md` — `status: planning` when it was `scoped`, `updated: <today>`, and `- YYYY-MM-DD: Plan drafted — P-<slug>-<suffix>.` appended. In HTML mode the Scope's `.html` is re-rendered afterwards by `worker-html-scope` with `open_path: null`. | `{ status: ok }` |
 | `worker-linear-plan` *(`backend: linear`)* | Linear — a sub-issue under the Scope's parent Issue with the Plan's title and body, labels `ai-planned` and `deliverable_type:<value>`. Carries the resolved worktree context per § Freshness. | `{ status: ok, linear_issue_id }` |
 
 After the wave:
