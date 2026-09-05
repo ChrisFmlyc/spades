@@ -8,6 +8,24 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.0.0] — 2026-09-05
+
+- **major**: rename `/spades:do` to `/spades:deliver` and the fourth phase
+  to Deliver. Update commands, operating rules, templates and workflow
+  references. Existing delivery audit markers remain readable on resume.
+- Scope, Plan and Approve reuse a non-default documentation branch across
+  the session. Starting on main/master prepares one documentation worktree;
+  writing another Scope or Plan reuses it and preserves pending edits.
+- Scope records the intended delivery `branch:`. Deliver creates that
+  separate branch/worktree from the current default branch, transfers the
+  selected Scope's authorised records and records `base_commit:`. Delivery,
+  evaluation and shipping share it; the documentation session stays available.
+- Learning `area: do` becomes `area: deliver`; migrate existing learning
+  frontmatter to the new value. Update command invocations to
+  `/spades:deliver`; the old skill directory is removed.
+- `agents_version`: 2.11.0 → 3.0.0.
+- Skills bumped: `approve` 3.3.1 → 3.3.2, `deliver` 3.8.0 → 4.0.0, `evaluate` 3.9.1 → 3.9.2, `learn` 4.6.0 → 5.0.0, `list` 3.6.0 → 3.6.1, `loop` 1.9.0 → 1.10.0, `plan` 3.6.0 → 3.7.0, `quick` 2.4.0 → 2.4.1, `scope` 3.7.0 → 4.0.0, `setup` 4.10.0 → 4.10.1, `ship` 3.6.0 → 3.6.1, `status` 3.6.0 → 3.6.1.
+
 ## [5.22.0] — 2026-09-05
 
 - **minor**: each new Scope delegates to `/repo:newbranch` and runs its

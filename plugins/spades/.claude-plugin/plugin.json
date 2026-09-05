@@ -1,7 +1,7 @@
 {
   "name": "spades",
-  "version": "5.22.0",
-  "description": "SPADES Framework v2 \u2014 a human-AI operating model for engineering teams. Six-phase loop (Scope, Plan, Approve, Do, Evaluate, Ship) over a Project layer, with pluggable backends (Linear MCP, local filesystem, extensible to Notion/Confluence/other). 22 plugin-namespaced skills, four reviewer-persona subagents, one researcher subagent. Pure Markdown \u2014 no bash, no external setup.",
+  "version": "6.0.0",
+  "description": "SPADES Framework v2 \u2014 a human-AI operating model for engineering teams. Six-phase loop (Scope, Plan, Approve, Deliver, Evaluate, Ship) over a Project layer, with pluggable backends (Linear MCP, local filesystem, extensible to Notion/Confluence/other). 22 plugin-namespaced skills, four reviewer-persona subagents, one researcher subagent. Pure Markdown \u2014 no bash, no external setup.",
   "author": {
     "name": "Chris Powell"
   },

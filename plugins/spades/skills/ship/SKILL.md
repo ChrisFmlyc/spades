@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.6.0
+version: 3.6.1
 ---
 
 # /spades:ship
@@ -41,7 +41,7 @@ write in HTML mode, re-dispatch `worker-html-plan` (and
    an `abandoned` / `archived` Project.
 6. **Verify the verdict.** `evaluating` + PASS → ship. `evaluating`
    + PARTIAL → ask whether to ship with the remaining gaps accepted
-   (recorded in the audit trail) or return to `/spades:do`.
+   (recorded in the audit trail) or return to `/spades:deliver`.
    `evaluating` + FAIL, or any other status → abort with a clear
    message.
 7. **Scope PR readiness (`code`, `scm: github`).** Before marking any Plan
@@ -85,7 +85,7 @@ every participating code Plan; one PR publishes their shared branch.
 
 ### A — `code`
 
-`/spades:scope` created the Scope branch and worktree; Do committed onto
+`/spades:deliver` created the Scope delivery branch and worktree and committed onto
 that branch. Ship publishes it. The flow is per SCM: read `scm:` and follow the
 matching driver file, which owns branch verification, the pre-push
 sweep, the push, PR opening where the SCM has one, and the audit

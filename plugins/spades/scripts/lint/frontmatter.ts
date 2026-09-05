@@ -244,7 +244,7 @@ const PLAN_SUFFIX_RE = /^[A-Za-z0-9]{4}$/;
 // --- Learning schema --------------------------------------------------------
 const LEARNING_CORE_REQUIRED = ["title", "area", "created", "status"] as const;
 const LEARNING_ENUMS: Enums = {
-  area: ["scope", "plan", "approve", "do", "evaluate", "ship", "other"],
+  area: ["scope", "plan", "approve", "deliver", "evaluate", "ship", "other"],
   status: ["active", "archived"],
 };
 const LEARNING_KNOWN_FIELDS = new Set<string>([

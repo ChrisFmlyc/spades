@@ -8,7 +8,7 @@ set -euo pipefail
 #   1. Every .spades/learnings/*.md parses and carries the required
 #      frontmatter fields: title, area, tags, created, status,
 #      public_safe.
-#   2. `area` is one of: onboarding, planning, delivery, review, other.
+#   2. `area` is one of: scope, plan, approve, deliver, evaluate, ship, other.
 #   3. `status` is one of: active, archived.
 #   4. `public_safe` is either "true" or "false" (string).
 #   5. `created` parses as YYYY-MM-DD.
@@ -78,9 +78,9 @@ for f in "${files[@]}"; do
     created=$(echo "$parsed" | awk -F= '/^created=/ {sub("^created=", ""); print; exit}')
 
     case "$area" in
-        scope|plan|approve|do|evaluate|ship|other) ;;
+        scope|plan|approve|deliver|evaluate|ship|other) ;;
         *)
-            echo "  FAIL: $rel area='$area' not in (scope, plan, approve, do, evaluate, ship, other)"
+            echo "  FAIL: $rel area='$area' not in (scope, plan, approve, deliver, evaluate, ship, other)"
             fail=$((fail + 1))
             continue
             ;;

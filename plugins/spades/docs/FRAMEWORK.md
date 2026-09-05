@@ -1,4 +1,4 @@
-# SPADES Framework v2.14.0
+# SPADES Framework v3.0.0
 
 SPADES is a human–AI operating model for engineering teams. It is
 backend-agnostic: artefacts can live in Linear (via the Linear MCP), on
@@ -15,7 +15,7 @@ contracts. Skills reference it; they do not re-state it.
 Every unit of work moves through six phases:
 
 ```
-SCOPE → PLAN → APPROVE → DO → EVALUATE → SHIP
+SCOPE → PLAN → APPROVE → DELIVER → EVALUATE → SHIP
 ```
 
 | Phase     | Who owns it          | Output                                   |
@@ -23,7 +23,7 @@ SCOPE → PLAN → APPROVE → DO → EVALUATE → SHIP
 | Scope     | Human (AI assists)   | A signed-off Scope record                |
 | Plan      | AI (human reviews)   | One or more Plan records, with deps      |
 | Approve   | Human gate           | `delivery:` routing recorded on the Plan |
-| Do        | AI or human (routed) | Implementation artefacts                 |
+| Deliver   | AI or human (routed) | Implementation artefacts                 |
 | Evaluate  | Human (AI assists)   | PASS / PARTIAL / FAIL verdict            |
 | Ship      | Mixed                | Deliverable shipped (PR merged, or…)     |
 
@@ -32,8 +32,8 @@ the **fast-track path** (see § Fast-Track Path).
 
 ### Why six (not five)
 
-v2.0 splits the old "Deliver" phase into **Do** (build the thing) and
-**Ship** (release it to where it needs to go). The split exists because
+**Deliver** builds the approved output; **Ship** releases it to where it
+needs to go. The split exists because
 delivery and shipping have different reviewers, different cadences, and
 different success conditions: building a feature is not the same as
 opening a PR, running review, and merging. Shipping a non-code
@@ -90,7 +90,7 @@ Rules that define an Objective (the full contract):
 - **Optional and repeatable.** A Project may have zero, one, or many
   Objectives over its lifetime. Not every project needs one.
 - **Always within a Project.** An Objective cannot exist standalone.
-- **Does not run the six-phase loop.** No plan / approve / do / evaluate /
+- **Does not run the six-phase loop.** No plan / approve / deliver / evaluate /
   ship. Its states are simply `open → complete | abandoned`.
 - **No cascade.** Completing or abandoning an Objective never changes the
   Project's status and never touches any Scope. Equally, Project and Scope
@@ -177,8 +177,8 @@ Skill responsibilities:
 - `/spades:approve` does NOT change the Scope's status — the Plan's
   own `status: approved` carries the gate decision. The Scope stays
   at `planning` through the approval gate.
-- `/spades:do` bumps `planning` → `delivering` on the first Plan
-  entering Do.
+- `/spades:deliver` bumps `planning` → `delivering` on the first Plan
+  entering Deliver.
 - `/spades:evaluate` bumps to `evaluating` on the first PASS verdict.
 - `/spades:ship` bumps to `shipping` on the first PR opened.
 - `/spades:close` is the **only** skill that transitions Scope →
@@ -386,8 +386,8 @@ title: "Add AI Helper Bot"
 project: closed-door-security-website
 status: scoped | planning | delivering | evaluating | shipping | done | abandoned
 type: feature | bug | chore | docs | refactor | investigation
-branch: <prefix>/<slug>             # Scope branch; legacy records may omit
-base_commit: <sha>                  # verified starting commit; legacy records may omit
+branch: <prefix>/<slug>             # intended delivery branch; created by Deliver
+base_commit: <sha>                  # added when delivery worktree is established
 created: 2026-05-29
 updated: 2026-05-29
 priority: urgent | high | this-cycle | medium | low | backlog | exploratory
@@ -437,7 +437,7 @@ Testing & Verification, Delivery Sequence.
 ```yaml
 ---
 title: "One-line summary of the learning"
-area: scope | plan | approve | do | evaluate | ship | other
+area: scope | plan | approve | deliver | evaluate | ship | other
 tags: [tag1, tag2]
 created: 2026-05-29
 status: active | archived
@@ -525,14 +525,14 @@ never meet:
 /spades:setup            (bootstrap — drives prerequisites inline)
    └─► /repo:init, /spades:newproject
                     ⋮
-        human writes the Scope   ← /spades:scope → /repo:newbranch + worktree
+        human writes the Scope   ← /spades:scope (shared documentation branch)
                     ⋮
 /spades:loop             (delivery — drives phases, aborts on prerequisites)
-   ├─► /spades:plan ──────► /spades:approve ──► /spades:do ──► /spades:evaluate
+   ├─► /spades:plan ──────► /spades:approve ──► /spades:deliver ──► /spades:evaluate
    ├─► /spades:ship ──────► skills/ship/scm-github.md
    ├─► /codereview:loop ──► /codereview:fix
    ├─► /spades:close ─────► (bookkeeping PR)
-   └─► /repo:newbranch     (delegated by Scope and Close)
+   └─► /repo:newbranch     (delegated by Deliver and Close; documentation entry from main)
 ```
 
 ### The three rules that keep it acyclic
@@ -560,7 +560,7 @@ counted in the Plan's audit trail and both terminate:
 
 | Back-edge | Cap | Marker |
 |---|---|---|
-| Evaluate `PARTIAL` → `/spades:do` | 2 reworks per Plan | `Loop — rework <n>/2 after PARTIAL: …` |
+| Evaluate `PARTIAL` → `/spades:deliver` | 2 reworks per Plan | `Loop — rework <n>/2 after PARTIAL: …` |
 | Bot review cycle → push → re-review | Owned and capped entirely by `/codereview:loop`; `/spades:loop` runs no review cycle of its own | `Loop — bot review clean on <url>` |
 
 Every other edge is forward-only. An uncapped back-edge is the same
@@ -701,11 +701,12 @@ The pattern: **decisions are structured; composition is free-form.**
 
 After resolving a Scope or a child Plan, establish its working directory
 per § Scope Worktrees before reading delivery inputs or writing records.
-New Scope creation delegates to `/repo:newbranch`; existing work resumes
-its recorded branch. Read-only discovery may search worktrees for the ID.
+Before delivery, use the documentation checkout; an intended delivery
+branch need not exist. Once delivery is established, use its recorded branch.
+Read-only discovery may search worktrees for the ID.
 
 Several skills act on an existing Scope or Plan: `review`, `plan`,
-`approve`, `do`, `evaluate`, `ship`. If the human invokes one without
+`approve`, `deliver`, `evaluate`, `ship`. If the human invokes one without
 naming a target (no ID, no slug, no description), the skill must
 walk the human through finding the right one — not abort. This
 section is the canonical contract; skills reference it rather than
@@ -773,7 +774,7 @@ restating it.
 | `/spades:review` | Scope OR Plan (asked at step 1) | Scopes: any active phase; Plans: `draft`, `approved`, `delivering`, `evaluating` |
 | `/spades:plan` | Scope | `scoped`, `planning` |
 | `/spades:approve` | Plan | `draft` |
-| `/spades:do` | Plan | `approved`, `delivering` (so resume works) |
+| `/spades:deliver` | Plan | `approved`, `delivering` (so resume works) |
 | `/spades:evaluate` | Plan (or Scope for whole-scope eval) | Plans: `delivering`, `evaluating`. Scopes: `evaluating` |
 | `/spades:ship` | Plan | `evaluating` with a PASS verdict recorded in the audit trail |
 
@@ -785,8 +786,8 @@ When the filter returns nothing, suggest the upstream skill:
 |----------------------|---------|
 | `/spades:plan` (no scoped Scopes) | `/spades:scope <title>` to create one |
 | `/spades:approve` (no draft Plans) | `/spades:plan S-…` to draft one |
-| `/spades:do` (no approved Plans) | `/spades:approve P-…` on a draft plan |
-| `/spades:evaluate` (no delivering / evaluating Plans) | `/spades:do P-…` on an approved plan |
+| `/spades:deliver` (no approved Plans) | `/spades:approve P-…` on a draft plan |
+| `/spades:evaluate` (no delivering / evaluating Plans) | `/spades:deliver P-…` on an approved plan |
 | `/spades:ship` (no evaluating + PASS Plans) | `/spades:evaluate P-…` to verify a delivered plan |
 | `/spades:review` (no active artefacts) | `/spades:scope <title>` to create one |
 
@@ -817,7 +818,7 @@ refuse hard when this check fails — there is no override.
 **The rule applies to:** `/spades:scope` (create and edit modes),
 `/spades:objective` (create and edit modes — no new Objective under an
 abandoned/archived Project), `/spades:plan`, `/spades:approve`,
-`/spades:do`, `/spades:evaluate`, `/spades:ship`, and `/spades:close` on
+`/spades:deliver`, `/spades:evaluate`, `/spades:ship`, and `/spades:close` on
 the **Pass** route (Plan ship and Scope rollup).
 
 **Exemptions:**
@@ -937,6 +938,13 @@ existing module; specify-first on the new behaviour`).
 
 ---
 
+## Delivery audit markers
+
+Writers emit `Deliver phase started` and `Deliver phase complete`. Readers
+resolving branches, resuming delivery or finding the latest evaluation cycle
+also recognise historical `Do phase started` and `Do phase complete` entries
+as the same events. Existing audit history remains unchanged.
+
 ## Audit Trail
 
 Every piece of work must be traceable through:
@@ -946,7 +954,7 @@ Every piece of work must be traceable through:
 3. One or more approved plans (or, for fast-track work, a filled PR
    template)
 4. An approval decision with routing
-5. A do-phase record of who/what executed the work
+5. A delivery-phase record of who/what executed the work
 6. An evaluation verdict
 7. A shipment record
 
@@ -998,7 +1006,7 @@ partially fail would risk lying about state.
 
 This deliberate-no-cascade design is paired with a hard gate:
 producing skills (`/spades:scope`, `/spades:plan`, `/spades:approve`,
-`/spades:do`, `/spades:evaluate`, `/spades:ship`, and `/spades:close`
+`/spades:deliver`, `/spades:evaluate`, `/spades:ship`, and `/spades:close`
 on the Pass route) refuse to act on a child of an `abandoned`
 ancestor. See § Target Resolution → Parent-status precondition for
 the contract.
@@ -1021,7 +1029,7 @@ Plans that depend on it via `depends_on:`. Dependants stay in
 whatever state they were in (`draft`, `approved`) — but they are
 **blocked**:
 
-- `/spades:do` refuses to start a Plan whose `depends_on:` chain
+- `/spades:deliver` refuses to start a Plan whose `depends_on:` chain
   contains a `rejected` ancestor. It aborts with a pointer to
   `/spades:plan` for the rejected ancestor.
 - The human decides what to do — either:
@@ -1033,7 +1041,7 @@ whatever state they were in (`draft`, `approved`) — but they are
 The framework never makes this decision automatically. Cascading a
 rejection silently would risk auto-cancelling work that the human
 might have wanted to salvage independently; refusing to start
-silently would risk wasted Do-phase cycles on stale dependencies.
+silently would risk wasted Deliver-phase cycles on stale dependencies.
 The middle ground is explicit refusal + human choice.
 
 ### The `Shipped` marker (contract)
@@ -1057,50 +1065,97 @@ matching audit line.
 
 ## Scope Worktrees
 
-A new Scope owns one branch and one worktree. `/spades:scope` delegates
-creation to `/repo:newbranch` before composing or writing the Scope, then
-uses the returned absolute directory for every phase and worker. The
-branch prefix describes the work (`feat/`, `fix/`, `chore/`, and the other
-repo prefixes); all its commits belong to its PR. Scope records `branch:`
-and `base_commit:` in its frontmatter. Paths are machine-local: resolve
-`branch:` through `/repo:newbranch --resume <branch>`, not a committed
-absolute path.
+### Documentation before delivery
 
-`/repo:newbranch` alone owns default-branch cleanliness, remote discovery,
-pulling available updates, and verifying the starting commit. A caller
-passes its configured remote and the work description; it does not
-reimplement those checks or call `/repo:sync` as a prerequisite. Main or
-master is clean and equal to its remote before new work starts. Existing
-branches and worktrees remain in place.
+Scope, Plan and Approve compose records in the current non-default working
+branch. One documentation session can contain many Scopes, Plans and
+approvals. Reuse that checkout and its current-run inclusion decisions;
+writing another record does not create another branch or require a clean
+tree. Main/master stays clean: when invoked there, prepare one documentation
+branch and worktree through `/repo:newbranch` before the first write, then
+use it for the rest of the session. A detached checkout needs an existing
+working branch resolved before writing.
+
+New Scopes record `branch:` as their intended **delivery** branch name.
+Derive it from the Scope's type and title using `/repo:newbranch`'s naming
+conventions and validate it through `/repo:branch`. Choose a name distinct
+from the documentation branch and other Scopes' delivery branches. Recording
+a name creates no git branch. `base_commit:` is absent until the delivery
+worktree is established. Preserve both fields on subsequent edits and renders.
+
+Canonical Markdown records are durable project state and travel through
+normal PRs. Documentation records can accumulate for one session PR; each
+Scope's records can also accompany its delivery PR. A phase boundary does
+not require a separate commit or PR. Existing output-format rules govern
+HTML companions.
+
+### Starting delivery
+
+The first `/spades:deliver` for an approved Plan creates the parent Scope's
+separate delivery branch and worktree through `/repo:newbranch`, supplying
+the recorded `branch:`, Scope description and configured remote. That skill
+owns clean/current default-branch preparation and the verified base revision.
+The documentation branch stays available with its other Scopes and edits.
+Delivery, Evaluate and Ship use the returned worktree; all Plans in that
+Scope share it, including artefact/action records.
+
+Transfer the selected Scope, its Plans and their approval/review records
+that are not already on the fresh base, plus any required project/config
+records. Use authorised current-run content or an existing inclusion
+decision; ask only about unknown changes before incorporating them. Apply
+the selected changes to the fresh records, resolving any divergence, rather
+than copying the whole documentation tree or inheriting its commits. Preserve
+the source files and index. Verify the transferred records and approval
+against the source before executing the Plan; changed delivery inputs go
+back through Plan/Approve as appropriate. Re-render HTML from those records.
+
+Record the returned `branch:` and `base_commit:` on the Scope in the delivery
+worktree and append `Scope worktree established. Branch: <branch>. Base:
+<base_commit>.` to its audit trail. Mirror through the configured backend.
+The delivery copy is authoritative from this point. Copies left in the
+documentation branch are snapshots: discovery follows their `branch:` to
+the established delivery worktree. Reconcile overlapping records before
+merging a later documentation PR so it preserves newer delivery status and
+metadata.
 
 ### Entering or resuming work
 
-Resolve the Scope (or a Plan's parent), call `/repo:newbranch --resume
-<branch>`, and re-read its records in the returned worktree before any
-edits. Explicit working directories also apply to shell commands, HTML
-renderers and subagents. Reuse the current run's validated context; a new
-phase does not create another branch or repeat settled inclusion questions.
+Resolve the Scope (or a Plan's parent) before choosing the working context:
 
-For older Scopes without `branch:`, recover the branch from their Do audit
-trail and worktree list, then record it. If none exists, ask which existing
-branch owns the Scope, or delegate a new branch to `/repo:newbranch` and
-copy only the human-approved Scope/Plan records into it. Existing commits
-on a different branch remain with its PR. A missing or merged delivery
-branch is not silently recreated for further delivery: new delivery after
-merge starts a new Scope.
+- **Before delivery is established:** read and edit the documentation copy.
+  An intended `branch:` with no git branch is normal; Scope, Plan, Approve,
+  review and loop preparation stay in the documentation session.
+- **Delivery established:** resolve `branch:` through `/repo:newbranch
+  --resume <branch>` and re-read records there. Reuse the current run's
+  validated context. Missing or merged delivery branches are surfaced for
+  resolution; further delivery after merge starts a new Scope.
 
-Read-only discovery may inspect other worktrees to locate records. Reports
-name the worktree/revision inspected. A writer operates only in the resolved
-worktree. Standalone writes without a Scope (quick work, setup, project or
-durable-doc maintenance) also enter a worktree through `/repo:newbranch`;
-an explicit continuation resumes its existing branch. Bookkeeping after a
-merge is separate new work, prepared through the same skill.
+Use the establishment audit entry, delivery records and registered worktrees
+to distinguish an intended name from existing delivery. `base_commit:` alone
+is not sufficient for older records: releases before 6.0 created worktrees
+at Scope time. If such a Scope has not begun delivery, its existing worktree
+serves as documentation and Deliver chooses a distinct delivery name. If
+implementation has already begun, resume its recorded branch. For older
+Scopes without `branch:`, recover it from delivery audit records; otherwise
+record an intended name while composing, and create it only at Deliver.
+A colliding branch name is resolved before creation; an unrelated branch
+is never adopted as the Scope's delivery branch. When the intended name
+changes, update it on the documentation Scope before transferring the records,
+so discovery can follow that name to the established delivery copy.
+
+Explicit working directories apply to shell commands, HTML renderers and
+subagents. Read-only discovery may inspect registered worktrees for records;
+reports name the context inspected and prefer established delivery copies
+over documentation snapshots. Read-only work creates no branch. Standalone
+writes use an existing suitable working branch or `/repo:newbranch` when
+starting from main/master. Quick delivery and post-merge bookkeeping retain
+their own worktree entry points.
 
 ### Plans share the Scope branch
 
-All Plans in a Scope use its branch. Under `scm: github`, one delivery PR
-contains that Scope's work. A dependency is ready for further work on this
-branch when it is `shipped`, or when it has completed Do and has a confirmed
+Once delivery starts, all Plans in a Scope use its delivery branch. Under
+`scm: github`, one delivery PR contains that Scope's work. A dependency is ready for further work on this
+branch when it is `shipped`, or when it has completed Deliver and has a confirmed
 PASS after its latest delivery changes. The latter is readiness for local
 execution, not shipment: the Plan stays `evaluating`. Rejected dependencies
 still require replanning. A new change to dependency output invalidates its
@@ -1125,10 +1180,12 @@ An explicit cleanup request belongs to `/repo:sync` or the user's tools.
 
 ## Freshness
 
-New work starts at the clean, current default-branch revision established
-by `/repo:newbranch` (§ Scope Worktrees). Scope, Plan, Do, review, research,
-and other callers delegate that preparation rather than maintaining their
-own default-branch pull, cleanliness or cleanup checks.
+New delivery starts at the clean, current default-branch revision established
+by `/repo:newbranch` (§ Scope Worktrees). Documentation sessions reuse their
+working branch; Scope, Plan and Approve report that context without requiring
+another branch, pull or clean checkout. Deliver verifies transferred records
+against the fresh base before execution. Review and research inspect their
+assigned context. Default-branch preparation belongs to `/repo:newbranch`.
 
 Existing Scope work is read from its resolved worktree. Main advancing does
 not turn a Plan's own committed work into unrelated changes or justify
@@ -1147,8 +1204,10 @@ context rather than pulling or switching main.
 
 ## Carry-Forward of SPADES-Owned Artefacts
 
-Scope, Plan, approval and evaluation records accumulate inside the Scope's
-worktree and travel in its PR. Current-run artefacts are authorised work;
+Scope, Plan and approval records accumulate in the documentation session's
+working branch. Deliver transfers the selected Scope's authorised records to
+its separate delivery worktree; subsequent evaluation records travel in that
+Scope's PR. Current-run artefacts are authorised work;
 they need no separate permission at every phase. Existing committed work
 on that branch already belongs to its PR and needs no inclusion question.
 
@@ -1187,7 +1246,7 @@ and report it before any push; agree the repair with the human.
 
 ### Phase handoffs
 
-Do commits its approved code and artefacts. Ship commits remaining approved
+Deliver commits its approved code and artefacts. Ship commits remaining approved
 records before pushing. Quick does the same for its marker. Close prepares
 a new bookkeeping worktree through `/repo:newbranch` and transfers only
 approved pending records, preserving their source state until the transfer
@@ -1339,7 +1398,7 @@ extra file at the end".
 
 The rule above forbids pre-write CLI pastes in producing skills. The
 same principle applies to consumer skills (`approve`, `evaluate`,
-`do`, `ship`, `close`, `intent`): when in HTML mode and the `.html`
+`deliver`, `ship`, `close`, `intent`): when in HTML mode and the `.html`
 file is open, do NOT also paste long review-form text to the CLI.
 
 To make the line crisp:
@@ -1427,7 +1486,7 @@ is improvisation.
 ### Consumer skills — `cli` vs `html` presentation
 
 Consumer skills are `/spades:approve`, `/spades:evaluate`,
-`/spades:do`, `/spades:ship`, `/spades:close`, `/spades:status`,
+`/spades:deliver`, `/spades:ship`, `/spades:close`, `/spades:status`,
 `/spades:list`, `/spades:intent`. Each, at some point in its flow,
 presents an artefact for the human to review.
 
@@ -1456,7 +1515,7 @@ prefix, tagline, browser title.
   summary) to the terminal as today.
 - **`review_format: html`** — auto-open the relevant `.html`
   artefact in the default browser via the OPEN_CMD prelude.
-  - For artefact-bound reviews (approve / do / ship / close):
+  - For artefact-bound reviews (approve / deliver / ship / close):
     the `.html` already exists at `.spades/<dir>/<id>.html`
     because the producing skill wrote it. Just open it.
     (`evaluate` is **not** in this list — see below; it writes
@@ -1716,7 +1775,7 @@ dispatch as two parallel `worker-html-<skill>` sub-agents.
 
 The fan-out contract is something multiple skills participate in
 (today: `newproject`, `scope`, `plan`, `approve`, `evaluate`;
-later: `do`, `ship`, `close`). Defining it once here means
+later: `deliver`, `ship`, `close`). Defining it once here means
 individual skill bodies can reference this section instead of
 repeating dispatch-mode bookkeeping and failure-semantics prose.
 Adding a new skill that mirrors to Linear later? Author a per-skill

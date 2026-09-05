@@ -52,7 +52,7 @@ skill, and every gate ladder back to four pillars. Hold these as the
    `/spades:review` exists to broaden collaboration with multiple
    perspectives (four reviewer personas) on demand.
 2. **Deliver.** Working output beats documentation about output.
-   Do and Ship close the loop with something real — code merged,
+   Deliver and Ship close the loop with something real — code merged,
    an artefact recorded, an action evidenced. Quick-path
    (`/spades:quick`) exists so small work can deliver without
    ceremony.
@@ -71,7 +71,7 @@ Skill mapping:
 | Pillar | Where it lives |
 |--------|----------------|
 | Collaborate | Scope, Plan, Approve, Review |
-| Deliver | Do, Ship, Close, Quick, Loop |
+| Deliver | Deliver, Ship, Close, Quick, Loop |
 | Reflect | Evaluate, Status, List |
 | Improve | Learn, Leads, Intent / Architecture / Patterns / Anti-Patterns refresh |
 
@@ -87,11 +87,11 @@ The SPADES plugin (`spades`) provides these 22 skills:
 | `/spades:scope` | Create or edit a Scope (`S-<description-slug>`) |
 | `/spades:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope |
 | `/spades:approve` | Present a Plan for human review and record routing |
-| `/spades:do` | Execute an approved Plan (routed AI / human / hybrid) |
+| `/spades:deliver` | Execute an approved Plan (routed AI / human / hybrid) |
 | `/spades:evaluate` | Check delivered output against the Scope's acceptance criteria |
 | `/spades:ship` | Open the PR (code) or record the deliverable (artefact / action) |
 | `/spades:close` | Conversational close-out: pass / reject / abandon based on target. Pass finalises (Plan → shipped, Scope → done, Project → archived, Objective → complete); reject (Plans) and abandon (Scopes, Projects, Objectives) require a reason. Lands via a bookkeeping PR. |
-| `/spades:loop` | Drive one Scope from Plan to closed-out — plan → approve → do → evaluate → **human sign-off** → ship → bot review → merge → close. Slash-only; never writes a Scope. |
+| `/spades:loop` | Drive one Scope from Plan to closed-out — plan → approve → deliver → evaluate → **human sign-off** → ship → bot review → merge → close. Slash-only; never writes a Scope. |
 | `/spades:quick` | Fast-track for trivial work — quick-item marker file (`.spades/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |
@@ -108,13 +108,13 @@ The SPADES plugin (`spades`) provides these 22 skills:
 
 Every unit of work follows six phases:
 
-    SCOPE → PLAN → APPROVE → DO → EVALUATE → SHIP
+    SCOPE → PLAN → APPROVE → DELIVER → EVALUATE → SHIP
 
 - Humans own Scope, the Approve gate, and the Evaluate gate.
-- AI owns Plan, Do (when routed AI), and Ship (when the deliverable
+- AI owns Plan, Deliver (when routed AI), and Ship (when the deliverable
   is code).
 - Approve records a routing decision (`ai` / `human` / `hybrid`) that
-  determines who executes Do.
+  determines who executes Deliver.
 
 Every phase runs, in order, unless the human explicitly instructs
 otherwise.
@@ -145,7 +145,7 @@ review comment, or a red CI check.
 - Plans declare dependencies on prior Plans via `depends_on:`.
 - Each task in a Plan declares an execution posture (`specify-first`,
   `discover-first`, `iterate`, `spike`, `straight-through`).
-- Do-phase work begins once the Plan is approved.
+- Deliver-phase work begins once the Plan is approved.
 
 ### 3. Approve (Human gate)
 - After producing a Plan, STOP and wait for human approval.
@@ -154,10 +154,12 @@ review comment, or a red CI check.
   (`code`, `artefact`, `action`).
 - A revised or rejected Plan does not enter delivery.
 
-### 4. Do (AI or Human — routed)
+### 4. Deliver (AI or Human — routed)
 - Execute the approved Plan. Routing comes from the Plan's `delivery:`
   field set at Approve time.
-- For `ai`: run in the Scope's branch and worktree, committing approved
+- First delivery creates the Scope's intended delivery branch and worktree
+  through `/repo:newbranch`, separate from the documentation session.
+- For `ai`: run in the Scope's delivery branch and worktree, committing approved
   changes as you go. All Plans share that branch.
 - For `human`: record the assignment in the backend and stand down.
 - For `hybrid`: split per the Plan's task-level routing.
@@ -171,7 +173,7 @@ review comment, or a red CI check.
 ### 6. Ship (Mixed)
 - For `deliverable_type: code` — routed by the `scm:` field in
   `.spades/config`:
-  - **`scm: github`** — `/spades:ship` pushes the Do branch and
+  - **`scm: github`** — `/spades:ship` pushes the Deliver branch and
     opens the PR; review feedback lands on the same branch; after the
     squash-merge, `/spades:close P-<id>` verifies the merge, records
     the `Shipped` markers on main via a bookkeeping PR for the Scope,
@@ -233,13 +235,17 @@ Flag any conflicts between proposed solutions and these documents.
 
 ## Scope Worktrees and Freshness
 
-Every new Scope calls `/repo:newbranch` before composition. That skill
-alone owns a clean main/master checkout, pulling available remote updates,
-verifying the starting revision, naming the branch and creating its
-worktree. Scope records the returned branch and base commit; all Plans,
-commands, renders and workers use that worktree. Existing work resumes via
-`/repo:newbranch --resume <branch>`. Other branches/worktrees stay untouched.
-Standalone new work also enters through `/repo:newbranch`.
+Scope, Plan and Approve reuse the current non-default working branch.
+From main/master, prepare one documentation worktree through `/repo:newbranch`
+before writing, then reuse it across the session's Scopes and Plans. Main
+stays clean; pending records can accumulate without a PR at every phase.
+
+Scope records its intended delivery `branch:` without creating it. The first
+`/spades:deliver` creates that separate branch/worktree through `/repo:newbranch`,
+transfers the selected Scope's authorised records and adds `base_commit:`.
+Deliver, Evaluate and Ship use that worktree; subsequent Plans share it.
+Established delivery resumes via `/repo:newbranch --resume <branch>`.
+The documentation branch and its other Scopes remain available.
 
 One Scope's code Plans share one delivery PR. Dependencies can proceed on
 the same branch after a confirmed PASS; they become shipped only after the
@@ -271,8 +277,8 @@ logic inside a SPADES skill.
 | Drive a PR to zero review-bot findings | `/codereview:loop` — waits for each review, hands findings to `/codereview:fix`, pushes, re-checks. |
 | Fix a block of review findings, one or many | `/codereview:fix` — one subagent per finding. Never pushes. |
 
-Scope, Quick and Close call `/repo:newbranch`; existing Scope phases
-resume the Scope worktree. The commit guardrail remains `/repo:branch`.
+Deliver, Quick and Close call `/repo:newbranch`; established delivery
+resumes the Scope worktree. Documentation reuses a working branch. The commit guardrail remains `/repo:branch`.
 The dependency is one-directional: SPADES → `repo` / `codereview`.
 
 **If you don't have a git repo yet**, `/spades:setup` runs
@@ -300,7 +306,7 @@ Choose major / minor / patch by semver. When in doubt, lean higher.
 ## Audit Trail
 
 Every piece of work must trace through: project → scope → plan(s) →
-approval (with routing) → do-phase record → evaluation verdict →
+approval (with routing) → delivery-phase record → evaluation verdict →
 shipment record. Work that cannot be traced through this chain must
 not ship.
 ```

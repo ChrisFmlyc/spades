@@ -97,7 +97,7 @@ proposed.
 - **Do not write code without a Scope.** Exceptions go through
   `/spades:quick`, which has ten explicit gate criteria (see
   AGENTS.md).
-- **Do not start Do without an approved Plan** on the full loop.
+- **Do not start Deliver without an approved Plan** on the full loop.
   Approval is a STOP gate, and the approval records the routing
   decision on the Plan. If in doubt, ask.
 - **Do not mark work shipped without verifying the deliverable is

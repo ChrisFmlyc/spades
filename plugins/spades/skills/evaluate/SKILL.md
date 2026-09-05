@@ -1,7 +1,7 @@
 ---
 name: evaluate
-description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:do` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.9.1
+description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
+version: 3.9.2
 ---
 
 # /spades:evaluate
@@ -30,6 +30,9 @@ Plan's `.md`; that is the AI-readable record.
   brand, heading, tagline, and title. This skill opens its own two
   pages only; the Plan's `.html` stays closed.
 
+Read completion events per `docs/FRAMEWORK.md § Delivery audit markers`
+so older Plans resume the correct evaluation cycle.
+
 ## Pre-Flight
 
 1. **Confirm setup and active project.** Abort otherwise.
@@ -43,7 +46,7 @@ Plan's `.md`; that is the AI-readable record.
      (picker over `delivering` / `evaluating`), *Whole scope* (picker
      over `evaluating`), *Quick item* (glob `.spades/quick/Q-*.md`
      for the active project without an `Evaluate — verdict:` line).
-   - **Zero candidates** — no Plans → `/spades:do P-…`; no Scopes →
+   - **Zero candidates** — no Plans → `/spades:deliver P-…`; no Scopes →
      keep delivering; no Quick items → `/spades:quick`.
 4. **Read the target** — Plan plus parent Scope, or Scope plus every
    Plan under it — from the `.md` files.
@@ -61,7 +64,7 @@ Plan's `.md`; that is the AI-readable record.
 
 Read the Plan's audit trail:
 
-- No `Evaluation started` since the last `Do phase complete` →
+- No `Evaluation started` since the last `Deliver phase complete` →
   fresh run, Step 1.
 - Latest `Evaluation started` followed by `AI verification phase
   complete. Awaiting human report on …` (hybrid) or `Verification
@@ -283,7 +286,7 @@ One wave per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`,
 
 | Sub-agent | Resource owned | Returns |
 |---|---|---|
-| `worker-file-plan-evaluate` | `.spades/plans/P-<…>.md` — PASS keeps `status: evaluating`; PARTIAL rolls back to `delivering` so `/spades:do` resumes; FAIL sets `rejected`. Appends `- YYYY-MM-DD: Evaluation — verdict: <PASS\|PARTIAL\|FAIL>. Notes: <rationale>.` | `{ status: ok }` |
+| `worker-file-plan-evaluate` | `.spades/plans/P-<…>.md` — PASS keeps `status: evaluating`; PARTIAL rolls back to `delivering` so `/spades:deliver` resumes; FAIL sets `rejected`. Appends `- YYYY-MM-DD: Evaluation — verdict: <PASS\|PARTIAL\|FAIL>. Notes: <rationale>.` | `{ status: ok }` |
 | `worker-file-scope-evaluate` *(Scope rollup only)* | `.spades/scopes/S-<…>.md` — `status: evaluating` on the first PASS per `docs/FRAMEWORK.md § Scope status rollup`, plus an audit line. | `{ status: ok }` |
 | `worker-linear-evaluate` *(`backend: linear`)* | Linear — `record_evaluation(plan_id, verdict, notes)`: the report as a sub-issue comment and the matching workflow state. Carries the resolved worktree context per § Freshness. | `{ status: ok }` |
 
@@ -306,10 +309,10 @@ Next:
 ```
 ⚠ Plan evaluated: P-rag-pipeline-lookup-3HyD
 ⚠ Verdict:        PARTIAL — criterion 4 needs work
-⚠ Status:         delivering (returning to /spades:do)
+⚠ Status:         delivering (returning to /spades:deliver)
 
 Next:
-  /spades:do P-rag-pipeline-lookup-3HyD   — apply the fixes
+  /spades:deliver P-rag-pipeline-lookup-3HyD   — apply the fixes
 ```
 
 ```

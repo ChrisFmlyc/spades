@@ -1,7 +1,7 @@
 ---
 name: list
 description: List active SPADES Scopes (and Objectives), optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "list objectives", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades/config`.
-version: 3.6.0
+version: 3.6.1
 ---
 
 # /spades:list
@@ -43,8 +43,9 @@ and prints a one-line brief with the path.
 ### `backend: local`
 
 Discover records across registered worktrees, including Scopes not yet
-merged. Group by Scope ID and use its recorded branch's worktree while it
-is active. For a completed delivery PR, use the verified close-out records
+merged. Group by Scope ID. Before delivery, use the documentation copy;
+a recorded delivery branch need not exist yet. Once delivery is established,
+prefer its worktree over documentation snapshots per § Scope Worktrees. For a completed delivery PR, use the verified close-out records
 in its bookkeeping worktree or merged default-branch history. Report
 conflicting copies rather than silently selecting by timestamp. Read-only
 reporting does not switch, pull or clean any checkout. Classify dependencies
@@ -190,7 +191,7 @@ No active SPADES Scopes for project "<slug>".
 ## Step 5 — Next actions
 
 One line per actionable phase: Scoped → `/spades:plan S-…`;
-Planning → `/spades:approve P-…`; Delivering → `/spades:do P-…`;
+Planning → `/spades:approve P-…`; Delivering → `/spades:deliver P-…`;
 Evaluating → `/spades:evaluate P-…`; Shipping → `/spades:ship P-…`
 or `/spades:close P-…`.
 

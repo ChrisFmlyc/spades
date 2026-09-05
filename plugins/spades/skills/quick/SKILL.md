@@ -1,7 +1,7 @@
 ---
 name: quick
 description: Fast-track path for trivial work — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when someone says "just fix this small thing", "quick tweak", "one-line change", "typo fix", "rename this variable", or when you would otherwise invoke /spades:scope for a change that clearly meets every gate criterion below. Work that touches architecture, auth, schemas, or public APIs, or needs more than one focused commit, takes the full loop via /spades:scope.
-version: 2.4.0
+version: 2.4.1
 ---
 
 # /spades:quick
@@ -226,5 +226,5 @@ Incident response, first-pass work on a feature, anything touching
 `ARCHITECTURE.md` or `PATTERNS.md`, anything a reviewer would want
 to discuss before it lands, and bundles of several small changes all
 take the full loop: `/spades:scope` → `/spades:plan` →
-`/spades:approve` → `/spades:do` → `/spades:evaluate` →
+`/spades:approve` → `/spades:deliver` → `/spades:evaluate` →
 `/spades:ship`.

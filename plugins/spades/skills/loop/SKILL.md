@@ -1,7 +1,7 @@
 ---
 name: loop
-description: Drives one existing Scope from Plan to closed-out — plan, approve, do, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. Not for autonomous use and carries no trigger conditions: it runs only when the user invokes it directly, or when a goal or driver the user set up delegates to it. See "Who may invoke this".
-version: 1.9.0
+description: Drives one existing Scope from Plan to closed-out — plan, approve, deliver, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. Not for autonomous use and carries no trigger conditions: it runs only when the user invokes it directly, or when a goal or driver the user set up delegates to it. See "Who may invoke this".
+version: 1.10.0
 ---
 
 # /spades:loop
@@ -64,7 +64,7 @@ so the human can audit what was decided for them:
 
 ```
 ○ /spades:plan    — deliverable_type: code (the Scope ships a PR)
-○ /spades:do      — description: skipped (commit messages carry it)
+○ /spades:deliver      — description: skipped (commit messages carry it)
 ○ /spades:approve — Approve; 6/6 checks clean; delivery: ai
 ```
 
@@ -96,10 +96,10 @@ one-line reason beside each `human` row.
 | `/spades:approve` — second-opinion pointer | Decline; `/spades:review` is human-invoked. |
 | `/spades:approve` — the decision | Stage 2. |
 | `/spades:approve`, `/spades:evaluate` — routing | § Routing. |
-| `/spades:do` — a dependency is not ready per § Scope Worktrees | *Wait*; deliver and evaluate the dependency first. |
-| `/spades:do` — on a branch for another Plan | *Switch to a new branch off main.* |
-| `/spades:do` — ambiguous branch prefix | The skill's keyword rules; `feat/` when none match. |
-| `/spades:do`, `/spades:ship` — one-line description | *Skip.* |
+| `/spades:deliver` — a dependency is not ready per § Scope Worktrees | *Wait*; deliver and evaluate the dependency first. |
+| `/spades:deliver` — first delivery | Create the Scope’s recorded delivery branch through `/repo:newbranch`; retain the documentation branch. |
+| `/spades:deliver` — ambiguous branch prefix | `/repo:newbranch` naming conventions; `feat/` when none match. |
+| `/spades:deliver`, `/spades:ship` — one-line description | *Skip.* |
 | `/spades:evaluate` — approve the verification plan | Stage 4. |
 | `/spades:evaluate` — confirm the verdict | Stage 5 — yours in 5B, the human's in 5A. |
 | `/spades:ship` — a `Shipped` line already exists | *Exit*, then re-derive the stage. |
@@ -132,18 +132,24 @@ Every failure is an abort with a pointer.
 
 5. `gh` installed and authenticated (`command -v gh`; `gh auth
    status`) — every stage from 7 onward depends on it.
-6. Use the Scope worktree per § Scope Worktrees after resolving the target.
-   Default-branch preparation belongs to `/repo:newbranch` at creation.
+6. Use § Scope Worktrees to select the working context after resolving the
+   target: documentation before delivery, delivery worktree afterwards.
 7. Resolve the target Scope per § Target Resolution (any
    non-terminal status; zero candidates → "Write the Scope first").
    A `P-…` argument resolves to its parent Scope and pins that Plan.
 8. Verify ancestors active per § Target Resolution →
    Parent-status precondition.
-9. Resume the Scope branch via `/repo:newbranch --resume <branch>`;
-   preserve its returned working directory across every stage and worker.
-   Announce the Scope, branch, worktree, Plan count and resumed stage.
+9. Stay in the documentation context for Plan and Approve until delivery
+   is established. Stage 3 delegates creation to `/spades:deliver`; retain
+   its returned working directory for subsequent stages and workers. Resume
+   established delivery through `/repo:newbranch --resume <branch>`.
+   Announce the Scope, current context, intended delivery branch, Plan count
+   and resumed stage.
 
 ## Loop state — derived, not stored
+
+Read delivery events per `docs/FRAMEWORK.md § Delivery audit markers`,
+including historical names when resuming older Plans.
 
 There is no state file. The stage comes from artefacts other skills
 already write, so a looped run and a hand-driven run are
@@ -154,8 +160,8 @@ indistinguishable and a human can take over at any boundary:
 | Scope has no Plans | 1 — Plan |
 | All existing Plans terminal | 15 — finished gate; new delivery requires a new Scope |
 | Plan `draft` | 2 — Approve |
-| Plan `approved` / `delivering` | 3 — Do |
-| `evaluating`, no hand-off line and no `Evaluation — verdict:` since the last `Do phase complete` | 4 — Evaluate |
+| Plan `approved` / `delivering` | 3 — Deliver |
+| `evaluating`, no hand-off line and no `Evaluation — verdict:` since the last `Deliver phase complete` | 4 — Evaluate |
 | `evaluating`, hand-off line (`Awaiting human report on …` / `awaiting human execution`), no verdict after it | 5A — human verification pause |
 | `evaluating`, verdict PASS, no `Loop — evaluate sign-off` | 5B — record the sign-off, then 6 |
 | `evaluating`, PASS, sign-off recorded | 6 — Ship |
@@ -208,11 +214,11 @@ The approval line names `AI (/spades:loop)`. Sensitive areas are
 approved on the same six checks; `deliverable_type: action` approves
 normally and routes `human`, and Stage 3 stands down there.
 
-## Stage 3 — Do
+## Stage 3 — Deliver
 
-Invoke **`/spades:do P-<plan-id>`**. `delivery: ai` runs
+Invoke **`/spades:deliver P-<plan-id>`**. `delivery: ai` runs
 autonomously; `hybrid` pauses at the first human task with the
-assignment reported; `human` pauses for the whole stage. If Do stops
+assignment reported; `human` pauses for the whole stage. If Deliver stops
 because the Plan is wrong, pause and surface the discrepancy
 verbatim.
 
@@ -470,7 +476,7 @@ the derived stage.
 | 1 | The evaluation carries Human rows — the designed gate | 5A |
 | 2 | An Approve check still fails after two revisions | 2 |
 | 3 | `delivery: human`, or a `hybrid` Plan reaching its first human task | 3 |
-| 4 | `/spades:do` finds the Plan is wrong mid-flight | 3 |
+| 4 | `/spades:deliver` finds the Plan is wrong mid-flight | 3 |
 | 5 | Evaluate verdict FAIL | 5 |
 | 6 | Third PARTIAL on the same Plan | 5 |
 | 7 | `/codereview:loop` stops short | 7, 12 |

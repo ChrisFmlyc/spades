@@ -21,7 +21,7 @@ a package.
   (`plugins/spades/agents/*.md`), framework reference docs under
   `plugins/spades/docs/`, and CI-only lint scripts.
 - **Core loop** is six phases with explicit ownership:
-  Scope (H) → Plan (AI) → Approve (H gate) → Do (routed) →
+  Scope (H) → Plan (AI) → Approve (H gate) → Deliver (routed) →
   Evaluate (H gate) → Ship (mixed).
 
 The "system" is a set of files. There is no server, no database, no
@@ -96,7 +96,7 @@ no helper binary on PATH owned by this framework.
 5. `/spades:approve` gates the Plan; a human approves or rejects, and
    records the routing decision (`ai` / `human` / `hybrid`) on the
    Plan.
-6. `/spades:do` executes per the routing.
+6. `/spades:deliver` executes per the routing.
 7. `/spades:evaluate` checks delivered output against the Scope's
    acceptance criteria.
 8. `/spades:ship` releases the deliverable — PR + review + merge for
