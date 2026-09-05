@@ -1,14 +1,14 @@
 ---
 name: plan
 description: Generate a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 3.6.0
+version: 3.7.0
 ---
 
 # /spades:plan
 
 You are drafting a Plan for a Scope. A Plan is a first-class
 artefact: written to `.spades/plans/`, mirrored to the backend, and
-gated at `/spades:approve` before any Do-phase work starts. Plans
+gated at `/spades:approve` before any Deliver-phase work starts. Plans
 can depend on earlier Plans in the same Scope; the dependency chain
 is encoded in the filename and held authoritatively in `depends_on:`.
 
@@ -29,10 +29,11 @@ running.
 
 ## Pre-Flight
 
-Work in the parent Scope's resolved worktree per `docs/FRAMEWORK.md
-§ Scope Worktrees`. Every Plan shares that branch. Readiness for a dependent
-Plan is a confirmed PASS on the same branch or shipment; delivery of the
-Scope reaches GitHub in one PR after its code Plans pass.
+Use the parent Scope's documentation checkout before delivery, or its
+established delivery worktree afterwards, per `docs/FRAMEWORK.md § Scope
+Worktrees`. Drafting another Plan reuses that context. Deliver creates the
+separate implementation branch; all Plans in the Scope share it. Readiness
+for dependent delivery is a confirmed PASS on that branch or shipment.
 
 1. **Confirm setup and active project.** Abort otherwise.
 2. **Read `backend:` and `review_format:`** from `.spades/config`.
@@ -198,7 +199,7 @@ linear_issue_id: <id>                            # backend: linear, injected in 
 
 ## Audit Trail
 
-<!-- Appended by /spades:approve, /spades:do, /spades:evaluate,
+<!-- Appended by /spades:approve, /spades:deliver, /spades:evaluate,
      /spades:ship, /spades:close. -->
 ```
 
@@ -282,7 +283,7 @@ Next:
   /spades:approve P-rag-pipeline-lookup-3HyD    — review and approve
 ```
 
-The Plan stays `draft` until `/spades:approve` runs; Do-phase work
+The Plan stays `draft` until `/spades:approve` runs; Deliver-phase work
 starts after approval.
 
 ## Revision (Edit mode)

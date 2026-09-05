@@ -18,13 +18,13 @@ when working in it. Invoke the main ones by their namespaced names:
 | Skill | What it does |
 |-------|-------------|
 | `/spades:setup` | Configure backend + scaffold this repo (re-runnable) |
-| `/spades:loop` | Drive one Scope from Plan to closed-out unattended — chains plan → approve → do → evaluate → **human sign-off** → ship → bot review → squash-merge → close → bot review → merge. Slash-only. Never scopes. |
+| `/spades:loop` | Drive one Scope from Plan to closed-out unattended — chains plan → approve → deliver → evaluate → **human sign-off** → ship → bot review → squash-merge → close → bot review → merge. Slash-only. Never scopes. |
 | `/spades:newproject` | Create a new Project record |
 | `/spades:objective` | Create or edit an Objective (`O-<description-slug>`) — a coherent strategic action associated with a project; independent of Scopes |
 | `/spades:scope` | Create or edit a Scope (`S-<description-slug>`) |
 | `/spades:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope |
 | `/spades:approve` | Present a Plan for review; record routing (AI / human / hybrid) |
-| `/spades:do` | Execute an approved Plan, routed per the approval decision |
+| `/spades:deliver` | Execute an approved Plan, routed per the approval decision |
 | `/spades:evaluate` | Check delivered output against acceptance criteria |
 | `/spades:ship` | Open the PR (code) or record the deliverable (artefact / action) |
 | `/spades:close` | Conversational close-out entry. Asks pass / reject / abandon based on target type. Pass = finalise (Plan → shipped, Scope → done, Project → archived, Objective → complete). Reject (Plans) and Abandon (Scopes, Projects, Objectives) require a reason. Objective completion is ungated and has no cascade. Opens a bookkeeping PR for any file change. |
@@ -44,9 +44,9 @@ project is `spades-framework` — the framework dogfooding itself.
 
 Every unit of work in this project follows six phases:
 
-    SCOPE → PLAN → APPROVE → DO → EVALUATE → SHIP
+    SCOPE → PLAN → APPROVE → DELIVER → EVALUATE → SHIP
 
-Humans own Scope and the Approve / Evaluate gates. AI owns Plan; Do is
+Humans own Scope and the Approve / Evaluate gates. AI owns Plan; Deliver is
 routed at Approve time (`ai` / `human` / `hybrid`). Ship branches on
 `deliverable_type` (`code` / `artefact` / `action`). You must never
 skip a phase or combine phases without explicit human instruction.
@@ -61,7 +61,7 @@ When in doubt, use the full loop.
 The six phases can be driven one command at a time — that has always
 been the model and still is. `/spades:loop` is the alternative: the
 human writes the Scope, types `/spades:loop`, and the agent walks
-Plan → Approve → Do → Evaluate, **stops for the human to sign off the
+Plan → Approve → Deliver → Evaluate, **stops for the human to sign off the
 evaluation**, then carries on through Ship, bot review, squash-merge,
 `/spades:close`, and the bookkeeping PR's own review and merge. Worktrees
 remain available after completion.
@@ -147,7 +147,7 @@ See `docs/FRAMEWORK.md § Hierarchy → Objectives` for the full contract.
   defaults.
 - A Plan also declares its `deliverable_type:` (`code`, `artefact`, or
   `action`) — this drives what Ship does later.
-- You must NOT begin Do-phase work until the Plan is approved.
+- You must NOT begin Deliver-phase work until the Plan is approved.
 
 ### 3. Approve (Human Gate)
 
@@ -158,7 +158,7 @@ See `docs/FRAMEWORK.md § Hierarchy → Objectives` for the full contract.
   asks for a decision: Approve / Approve with notes / Revise / Reject.
 - On approval, the gate ALSO records a **routing decision** on the
   Plan's frontmatter: `delivery: ai | human | hybrid`. This determines
-  who executes Do.
+  who executes Deliver.
 - If revised or rejected, do not begin delivery. Apply `plan-rejected`
   (Linear) or note in the local audit trail.
 - **Panel second opinion (optional).** The human may request
@@ -168,31 +168,32 @@ See `docs/FRAMEWORK.md § Hierarchy → Objectives` for the full contract.
   convergence, and presents a tiered report. Non-blocking: the panel
   never gates approval or delivery.
 
-### 4. Do (AI or Human — Routed)
+### 4. Deliver (AI or Human — Routed)
 
-- Execute the approved Plan via `/spades:do`. Routing comes from the
+- Execute the approved Plan via `/spades:deliver`. Routing comes from the
   Plan's `delivery:` field set at Approve time.
-- Do uses the Scope branch and worktree created through `/repo:newbranch`.
+- Deliver creates the Scope's separate delivery branch and worktree through
+  `/repo:newbranch`, using the intended `branch:` recorded on the Scope.
   Every Plan in the Scope shares it; `/spades:ship` publishes the branch
   through its PR after the participating code Plans pass evaluation.
 - For `delivery: ai`: run the work autonomously, honouring each task's
   execution posture. Commit as you go.
 - For `delivery: human`: record the assignment in the backend and
-  stand down. Do not auto-do.
+  stand down. Do not auto-deliver.
 - For `delivery: hybrid`: split per the Plan's per-task routing.
 - Before starting, verify dependencies are ready per § Scope Worktrees
   and Freshness. A rejected dependency requires replanning.
-- If you discover the Plan is wrong mid-Do, STOP. Surface the
+- If you discover the Plan is wrong mid-Deliver, STOP. Surface the
   discrepancy; do not silently change direction.
 
 ### 5. Evaluate (Human-Owned)
 
-- After Do completes, the Plan moves to `status: evaluating`. Run
+- After Deliver completes, the Plan moves to `status: evaluating`. Run
   `/spades:evaluate` to check delivered output against the Scope's
   acceptance criteria.
 - Verdict is one of PASS / PARTIAL / FAIL.
   - **PASS** → proceed to Ship.
-  - **PARTIAL** → specific gaps, work returns to Do for fixes.
+  - **PARTIAL** → specific gaps, work returns to Deliver for fixes.
   - **FAIL** → fundamental issue, route back to Plan or Scope.
 - AI may assist with evaluation but a human signs off the verdict.
 
@@ -238,13 +239,17 @@ proceeding.
 
 ## Scope Worktrees and Freshness
 
-Every new Scope calls `/repo:newbranch` before composition. That skill
-alone owns a clean main/master checkout, pulling available remote updates,
-verifying the starting revision, naming the branch and creating its
-worktree. Scope records the returned branch and base commit; all Plans,
-commands, renders and workers use that worktree. Existing work resumes via
-`/repo:newbranch --resume <branch>`. Other branches/worktrees stay untouched.
-Standalone new work also enters through `/repo:newbranch`.
+Scope, Plan and Approve reuse the current non-default working branch.
+From main/master, prepare one documentation worktree through `/repo:newbranch`
+before writing, then reuse it across the session's Scopes and Plans. Main
+stays clean; pending records can accumulate without a PR at every phase.
+
+Scope records its intended delivery `branch:` without creating it. The first
+`/spades:deliver` creates that separate branch/worktree through `/repo:newbranch`,
+transfers the selected Scope's authorised records and adds `base_commit:`.
+Deliver, Evaluate and Ship use that worktree; subsequent Plans share it.
+Established delivery resumes via `/repo:newbranch --resume <branch>`.
+The documentation branch and its other Scopes remain available.
 
 One Scope's code Plans share one delivery PR. Dependencies can proceed on
 the same branch after a confirmed PASS; they become shipped only after the
@@ -309,8 +314,8 @@ logic inside a SPADES skill.
 | Explicitly request post-merge cleanup | `/repo:sync` — separate from starting or completing work. |
 | Refuse to commit on `main` / `master` | `/repo:branch` enforces this absolutely — no overrides. |
 
-Scope, Quick, and Close call `/repo:newbranch` for new work; existing
-Scope phases resume its worktree. `/repo:branch` remains the commit and
+Deliver, Quick, and Close call `/repo:newbranch` for new work; existing
+delivery phases resume its worktree. `/repo:branch` remains the commit and
 name guardrail, invoked by the repo workflow. The dependency is
 one-directional: SPADES → `repo`, never the reverse.
 
@@ -515,7 +520,7 @@ Every piece of work must trace through:
 2. A signed-off Scope
 3. One or more approved Plans (with dependency relationships)
 4. An approval decision with routing
-5. A do-phase record of who/what executed each task
+5. A delivery-phase record of who/what executed each task
 6. An evaluation verdict
 7. A shipment record
 
@@ -602,8 +607,8 @@ history records the delete.
 
 - Begin writing code without a documented Scope (or a valid fast-track
   gate pass)
-- Begin Do without an approved Plan (on the full loop)
-- Begin any producing work (Scope, Plan, Approve, Do, Evaluate,
+- Begin Deliver without an approved Plan (on the full loop)
+- Begin any producing work (Scope, Plan, Approve, Deliver, Evaluate,
   Ship, or Close-Pass) on a child of an `abandoned` Scope or an
   `abandoned`/`archived` Project. Producing skills refuse hard at
   the gate — see `docs/FRAMEWORK.md § Target Resolution →

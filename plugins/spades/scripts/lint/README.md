@@ -14,7 +14,7 @@ run them locally before pushing with:
 | `lint-skill-frontmatter.sh`     | Every `skills/*/SKILL.md` parses and carries `name` + `description`. |
 | `lint-agents.sh`                | Every `agents/*.md` parses and carries `name`, `description`, `model`, `tools`, `persona`, `focus`. Skips cleanly if the directory is absent. |
 | `lint-examples.sh`              | `examples/example-scope.md` and `examples/example-plan.md` conform to the v2 Scope and Plan schemas; `examples/example-intent.md` has the six locked INTENT sections + `last_reviewed:`; the local-mode fixture's scopes/plans conform. |
-| `lint-learnings.sh`             | `.spades/learnings/*.md` carry the required learning frontmatter (`title`, `area`, `tags`, `created`, `status`, `public_safe`); `area` is one of `scope|plan|approve|do|evaluate|ship|other`; `created` is `YYYY-MM-DD`. Warns on active entries older than 180 days. |
+| `lint-learnings.sh`             | `.spades/learnings/*.md` carry the required learning frontmatter (`title`, `area`, `tags`, `created`, `status`, `public_safe`); `area` is one of `scope|plan|approve|deliver|evaluate|ship|other`; `created` is `YYYY-MM-DD`. Warns on active entries older than 180 days. |
 | `lint-local-frontmatter.sh`     | `.spades/projects/*.md`, `.spades/scopes/S-*.md`, and `.spades/plans/P-*.md` are schema-valid — hard-fails on invalid IDs, invalid enum values, or missing required fields. Self-tests against four planted fixtures (good/bad scope, good/bad plan). |
 
 ## Dependencies

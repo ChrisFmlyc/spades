@@ -1,7 +1,7 @@
 ---
 name: status
 description: Show the current SPADES phase, progress, and dependency graph for active work. Use when someone asks "where are we", "what's the status", "show progress", or any question about current state. Renders the Plan dependency graph so the human can see which plans are unblocked vs waiting.
-version: 3.6.0
+version: 3.6.1
 ---
 
 # /spades:status
@@ -33,8 +33,9 @@ and prints a one-line brief with the path.
 ### `backend: local`
 
 Discover records across registered worktrees, including Scopes not yet
-merged. Group by Scope ID and use its recorded branch's worktree while it
-is active. For a completed delivery PR, use the verified close-out records
+merged. Group by Scope ID. Before delivery, use the documentation copy;
+a recorded delivery branch need not exist yet. Once delivery is established,
+prefer its worktree over documentation snapshots per § Scope Worktrees. For a completed delivery PR, use the verified close-out records
 in its bookkeeping worktree or merged default-branch history. Report
 conflicting copies rather than silently selecting by timestamp. Read-only
 reporting does not switch, pull or clean any checkout. Classify dependencies
@@ -131,8 +132,8 @@ do.
 
 The one or two most useful next actions:
 
-- `▷ ready` Plan → `/spades:do P-…`
-- PARTIAL verdict → `/spades:do P-…` to apply the fixes
+- `▷ ready` Plan → `/spades:deliver P-…`
+- PARTIAL verdict → `/spades:deliver P-…` to apply the fixes
 - `evaluating` with PASS → deliver/evaluate remaining code siblings first;
   `/spades:ship P-…` when the shared Scope PR is ready
 - `shipping` with `PR opened:` → `/spades:close P-…`

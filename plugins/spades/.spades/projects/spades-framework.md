@@ -14,7 +14,7 @@ linear_project_id: 576ca5be-0c4a-4a88-b10b-8fd1501a6f82
 # SPADES Framework
 
 The framework that defines a six-phase loop —
-Scope, Plan, Approve, Do, Evaluate, Ship — for human-AI engineering
+Scope, Plan, Approve, Deliver, Evaluate, Ship — for human-AI engineering
 work, with a Project layer above scopes and pluggable backends below.
 
 ## Repos

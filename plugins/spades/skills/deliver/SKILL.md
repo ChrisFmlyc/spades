@@ -1,10 +1,10 @@
 ---
-name: do
-description: Execute an approved SPADES Plan. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "do this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 3.8.0
+name: deliver
+description: Delivers an approved SPADES Plan in its Scope’s separate delivery branch and worktree. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "deliver this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
+version: 4.0.0
 ---
 
-# /spades:do
+# /spades:deliver
 
 You are executing an approved Plan. The routing decision was made at
 Approve and lives in the Plan's `delivery:` field:
@@ -20,7 +20,8 @@ before running.
 ### Output format
 
 The Plan and Scope are read from their `.md` files. HTML mode opens
-the Plan's existing `.html` via the OPEN_CMD prelude at the start,
+the Plan's `.html` via the OPEN_CMD prelude after Step 1 establishes
+the delivery context,
 and that page is the human's view of what is being executed; the
 terminal carries routing acknowledgements, status lines, errors, and
 the hand-off pointer. CLI mode summarises the Plan inline. After
@@ -40,8 +41,9 @@ so the page stays current.
 5. **Verify ancestors active** per § Target Resolution →
    Parent-status precondition; hard abort on an `abandoned` Scope or
    an `abandoned` / `archived` Project.
-6. **Verify status.** `approved` → fresh run. `delivering` → resume
-   (Step 4). `draft` → point at `/spades:approve` and stop.
+6. **Verify status.** `approved` → fresh run, Step 1 then Step 2.
+   `delivering` → resume the worktree in Step 1, then continue at Step 4.
+   `draft` → point at `/spades:approve` and stop.
 7. **Verify dependencies.** Read every Plan in `depends_on:`.
    - A `rejected` dependency is a hard abort with a pointer to
      `/spades:plan` for that ancestor — rejections do not cascade,
@@ -51,19 +53,29 @@ so the page stays current.
      per § Scope Worktrees → ask via `AskUserQuestion`:
      **Wait** (abort, finish the dependency first) / **Proceed
      anyway** (record the override in the audit trail).
-8. **Open the review surface** per § Output format.
+8. **Keep the source context** for transfer or resume in Step 1; open the
+   review surface in the established delivery worktree afterwards.
 
-## Step 1 — Scope worktree
+## Step 1 — Establish or resume the delivery worktree
 
-Resolve the parent Scope's branch and enter its worktree per
-`docs/FRAMEWORK.md § Scope Worktrees`, using `/repo:newbranch --resume
-<branch>`. Scope already created the branch; Do uses it for every Plan,
-including artefact/action records. Carry the returned path through every
-command and worker dispatch, and record the branch in Step 2's audit line.
+Follow `docs/FRAMEWORK.md § Scope Worktrees → Starting delivery` and
+§ Entering or resuming work. On the first delivery, invoke `/repo:newbranch`
+with the Scope's intended `branch:` and description to create a separate
+branch and worktree from the clean, current default branch. Transfer and
+verify the selected Scope's authorised records, then record the returned
+branch, base commit and establishment audit entry on the Scope. The
+shared documentation branch remains available for other Scopes and Plans.
+
+When delivery is already established, use `/repo:newbranch --resume
+<branch>`. Every Plan in the Scope shares that delivery context, including
+artefact/action records. Re-read the Plan, Scope and dependency records in
+the returned worktree and recheck the pre-flight gates before marking
+anything delivering. Open the review surface there, and pass that path to
+every command and worker. Record the branch in Step 2's audit line.
 
 Existing commits belong to this branch's PR. Resolve pre-existing
-uncommitted changes per § Carry-Forward before editing or committing;
-reuse decisions already recorded for this run.
+uncommitted changes per § Carry-Forward before incorporation; reuse
+current-run authorisation and decisions already recorded.
 
 ## Step 2 — Mark delivering
 
@@ -77,12 +89,12 @@ Set the Plan to `status: delivering`, `updated: <today>`, and
 append one line:
 
 ```markdown
-- YYYY-MM-DD: Do phase started — routing: <ai|human|hybrid>[, branch: <prefix>/<slug>][ — "<description>"].
+- YYYY-MM-DD: Deliver phase started — routing: <ai|human|hybrid>[, branch: <prefix>/<slug>][ — "<description>"].
 ```
 
-The branch clause appears for `code` deliverables; the description
-clause when one was given. Set the parent Scope to `delivering` if
-it is not already. With `backend: linear`, move the sub-issue and
+The branch clause records the delivery branch for every deliverable type;
+the description clause appears when one was given. Set the parent Scope
+to `delivering` if it is not already. With `backend: linear`, move the sub-issue and
 parent Issue to their `delivering` workflow states.
 
 ## Step 3 — Route
@@ -116,7 +128,7 @@ parent Issue to their `delivering` workflow states.
 On completion append:
 
 ```markdown
-- YYYY-MM-DD: Do phase complete — routing: ai. Tasks completed: <n>. Commits: <SHAs>.
+- YYYY-MM-DD: Deliver phase complete — routing: ai. Tasks completed: <n>. Commits: <SHAs>.
 ```
 
 Continue to Step 5.
@@ -126,7 +138,7 @@ Continue to Step 5.
 1. Ask via `AskUserQuestion` who takes the work: **The current
    human** / **Someone else** (free-form name and email).
 2. With `backend: linear`, assign the sub-issue.
-3. Append `- YYYY-MM-DD: Do phase complete — routing: human.
+3. Append `- YYYY-MM-DD: Deliver phase complete — routing: human.
    Assigned to: <name>.`
 4. Print and stop:
 
@@ -136,7 +148,7 @@ Continue to Step 5.
    ✓ Status:          delivering (human)
 
    When the work is done, run /spades:evaluate P-… (or re-run
-   /spades:do to confirm completion first).
+   /spades:deliver to confirm completion first).
    ```
 
 ### C — `delivery: hybrid`
@@ -148,14 +160,15 @@ Every task carries a `- **Routing:** ai | human` bullet (written by
 1. Walk `Routing: ai` tasks as in A, in Delivery Sequence order.
 2. Record `Routing: human` tasks as in B.
 3. When an AI task depends on a human task, stop at the boundary
-   and stand down; the human re-runs `/spades:do` after their
+   and stand down; the human re-runs `/spades:deliver` after their
    portion, and Step 4 resumes the remaining AI tasks.
 
 ## Step 4 — Resume
 
 On a Plan already `delivering`:
 
-1. Read the audit trail to see what is done.
+1. Read the audit trail to see what is done, recognising both current and
+   historical markers per `docs/FRAMEWORK.md § Delivery audit markers`.
 2. Identify the remaining tasks or human assignments.
 3. AI tasks continue from where the trail left off.
 4. Human tasks: ask whether they are complete (continue) or still in
@@ -172,7 +185,7 @@ confirmed):
 1. Plan `status: evaluating`.
 2. Parent Scope `status: evaluating` when every Plan under it has
    reached Evaluate.
-3. For hybrid Plans append `- YYYY-MM-DD: Do phase complete —
+3. For hybrid Plans append `- YYYY-MM-DD: Deliver phase complete —
    routing: hybrid.` first. Then, for AI and hybrid Plans, append
    `- YYYY-MM-DD: Plan ready for evaluation — routing: <ai|hybrid>.`
 
@@ -189,7 +202,7 @@ Next:
 ## Edge cases
 
 - **No tasks declared** → back to `/spades:plan`; a Plan carries 3–7
-  tasks before Do.
+  tasks before Deliver.
 - **A task fails** (tests, unavailable dependency) → stop, surface
   it, leave the partial state recorded in the audit trail.
 - **Approval revoked mid-delivery** → Plan `status: rejected`, a

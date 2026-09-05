@@ -1,7 +1,7 @@
 ---
 name: scope
-description: Create or edit a SPADES Scope — the outcome record that everything downstream is measured against. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 3.7.0
+description: Creates or edits a SPADES Scope in the current documentation session and records its intended delivery branch for later execution. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
+version: 4.0.0
 ---
 
 # /spades:scope
@@ -92,18 +92,15 @@ branch and use that worktree when editing.
    plus **Create a new scope**. With no close candidate, go straight
    to Create.
 
-## Step 2.5 — Enter the Scope worktree
+## Step 2.5 — Documentation context
 
-**Create:** invoke `/repo:newbranch` with the Scope description and
-configured SCM remote. Use its returned worktree for the conversation's
-repo reads, all records, HTML and workers. Retain `branch` and `base_commit`
-for the Scope frontmatter. Default-branch preparation belongs entirely to
-that skill; surface its refusal without implementing a second path.
+Use `docs/FRAMEWORK.md § Scope Worktrees → Documentation before delivery`.
+Reuse the current non-default working branch for this session's Scopes,
+Plans and approvals. From main/master, invoke `/repo:newbranch` once for a
+documentation session and continue all writes in its returned worktree.
 
-**Edit:** resolve the existing Scope's worktree per
-`docs/FRAMEWORK.md § Scope Worktrees`, then re-read the Scope there. Resume
-its branch; pre-existing uncommitted changes require the human's inclusion
-decision before incorporation.
+In Edit mode, resolve the authoritative copy per § Entering or resuming
+work and re-read it there. Preserve existing edits and inclusion decisions.
 
 ## Step 3 — Slug (Create mode)
 
@@ -220,12 +217,17 @@ carry the review.
 
 ### The canonical `.md` (both modes)
 
-Preserve `branch:` and `base_commit:` on every Edit and render round-trip.
-Include them in file-worker payloads; HTML is a view of the same record.
+Derive and validate the intended delivery `branch:` per
+`docs/FRAMEWORK.md § Scope Worktrees → Documentation before delivery` after
+the title and type are settled. Record the name without creating it;
+`/spades:deliver` establishes that separate worktree later.
 
-Path: `.spades/scopes/S-<description-slug>.md` in the returned worktree.
-On creation append `Scope worktree established. Branch: <branch>. Base:
-<base_commit>.` to its audit trail.
+Preserve `branch:` and any established `base_commit:` on every Edit and
+render round-trip. Include them in file-worker payloads; omit `base_commit:`
+until delivery establishes it. HTML is a view of the same record.
+
+Path: `.spades/scopes/S-<description-slug>.md` in the documentation worktree
+(or the established delivery worktree when editing there).
 
 ```yaml
 ---
@@ -233,8 +235,7 @@ id: S-<slug>
 title: "<title>"
 project: <active-project-slug>
 status: scoped
-branch: <branch returned by /repo:newbranch>
-base_commit: <verified starting commit>
+branch: <intended delivery branch; created by /spades:deliver>
 type: feature | bug | chore | docs | refactor | investigation
 priority: urgent | high | this-cycle | medium | low | backlog | exploratory
 origin: okr | reactive | ad-hoc
@@ -301,8 +302,9 @@ Dispatched in Step 7's wave per `docs/FRAMEWORK.md § worker-html-*`:
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/scope/template.html`
 - `output_path`: `.spades/scopes/S-<description-slug>.html`
 - `frontmatter`: `{ id, title, status, project, type, priority,
-  origin, branch, base_commit, created, updated }`, also embedded verbatim in
-  `<script id="spades-frontmatter">`
+  origin, branch, created, updated }`, plus `base_commit` when established,
+  also embedded verbatim in `<script id="spades-frontmatter">`. Omit the
+  template's `base_commit:` line when that field is absent.
 - `criteria_count` *(scalar)*: number of acceptance criteria
 - `blocks`:
   - `acceptance-items` — one per criterion. Fields: `text, checked`.

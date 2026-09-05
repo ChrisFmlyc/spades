@@ -1,7 +1,7 @@
 ---
 name: approve
 description: Present a SPADES Plan for human review against the approval checklist, then record the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`. The biggest risk in SPADES is a weak Approval gate.
-version: 3.3.1
+version: 3.3.2
 ---
 
 # /spades:approve
@@ -25,6 +25,10 @@ prompts, and the confirmation. After the decision is written, the
 `.html` is re-rendered so it shows the new status and audit line.
 
 ## Pre-Flight
+
+Use the documentation checkout before delivery and the established delivery
+worktree afterwards per `docs/FRAMEWORK.md § Scope Worktrees`. Approval
+reuses that context; it does not create the intended delivery branch.
 
 1. **Confirm setup and active project.** Abort otherwise.
 2. **Read `backend:` and `review_format:`** from `.spades/config`.
@@ -90,9 +94,9 @@ coherent change; `artefact` has a clear home and reference;
 Same wording as `/spades:evaluate`'s routing question, so the
 vocabulary is consistent across the loop:
 
-1. **AI** — `/spades:do` executes autonomously, committing as it
+1. **AI** — `/spades:deliver` executes autonomously, committing as it
    goes. The typical choice for `code` feature work.
-2. **Human** — `/spades:do` records the assignment and stands down.
+2. **Human** — `/spades:deliver` records the assignment and stands down.
    The typical choice for `action` deliverables.
 3. **Hybrid** — per task. Walk every task: *"Task <N> — '<title>'.
    Who does this one — ai or human?"*, offering the planner's draft
@@ -127,7 +131,7 @@ keep local files, surface, offer a retry.
 ✓ Notes:         "watch for rate limits on the embedding API"
 
 Next:
-  /spades:do P-rag-pipeline-lookup-3HyD   — begin delivery
+  /spades:deliver P-rag-pipeline-lookup-3HyD   — begin delivery
 ```
 
 **Revise** → the Plan stays `draft`; hand back to `/spades:plan`

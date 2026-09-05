@@ -31,9 +31,9 @@ ships to customers.
 ## What it does
 
 SPADES is a convention-plus-skills framework. It defines a six-phase loop —
-Scope → Plan → Approve → Do → Evaluate → Ship — with explicit ownership:
+Scope → Plan → Approve → Deliver → Evaluate → Ship — with explicit ownership:
 humans own the edges (intent at Scope, verification at Evaluate, gating at
-Approve), AI owns the middle (planning and execution), and Do is routed at
+Approve), AI owns the middle (planning and execution), and Deliver is routed at
 Approve time (AI / human / hybrid). A Project layer above Scopes groups
 related work; pluggable backends (Linear MCP, local filesystem,
 extensible) keep the framework agnostic about where artefacts live.
@@ -44,7 +44,7 @@ agent reads.
 ## Success
 
 SPADES is working when every delivered piece of work can be traced back through
-project → scope → plan(s) → approval (with routing) → do → evaluation → ship,
+project → scope → plan(s) → approval (with routing) → deliver → evaluation → ship,
 and a developer can explain *why* the output looks the way it does. When the
 Approve gate genuinely catches bad plans rather than rubber-stamping them.
 When neither failure mode (all-manual, or unsupervised-slop) shows up in
@@ -69,7 +69,7 @@ captured learnings actually reach the next Plan.
 
 In production at v2.0 and dogfooding itself — SPADES governs its own
 development through the same loop it provides. v2.0 was a substantial
-restructure (Project layer above Scopes, six-phase loop with Do and
+restructure (Project layer above Scopes, six-phase loop with Deliver and
 Ship as first-class phases, pluggable backends behind a documented
 contract, every template embedded in its producing skill). The core
 loop is stable; future evolution is expected to be additive (more

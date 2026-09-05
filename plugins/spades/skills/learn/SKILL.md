@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 4.6.0
+version: 5.0.0
 ---
 
 # /spades:learn
@@ -53,7 +53,7 @@ One learning per run. Three lessons are three runs.
 ```yaml
 ---
 title: One-line summary of what was learned
-area: scope | plan | approve | do | evaluate | ship | other
+area: scope | plan | approve | deliver | evaluate | ship | other
 tags: [tag1, tag2, tag3]
 created: YYYY-MM-DD
 status: active

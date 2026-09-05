@@ -10,8 +10,8 @@ SPADES defines clear boundaries between what humans own and what AI handles,
 creating a loop that is fast, auditable, and safe.
 
 ```
-SCOPE ──► PLAN ──► APPROVE ──► DO ──► EVALUATE ──► SHIP
- (H)       (AI)      (H)      (AI/H)    (H)      (AI/H)
+SCOPE ──► PLAN ──► APPROVE ──► DELIVER ──► EVALUATE ──► SHIP
+ (H)       (AI)      (H)        (AI/H)       (H)       (AI/H)
 ```
 
 **Humans own the edges** (deciding what to build and verifying it was built correctly).
@@ -163,7 +163,7 @@ The typical first run, end to end:
    dependencies among plans if needed.
 5. `/spades:approve P-add-the-thing-…` — human gate; pick the routing
    (AI auto / human / hybrid).
-6. `/spades:do P-add-the-thing-…` — execute, routed per the approval.
+6. `/spades:deliver P-add-the-thing-…` — create the separate delivery branch/worktree, then execute per the approval.
 7. `/spades:evaluate P-add-the-thing-…` — verify against the Scope's
    acceptance criteria (PASS / PARTIAL / FAIL).
 8. `/spades:ship P-add-the-thing-…` — open PR + review + merge for
@@ -178,7 +178,7 @@ bookkeeping) are the same sequence every time. `/spades:loop` runs
 it for you:
 
 ```
-/spades:scope "Add the thing"    # creates the Scope branch/worktree through /repo:newbranch
+/spades:scope "Add the thing"    # reuses the documentation session; records the delivery branch
 /spades:loop                     # everything downstream, unattended
 ```
 
@@ -212,15 +212,15 @@ SPADES ships 21 skills, grouped by *when you reach for them*:
 | `/spades:scope` | Create or edit a Scope (`S-<description-slug>`). The outcome record — intent, acceptance criteria, constraints. Fuzzy-matches existing scopes so you don't accidentally double up. |
 | `/spades:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope. Plans can depend on prior plans within the same Scope; the dependency chain is encoded in the filename. |
 | `/spades:approve` | Human gate. Walks the 6-point approval checklist, then asks the routing question (AI / human / hybrid) and records it on the Plan. |
-| `/spades:do` | Execute the Plan, routed per the approval. AI runs autonomously; human is assigned and acknowledged; hybrid splits per task. |
-| `/spades:evaluate` | Check delivered output against the Scope's acceptance criteria. PASS → Ship. PARTIAL → back to Do. FAIL → back to Plan or Scope. |
+| `/spades:deliver` | Execute the Plan, routed per the approval. AI runs autonomously; human is assigned and acknowledged; hybrid splits per task. |
+| `/spades:evaluate` | Check delivered output against the Scope's acceptance criteria. PASS → Ship. PARTIAL → back to Deliver. FAIL → back to Plan or Scope. |
 | `/spades:ship` | Release the deliverable. For `deliverable_type: code` it runs the inline PR + review + merge checklist; for `artefact` it records a reference (URL / doc ID / file path); for `action` it records evidence of completion. |
 
 #### Autopilot — run the core loop without driving it
 
 | Skill | Purpose |
 |-------|---------|
-| `/spades:loop` | Drive one Scope from Plan to closed-out. Chains `plan → approve → do → evaluate → `**you sign off**` → ship → CodeRabbit/Greptile review → squash-merge → close → review → merge`, Plans delivered in dependency order in one Scope worktree, then one shared delivery PR. Slash-only — typing it is your authorization to push, open PRs, resolve **bot** review threads, and squash-merge, bounded to this Scope's own branches and PRs. It never writes a Scope, never resolves a human's review comment, and never signs off its own work. **Use when you say:** "run the loop", "take this scope to done", "just build it". |
+| `/spades:loop` | Drive one Scope from Plan to closed-out. Chains `plan → approve → deliver → evaluate → `**you sign off**` → ship → CodeRabbit/Greptile review → squash-merge → close → review → merge`, Plans delivered in dependency order in one Scope worktree, then one shared delivery PR. Slash-only — typing it is your authorization to push, open PRs, resolve **bot** review threads, and squash-merge, bounded to this Scope's own branches and PRs. It never writes a Scope, never resolves a human's review comment, and never signs off its own work. **Use when you say:** "run the loop", "take this scope to done", "just build it". |
 
 #### Side path — skip the full loop for trivial work
 
@@ -287,10 +287,10 @@ The engineer reviews the Plan against reality: architecture alignment,
 completeness, feasibility, risk, and scope. This is a gate, not a rubber stamp.
 Rejected plans go back with specific feedback.
 
-### Do (AI or Human — routed)
+### Deliver (AI or Human — routed)
 
 Tasks get executed. `/spades:approve` records a routing decision on
-each Plan (`ai`, `human`, or `hybrid`); `/spades:do` reads that and
+each Plan (`ai`, `human`, or `hybrid`); `/spades:deliver` reads that and
 either runs the work autonomously, records a human assignment, or
 splits the work per the Plan's per-task routing. AI handles code,
 pipelines, configuration, documentation. Humans handle stakeholder
@@ -366,7 +366,7 @@ project tracker and any AI agent that can read structured context.
 | **Cursor** | Partial | Reads AGENTS.md for rules, no skill support |
 | **GitHub Copilot** | Partial | Reads AGENTS.md for rules, no skill support |
 | **Codex** | Partial | Reads AGENTS.md for rules, no skill support |
-| **Any MCP-compatible agent** | Varies | Can slot into the Do phase |
+| **Any MCP-compatible agent** | Varies | Can slot into the Deliver phase |
 
 The key insight: AGENTS.md works as a universal enforcement layer. Any AI agent
 that reads project context files will follow SPADES rules. The skills add

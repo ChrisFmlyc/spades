@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 4.10.0
+version: 4.10.1
 ---
 
 # /spades:setup
@@ -51,7 +51,7 @@ SPADES defers git operations to `/repo:init`, `/repo:branch`, and
 
 `missing` → show the install block and ask via `AskUserQuestion`:
 **I've installed it — re-probe** / **Skip for now** (`/spades:close`,
-`/spades:do`, and `/spades:ship` refuse until it is installed).
+`/spades:deliver`, and `/spades:ship` refuse until it is installed).
 
 ```
 /plugin marketplace add ChrisFmlyc/ai-skills
