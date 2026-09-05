@@ -1,7 +1,7 @@
 ---
 name: status
 description: Show the current SPADES phase, progress, and dependency graph for active work. Use when someone asks "where are we", "what's the status", "show progress", or any question about current state. Renders the Plan dependency graph so the human can see which plans are unblocked vs waiting.
-version: 3.6.1
+version: 3.6.2
 ---
 
 # /spades:status
@@ -174,6 +174,9 @@ first and stream the detail.
 `docs/FRAMEWORK.md § worker-html-*`, running the drift probe in
 parallel with the render:
 
+- `open_path`: the absolute `output_path` for this skill’s initial review
+  presentation; `null` for refreshes or background use, per
+  `docs/FRAMEWORK.md § Review-page ownership`.
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/status/template.html`
 - `output_path`: `.spades/.tmp/status.html`
 - `frontmatter`: `{ project_slug, rendered_at, plugin_version }`

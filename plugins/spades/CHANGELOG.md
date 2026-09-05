@@ -8,6 +8,19 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.0.1] — 2026-09-05
+
+- **patch**: HTML workers render quietly by default and open only the exact
+  `open_path` selected by the active skill. Parent/reference updates and
+  refreshes of an already-presented page stay quiet; helpers inherit the
+  current task's presentation context.
+- Project-document skills open only their transient review copy. Plan
+  refreshes its Scope quietly, Evaluate refreshes its Plan quietly, and
+  Ship presents only its target Plan. Each evaluation step presents its
+  own page when that step is reached.
+- `agents_version`: 3.0.0 → 3.0.1.
+- Skills bumped: `anti-patterns` 1.5.0 → 1.5.1, `approve` 3.3.2 → 3.3.3, `architecture` 1.4.0 → 1.4.1, `close` 4.13.0 → 4.13.1, `deliver` 4.0.0 → 4.0.1, `evaluate` 3.9.2 → 3.9.3, `intent` 4.4.0 → 4.4.1, `leads` 3.0.1 → 3.0.2, `learn` 5.0.0 → 5.0.1, `list` 3.6.1 → 3.6.2, `newproject` 3.6.1 → 3.6.2, `objective` 1.2.1 → 1.2.2, `patterns` 1.4.0 → 1.4.1, `plan` 3.7.0 → 3.7.1, `review` 3.9.0 → 3.9.1, `scope` 4.0.0 → 4.0.1, `setup` 4.10.1 → 4.10.2, `ship` 3.6.1 → 3.6.2, `status` 3.6.1 → 3.6.2.
+
 ## [6.0.0] — 2026-09-05
 
 - **major**: rename `/spades:do` to `/spades:deliver` and the fourth phase

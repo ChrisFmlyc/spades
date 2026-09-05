@@ -1,7 +1,7 @@
 ---
 name: architecture
 description: Create or maintain ARCHITECTURE.md, the project's durable statement of HOW the system is built — components, tech stack, data flow, security posture, operational posture. Use when someone says "set up ARCHITECTURE.md", "document our architecture", "what's our tech stack", "describe the system", "capture the components", "what's the data flow", "what's our threat model", "update the architecture doc", "refresh the architecture", "where does the data go", or when ARCHITECTURE.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review (architecture-strategist persona). Also use proactively after a major dependency change, new component introduction, or a Plan that exposes drift between the doc and reality. The human composes the architecture; this skill structures and probes but never authors it. SKIP when the human's intent is per-Plan technical approach (use the Plan's Technical Approach section instead), API-level documentation (use in-code docs / OpenAPI), or process conventions (use /spades:patterns).
-version: 1.4.0
+version: 1.4.1
 ---
 
 # /spades:architecture
@@ -163,10 +163,13 @@ section in play.
 
 **HTML mode** — after the write, dispatch two
 `worker-html-architecture` sub-agents in one wave per
-`docs/FRAMEWORK.md § worker-html-*`, identical inputs, different
+`docs/FRAMEWORK.md § worker-html-*`, shared content and `open_path`, different
 `output_path`: `.spades/architecture.html` (persistent) and
 `.spades/.tmp/architecture.html` (transient, opened).
 
+- `open_path`: the absolute `.spades/.tmp/architecture.html` path for initial
+  presentation when this document is the active task; `null` for refreshes
+  or background use. Both workers inherit it per § Review-page ownership.
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/architecture/template.html`
 - `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
   plugin_version, runtime, datastore }` — `runtime` and `datastore`
@@ -186,11 +189,13 @@ Required marker: `components`. The worker also checks the
 
 ## Brief
 
-**HTML mode:**
+**HTML mode** (report “opened” only from `opened: true`; if opening was
+requested but failed, link that selected page for manual opening. With
+`open_path: null`, report the write only):
 
 ```
 ✓ ARCHITECTURE.md written (last reviewed YYYY-MM-DD)
-○ .spades/architecture.html opened in browser
+○ .spades/.tmp/architecture.html opened in browser
 Next: /spades:patterns · /spades:anti-patterns
 ```
 

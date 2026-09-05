@@ -1,7 +1,7 @@
 ---
 name: objective
 description: Create or edit a SPADES Objective — a coherent strategic action associated with a project (Rumelt/OKR sense), prefixed O-. Use when someone says "create an objective", "set an objective", "add an objective", "new objective", "add a milestone for this project", or "/spades:objective <description>". An Objective is independent of Scopes — it never contains, requires, or gates on one. Closing an Objective is done via /spades:close O-<slug>.
-version: 1.2.1
+version: 1.2.2
 ---
 
 # /spades:objective
@@ -118,6 +118,9 @@ edited.` — leaving `status:` to `/spades:close`.
 
 The page is the objective, so it carries no `objective-banner`.
 
+- `open_path`: the absolute `output_path` for this skill’s initial review
+  presentation; `null` for refreshes or background use, per
+  `docs/FRAMEWORK.md § Review-page ownership`.
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/objective/template.html`
 - `output_path`: `.spades/objectives/O-<slug>.html`
 - `frontmatter`: `{ id, title, project, status, strategy_link,

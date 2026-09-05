@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.9.2
+version: 3.9.3
 ---
 
 # /spades:evaluate
@@ -135,6 +135,8 @@ Append the agreed plan:
 **HTML mode — page 1.** Dispatch `worker-html-evaluation` per
 `docs/FRAMEWORK.md § worker-html-*`:
 
+- `open_path`: this step’s absolute evaluation `output_path` for initial
+  presentation; `null` for refreshes per § Review-page ownership.
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html`
 - `output_path`: `.spades/evaluations/<plan_id_lower>-<YYYY-MM-DD>-plan.html`
   (the worker creates the directory when missing)
@@ -254,7 +256,8 @@ Overall: PARTIAL — C4 needs a follow-up.
 ```
 
 **HTML mode — page 2.** Dispatch `worker-html-evaluation` again
-with `output_path` ending `-report.html`, `mode: "report"`,
+with `output_path` ending `-report.html`, `open_path` selecting that
+report for its initial presentation, `mode: "report"`,
 `brand_label: "Evaluation Report"`, `h1_prefix: "Evaluation
 report"`, `page_title: "Evaluation"`, `tagline: "All verdicts
 confirmed. The Plan's audit-trail line is the authoritative record;
@@ -290,7 +293,8 @@ One wave per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`,
 | `worker-file-scope-evaluate` *(Scope rollup only)* | `.spades/scopes/S-<…>.md` — `status: evaluating` on the first PASS per `docs/FRAMEWORK.md § Scope status rollup`, plus an audit line. | `{ status: ok }` |
 | `worker-linear-evaluate` *(`backend: linear`)* | Linear — `record_evaluation(plan_id, verdict, notes)`: the report as a sub-issue comment and the matching workflow state. Carries the resolved worktree context per § Freshness. | `{ status: ok }` |
 
-In HTML mode, re-dispatch `worker-html-plan` after the file write.
+In HTML mode, re-dispatch `worker-html-plan` with `open_path: null` after
+the file write. The evaluation report remains the active review page.
 After the wave: all ok → record the dispatch mode; plan file failed
 → abort with the error; scope file failed → surface for a manual
 patch; Linear failed → keep local files, surface, offer a retry.

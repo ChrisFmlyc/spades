@@ -1,7 +1,7 @@
 ---
 name: review
 description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
-version: 3.9.0
+version: 3.9.1
 ---
 
 # /spades:review
@@ -26,7 +26,9 @@ you reach § Presenting the report.
 - **CLI mode** — the tiered digest prints to the terminal.
 - **HTML mode** — additionally `.spades/reviews/<target>-<date>.html`
   from `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html` via
-  `worker-html-review`, auto-opened; the terminal gets the
+  `worker-html-review`; the coordinator selects that report's absolute
+  path as `open_path` for initial presentation, and `null` for refreshes
+  or background use per § Review-page ownership. The terminal gets the
   three-line brief. One review surface per mode.
 
 ## Pre-Flight

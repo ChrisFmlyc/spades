@@ -1,7 +1,7 @@
 ---
 name: anti-patterns
 description: Create or maintain ANTI-PATTERNS.md, the project's durable list of things the codebase DELIBERATELY AVOIDS — runtime dependencies, hidden state, premature abstraction, and any other "we won't do X" rules. Use when someone says "set up ANTI-PATTERNS.md", "document what we don't do", "we should ban X", "we deliberately avoid Y", "what's forbidden here", "add an anti-pattern", "update the anti-patterns doc", "what shouldn't we do", or when ANTI-PATTERNS.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review. Also use proactively after a Plan rejection that traces to an unwritten prohibition. The human composes the prohibitions; this skill structures and probes but never authors it. SKIP when the human's intent is per-Plan risk capture (use the Plan's Risks & Assumptions section instead) or when documenting an APPROVED pattern (use /spades:patterns).
-version: 1.5.0
+version: 1.5.1
 ---
 
 # /spades:anti-patterns
@@ -144,10 +144,13 @@ in play.
 
 **HTML mode** — after the write, dispatch two
 `worker-html-anti-patterns` sub-agents in one wave per
-`docs/FRAMEWORK.md § worker-html-*`, identical inputs, different
+`docs/FRAMEWORK.md § worker-html-*`, shared content and `open_path`, different
 `output_path`: `.spades/anti-patterns.html` (persistent) and
 `.spades/.tmp/anti-patterns.html` (transient, opened).
 
+- `open_path`: the absolute `.spades/.tmp/anti-patterns.html` path for initial
+  presentation when this document is the active task; `null` for refreshes
+  or background use. Both workers inherit it per § Review-page ownership.
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/anti-patterns/template.html`
 - `frontmatter`: `{ project_slug, last_reviewed, rendered_at,
   plugin_version }`
@@ -164,11 +167,13 @@ Required markers: the four `*-bans` blocks.
 
 ## Brief
 
-**HTML mode:**
+**HTML mode** (report “opened” only from `opened: true`; if opening was
+requested but failed, link that selected page for manual opening. With
+`open_path: null`, report the write only):
 
 ```
 ✓ ANTI-PATTERNS.md written (last reviewed YYYY-MM-DD)
-○ .spades/anti-patterns.html opened in browser
+○ .spades/.tmp/anti-patterns.html opened in browser
 Next: /spades:scope <title>
 ```
 

@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 5.0.0
+version: 5.0.1
 ---
 
 # /spades:learn
@@ -93,6 +93,9 @@ for. Link code, docs, or prior issues where helpful.
    (`onboarding-must-be-idempotent`). Write the `.md` at the public
    or private path. In HTML mode dispatch `worker-html-learning` in
    the same wave per `docs/FRAMEWORK.md § worker-html-*`:
+   - `open_path`: the absolute `output_path` for this skill’s initial review
+     presentation; `null` for refreshes or background use, per
+     `docs/FRAMEWORK.md § Review-page ownership`.
    - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/learn/template.html`
    - `output_path`: the `.md` path with `.html`
    - `frontmatter`: `{ id, title, area, status, created,
