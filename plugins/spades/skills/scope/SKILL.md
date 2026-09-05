@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Creates or edits a SPADES Scope in the current documentation session and records its intended delivery branch for later execution. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 4.0.1
+version: 4.1.0
 ---
 
 # /spades:scope
@@ -186,12 +186,12 @@ Ask via `AskUserQuestion`, the inferred value first and marked
 *(Recommended)*: **feature** / **bug** / **chore** / **docs** /
 **refactor** / **investigation**.
 
-### 11. Strategy link (optional)
-Ask once: *"Does this scope trace to a roadmap item, OKR, or epic
-tracked elsewhere? Paste the link or ID and I'll record it as
-`strategy_link:`; if it's reactive or ad-hoc, say so."* Record a
-supplied reference verbatim as a free-form string. For reactive or
-ad-hoc work, omit the field; `origin:` carries the rationale.
+### 11. Outcome — not asked here
+A Scope does not name an outcome at creation. It records the
+Objective it delivered against once, at `/spades:close` (Scope
+roll-up), which writes `strategy_link: O-<slug>` and mirrors it to
+Linear. Leave `strategy_link:` absent; `origin:` already carries the
+rationale for reactive or ad-hoc work.
 
 ## Step 5 — Quality check
 
@@ -239,7 +239,7 @@ branch: <intended delivery branch; created by /spades:deliver>
 type: feature | bug | chore | docs | refactor | investigation
 priority: urgent | high | this-cycle | medium | low | backlog | exploratory
 origin: okr | reactive | ad-hoc
-strategy_link: <URL | ID | ref>   # only when supplied in Step 4.11
+strategy_link: O-<slug>           # written by /spades:close at Scope roll-up; absent until then
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
 linear_issue_id: <id>             # only when backend: linear, injected in Step 7

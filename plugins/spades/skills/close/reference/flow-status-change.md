@@ -22,7 +22,7 @@ All routes run SKILL.md's **B1** (preconditions), **B2** (branch),
 | Route | Target | `status:` → | Branch `chore/…` | Audit-trail line | Commit subject |
 |---|---|---|---|---|---|
 | **Plan reject** | `P-<slug>-<sfx>` | `rejected` | `reject-<plan-slug>` | `Plan rejected. Reason: <reason>.` | `reject <plan_id>` |
-| **Scope roll-up** | `S-<slug>` | `done` | `rollup-<scope-slug>` | `All plans terminal. Shipped: <n>. Rejected: <m>[ (acknowledged: …)]. Scope done.` | `rollup <S-id>` |
+| **Scope roll-up** | `S-<slug>` | `done` (+ `strategy_link: O-<slug>` when an outcome is chosen) | `rollup-<scope-slug>` | `All plans terminal. Shipped: <n>. Rejected: <m>[ (acknowledged: …)]. Scope done. Outcome: <O-slug \| none>.` | `rollup <S-id>` |
 | **Scope abandon** | `S-<slug>` | `abandoned` | `abandon-<scope-slug>` | `Scope abandoned. Reason: <reason>.` | `abandon <S-id>` |
 | **Project archive** | `<project-slug>` | `archived` | `archive-project-<slug>` | `Archived. Project lifecycle complete.[ Active child Scopes at archive: <list>.]` | `archive <project-slug>` |
 | **Project abandon** | `<project-slug>` | `abandoned` | `abandon-project-<slug>` | `Project abandoned. Reason: <reason>.` | `abandon <project-slug>` |
@@ -58,6 +58,11 @@ rejection proceeds either way.
   Roll-up to `done` doesn't apply; use *Abandon* if you're walking
   away."*
 - **Any in flight** → abort with the list.
+- **Proceeding** → ask the outcome exactly as
+  [`flow-plan-pass.md`](flow-plan-pass.md) § P3.3: the project's
+  `open` Objectives, or *No outcome*. An Objective chosen writes
+  `strategy_link: O-<slug>`; the audit line ends `Outcome: <O-slug |
+  none>.` The abandon route never asks.
 
 **Project archive** — with child Scopes in flight, list them and ask
 via `AskUserQuestion`: *Proceed — archive; in-flight Scopes keep
@@ -76,7 +81,7 @@ is a reconcile of the local record.
 | Route | Mirror |
 |---|---|
 | Plan reject | Sub-issue → Cancelled; label `spades:rejected`; comment *"Rejected. Reason: `<reason>`. Bookkeeping PR: `<URL>`."* |
-| Scope roll-up | Parent Issue → Done |
+| Scope roll-up | Parent Issue → Done; with an outcome, label `outcome/O-<slug>` and comment *"Closed against `O-<slug>`. Bookkeeping PR: `<URL>`."* The only write to the parent Issue after creation. |
 | Scope abandon | Parent Issue → Cancelled; label `spades:abandoned`; comment *"Abandoned. Reason: `<reason>`. Bookkeeping PR: `<URL>`. No cascade — child sub-issues unchanged."* |
 | Project archive | Linear Project → Completed |
 | Project abandon | Linear Project → Canceled; without a project-level cancelled state, label `spades:abandoned` and tell the human |

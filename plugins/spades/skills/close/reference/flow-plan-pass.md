@@ -73,7 +73,7 @@ classify each as `shipped`, `rejected`, or in flight.
 
 | Situation | Action |
 |---|---|
-| Every sibling `shipped`, acceptance criteria covered | Scope `status: done`, `updated:` today, append `- YYYY-MM-DD: All plans shipped. Scope done.` |
+| Every sibling `shipped`, acceptance criteria covered | Ask the outcome (P3.3), then Scope `status: done`, `updated:` today, append `- YYYY-MM-DD: All plans shipped. Scope done. Outcome: <O-slug \| none>.` |
 | Every sibling `shipped`, criteria left uncovered | Ask first (below). |
 | All terminal, mix of `shipped` and `rejected`, ≥1 `shipped` | `AskUserQuestion` listing the rejected siblings. |
 | Every sibling `rejected` | No rollup; the Scope shipped nothing. Say so; the Plan's own close-out proceeds. |
@@ -90,12 +90,30 @@ Where they don't, surface the uncovered criteria via
 - **Roll up anyway** — record the uncovered criteria in the rollup
   line so the claim traces to a decision.
 
-An accepted mixed-terminal rollup appends to the Scope:
+An accepted mixed-terminal rollup asks the outcome (P3.3) and appends
+to the Scope:
 
 ```markdown
 - YYYY-MM-DD: All plans terminal. Shipped: <n>. Rejected: <m>
-  (acknowledged: P-<id-1>, P-<id-2>). Scope done.
+  (acknowledged: P-<id-1>, P-<id-2>). Scope done. Outcome: <O-slug | none>.
 ```
+
+### P3.3 — Outcome
+
+A Scope names the Objective it delivered against exactly once, here,
+as it closes. Resolve the project's `open` Objectives via
+`list_objectives(status: open)` and ask via `AskUserQuestion`:
+
+- One open Objective → **O-<slug> — <title>** *(Recommended)* /
+  **No outcome — not part of a strategy**.
+- Several → one option per Objective, plus **No outcome**.
+- None → skip the question; the outcome is `none`.
+
+An Objective chosen writes `strategy_link: O-<slug>` into the Scope
+frontmatter alongside `status: done`. **No outcome** leaves
+`strategy_link:` absent; the audit line records `Outcome: none.` A
+Scope outside a strategy is a valid Scope. This question is asked on
+roll-up only; the abandon route never asks it.
 
 A declined one leaves the Scope unchanged and appends to the Plan:
 
@@ -120,7 +138,11 @@ Then **B4** (body lists the Plan, Scope, ship PR, merge SHA,
 merged-by, files touched), **B5**, **B6**, and **B7** with:
 
 - Each participating Plan sub-issue → Done.
-- Parent Issue → Done, only when every sub-issue is Done.
+- Parent Issue → Done, only when every sub-issue is Done. With an
+  outcome chosen at P3.3, add the label `outcome/O-<slug>` (the child
+  of the exclusive `outcome` label group `/spades:objective` created)
+  to the parent Issue and comment *"Closed against `O-<slug>`."* This
+  close is the only write to the parent Issue after its creation.
 - Comment on each participating sub-issue: *"Shipped. PR: `<URL>` (squash-merge
   `<merge-sha>` by `@<login>`). Bookkeeping audit:
   `<bookkeeping-pr-url>`."*
@@ -132,7 +154,8 @@ merged-by, files touched), **B5**, **B6**, and **B7** with:
 ✓ Bookkeeping PR merged: <bookkeeping-pr-url>
 ✓ Plans shipped:         <participating-plan-ids>
 ✓ Scope:                 <scope_id> (done — all plans shipped)   # when rolled up
-✓ Linear mirror:         sub-issue Done, parent Issue Done       # backend: linear
+✓ Outcome:               O-<slug> — <title>  (or: none)          # when rolled up
+✓ Linear mirror:         sub-issue Done, parent Issue Done[, labelled outcome/O-<slug>]   # backend: linear
 ✓ Working tree:          retained at <worktree-path>
 ✓ Status:                shipped
 

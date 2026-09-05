@@ -99,10 +99,14 @@ Rules that define an Objective (the full contract):
   no rollup and no derived state. The team lead decides it is done.
 - **Loose directional relationship to Scopes.** In principle, as Scopes are
   completed the project moves *closer* to its Objective — but this is a
-  strategic, human-held intuition, not a mechanical link. A human may
-  record a contribution by setting a Scope's optional `strategy_link:` to
-  the Objective ID (e.g. `strategy_link: O-q3-trust-launch`); this is purely
-  documentary and adds no machinery.
+  strategic, human-held intuition, not a mechanical link. A Scope records
+  the Objective it delivered against **once, as it closes**: `/spades:close`
+  (Scope roll-up) offers the project's open Objectives, writes
+  `strategy_link: O-<slug>` on the Scope, and, with `backend: linear`,
+  applies the `outcome/O-<slug>` label to the Scope's parent Issue. The
+  record is documentary — it gates nothing and cascades nothing — but it
+  is deterministic, so an external reader can attribute closed Scopes to
+  Objectives without guessing.
 
 The minimal Objective record and its backend mapping are defined in
 § ID Format, § .spades/ Local Layout, and § Backend Interface below.
@@ -114,21 +118,25 @@ Roadmap, OKRs, or Epics — those live in whatever planning tool your
 org uses (Linear, Jira, Productboard, a spreadsheet, etc.). A Scope
 is the moment a Roadmap item becomes concrete work.
 
-When a Scope is seeded from a Roadmap / OKR / Epic, record the
-upstream reference in the Scope's optional `strategy_link:`
-frontmatter field. The audit chain then runs unbroken from strategy
-through ship:
+The roadmap reaches SPADES through the Objective (`O-<slug>`), whose
+own `strategy_link:` points at the upstream roadmap item. A Scope does
+**not** name an outcome when it is created. It names the Objective it
+delivered against once, at `/spades:close` (Scope roll-up), which
+writes `strategy_link: O-<slug>` on the Scope. The audit chain then
+runs unbroken from strategy to shipped work:
 
 ```
-<Roadmap item / OKR / Epic>  →  Scope (strategy_link: <ref>)
-                                    →  Plan(s)  →  shipped
+<Roadmap item>  →  Objective O-<slug> (strategy_link: <ref>)
+                        ↑
+                   Scope (strategy_link: O-<slug>, written at close)
+                        →  Plan(s)  →  shipped
 ```
 
 Scopes can also arise **reactively** — incidents, tech debt, ad-hoc
-requests. In that case `strategy_link:` is omitted, and the existing
+requests — or simply outside any strategy. At close the human picks
+*No outcome*, `strategy_link:` stays absent, and the existing
 `origin:` field carries the rationale (`reactive`, `ad-hoc`, `okr`).
-The field is optional throughout; SPADES never requires a roadmap
-link to create a Scope.
+A Scope with no outcome is a valid Scope; SPADES never requires one.
 
 ### Two layers of "intent"
 
@@ -182,7 +190,14 @@ Skill responsibilities:
 - `/spades:evaluate` bumps to `evaluating` on the first PASS verdict.
 - `/spades:ship` bumps to `shipping` on the first PR opened.
 - `/spades:close` is the **only** skill that transitions Scope →
-  `done`. It applies the mixed-terminal rollup rules below.
+  `done`. It applies the mixed-terminal rollup rules below, and it
+  is where the Scope's outcome is asked and recorded.
+
+The rollup above is **local**. In Linear the Scope's parent Issue has
+two states: open (its creation state) and Done or Cancelled, set by
+`/spades:close`. No skill between creation and close writes to the
+parent Issue; every intermediate phase lives on the Plan sub-issues
+(their workflow state and audit comments).
 
 **One-way transitions only.** A Scope never moves backward. If Plan
 B is rejected after Plan A has shipped, the Scope stays at `shipping`
@@ -363,6 +378,7 @@ created: 2026-05-29
 updated: 2026-05-29
 linear_milestone_id: <id>          # only if backend: linear and synced
 linear_issue_id: <id>              # the sister O- tracking issue; only if linear and synced
+linear_label_id: <id>              # the outcome/O-<slug> label; only if linear and synced
 ---
 ```
 
@@ -392,7 +408,7 @@ created: 2026-05-29
 updated: 2026-05-29
 priority: urgent | high | this-cycle | medium | low | backlog | exploratory
 origin: okr | reactive | ad-hoc
-strategy_link: <URL | ID | ref>     # optional; where this scope came from (roadmap item, OKR, epic). Free-form string.
+strategy_link: O-<slug>             # optional; the Objective this Scope delivered against. Written by /spades:close at roll-up; absent for work outside a strategy.
 linear_issue_id: <id>               # only if backend: linear and synced
 ---
 ```
@@ -656,8 +672,15 @@ their storage; skills don't need to know how.
   state is the authoritative completion signal for the Objective; audit
   comments (created/complete/abandoned) post to it. Both objects must exist;
   a milestone alone is not a valid Objective.
-- Scope → parent Issue
-- Plan → sub-issue under the parent
+- Objective, additionally → an `outcome/O-<slug>` child label in the
+  exclusive workspace label group `outcome`, whose description carries
+  the Objective's `strategy_link`. Exclusivity is what makes "a Scope
+  delivers against at most one outcome" a Linear guarantee.
+- Scope → parent Issue. Open from creation; Done (or Cancelled) at
+  `/spades:close`, which is the only write to it after creation. With an
+  outcome chosen at close, labelled `outcome/O-<slug>`.
+- Plan → sub-issue under the parent. Carries every phase transition:
+  workflow state plus the approve, evaluation, and shipped comments.
 - Lead → a Linear **Issue on the Project**, titled `L-<slug> — <title>`,
   labelled `spades:lead` plus its classification, held in the team's
   triage/backlog state. It is not a Scope and never becomes one —
