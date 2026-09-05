@@ -1,7 +1,7 @@
 ---
 name: deliver
 description: Delivers an approved SPADES Plan in its Scope’s separate delivery branch and worktree. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "deliver this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 4.0.1
+version: 4.0.2
 ---
 
 # /spades:deliver
@@ -93,9 +93,12 @@ append one line:
 ```
 
 The branch clause records the delivery branch for every deliverable type;
-the description clause appears when one was given. Set the parent Scope
-to `delivering` if it is not already. With `backend: linear`, move the sub-issue and
-parent Issue to their `delivering` workflow states.
+the description clause appears when one was given. Set the parent Scope's
+local `status:` to `delivering` if it is not already (the local rollup per
+`docs/FRAMEWORK.md § Scope status rollup`). With `backend: linear`, move
+the sub-issue to its `delivering` workflow state. The parent Issue is not
+touched: in Linear a Scope is open from creation until `/spades:close`
+marks it Done, and phase lives on the Plan sub-issues.
 
 ## Step 3 — Route
 

@@ -8,6 +8,25 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.1.0] — 2026-09-05
+
+- **minor**: a Scope names the Objective it delivered against once, at
+  close. `/spades:close` (Scope roll-up) offers the project's open
+  Objectives or *No outcome*, writes `strategy_link: O-<slug>` on the
+  Scope, and with `backend: linear` labels the parent Issue
+  `outcome/O-<slug>`. `/spades:scope` no longer asks for a strategy
+  link at creation. A Scope outside a strategy stays valid.
+- `/spades:objective` creates the `outcome/O-<slug>` label in an
+  exclusive workspace label group `outcome` (description = the
+  Objective's `strategy_link`) alongside the milestone and sister issue;
+  records `linear_label_id`.
+- `/spades:deliver` moves only the Plan sub-issue. In Linear a Scope's
+  parent Issue is open from creation until close; phase lives on the
+  Plans. FRAMEWORK § Hierarchy, § Scope status rollup, § Local Layout,
+  and § Backend Interface state the rule.
+- Skills bumped: `close` 4.13.1 → 4.14.0, `deliver` 4.0.1 → 4.0.2,
+  `objective` 1.2.2 → 1.3.0, `scope` 4.0.1 → 4.1.0.
+
 ## [6.0.1] — 2026-09-05
 
 - **patch**: HTML workers render quietly by default and open only the exact
