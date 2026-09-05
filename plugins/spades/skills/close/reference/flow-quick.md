@@ -23,7 +23,10 @@ Scope rollup, no B1–B7.
    `shipped`."*
 3. **`scm: github`.** With `scm: local-git` the marker was written
    at `shipped` by `/spades:quick`; there is nothing to close.
-4. Print the marker's title and `pr_url`.
+4. Resolve the marker's branch with `/repo:newbranch --resume <branch>`
+   and use that worktree for marker edits. Preserve any uncommitted work
+   according to the inclusion decisions returned by that skill.
+5. Print the marker's title and `pr_url`.
 
 ## Q2 — Probe the PR
 

@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.5.0
+version: 3.6.0
 ---
 
 # /spades:ship
@@ -34,7 +34,8 @@ write in HTML mode, re-dispatch `worker-html-plan` (and
    a PASS verdict in the audit trail (PASS Plans listed first,
    PARTIAL below with an annotation, FAIL excluded); zero candidates
    → suggest `/spades:evaluate P-…`.
-4. **Read the Plan and its parent Scope.**
+4. **Read the Plan and its parent Scope** in the resolved Scope worktree
+   per § Scope Worktrees. Reuse that context for all drivers.
 5. **Verify ancestors active** per § Target Resolution →
    Parent-status precondition; hard abort on an `abandoned` Scope or
    an `abandoned` / `archived` Project.
@@ -43,7 +44,12 @@ write in HTML mode, re-dispatch `worker-html-plan` (and
    (recorded in the audit trail) or return to `/spades:do`.
    `evaluating` + FAIL, or any other status → abort with a clear
    message.
-7. **Open the review surface** per § Output format.
+7. **Scope PR readiness (`code`, `scm: github`).** Before marking any Plan
+   shipping, check every non-rejected code Plan in the Scope has completed
+   delivery and a current confirmed PASS. If siblings are pending, keep
+   this Plan `evaluating` and continue their delivery/evaluation first.
+   Scope criteria and artefact/action dependencies retain their own gates.
+8. **Open the review surface** per § Output format.
 
 ## Step 1 — Fresh run or resume (`deliverable_type: code`)
 
@@ -72,14 +78,15 @@ Set the Plan to `status: shipping`, `updated: <today>`, and append:
 ```
 
 With `backend: linear`, move the sub-issue to its `shipping`
-workflow state.
+workflow state. For a GitHub Scope delivery PR, apply this transition to
+every participating code Plan; one PR publishes their shared branch.
 
 ## Step 3 — Ship by deliverable type
 
 ### A — `code`
 
-`/spades:do` created the feature branch and committed onto it; this
-branch publishes it. The flow is per SCM: read `scm:` and follow the
+`/spades:scope` created the Scope branch and worktree; Do committed onto
+that branch. Ship publishes it. The flow is per SCM: read `scm:` and follow the
 matching driver file, which owns branch verification, the pre-push
 sweep, the push, PR opening where the SCM has one, and the audit
 markers.

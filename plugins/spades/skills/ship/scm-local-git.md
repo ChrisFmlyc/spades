@@ -10,36 +10,23 @@ of it. Ship pushes when a remote is configured, records the branch
 commit as the shipment reference, and the Plan reaches `shipped` in
 this run.
 
-## 1. Verify the branch
+## 1. Verify the Scope worktree
 
-```bash
-git rev-parse --abbrev-ref HEAD
-```
+Resolve the Scope branch through `/repo:newbranch --resume <branch>` per
+`docs/FRAMEWORK.md § Scope Worktrees`. Use its returned directory. A
+mismatched branch requires returning to the recorded worktree, not publishing
+whichever checkout happens to be current.
 
-- On `main` / `master` → abort; `/spades:do` creates the feature
-  branch, so the human checks what happened.
-- Compare with the `Do phase started — … branch:` line in the Plan's
-  audit trail. On a mismatch ask via `AskUserQuestion`: **Use the
-  current branch anyway** / **Switch to the recorded branch and
-  continue** / **Abort**.
+## 2. Commit approved pending records
 
-## 2. Pre-push sweep
+Follow `docs/FRAMEWORK.md § Carry-Forward → Commit contents`. Inspect the
+complete index, include authorised pending records, and preserve excluded
+staged/unstaged changes. Existing committed work is already part of this
+branch's PR and needs no additional inclusion question. Unknown uncommitted
+work needs the human's decision before adding it.
 
-Per `docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts`:
-
-```bash
-git add -- .spades AGENTS.md INTENT.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md 2>/dev/null || true
-```
-
-If anything was staged:
-
-```bash
-git commit -m "chore(spades): carry forward audit artefacts for <plan_id>"
-```
-
-Uncommitted files outside the allowlist stay the human's work in
-progress and are named in one line. Commits that don't belong to
-this Plan are surfaced for the human to decide on.
+If approved records remain, commit them through `/repo:branch` with
+`chore(spades): record audit artefacts for <scope_id>`.
 
 ## 3. Push when a remote exists
 

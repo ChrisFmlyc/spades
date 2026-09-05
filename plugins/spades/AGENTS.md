@@ -18,7 +18,7 @@ when working in it. Invoke the main ones by their namespaced names:
 | Skill | What it does |
 |-------|-------------|
 | `/spades:setup` | Configure backend + scaffold this repo (re-runnable) |
-| `/spades:loop` | Drive one Scope from Plan to closed-out unattended — chains plan → approve → do → evaluate → **human sign-off** → ship → bot review → squash-merge → sync → close → bot review → merge → sync. Slash-only. Never scopes. |
+| `/spades:loop` | Drive one Scope from Plan to closed-out unattended — chains plan → approve → do → evaluate → **human sign-off** → ship → bot review → squash-merge → close → bot review → merge. Slash-only. Never scopes. |
 | `/spades:newproject` | Create a new Project record |
 | `/spades:objective` | Create or edit an Objective (`O-<description-slug>`) — a coherent strategic action associated with a project; independent of Scopes |
 | `/spades:scope` | Create or edit a Scope (`S-<description-slug>`) |
@@ -63,8 +63,8 @@ been the model and still is. `/spades:loop` is the alternative: the
 human writes the Scope, types `/spades:loop`, and the agent walks
 Plan → Approve → Do → Evaluate, **stops for the human to sign off the
 evaluation**, then carries on through Ship, bot review, squash-merge,
-`/repo:sync`, `/spades:close`, the bookkeeping PR's own review and
-merge, and a final sync.
+`/spades:close`, and the bookkeeping PR's own review and merge. Worktrees
+remain available after completion.
 
 Three things the loop does not change:
 
@@ -136,10 +136,10 @@ See `docs/FRAMEWORK.md § Hierarchy → Objectives` for the full contract.
 - Each Plan has an ID of the form
   `P-<description-slug>-<4-char-suffix>[-<dep-suffix>...]`. The 4-char
   suffix is randomly minted at creation; dependency suffixes encode
-  which prior plans must ship first.
-- Plans declare dependencies via `depends_on:` in frontmatter. A plan
-  is blocked until every plan in its `depends_on:` is `status:
-  shipped`.
+  which prior Plans must be ready first per § Scope Worktrees and Freshness.
+- Plans declare dependencies via `depends_on:` in frontmatter. A dependency
+  is ready when shipped, or confirmed PASS on this Scope branch; readiness
+  permits dependent delivery without claiming the dependency is shipped.
 - Each Plan body includes: technical approach, 3–7 tasks, risks &
   assumptions, testing & verification, delivery sequence.
 - Each task in a Plan declares an execution posture (`specify-first`,
@@ -172,19 +172,16 @@ See `docs/FRAMEWORK.md § Hierarchy → Objectives` for the full contract.
 
 - Execute the approved Plan via `/spades:do`. Routing comes from the
   Plan's `delivery:` field set at Approve time.
-- **For `deliverable_type: code`**, Do creates a feature branch
-  (`feat/`, `fix/`, or `refactor/` per the change's nature) derived
-  from the Plan's title before any commits land. The branch name is
-  recorded in the audit trail. Do-phase commits go onto this branch;
-  `/spades:ship` later pushes it and opens the PR.
+- Do uses the Scope branch and worktree created through `/repo:newbranch`.
+  Every Plan in the Scope shares it; `/spades:ship` publishes the branch
+  through its PR after the participating code Plans pass evaluation.
 - For `delivery: ai`: run the work autonomously, honouring each task's
   execution posture. Commit as you go.
 - For `delivery: human`: record the assignment in the backend and
   stand down. Do not auto-do.
 - For `delivery: hybrid`: split per the Plan's per-task routing.
-- Before starting, verify every plan in this plan's `depends_on:` is
-  `status: shipped`. If any is not, warn the human and require an
-  explicit override.
+- Before starting, verify dependencies are ready per § Scope Worktrees
+  and Freshness. A rejected dependency requires replanning.
 - If you discover the Plan is wrong mid-Do, STOP. Surface the
   discrepancy; do not silently change direction.
 
@@ -239,87 +236,47 @@ If a proposed solution conflicts with these documents, flag the
 conflict in the Plan and get explicit human approval before
 proceeding.
 
-## Freshness Before Read-Across
+## Scope Worktrees and Freshness
 
-SPADES skills read files from the **local filesystem**, not from
-`origin`. A stale local `main` produces stale findings — audits flag
-issues already shipped, plans reference removed code, do-phase work
-branches off the wrong base. The fix is mechanical.
+Every new Scope calls `/repo:newbranch` before composition. That skill
+alone owns a clean main/master checkout, pulling available remote updates,
+verifying the starting revision, naming the branch and creating its
+worktree. Scope records the returned branch and base commit; all Plans,
+commands, renders and workers use that worktree. Existing work resumes via
+`/repo:newbranch --resume <branch>`. Other branches/worktrees stay untouched.
+Standalone new work also enters through `/repo:newbranch`.
 
-### The rule
+One Scope's code Plans share one delivery PR. Dependencies can proceed on
+the same branch after a confirmed PASS; they become shipped only after the
+PR merge is verified. Ship waits for all participating code Plans to pass.
+Close records their shipment in one separate bookkeeping worktree/PR,
+also prepared through `/repo:newbranch`.
 
-Before any SPADES skill that reads cross-cutting state or branches
-off `main`, the local checkout MUST be in sync with `origin/main`.
+Read-only workers receive the intended Scope/PR worktree and revision,
+and verify that context. They do not switch or pull main. A moving remote
+base is handled deliberately on the PR branch, with affected checks rerun.
 
-Verify with one command:
+Completion retains branches and worktrees. New work prepares its own base;
+cleanup is a separate explicit request. The full contracts live in
+`docs/FRAMEWORK.md § Scope Worktrees` and § Freshness.
 
-```bash
-git fetch origin --quiet && git rev-list --count main..origin/main
-```
+## Artefacts Carry Forward
 
-- Returns `0` → fresh, proceed.
-- Non-zero → stop. Run `/repo:sync` (from the `repo` plugin), then
-  re-invoke the SPADES skill.
+Authorised records produced during the current run travel in its branch's
+PR. Existing commits on that branch are already part of the PR; they need
+no further inclusion decision and are not transferred to other branches.
 
-### When the rule applies
+Pre-existing uncommitted changes, including staged changes and deletions,
+require the human's inclusion decision before incorporation. Reuse decisions
+for the same changes; surface unknown new edits even inside SPADES paths.
+The usual artefact paths identify records, not ownership of every diff.
 
-To every SPADES skill that:
-
-- Reads files outside `.spades/` to inform a decision (`scope`,
-  `plan`, `approve`, `review`, `research`).
-- Creates a branch off `main` (`do`, `close`).
-- Reports cross-cutting state (`status`, `list`).
-
-`/spades:close` is exempt by construction: it branches off
-`origin/main`, so a stale local `main` cannot affect it.
-
-### The behavioural reflex
-
-After any PR merge on this repo (yours or someone else's), the
-operator runs `/repo:sync` immediately, before context-switching to
-a new SPADES skill. `/repo:sync`'s `"Ready."` handoff is the cue
-that the next prompt is fresh work; pre-empt the staleness instead
-of catching it mid-audit.
-
-### Subagent prompts
-
-Skills that spawn read-across subagents (`/spades:review`'s panel of
-four personas, `/spades:research`'s researcher) include the
-freshness check directly in the subagent's prompt. The subagent
-runs the check before reading any files and halts if local is
-behind — surfaces the staleness to the operator rather than
-producing findings against a stale snapshot.
-
-The canonical definition lives in `docs/FRAMEWORK.md § Freshness`.
-This section is the operating-rules-level statement; that section is
-the contract.
-
-## Artefacts Carry Forward — Never Block on Pending Files
-
-Every phase writes artefacts, and in a git repo they land as
-uncommitted changes that accumulate as work progresses.
-
-**Uncommitted SPADES-owned paths never block a phase.** No skill
-pauses, prompts, or aborts because artefacts are pending; they carry
-forward and are swept into the next commit the pipeline makes.
-
-SPADES-owned paths are exactly `.spades/`, `AGENTS.md`, `INTENT.md`,
-`ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`. Every
-committing phase (`do`, `ship`, `close`, `quick`) sweeps that
-allowlist — **allowlist only, never `git add -A`**. Files outside it
-are the human's work in progress: never auto-staged, never blocking,
-mentioned once so the human knows they're there.
-
-Waiting for artefacts to reach a PR before starting the next phase is
-the failure this prevents. Do that and every phase needs its own
-commit and its own PR; the artefact count grows with each step, the
-PR count grows with it, and the human ends up merging bookkeeping
-instead of shipping work. `/spades:close` is the deliberate final
-catch-all — it tolerates a dirty tree by design and sweeps whatever
-earlier phases left.
-
-The canonical contract is `docs/FRAMEWORK.md § Carry-Forward of
-SPADES-Owned Artefacts`.
+Before each commit, inspect the entire proposed commit and preserve excluded
+staged/unstaged work. Allowlisted `git add` arguments do not protect against
+unrelated content already in the index. Follow
+`docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts` for approved
+hunk selection, index preservation and post-commit verification. Close
+transfers only approved records to its fresh bookkeeping worktree.
 
 ## Sub-agent Fan-Out
 
@@ -348,15 +305,14 @@ logic inside a SPADES skill.
 | When you need to… | Use |
 |-------------------|-----|
 | Initialise a new git repo | `/repo:init` — `git init`, placeholder README, wires origin, pushes to main. |
-| Create a new branch off main | `/repo:branch` (validates the name and enforces the no-commits-on-main rule) plus `git switch -c <name>` to create in place, or `/repo:newbranch` for create-with-worktree. |
-| Sync local main after a PR merge | `/repo:sync` — fetches, ff-pulls main, force-deletes the merged feature branch. |
+| Start new work on a branch and worktree | `/repo:newbranch` — owns naming, clean/current default-branch preparation and worktree creation. |
+| Explicitly request post-merge cleanup | `/repo:sync` — separate from starting or completing work. |
 | Refuse to commit on `main` / `master` | `/repo:branch` enforces this absolutely — no overrides. |
 
-SPADES skills that branch off main (`/spades:do`, `/spades:close`)
-MUST go through `/repo:branch`'s regex validation. SPADES skills
-that need to verify post-merge state (`/spades:close`, `/spades:loop`)
-invoke `/repo:sync` directly. The dependency is **one-directional**:
-SPADES → `repo`, never the reverse.
+Scope, Quick, and Close call `/repo:newbranch` for new work; existing
+Scope phases resume its worktree. `/repo:branch` remains the commit and
+name guardrail, invoked by the repo workflow. The dependency is
+one-directional: SPADES → `repo`, never the reverse.
 
 ### The same rule for CodeRabbit — defer to the `codereview` plugin
 

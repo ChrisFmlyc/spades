@@ -6,7 +6,7 @@ PR. Seven routes share one shape; the table supplies the values and
 the pre-checks below supply the route-specific judgement.
 
 All routes run SKILL.md's **B1** (preconditions), **B2** (branch),
-**B3** (commit), **B4** (PR), **B5** (verify merge), **B6** (cleanup),
+**B3** (commit), **B4** (PR), **B5** (verify merge), **B6** (retain worktree),
 **B7** (Linear mirror).
 
 ## Contents

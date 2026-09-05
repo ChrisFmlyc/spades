@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generate a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 3.5.0
+version: 3.6.0
 ---
 
 # /spades:plan
@@ -28,6 +28,11 @@ running.
   there before Step 5 writes it.
 
 ## Pre-Flight
+
+Work in the parent Scope's resolved worktree per `docs/FRAMEWORK.md
+§ Scope Worktrees`. Every Plan shares that branch. Readiness for a dependent
+Plan is a confirmed PASS on the same branch or shipment; delivery of the
+Scope reaches GitHub in one PR after its code Plans pass.
 
 1. **Confirm setup and active project.** Abort otherwise.
 2. **Read `backend:` and `review_format:`** from `.spades/config`.
@@ -247,7 +252,7 @@ general-purpose`:
 | `worker-file-plan` | `.spades/plans/P-<…>.md`, written without `linear_issue_id:` | `{ status: ok }` |
 | `worker-html-plan` *(HTML mode)* | `.spades/plans/P-<…>.html` per Step 5 | `{ status: ok, path, opened }` |
 | `worker-file-scope-audit` | `.spades/scopes/S-<scope-slug>.md` — `status: planning` when it was `scoped`, `updated: <today>`, and `- YYYY-MM-DD: Plan drafted — P-<slug>-<suffix>.` appended. In HTML mode the Scope's `.html` is re-rendered afterwards by `worker-html-scope`. | `{ status: ok }` |
-| `worker-linear-plan` *(`backend: linear`)* | Linear — a sub-issue under the Scope's parent Issue with the Plan's title and body, labels `ai-planned` and `deliverable_type:<value>`. Carries the freshness probe. | `{ status: ok, linear_issue_id }` |
+| `worker-linear-plan` *(`backend: linear`)* | Linear — a sub-issue under the Scope's parent Issue with the Plan's title and body, labels `ai-planned` and `deliverable_type:<value>`. Carries the resolved worktree context per § Freshness. | `{ status: ok, linear_issue_id }` |
 
 After the wave:
 

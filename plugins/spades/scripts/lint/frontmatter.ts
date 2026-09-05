@@ -216,7 +216,7 @@ const SCOPE_ENUMS: Enums = {
 const SCOPE_KNOWN_FIELDS = new Set<string>([
   ...SCOPE_CORE_REQUIRED,
   ...Object.keys(SCOPE_ENUMS),
-  "linear_issue_id", "strategy_link",
+  "linear_issue_id", "strategy_link", "branch", "base_commit",
 ]);
 const SCOPE_ID_RE = /^S-[a-z0-9](?:[a-z0-9-]{0,63})$/;
 

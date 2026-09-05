@@ -1,7 +1,7 @@
 ---
 name: research
 description: Landscape research on a topic via an isolated researcher subagent. Use when the human says "properly research this", "look into X", "check the prior art", "second opinion on the landscape", "what does the SOTA look like for X", or asks any open question that needs external fact-finding (libraries, frameworks, benchmarks, postmortems, comparisons). Returns a structured findings report; optionally posts to a Linear parent issue with explicit human consent. Callable any time — not tied to a SPADES phase. Also matches the explicit slash-command form `/spades:research`.
-version: 2.2.0
+version: 2.3.0
 ---
 
 # /spades:research
@@ -23,17 +23,12 @@ running.
 
 ## Pre-Flight
 
-1. **Freshness.** When the research is scoped (below), the
-   researcher reads the local Scope for context, so:
-
-   ```bash
-   git fetch origin --quiet && git rev-list --count main..origin/main
-   ```
-
-   `0` → continue. Non-zero → abort: *"Local `main` is N commits
-   behind `origin/main`. Run `/repo:sync` then re-invoke
-   `/spades:research`."* The check runs for standalone research too;
-   one fetch is cheap and one rule is easy to keep.
+1. **Working context.** Follow `docs/FRAMEWORK.md § Freshness` and
+   § Scope Worktrees. Resolve a scoped target to its worktree; for standalone
+   research/review name the checkout and revision inspected. Pass that
+   absolute path and intended revision to the researcher/review workers.
+   Default-branch preparation is owned by `/repo:newbranch` when new work
+   is created, not by this read-only check.
 2. **Backend.** `.spades/config` is read only when a scoped run
    posts to Linear. Research works without a configured backend.
 

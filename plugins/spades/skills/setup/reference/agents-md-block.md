@@ -91,7 +91,7 @@ The SPADES plugin (`spades`) provides these 22 skills:
 | `/spades:evaluate` | Check delivered output against the Scope's acceptance criteria |
 | `/spades:ship` | Open the PR (code) or record the deliverable (artefact / action) |
 | `/spades:close` | Conversational close-out: pass / reject / abandon based on target. Pass finalises (Plan → shipped, Scope → done, Project → archived, Objective → complete); reject (Plans) and abandon (Scopes, Projects, Objectives) require a reason. Lands via a bookkeeping PR. |
-| `/spades:loop` | Drive one Scope from Plan to closed-out — plan → approve → do → evaluate → **human sign-off** → ship → bot review → merge → close → sync. Slash-only; never writes a Scope. |
+| `/spades:loop` | Drive one Scope from Plan to closed-out — plan → approve → do → evaluate → **human sign-off** → ship → bot review → merge → close. Slash-only; never writes a Scope. |
 | `/spades:quick` | Fast-track for trivial work — quick-item marker file (`.spades/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |
@@ -157,8 +157,8 @@ review comment, or a red CI check.
 ### 4. Do (AI or Human — routed)
 - Execute the approved Plan. Routing comes from the Plan's `delivery:`
   field set at Approve time.
-- For `ai`: run the work autonomously on a feature branch, committing
-  as you go.
+- For `ai`: run in the Scope's branch and worktree, committing approved
+  changes as you go. All Plans share that branch.
 - For `human`: record the assignment in the backend and stand down.
 - For `hybrid`: split per the Plan's task-level routing.
 - Run tests and verify before moving the Plan to Evaluate.
@@ -174,8 +174,8 @@ review comment, or a red CI check.
   - **`scm: github`** — `/spades:ship` pushes the Do branch and
     opens the PR; review feedback lands on the same branch; after the
     squash-merge, `/spades:close P-<id>` verifies the merge, records
-    the `Shipped` marker on main via a bookkeeping PR, and
-    `/repo:sync` brings main forward.
+    the `Shipped` markers on main via a bookkeeping PR for the Scope,
+    and retains the worktrees. New work starts through `/repo:newbranch`.
   - **`scm: local-git`** — single-phase: push to the configured
     remote (if any), record the commit SHA, mark `shipped`.
 - For `deliverable_type: artefact` — record the artefact reference.
@@ -206,18 +206,21 @@ If any criterion fails, use the full loop.
 
 ## Artefacts Carry Forward
 
-Every phase writes artefacts, and in a git repo they land as
-uncommitted changes that accumulate as work progresses.
+Authorised records produced during the current run travel in its branch's
+PR. Existing commits on that branch are already part of the PR; they need
+no further inclusion decision and are not transferred to other branches.
 
-**Uncommitted SPADES-owned paths never block a phase.** They carry
-forward and are swept into the next commit the pipeline makes.
-SPADES-owned paths are exactly `.spades/`, `AGENTS.md`, `INTENT.md`,
-`ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`. Every
-committing phase (`do`, `ship`, `close`, `quick`) stages that
-allowlist and only that allowlist. Files outside it are your work in
-progress: left unstaged, mentioned once so you know they're there.
-`/spades:close` is the final catch-all: it tolerates a dirty tree
-and sweeps whatever earlier phases left behind.
+Pre-existing uncommitted changes, including staged changes and deletions,
+require the human's inclusion decision before incorporation. Reuse decisions
+for the same changes; surface unknown new edits even inside SPADES paths.
+The usual artefact paths identify records, not ownership of every diff.
+
+Before each commit, inspect the entire proposed commit and preserve excluded
+staged/unstaged work. Allowlisted `git add` arguments do not protect against
+unrelated content already in the index. Follow
+`docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts` for approved
+hunk selection, index preservation and post-commit verification. Close
+transfers only approved records to its fresh bookkeeping worktree.
 
 ## Architecture Constraints
 
@@ -228,32 +231,29 @@ Before generating any Plan, read these files if they exist:
 
 Flag any conflicts between proposed solutions and these documents.
 
-## Freshness Before Read-Across
+## Scope Worktrees and Freshness
 
-SPADES skills read files from the local filesystem, not from
-`origin`. A stale local `main` produces stale findings.
+Every new Scope calls `/repo:newbranch` before composition. That skill
+alone owns a clean main/master checkout, pulling available remote updates,
+verifying the starting revision, naming the branch and creating its
+worktree. Scope records the returned branch and base commit; all Plans,
+commands, renders and workers use that worktree. Existing work resumes via
+`/repo:newbranch --resume <branch>`. Other branches/worktrees stay untouched.
+Standalone new work also enters through `/repo:newbranch`.
 
-**The rule:** before any SPADES skill that reads cross-cutting state
-or branches off `main`, verify the local checkout is in sync with
-`origin/main`:
+One Scope's code Plans share one delivery PR. Dependencies can proceed on
+the same branch after a confirmed PASS; they become shipped only after the
+PR merge is verified. Ship waits for all participating code Plans to pass.
+Close records their shipment in one separate bookkeeping worktree/PR,
+also prepared through `/repo:newbranch`.
 
-```bash
-git fetch origin --quiet && git rev-list --count main..origin/main
-```
+Read-only workers receive the intended Scope/PR worktree and revision,
+and verify that context. They do not switch or pull main. A moving remote
+base is handled deliberately on the PR branch, with affected checks rerun.
 
-Returns `0` → proceed. Non-zero → run `/repo:sync` first, then
-re-invoke the SPADES skill.
-
-**The behavioural reflex:** after any PR merge on this repo (yours
-or someone else's), run `/repo:sync` immediately, before
-context-switching to a new SPADES skill.
-
-**Subagent prompts:** skills that spawn read-across subagents
-(`/spades:review`, `/spades:research`) include the freshness check
-in the subagent's own prompt — the subagent halts on a stale main
-rather than producing findings against a stale snapshot.
-
-The full contract lives in `docs/FRAMEWORK.md § Freshness`.
+Completion retains branches and worktrees. New work prepares its own base;
+cleanup is a separate explicit request. The full contracts live in
+`docs/FRAMEWORK.md § Scope Worktrees` and § Freshness.
 
 ## Defer to the `repo` and `codereview` Plugins
 
@@ -265,17 +265,15 @@ logic inside a SPADES skill.
 | When you need to… | Use |
 |-------------------|-----|
 | Initialise a new git repo | `/repo:init` — `git init`, placeholder README, wires origin, pushes to main. |
-| Create a new branch off main | `/repo:branch` (validates the name) plus `git switch -c <name>` to create in place, or `/repo:newbranch` for create-with-worktree. |
-| Sync local main after a PR merge | `/repo:sync` — fetches, ff-pulls main, force-deletes the merged feature branch. |
+| Start new work on a branch and worktree | `/repo:newbranch` — owns naming, clean/current default-branch preparation and worktree creation. |
+| Explicitly request post-merge cleanup | `/repo:sync` — separate from starting or completing work. |
 | Refuse to commit on `main` / `master` | `/repo:branch` enforces this absolutely — no overrides. |
 | Drive a PR to zero review-bot findings | `/codereview:loop` — waits for each review, hands findings to `/codereview:fix`, pushes, re-checks. |
 | Fix a block of review findings, one or many | `/codereview:fix` — one subagent per finding. Never pushes. |
 
-SPADES skills that branch off main (`/spades:do`, `/spades:close`)
-go through `/repo:branch`'s regex validation. SPADES skills that
-need to verify post-merge state (`/spades:close`, `/spades:loop`)
-invoke `/repo:sync` directly. The dependency is **one-directional**:
-SPADES → `repo` / `codereview`, never the reverse.
+Scope, Quick and Close call `/repo:newbranch`; existing Scope phases
+resume the Scope worktree. The commit guardrail remains `/repo:branch`.
+The dependency is one-directional: SPADES → `repo` / `codereview`.
 
 **If you don't have a git repo yet**, `/spades:setup` runs
 `/repo:init` for you automatically as its first prerequisite —

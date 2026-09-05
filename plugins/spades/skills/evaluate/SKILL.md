@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:do` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.9.0
+version: 3.9.1
 ---
 
 # /spades:evaluate
@@ -285,7 +285,7 @@ One wave per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`,
 |---|---|---|
 | `worker-file-plan-evaluate` | `.spades/plans/P-<…>.md` — PASS keeps `status: evaluating`; PARTIAL rolls back to `delivering` so `/spades:do` resumes; FAIL sets `rejected`. Appends `- YYYY-MM-DD: Evaluation — verdict: <PASS\|PARTIAL\|FAIL>. Notes: <rationale>.` | `{ status: ok }` |
 | `worker-file-scope-evaluate` *(Scope rollup only)* | `.spades/scopes/S-<…>.md` — `status: evaluating` on the first PASS per `docs/FRAMEWORK.md § Scope status rollup`, plus an audit line. | `{ status: ok }` |
-| `worker-linear-evaluate` *(`backend: linear`)* | Linear — `record_evaluation(plan_id, verdict, notes)`: the report as a sub-issue comment and the matching workflow state. Carries the freshness probe. | `{ status: ok }` |
+| `worker-linear-evaluate` *(`backend: linear`)* | Linear — `record_evaluation(plan_id, verdict, notes)`: the report as a sub-issue comment and the matching workflow state. Carries the resolved worktree context per § Freshness. | `{ status: ok }` |
 
 In HTML mode, re-dispatch `worker-html-plan` after the file write.
 After the wave: all ok → record the dispatch mode; plan file failed

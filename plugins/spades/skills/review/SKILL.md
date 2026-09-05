@@ -1,7 +1,7 @@
 ---
 name: review
 description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
-version: 3.8.0
+version: 3.9.0
 ---
 
 # /spades:review
@@ -31,16 +31,12 @@ you reach § Presenting the report.
 
 ## Pre-Flight
 
-1. **Freshness.** Four read-across sub-agents read the local
-   filesystem, so:
-
-   ```bash
-   git fetch origin --quiet && git rev-list --count main..origin/main
-   ```
-
-   `0` → continue. Non-zero → abort: *"Local `main` is N commits
-   behind `origin/main`. Run `/repo:sync` then re-invoke
-   `/spades:review`."*
+1. **Working context.** Follow `docs/FRAMEWORK.md § Freshness` and
+   § Scope Worktrees. Resolve a scoped target to its worktree; for standalone
+   research/review name the checkout and revision inspected. Pass that
+   absolute path and intended revision to the researcher/review workers.
+   Default-branch preparation is owned by `/repo:newbranch` when new work
+   is created, not by this read-only check.
 2. **Config.** Read `.spades/config` for `project:`, `backend:`, and
    `review_format:`; missing → `/spades:setup`.
 3. **Resolve the mode and target.**

@@ -1,7 +1,7 @@
 ---
 name: newproject
 description: Create a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.6.0
+version: 3.6.1
 ---
 
 # /spades:newproject
@@ -153,7 +153,7 @@ assistant message, `subagent_type: general-purpose`:
 |---|---|---|
 | `worker-file-project` | `.spades/projects/<slug>.md`, written without `linear_project_id` | `{ status: ok }` |
 | `worker-html-project` *(HTML mode)* | `.spades/projects/<slug>.html` | `{ status: ok, path, opened }` |
-| `worker-linear-project` *(`backend: linear`)* | Linear — a Project with the title and description on `linear.team_id`. Carries the freshness probe. | `{ status: ok, linear_project_id }` |
+| `worker-linear-project` *(`backend: linear`)* | Linear — a Project with the title and description on `linear.team_id`. Carries the resolved worktree context per § Freshness. | `{ status: ok, linear_project_id }` |
 
 With `backend: local` the wave has no Linear worker. After the wave:
 all ok → inject `linear_project_id` into the `.md` (and the `.html`
