@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SPADES template: evaluate v2.0.0 (matches plugin v3.6.0) -->
+<!-- SPADES template: evaluate v2.0.1 (matches plugin v6.1.1) -->
 <!--
   ONE file renders TWO pages, driven by {{spades.mode}}:
     1. mode: plan   — verification plan (verdicts all PENDING),
@@ -10,7 +10,7 @@
 
   Mode-driven scalars (skill sets these per mode so one template
   serves both pages):
-    mode, brand_label, h1_prefix, tagline, page_title,
+    mode, brand_label, heading_prefix, tagline, page_title,
     verdict, verdict_class
 
   RENDER CONTRACT (string substitution + block repetition)
@@ -214,7 +214,7 @@ plugin_version: {{spades.plugin_version}}
   <!-- DECISION DECK -->
   <div class="deck v-{{spades.verdict_class}}">
     <div class="wrap">
-      <h1>{{spades.h1_prefix}}: {{spades.plan_title}}</h1>
+      <h1>{{spades.heading_prefix}}: {{spades.plan_title}}</h1>
       <p class="lede">{{spades.tagline}}</p>
       <div class="deck-grid">
         <div class="stat pass"><div class="lbl">PASS</div><div class="n">{{spades.pass_count|0}}</div><div class="note">criteria met</div></div>

@@ -8,6 +8,15 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.1.1] — 2026-09-06
+
+- **patch**: evaluation pages use `heading_prefix` consistently in the skill
+  and template. The shared HTML worker contract accepts digits in field
+  names and validates substitutions before writing or opening a page;
+  missing fields and unresolved tokens return a named error while preserving
+  existing output. Template comments and literal examples are handled explicitly.
+- Skills bumped: `evaluate` 3.9.3 → 3.9.4.
+
 ## [6.1.0] — 2026-09-05
 
 - **minor**: a Scope names the Objective it delivered against once, at

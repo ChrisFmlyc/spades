@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.9.3
+version: 3.9.4
 ---
 
 # /spades:evaluate
@@ -144,7 +144,7 @@ Append the agreed plan:
   ```
   { mode: "plan",
     brand_label: "Verification Plan",
-    h1_prefix: "Verification plan",
+    heading_prefix: "Verification plan",
     page_title: "Verification",
     tagline: "Concrete verification steps to confirm this plan is
               done. Each row shows the check and who runs it.
@@ -258,7 +258,7 @@ Overall: PARTIAL — C4 needs a follow-up.
 **HTML mode — page 2.** Dispatch `worker-html-evaluation` again
 with `output_path` ending `-report.html`, `open_path` selecting that
 report for its initial presentation, `mode: "report"`,
-`brand_label: "Evaluation Report"`, `h1_prefix: "Evaluation
+`brand_label: "Evaluation Report"`, `heading_prefix: "Evaluation
 report"`, `page_title: "Evaluation"`, `tagline: "All verdicts
 confirmed. The Plan's audit-trail line is the authoritative record;
 this report is the human's rich view."`, the derived `verdict` /
