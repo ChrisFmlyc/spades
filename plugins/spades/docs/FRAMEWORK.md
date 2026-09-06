@@ -1630,6 +1630,17 @@ This is the same shape as `skills/ship/scm-github.md` and
 the skill in the plugin install. Every consumer repo that installs
 the plugin has the template available verbatim.
 
+#### Default reading scale
+
+Every bundled template sets `html { zoom: 1.2; }` in its inline CSS.
+Preserve this rule in all rendered HTML, including persistent companions,
+transient views and both evaluation pages. Apply it once at the document
+root, so text, controls and spacing open at 120% without a browser setting.
+Responsive viewport breakpoints account for the scale: the 900px layout
+threshold is 1080px at 120%. Keep the viewport's `initial-scale=1.0` and
+allow the reader to adjust browser zoom further. Refresh existing pages
+from the current template to pick up the default.
+
 #### Placeholder substitution and output validation
 
 Placeholder syntax used by skills at render time:

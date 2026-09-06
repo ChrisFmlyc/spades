@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SPADES template: status v2.0.0 (matches plugin v3.6.0) -->
+<!-- SPADES template: status v2.0.1 (matches plugin v6.1.2) -->
 <!--
   Transient status page rendered to .spades/.tmp/status.html and
   auto-opened. "Cockpit" redesign — dark command-deck theme. Shows
@@ -38,6 +38,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SPADES Status · {{spades.project_slug}}</title>
 <style>
+  html { zoom: 1.2; }
   :root {
     --bg: #0b0e14;
     --bg-bar: #0d1117;
@@ -173,7 +174,7 @@
 
   footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--panel-2); font-family: ui-monospace, monospace; font-size: 11px; color: #4f5a6b; }
 
-  @media (max-width: 900px) {
+  @media (max-width: 1080px) {
     .body { grid-template-columns: 1fr; }
     aside.rail { position: static; }
     .rollup, .lanes { grid-template-columns: 1fr; }

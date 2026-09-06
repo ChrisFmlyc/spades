@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Raises a Lead — a tracked, out-of-scope discovery — the moment one is noticed while doing other work, then returns to that work; also lists, shows, promotes, and closes Leads on demand. A Lead is a bug, tech debt, an improvement, a security smell, a flaky test, a missing doc, or a good idea that is not part of the current task. Invoke it immediately, mid-task and without asking the human, whenever such a thing is spotted during any work in this repo and would otherwise be fixed off-scope, buried in a final summary, or forgotten. Also use when someone says "raise a lead", "log that as a lead", "any leads?", "show leads", "promote lead L-…", or "close lead L-…".
-version: 3.0.2
+version: 3.0.3
 argument-hint: "[--list | --show L-<id> | --promote L-<id> [<work-id>] | --close L-<id> \"<reason>\"]"
 ---
 

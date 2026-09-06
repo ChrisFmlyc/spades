@@ -1,7 +1,7 @@
 ---
 name: status
 description: Show the current SPADES phase, progress, and dependency graph for active work. Use when someone asks "where are we", "what's the status", "show progress", or any question about current state. Renders the Plan dependency graph so the human can see which plans are unblocked vs waiting.
-version: 3.6.2
+version: 3.6.3
 ---
 
 # /spades:status

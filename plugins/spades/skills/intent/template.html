@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SPADES template: intent v2.0.0 (matches plugin v3.6.0) -->
+<!-- SPADES template: intent v2.0.1 (matches plugin v6.1.2) -->
 <!--
   Transient INTENT preview (rendered after /spades:intent in HTML mode).
   "Cockpit" redesign — dark command deck. INTENT.md itself stays at the
@@ -30,6 +30,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Project Intent · {{spades.project_slug}}</title>
 <style>
+  html { zoom: 1.2; }
   :root {
     --bg: #0b0e14; --bg-bar: #0d1117; --panel: #141a23; --panel-2: #1b2330;
     --panel-inset: #11161f; --border: #263041; --hair: #161d28;
@@ -127,7 +128,7 @@
 
   footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid var(--panel-2); font-family: ui-monospace, monospace; font-size: 11px; color: #4f5a6b; }
 
-  @media (max-width: 900px) {
+  @media (max-width: 1080px) {
     .body { grid-template-columns: 1fr; }
     aside.rail { position: static; }
     .deck-grid { grid-template-columns: 1fr; }

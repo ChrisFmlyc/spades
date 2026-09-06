@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Creates or edits a SPADES Scope in the current documentation session and records its intended delivery branch for later execution. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 4.1.0
+version: 4.1.1
 ---
 
 # /spades:scope

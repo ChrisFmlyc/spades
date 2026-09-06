@@ -8,6 +8,18 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.1.2] — 2026-09-06
+
+- **patch**: all 14 HTML templates open at 120% using document-root CSS
+  zoom. Responsive breakpoints scale with the content so narrow layouts
+  activate at the same usable width. The shared rendering contract carries
+  the default into every generated page and refresh.
+- Skills bumped: `anti-patterns` 1.5.1 → 1.5.2; `architecture` 1.4.1 → 1.4.2;
+  `evaluate` 3.9.4 → 3.9.5; `intent` 4.4.1 → 4.4.2; `leads` 3.0.2 → 3.0.3; `learn`
+  5.0.1 → 5.0.2; `list` 3.6.2 → 3.6.3; `newproject` 3.6.2 → 3.6.3; `objective` 1.3.0 →
+  1.3.1; `patterns` 1.4.1 → 1.4.2; `plan` 3.7.1 → 3.7.2; `review` 3.9.1 → 3.9.2;
+  `scope` 4.1.0 → 4.1.1; `status` 3.6.2 → 3.6.3.
+
 ## [6.1.1] — 2026-09-06
 
 - **patch**: evaluation pages use `heading_prefix` consistently in the skill
