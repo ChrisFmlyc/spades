@@ -1416,7 +1416,8 @@ its flow.
   5. Filling the `<script type="application/yaml"
      id="spades-audit-trail">` block (if present) with the audit
      trail entries in chronological order.
-  6. Writing the result to `.spades/<dir>/<id>.html`.
+  6. Validating the completed HTML per § Placeholder substitution and
+     output validation, then writing it to `.spades/<dir>/<id>.html`.
   7. Opening only the selected `open_path` per § Review-page ownership
      through the worker contract; other outputs are written quietly.
 
@@ -1521,8 +1522,8 @@ The rule:
    sections per their per-item fields, fill the
    `<script type="application/yaml" id="spades-frontmatter">` tag,
    fill the `<script type="application/yaml" id="spades-audit-trail">`
-   tag (when present), write the result to the declared output
-   path.
+   tag (when present), validate per § Placeholder substitution and
+   output validation, then write the result to the declared output path.
 4. **Never invent layout.** No custom `<style>` block, no fresh
    `<head>`, no alternative grid, no `max-width` cap, no
    different colour palette. If the bundled template doesn't
@@ -1629,6 +1630,8 @@ This is the same shape as `skills/ship/scm-github.md` and
 the skill in the plugin install. Every consumer repo that installs
 the plugin has the template available verbatim.
 
+#### Placeholder substitution and output validation
+
 Placeholder syntax used by skills at render time:
 
 | Syntax | Meaning |
@@ -1636,6 +1639,31 @@ Placeholder syntax used by skills at render time:
 | `{{spades.field}}` | Single-value substitution from the artefact's frontmatter or computed values |
 | `{{spades.field\|fallback}}` | Same, with a default when the value is unset |
 | `<!-- SPADES-BLOCK:name --> … <!-- SPADES-ENDBLOCK -->` | Repeating section; the block is duplicated once per item, with `{{block.field}}` substituting per-item values |
+
+Field names in both namespaces match `[A-Za-z_][A-Za-z0-9_]*`:
+letters or underscore first, then letters, digits or underscores.
+A substitution matcher must accept digits and optional `|fallback` text,
+for example `\{\{(spades|block)\.([A-Za-z_][A-Za-z0-9_]*)(?:\|([^}]*))?\}\}`.
+Resolve each template field from the supplied map or its explicit fallback;
+missing required values are errors naming the fields. Preserve supplied
+zero and false values. Expand optional blocks with no items to empty output.
+Perform substitutions on template text once, treating inserted values as data.
+
+Before writing or opening any page, validate the completed HTML in memory:
+
+- Require every structural `<!-- SPADES-BLOCK:name -->` and
+  `<!-- SPADES-ENDBLOCK -->` comment to be consumed.
+- On a copy with HTML comments removed, scan for remaining tokens with
+  `\{\{(?:spades|block)\.[^}]*\}\}`. This broad scan also catches names
+  a substitution matcher failed to recognise. Template documentation in
+  comments is excluded from field resolution and this token check.
+- Preserve intentional literal token examples in supplied prose by encoding
+  their braces as HTML entities (`&#123;`, `&#125;`) during insertion. They
+  remain readable in the browser without becoming template instructions.
+
+Return `{ status: fail, error: "<output_path>: <missing fields or unresolved tokens/markers>" }`
+on failure, retaining any existing output file and leaving the page closed.
+Only validated output may replace the destination or return `status: ok`.
 
 Templates are fully self-contained — inline CSS, inline JS, no
 external assets. They render correctly on `file://`. Each
@@ -1784,8 +1812,9 @@ the `.md` write. The main agent never renders HTML inline.
 - **Behaviour:**
   1. Read template; validate it contains every required marker
      listed in the per-skill SKILL.md (abort if any missing).
-  2. Substitute placeholders and repeating blocks.
-  3. Write the output `.html`.
+  2. Substitute placeholders and repeating blocks, then validate the completed
+     HTML per § Placeholder substitution and output validation.
+  3. Write the validated output `.html`.
   4. When `open_path` is set and its resolved absolute path equals this
      worker's resolved `output_path`, invoke the OPEN_CMD prelude for that
      single file. Return `opened: true` only when the opener succeeds.
@@ -1796,8 +1825,8 @@ the `.md` write. The main agent never renders HTML inline.
 - **Returns:**
   - `{ status: ok, path: "<output_path>", opened: true|false }`
   - `{ status: fail, error: "<message>" }` on template-read,
-    marker-validation, or write failure. The `.md` written by
-    the paired `worker-file-*` is unaffected.
+    marker-validation, substitution, output-validation, or write failure.
+    The `.md` written by the paired `worker-file-*` is unaffected.
 
 **Dispatch pattern.** The skill body composes the final content
 (Socratic outcome, generated draft, structured report) and
