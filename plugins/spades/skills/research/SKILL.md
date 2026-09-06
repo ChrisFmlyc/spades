@@ -1,7 +1,7 @@
 ---
 name: research
 description: Landscape research on a topic via an isolated researcher subagent. Use when the human says "properly research this", "look into X", "check the prior art", "second opinion on the landscape", "what does the SOTA look like for X", or asks any open question that needs external fact-finding (libraries, frameworks, benchmarks, postmortems, comparisons). Returns a structured findings report; optionally posts to a Linear parent issue with explicit human consent. Callable any time — not tied to a SPADES phase. Also matches the explicit slash-command form `/spades:research`.
-version: 2.3.0
+version: 2.3.1
 ---
 
 # /spades:research
@@ -14,9 +14,10 @@ and the report comes back in the fixed shape that agent's output
 contract defines — `## Question`, `## Findings` with footnoted
 citations, `## Recommendation`, `## Sources`.
 
-Research is callable at any point in the loop and mutates no SPADES
-state. Its one optional side effect is a Linear comment, posted only
-with the human's explicit consent.
+Research is callable at any point in the loop. The researcher stays
+read-only; its coordinator completes the leads handoff to capture discoveries
+after the report. Posting the research report itself to Linear remains
+optional and requires the human's explicit consent.
 
 Read `docs/FRAMEWORK.md` § Freshness and § Asking the Human before
 running.
@@ -29,14 +30,15 @@ running.
    absolute path and intended revision to the researcher/review workers.
    Default-branch preparation is owned by `/repo:newbranch` when new work
    is created, not by this read-only check.
-2. **Backend.** `.spades/config` is read only when a scoped run
-   posts to Linear. Research works without a configured backend.
+2. **Backend.** The report coordinator reads `.spades/config` for a
+   scoped Linear post. The mandatory leads worker reads it separately for
+   capture settings. Research still works without a configured backend.
 
 ## Invocation modes
 
 **Standalone** (default) — the human asks a question; the skill
-spawns the researcher, displays the report, and stops. Nothing is
-written anywhere.
+spawns the researcher, displays the report, then completes the mandatory
+leads handoff. The report itself stays in the conversation.
 
 **Scoped** — `--scope S-…` was passed, or the session is already
 working on a Scope or Plan (mid-`/spades:plan`, say). The report is
@@ -55,7 +57,7 @@ the Scope's backend record.
    paths the question implies (*"compare our X to library Y"*).
 4. **Display the report** exactly as emitted; the shape is locked
    and consumers read it positionally.
-5. **Standalone → stop.**
+5. **Standalone → mandatory completion handoff below.**
 6. **Scoped → consent** via `AskUserQuestion`: *"This report can be
    posted as a comment on <issue-id>. Which would you like?"*
    - **Post this comment to <issue-id>** — post verbatim, with
@@ -75,7 +77,8 @@ the Scope's backend record.
 When a post fails (MCP unreachable, issue resolved mid-flight,
 write rejected): surface which step failed and the error; display
 the report again inline so it survives the scroll-back; retry once
-for a transient failure and stop after two. Research output is
+for a transient failure; after two failures proceed to the mandatory leads
+handoff with the posting error in its context. Research output is
 ephemeral by design — the human copies it into a file if they want
 it kept.
 
@@ -97,3 +100,11 @@ the next step and leave the decision with them:
   `/spades:plan` while the Plan is `draft`, or a follow-up Scope once
   delivery has started.
 - A finding worth keeping for future Scopes → `/spades:learn`.
+
+## Mandatory completion handoff
+
+After displaying the report and finishing any scoped posting decision, MUST
+invoke `/spades:leads` (Claude Code) or `$spades:lead` (Codex) in a dedicated
+subagent with the question, scope boundaries, report and source evidence per
+`docs/FRAMEWORK.md § Leads handoff`. This applies to standalone and scoped
+runs. Wait for and report its result before returning or advancing.

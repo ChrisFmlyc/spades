@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 5.0.2
+version: 5.0.3
 ---
 
 # /spades:learn
@@ -11,8 +11,8 @@ captures what a pass taught as a structured entry under
 `.spades/learnings/`, where `/spades:plan` surfaces it the next time
 a related Scope comes through.
 
-Learnings are local for both backends; this skill makes no backend
-calls.
+Learning records are local for both backends. The mandatory leads handoff
+may separately mirror public-safe discoveries using the configured backend.
 
 Read `docs/FRAMEWORK.md` § .spades/ Local Layout (the learning
 schema), § Asking the Human, and § Output Format before running.
@@ -111,7 +111,7 @@ for. Link code, docs, or prior issues where helpful.
 
    Required markers: `objective-banner`, `tags-items`,
    `related-items`, `audit-events`.
-5. **Brief.**
+5. **Complete the mandatory leads handoff below, then brief.**
 
    HTML mode:
 
@@ -155,3 +155,10 @@ explicit choice.
 - [ ] "What we learned" is specific.
 - [ ] "Why it matters" says what someone does differently next time.
 - [ ] A private learning is under `private/`.
+
+## Mandatory completion handoff
+
+After capture, Skip or `--refresh` finishes, MUST invoke `/spades:leads`
+(Claude Code) or `$spades:lead` (Codex) in a dedicated subagent with the
+learning context and privacy classification per `docs/FRAMEWORK.md § Leads
+handoff`. Wait for and report its result before returning or advancing.

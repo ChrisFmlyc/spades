@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.6.2
+version: 3.6.3
 ---
 
 # /spades:ship
@@ -49,7 +49,13 @@ keep the files current while the Plan remains the active review page.
    delivery and a current confirmed PASS. If siblings are pending, keep
    this Plan `evaluating` and continue their delivery/evaluation first.
    Scope criteria and artefact/action dependencies retain their own gates.
-8. **Open the review surface** per § Output format.
+8. **Complete the leads handoff before publishing.** Require the
+   `Leads checked — source: evaluate;` marker after the latest verdict on
+   every participating Plan per `docs/FRAMEWORK.md § Leads handoff`. When
+   absent, invoke `/spades:leads` (Claude Code) or `$spades:lead` (Codex) in
+   a dedicated subagent with the stored evaluation context, wait for its
+   result and record the marker. A capture failure prevents publication.
+9. **Open the review surface** per § Output format.
 
 ## Step 1 — Fresh run or resume (`deliverable_type: code`)
 

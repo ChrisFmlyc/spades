@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.9.5
+version: 3.9.6
 ---
 
 # /spades:evaluate
@@ -301,6 +301,9 @@ patch; Linear failed → keep local files, surface, offer a retry.
 
 ## After the verdict
 
+Complete the mandatory leads handoff below before presenting any next-step
+brief or returning a completed verdict to the caller.
+
 ```
 ✓ Plan evaluated: P-rag-pipeline-lookup-3HyD
 ✓ Verdict:        PASS
@@ -360,3 +363,12 @@ record; the check is against the PR.
 7. **Append** `- YYYY-MM-DD: Evaluate — verdict: <verdict>.
    <rationale>.[ Follow-up: <route>.]`, and with `backend: linear`
    post the same line as a comment on the issue.
+
+## Mandatory completion handoff
+
+After the verdict and its records are complete (PASS, PARTIAL or FAIL,
+including scope-wide and Quick evaluations), MUST invoke `/spades:leads`
+(Claude Code) or `$spades:lead` (Codex) in a dedicated subagent with the
+evaluation context per `docs/FRAMEWORK.md § Leads handoff`. Wait, report the
+result and record the evaluation handoff marker before returning; Ship may
+start only after this handoff has completed.

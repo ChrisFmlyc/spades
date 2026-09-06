@@ -1789,6 +1789,57 @@ acting on any of them. Then:
   failures, recommend manual recovery (the failed files may be
   partial-written; the human inspects and reverts as needed).
 
+### Leads handoff
+
+After Evaluate, Learn or Research completes its substantive work, its
+coordinator MUST invoke `/spades:leads` (Claude Code) or `$spades:lead`
+(Codex) in a dedicated `worker-leads` subagent and wait for its result.
+These spellings select the bundled `skills/leads/SKILL.md`; pass that
+file explicitly when the harness does not resolve the command alias.
+This completion check supplements capture at the moment of discovery.
+It runs even when the coordinator has no candidates to suggest.
+
+Dispatch with `subagent_type: general-purpose` and a self-contained prompt:
+
+- The requested leads operation, original task and its scope boundaries.
+- Absolute worktree path, branch and revision; project and Scope/Plan/Quick
+  IDs when present. Use the caller's checkout; this handoff creates no branch.
+- The completed evaluation evidence, learning or research report, relevant
+  discoveries and cited file paths, plus Leads already raised in this run.
+- Privacy classification and external-write authorization. Keep private
+  source material private; record or mirror only public-safe summaries.
+
+The worker reviews this supplied context for overlooked out-of-scope
+findings, checks cited evidence as needed, and runs the leads skill's
+classification and deduplication. Its task is capture, not a fresh repository
+review or implementation. A completed task's expected outputs and on-scope
+failures remain with that task. Return raised/matched IDs and paths, `none`
+when there are no discoveries, `disabled` for `leads: off`, `unconfigured`
+when `.spades/config` or its project is absent, or a concrete error.
+A completion handoff with no setup reports `unconfigured` without starting
+setup. Every invocation still dispatches the worker, including these no-ops.
+
+The coordinator reports the result before returning or advancing. A capture
+failure leaves the handoff incomplete; preserve completed work, surface the
+error and retry the handoff before advancing. A failed optional Linear mirror
+retains the local Lead and is reported per the leads skill. If subagents are
+unavailable, report the handoff as blocked; this operation requires isolation.
+
+After an evaluation handoff succeeds, the coordinator appends to each
+completed Plan's (or Quick item's) audit trail, after its latest verdict:
+`- YYYY-MM-DD: Leads checked — source: evaluate; result: <IDs | none | disabled | unconfigured>.`
+A scope-wide evaluation checks the combined evidence once and records the
+result on each evaluated Plan. A pending verification or rejected verification
+plan has no completed verdict and does not reach this handoff yet.
+
+Before Ship publishes, require this marker after the latest evaluation
+verdict for every participating Plan. If absent on a resumed or older run,
+execute the handoff from its stored evaluation evidence and record the result
+first. Reuse a marker for that verdict; a new evaluation requires a new check.
+Learn (capture, Skip, and `--refresh`) and Research (standalone and scoped,
+including a declined or failed optional report post) finish with the same
+worker handoff and report its result without requiring an evaluation marker.
+
 ### `worker-html-*` — parallel HTML rendering
 
 HTML rendering (template I/O, placeholder substitution and file write)

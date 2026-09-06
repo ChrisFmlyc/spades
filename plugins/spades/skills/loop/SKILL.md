@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, deliver, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. Not for autonomous use and carries no trigger conditions: it runs only when the user invokes it directly, or when a goal or driver the user set up delegates to it. See "Who may invoke this".
-version: 1.10.0
+version: 1.10.1
 ---
 
 # /spades:loop
@@ -290,6 +290,14 @@ the rows and let the skill re-derive.
 
 ## Stage 6 — Scope readiness and Ship
 
+Require Evaluate's completed leads handoff before leaving evaluation for
+Ship. Check the marker after each Plan's latest verdict per
+`docs/FRAMEWORK.md § Leads handoff`; if a resumed run lacks it, invoke
+`/spades:leads` (Claude Code) or `$spades:lead` (Codex) in a dedicated
+subagent with the stored evaluation context, wait and record the result.
+Reuse a completed handoff for the same verdict rather than raising duplicate
+sightings. Apply this check to every Plan participating in the shipment.
+
 A Plan with a confirmed PASS remains `evaluating` while siblings are
 unfinished. Select the next ready sibling and run Stages 2–5 in the same
 Scope worktree. Do not repeatedly select an already-passed Plan. Once every
@@ -373,7 +381,8 @@ unexpectedly, a failure whose real cause is worth naming. Routine
 delivery is not a learning.
 
 - **Something to carry** → invoke **`/spades:learn`**, answering per
-  § What you answer; append `Loop — learning captured: <path>.`
+  § What you answer; wait for Learn's mandatory leads subagent handoff,
+  then append `Loop — learning captured: <path>.`
 - **Nothing to carry** → append `Loop — learning declined: <one
   line>.`
 
