@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Raises a Lead — a tracked, out-of-scope discovery — the moment one is noticed while doing other work, then returns to that work; also lists, shows, promotes, and closes Leads on demand. A Lead is a bug, tech debt, an improvement, a security smell, a flaky test, a missing doc, or a good idea that is not part of the current task. Invoke it immediately, mid-task and without asking the human, whenever such a thing is spotted during any work in this repo and would otherwise be fixed off-scope, buried in a final summary, or forgotten. Also use when someone says "raise a lead", "log that as a lead", "any leads?", "show leads", "promote lead L-…", or "close lead L-…".
-version: 3.0.3
+version: 3.0.4
 argument-hint: "[--list | --show L-<id> | --promote L-<id> [<work-id>] | --close L-<id> \"<reason>\"]"
 ---
 
@@ -38,13 +38,30 @@ Dispatch, and § Output Format before running.
 - **`--list`, CLI mode** — the board written to
   `.spades/.tmp/leads.md`, printed inline, and opened.
 
+## Execution context
+
+Every invocation runs in a dedicated subagent with the caller's task context
+per `docs/FRAMEWORK.md § Leads handoff`: `/spades:leads` in Claude Code,
+`$spades:lead` in Codex. A coordinator loading this skill delegates once to
+`worker-leads`; that worker executes the body directly and returns its result.
+This applies to immediate capture, completion checks and management commands.
+Pass any user decisions required by management back through the coordinator.
+
+For a completion check, inspect the supplied work for overlooked discoveries
+and raise or match each supported out-of-scope finding. Return `none` when
+there are none. Capture an observed finding only; implementing a fix remains
+with the original task or later work selected by the human.
+
 ## Pre-Flight
 
-1. `.spades/config` exists with `project:` set — else `/spades:setup`.
+1. `.spades/config` exists with `project:` set — otherwise return
+   `unconfigured` for a completion check; direct management requests receive
+   a `/spades:setup` pointer.
 2. Read `backend:` (whether a mirror is made) and `review_format:`
    (how the board renders).
 3. Read `leads:` — `on` when absent. `off` disables raising; the
-   management commands still run.
+   management commands still run. A raising/completion invocation returns
+   `disabled` before creating records when off.
 4. Ensure `.spades/leads/` exists.
 
 ## Raise or fix inline

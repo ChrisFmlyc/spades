@@ -8,6 +8,18 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.1.3] — 2026-09-06
+
+- **patch**: Evaluate, Learn and Research end with a mandatory leads
+  subagent handoff carrying the completed work's context. Leads always runs
+  in a dedicated subagent; its description is unchanged. Claude Code uses
+  `/spades:leads`; Codex uses `$spades:lead` to select the bundled skill.
+- Evaluate records completion after its verdict; Loop and Ship ensure every
+  participating Plan has that handoff before publication, including resumed
+  runs. Research's standalone exit and Learn's completion flow reach it too.
+- Skills bumped: `evaluate` 3.9.5 → 3.9.6; `learn` 5.0.2 → 5.0.3; `research` 2.3.0 →
+  2.3.1; `leads` 3.0.3 → 3.0.4; `loop` 1.10.0 → 1.10.1; `ship` 3.6.2 → 3.6.3.
+
 ## [6.1.2] — 2026-09-06
 
 - **patch**: all 14 HTML templates open at 120% using document-root CSS
