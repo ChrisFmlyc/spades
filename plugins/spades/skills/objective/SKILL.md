@@ -1,7 +1,7 @@
 ---
 name: objective
 description: Create or edit a SPADES Objective — a coherent strategic action associated with a project (Rumelt/OKR sense), prefixed O-. Use when someone says "create an objective", "set an objective", "add an objective", "new objective", "add a milestone for this project", or "/spades:objective <description>". An Objective is independent of Scopes — it never contains, requires, or gates on one. Closing an Objective is done via /spades:close O-<slug>.
-version: 1.3.1
+version: 1.3.2
 ---
 
 # /spades:objective
@@ -72,15 +72,34 @@ separate one** (with a differentiated name).
 
 ## Step 3 — Gather
 
-Conversationally:
+**Ask for the strategy reference first, after confirming the slug and before
+writing any local or Linear records.** Ask: *"Which roadmap outcome or strategy
+item does this Objective support? Paste its link or ID. For Horizon, copy the
+outcome's ULID from its drawer, or paste a link containing that ULID."* Wait
+for the answer. If already supplied, reflect the reference back for confirmation.
+In Edit mode, show the stored reference and ask whether to retain or replace it;
+a missing reference takes the same prompt as Create.
+
+For a Horizon binding, require exactly one distinct 26-character ULID matching
+`[0-7][0-9A-HJKMNP-TV-Z]{25}` (case-insensitive, with alphanumeric boundaries)
+in the answer. Store the extracted, uppercased ULID as `strategy_link`. A generic
+Horizon URL, an `O-` slug, or a hyphenated Linear UUID does not identify a Horizon
+outcome: explain this and ask for its ULID. Use an accessible roadmap to verify
+the ID and show its outcome title; if unavailable, ask the human to confirm the
+ID copied from that outcome. Resolve conflicting IDs before writing.
+
+For objectives outside Horizon, retain the supplied URL, ID or reference as
+`strategy_link`. An explicit "None" leaves it empty and means no roadmap binding;
+optional refers to the value, never to skipping the question. A Horizon-linking
+request needs its outcome ULID unless the human explicitly changes the intent
+to creating an unbound Objective.
+
+Then gather any remaining content conversationally:
 
 - **Title.**
 - **Objective** — 2–4 sentences describing the coherent strategic
   action or outcome. Push for a coherent action rather than a vague
   aspiration or a task list, and reflect it back.
-- **Strategy link** (optional) — a URL, ID, or reference to the
-  upstream roadmap or strategy item, or a fuller definition. "None"
-  is fine.
 
 ## Step 4 — Write and mirror
 
@@ -144,6 +163,13 @@ assistant message, `subagent_type: general-purpose`:
 | `worker-file-objective` | `.spades/objectives/O-<slug>.md`, written without the Linear IDs | `{ status: ok }` |
 | `worker-html-objective` *(HTML mode)* | `.spades/objectives/O-<slug>.html` | `{ status: ok, path, opened }` |
 | `worker-linear-objective` *(`backend: linear`)* | Linear — three objects: **(1)** `save_milestone(project: <linear.project_id>, name: "O-<slug>", description: <objective text>)`; **(2)** `save_issue(team: <linear.team_id>, project: <linear.project_id>, title: "O-<slug> — <title>", description: <objective text>, milestone: "O-<slug>")`, the sister tracking issue whose Done state is the Objective's completion signal; **(3)** the outcome label: ensure a workspace-level label group named `outcome` exists (`issueLabelCreate` with no `teamId`; idempotent — reuse it when found), then `issueLabelCreate(name: "O-<slug>", parentId: <group id>, description: <strategy_link, or the title when empty>)`. Label groups are exclusive, so a Scope can carry at most one outcome. `/spades:close` applies this label to a Scope's parent Issue at roll-up; nothing applies it at creation. Carries the resolved worktree context per § Freshness. | `{ status: ok, linear_milestone_id, linear_issue_id, linear_label_id }` |
+
+For Linear edits, reuse the recorded label ID (or its match under `outcome`)
+and update its description; create it only when absent. Read back the label
+and check its description contains the confirmed Horizon ULID before reporting
+the reference saved. Horizon reads ULIDs from the milestone, then sister issue,
+then label description: surface any conflicting IDs or read-back failure.
+Report the saved reference separately from whether Horizon has synced it.
 
 With `backend: local` the file is the whole Objective. After the
 wave: all ok → inject the three Linear IDs into the `.md` (and the

@@ -8,6 +8,11 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.1.4] — 2026-09-07
+
+- **patch**: Objective always asks for a strategy reference after slug confirmation; Horizon bindings require the outcome ULID and verify its storage in the Linear outcome label description.
+- Skills bumped: `objective` 1.3.1 → 1.3.2.
+
 ## [6.1.3] — 2026-09-06
 
 - **patch**: Evaluate, Learn and Research end with a mandatory leads
