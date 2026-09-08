@@ -1,7 +1,7 @@
 ---
 name: objective
 description: Create or edit a SPADES Objective — a coherent strategic action associated with a project (Rumelt/OKR sense), prefixed O-. Use when someone says "create an objective", "set an objective", "add an objective", "new objective", "add a milestone for this project", or "/spades:objective <description>". An Objective is independent of Scopes — it never contains, requires, or gates on one. Closing an Objective is done via /spades:close O-<slug>.
-version: 1.3.1
+version: 1.3.2
 ---
 
 # /spades:objective
@@ -72,15 +72,24 @@ separate one** (with a differentiated name).
 
 ## Step 3 — Gather
 
-Conversationally:
+**Ask for the strategy reference first, after confirming the slug and before
+writing any local or Linear records.** Ask: *"Which roadmap outcome or strategy
+item does this Objective support? Paste its URL or an ID, such as a UUID or
+ULID."* Wait for the answer. If already supplied, reflect the reference back
+for confirmation. In Edit mode, show the stored reference and ask whether to
+retain or replace it; a missing reference takes the same prompt as Create.
+
+Accept a URL or an ID as alternatives and preserve the supplied reference
+verbatim as `strategy_link`. A URL is a complete reference in its own right;
+it does not need to contain a UUID or ULID. An explicit "None" leaves the
+reference empty; optional refers to the value, never to skipping the question.
+
+Then gather any remaining content conversationally:
 
 - **Title.**
 - **Objective** — 2–4 sentences describing the coherent strategic
   action or outcome. Push for a coherent action rather than a vague
   aspiration or a task list, and reflect it back.
-- **Strategy link** (optional) — a URL, ID, or reference to the
-  upstream roadmap or strategy item, or a fuller definition. "None"
-  is fine.
 
 ## Step 4 — Write and mirror
 
@@ -144,6 +153,13 @@ assistant message, `subagent_type: general-purpose`:
 | `worker-file-objective` | `.spades/objectives/O-<slug>.md`, written without the Linear IDs | `{ status: ok }` |
 | `worker-html-objective` *(HTML mode)* | `.spades/objectives/O-<slug>.html` | `{ status: ok, path, opened }` |
 | `worker-linear-objective` *(`backend: linear`)* | Linear — three objects: **(1)** `save_milestone(project: <linear.project_id>, name: "O-<slug>", description: <objective text>)`; **(2)** `save_issue(team: <linear.team_id>, project: <linear.project_id>, title: "O-<slug> — <title>", description: <objective text>, milestone: "O-<slug>")`, the sister tracking issue whose Done state is the Objective's completion signal; **(3)** the outcome label: ensure a workspace-level label group named `outcome` exists (`issueLabelCreate` with no `teamId`; idempotent — reuse it when found), then `issueLabelCreate(name: "O-<slug>", parentId: <group id>, description: <strategy_link, or the title when empty>)`. Label groups are exclusive, so a Scope can carry at most one outcome. `/spades:close` applies this label to a Scope's parent Issue at roll-up; nothing applies it at creation. Carries the resolved worktree context per § Freshness. | `{ status: ok, linear_milestone_id, linear_issue_id, linear_label_id }` |
+
+For Linear edits, reuse the recorded label ID (or its match under `outcome`)
+and update its description; create it only when absent. Read back the label
+and check its description equals the confirmed reference (or the title for an
+explicitly empty reference) before reporting it saved. Report storage separately
+from any verified Horizon binding: Horizon's current reader uses ULIDs, but
+that integration detail does not restrict the references this skill accepts.
 
 With `backend: local` the file is the whole Objective. After the
 wave: all ok → inject the three Linear IDs into the `.md` (and the
