@@ -74,25 +74,15 @@ separate one** (with a differentiated name).
 
 **Ask for the strategy reference first, after confirming the slug and before
 writing any local or Linear records.** Ask: *"Which roadmap outcome or strategy
-item does this Objective support? Paste its link or ID. For Horizon, copy the
-outcome's ULID from its drawer, or paste a link containing that ULID."* Wait
-for the answer. If already supplied, reflect the reference back for confirmation.
-In Edit mode, show the stored reference and ask whether to retain or replace it;
-a missing reference takes the same prompt as Create.
+item does this Objective support? Paste its URL or an ID, such as a UUID or
+ULID."* Wait for the answer. If already supplied, reflect the reference back
+for confirmation. In Edit mode, show the stored reference and ask whether to
+retain or replace it; a missing reference takes the same prompt as Create.
 
-For a Horizon binding, require exactly one distinct 26-character ULID matching
-`[0-7][0-9A-HJKMNP-TV-Z]{25}` (case-insensitive, with alphanumeric boundaries)
-in the answer. Store the extracted, uppercased ULID as `strategy_link`. A generic
-Horizon URL, an `O-` slug, or a hyphenated Linear UUID does not identify a Horizon
-outcome: explain this and ask for its ULID. Use an accessible roadmap to verify
-the ID and show its outcome title; if unavailable, ask the human to confirm the
-ID copied from that outcome. Resolve conflicting IDs before writing.
-
-For objectives outside Horizon, retain the supplied URL, ID or reference as
-`strategy_link`. An explicit "None" leaves it empty and means no roadmap binding;
-optional refers to the value, never to skipping the question. A Horizon-linking
-request needs its outcome ULID unless the human explicitly changes the intent
-to creating an unbound Objective.
+Accept a URL or an ID as alternatives and preserve the supplied reference
+verbatim as `strategy_link`. A URL is a complete reference in its own right;
+it does not need to contain a UUID or ULID. An explicit "None" leaves the
+reference empty; optional refers to the value, never to skipping the question.
 
 Then gather any remaining content conversationally:
 
@@ -166,10 +156,10 @@ assistant message, `subagent_type: general-purpose`:
 
 For Linear edits, reuse the recorded label ID (or its match under `outcome`)
 and update its description; create it only when absent. Read back the label
-and check its description contains the confirmed Horizon ULID before reporting
-the reference saved. Horizon reads ULIDs from the milestone, then sister issue,
-then label description: surface any conflicting IDs or read-back failure.
-Report the saved reference separately from whether Horizon has synced it.
+and check its description equals the confirmed reference (or the title for an
+explicitly empty reference) before reporting it saved. Report storage separately
+from any verified Horizon binding: Horizon's current reader uses ULIDs, but
+that integration detail does not restrict the references this skill accepts.
 
 With `backend: local` the file is the whole Objective. After the
 wave: all ok → inject the three Linear IDs into the `.md` (and the
