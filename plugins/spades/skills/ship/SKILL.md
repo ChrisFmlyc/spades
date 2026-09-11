@@ -57,9 +57,9 @@ keep the files current while the Plan remains the active review page.
    include the current run's authorised Lead changes and evaluation records
    in the proposed commit and verify their inclusion. For `artefact` and
    `action`, retain those records and their receipt in the delivery context,
-   with their next authorised commit handoff recorded. Report pending mirror
-   operations and records owned by other worktrees with their source and next
-   handoff.
+   with their next authorised commit handoff recorded. Report pending
+   publication and mirror operations, plus records owned by other worktrees,
+   with each item's source and next handoff.
 9. **Open the review surface** per § Output format.
 
 ## Step 1 — Fresh run or resume (`deliverable_type: code`)
