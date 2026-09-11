@@ -1,7 +1,7 @@
 ---
 name: list
-description: List active SPADES Scopes (and Objectives), optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "list objectives", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades/config`.
-version: 3.6.3
+description: Lists active SPADES Scopes (and Objectives), optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "list objectives", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades/config`.
+version: 3.6.4
 ---
 
 # /spades:list
@@ -25,9 +25,8 @@ and prints a one-line brief with the path.
 1. **Read `.spades/config`** — `backend:`, `project:`,
    `review_format:`.
 2. **Apply `--project <slug>`** when given; otherwise the active
-   project. An `abandoned` active Project aborts with *"Project
-   `<slug>` is abandoned. Run `/spades:list --project <other>` or
-   `/spades:list all`."*
+   project. Report an `abandoned` Project's status and continue with the
+   selected filter per § Target Resolution → Parent-status precondition.
 3. **Determine the filter.** Default: active phases (`scoped`,
    `planning`, `delivering`, `evaluating`, `shipping`), excluding
    `abandoned` Scopes and their Plans. Overrides:

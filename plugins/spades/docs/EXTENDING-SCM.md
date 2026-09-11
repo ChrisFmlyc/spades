@@ -23,8 +23,8 @@ A driver is a section of prose telling Claude:
    the per-driver Ship flow.
 4. How to **record the shipment** in the Plan's audit trail.
 
-It is not a binary or a runtime plugin. SPADES skills are pure
-Markdown; a driver lives as branches in the relevant SKILL.md files.
+The relevant skills select and read the driver's bundled Markdown
+instructions.
 
 ## Contract drivers must satisfy
 
@@ -67,14 +67,15 @@ per OS, "resume `/spades:setup`" at the end).
 For SCMs with a review-and-merge layer (GitHub, GitLab, Bitbucket):
 
 - **Phase 1 (fresh):**
-  1. Verify the branch the Plan recorded in its audit trail.
+  1. Resolve the Scope delivery worktree and verify its branch.
   2. Pre-push checks.
   3. Push to the configured remote.
-  4. Create the PR/MR via the CLI (e.g. `glab mr create`,
-     `bb pr create`).
-  5. Record `PR opened: <URL>` (or `MR opened: <URL>`) in the
-     audit trail.
-  6. Exit; Plan stays `status: shipping`.
+  4. Open or reuse the Scope's shared PR/MR via the CLI
+     (e.g. `glab mr create`, `bb pr create`) after all participating
+     code Plans have a confirmed PASS.
+  5. Record `PR opened: <URL>` (or `MR opened: <URL>`) in every
+     participating Plan's audit trail.
+  6. Exit; participating Plans stay `status: shipping`.
 - **Phase 2 (finalise after merge)** — performed by
   `/spades:close P-<id>`, which lands the marker on `main` through
   a bookkeeping PR:
@@ -84,8 +85,9 @@ For SCMs with a review-and-merge layer (GitHub, GitLab, Bitbucket):
   2. Close queries the PR/MR state via the CLI (e.g. `glab mr view`,
      `gh pr view`).
   3. On merged: capture the merge SHA, append `Shipped. PR/MR:
-     <URL>. Merge: <sha>` to the audit trail, mark the Plan
-     `shipped`, roll the Scope up, and commit via the bookkeeping PR.
+     <URL>. Merge: <sha>` to each participating Plan's audit trail,
+     mark those Plans `shipped`, apply the Scope roll-up checks,
+     and commit via the bookkeeping PR.
   4. On still-open: report state, offer wait or abort.
 
 #### Single-phase (no PR system)
@@ -165,11 +167,11 @@ repos see GitLab is supported.
 
 ### 6. Bump versions
 
-Per `AGENTS.md` § Versioning: bump `ship` (minor — additive
-sub-branch), bump `setup` (minor — new SCM option in the install
-guide), bump the plugin (minor).
+Per `AGENTS.md` § Versioning, bump every changed skill and the
+plugin. This example changes `ship`, `close`, and `setup` additively
+(minor), plus `agents_version` when the operating rules change.
 
-## Things a driver author should resist
+## Preserve the SCM contract
 
 - **Don't invent new SCM phases.** SPADES has one Ship phase, two
   flow shapes (single-phase, two-phase). A "review pending" or

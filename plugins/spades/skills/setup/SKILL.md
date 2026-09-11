@@ -1,7 +1,7 @@
 ---
 name: setup
-description: Configure SPADES in this repository — choose a backend (Linear MCP or local filesystem), set the active project, scaffold AGENTS.md / ARCHITECTURE.md / PATTERNS.md / ANTI-PATTERNS.md, and write .spades/config. Use when starting fresh, when someone says "set up SPADES", "configure SPADES", "initialise SPADES", "I want to use SPADES in this repo". Re-runnable to reconfigure backend or refresh scaffolding without clobbering existing content.
-version: 4.10.2
+description: Configures SPADES in a repository by choosing the backend, SCM, review format and active project, writing .spades/config, and scaffolding agent rules and project documents. Use for initial setup, reconfiguration or a scaffolding refresh, including "set up SPADES", "configure SPADES", "initialise SPADES", or "I want to use SPADES in this repo". Preserves existing content on re-runs.
+version: 4.10.3
 ---
 
 # /spades:setup
@@ -9,13 +9,9 @@ version: 4.10.2
 Configure SPADES in this repository. Every other skill assumes setup
 has run and `.spades/config` exists.
 
-Setup is the one command a human runs to adopt SPADES. It completes
-in a single pass and drives its own prerequisites inline: a missing
-git repo is initialised via `/repo:init` (Pre-Flight 2), and a
-missing project is created via `/spades:newproject` after the config
-is on disk (Step 8). Both edges point away from setup and neither
-points back — the acyclic bootstrap contract in `docs/FRAMEWORK.md
-§ Bootstrap Order`.
+Setup invokes `/repo:init` for a missing git repo (Pre-Flight 2) and
+`/spades:newproject` for a missing project after writing the config
+(Step 8), following `docs/FRAMEWORK.md § Bootstrap Order`.
 
 Steps 1 to 4 are one `AskUserQuestion` call each, asked on every
 run; the recorded value is the answer the tool returns, even when
@@ -68,9 +64,7 @@ Pre-Flight 2 needs `/repo:init` otherwise. Record `found` or
 git rev-parse --git-dir >/dev/null 2>&1 && echo found || echo missing
 ```
 
-`found` → continue. `missing` → the repo is initialised now, since
-setup scaffolds files under git's expectation that they are
-committed:
+`found` → continue. `missing` → initialise the repo before scaffolding:
 
 - With the repo plugin `found`, announce *"No git repo here — I'll
   initialise one via `/repo:init`, then continue setup."* and run
@@ -224,9 +218,9 @@ changed, else Step 7) / **Cancel — exit without writes**.
 
 Fires only when `current_backend != new_backend`. **Read
 [`reference/backend-migration.md`](reference/backend-migration.md)
-and follow it.** It owns both directions and their error handling,
-and returns here whether the walk ran, was skipped, or was
-cancelled.
+and follow it.** It owns both directions and their error handling.
+Continue to Step 7 after completion or Skip; cancelling the backend switch
+returns to Step 1.
 
 ## Step 7 — Write `.spades/config`
 
@@ -247,8 +241,7 @@ With `create_new_project` on a **fresh install**, write `project:`
 unset (and `team_id` without `project_id` for Linear). On a
 **re-run**, keep the existing `project:` and `linear.project_id`
 until Step 8 overwrites them, so a cancelled newproject leaves the
-prior active project intact. The config is on disk before Step 8;
-that is what makes the inline `/spades:newproject` legal.
+prior active project intact.
 
 ## Step 8 — Create the project (when `create_new_project`)
 
@@ -258,10 +251,10 @@ title, description, repos, and owners, writes
 fan-out), and sets `project:` (and `linear.project_id`) in
 `.spades/config`. Setup resumes with `project:` populated.
 
-If it fails or the human cancels, `project:` stays unset: surface
-*"No project was created — `.spades/config` has no active project
-yet. Re-run `/spades:setup` or `/spades:newproject` to create one."*
-and finish the remaining scaffolding.
+If creation fails or the human cancels, report the retained state and
+finish the remaining scaffolding. A fresh install has no active project;
+a re-run keeps the prior project per Step 7. Point to `/spades:setup` or
+`/spades:newproject` to retry creation.
 
 ## Step 9 — Write `.spades/version`
 
@@ -372,8 +365,7 @@ Next steps:
 ```
 
 A skipped migration reads `○ Migration: skipped — local artefacts
-stay on disk; new Linear-side work starts empty.` Keep it brief: the
-human confirms correctness in ten seconds.
+stay on disk; new Linear-side work starts empty.`
 
 ## Why `AGENTS.md`
 

@@ -84,7 +84,7 @@ Order:
 
 ### Shape — `subagent-dispatch` or `sequential-inproc`
 
-```
+````
 Dispatch mode: subagent-dispatch
 
 ```json
@@ -131,11 +131,11 @@ Findings — every blocking in full; major up to the inline budget:
 Full report: .spades/reviews/s-add-ai-helper-bot-2026-05-17.md
 
 ════════════════════════════════════════════════════════════
-```
+````
 
 ### Shape — `degraded`
 
-```
+````
 Dispatch mode: degraded
 
 ```json
@@ -168,7 +168,7 @@ Findings — every blocking in full; major up to the inline budget:
 Full report: .spades/reviews/s-add-ai-helper-bot-2026-05-17.md
 
 ════════════════════════════════════════════════════════════
-```
+````
 
 ## Persisted report
 

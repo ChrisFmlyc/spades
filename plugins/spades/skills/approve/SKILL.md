@@ -1,15 +1,13 @@
 ---
 name: approve
-description: Present a SPADES Plan for human review against the approval checklist, then record the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`. The biggest risk in SPADES is a weak Approval gate.
-version: 3.3.3
+description: Presents a SPADES Plan for human review against the approval checklist, then records the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`.
+version: 3.3.4
 ---
 
 # /spades:approve
 
-You are running the Approve gate on a drafted Plan. Approval is a
-gate, not a rubber stamp: you walk a fixed checklist with your own
-assessment of each point, ask the human for the decision, record the
-routing (who does the work), and write the result to the Plan.
+Assess the drafted Plan against the approval checklist, ask the human for
+the decision and routing (who does the work), and write the result to the Plan.
 
 Read `docs/FRAMEWORK.md` § .spades/ Local Layout, § Target
 Resolution, § Asking the Human, and § Output Format before running.

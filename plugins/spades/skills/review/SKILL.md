@@ -1,16 +1,14 @@
 ---
 name: review
-description: Get an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
-version: 3.9.2
+description: Provides an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
+version: 3.9.3
 ---
 
 # /spades:review
 
-You are coordinating an independent multi-persona review. The value
-of a panel is genuine independence across distinct concerns: each
-persona sees the same structured summary and is primed to care about
-a different aspect. The report is a second opinion — it informs the
-human and gates nothing.
+Coordinate four review personas, each examining a different concern
+from the same structured summary. The report gives the human a second
+opinion and gates nothing.
 
 Read `docs/FRAMEWORK.md` § Freshness, § Target Resolution,
 § Sub-agent Dispatch, and § Output Format before running.
@@ -108,8 +106,8 @@ self-contained prompt:
 
 ```
 You are reviewing a SPADES {mode} as the {persona} on a multi-persona
-panel. Think hard and reason carefully before responding. Follow the
-output contract in your persona file exactly — prose summary first,
+panel. Follow the output contract in your persona file exactly — prose
+summary first,
 then a JSON code block labelled `spades-findings` with strictly
 schema-matching finding objects.
 

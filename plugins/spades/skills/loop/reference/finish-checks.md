@@ -16,9 +16,7 @@ owns how you find out.
 
 The canonical query for unresolved review threads. Stage 7's final
 sweep uses it, Stage 8 re-runs it immediately before merging, and
-FINISHED assertion 2 uses it on both PRs. It is duplicated from
-`bot-review.md` so that this file reads whole; a reference file
-points only at SKILL.md, never at another reference.
+FINISHED assertion 2 uses it on both PRs.
 
 ```bash
 gh api graphql -f query='
@@ -143,6 +141,5 @@ The assertion-1 probe against the bookkeeping PR.
 
 ## When an assertion fails
 
-Pause with the specific assertion and its evidence; the FINISHED
-block is printed only when all four hold. It is the one output the
-human trusts without checking, which is why it has to be earned.
+Pause with the specific assertion and its evidence; print the FINISHED
+block only when all four hold.

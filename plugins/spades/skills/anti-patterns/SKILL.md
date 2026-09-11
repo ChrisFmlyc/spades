@@ -1,18 +1,16 @@
 ---
 name: anti-patterns
-description: Create or maintain ANTI-PATTERNS.md, the project's durable list of things the codebase DELIBERATELY AVOIDS — runtime dependencies, hidden state, premature abstraction, and any other "we won't do X" rules. Use when someone says "set up ANTI-PATTERNS.md", "document what we don't do", "we should ban X", "we deliberately avoid Y", "what's forbidden here", "add an anti-pattern", "update the anti-patterns doc", "what shouldn't we do", or when ANTI-PATTERNS.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review. Also use proactively after a Plan rejection that traces to an unwritten prohibition. The human composes the prohibitions; this skill structures and probes but never authors it. SKIP when the human's intent is per-Plan risk capture (use the Plan's Risks & Assumptions section instead) or when documenting an APPROVED pattern (use /spades:patterns).
-version: 1.5.2
+description: Creates or maintains ANTI-PATTERNS.md, the project's durable list of things the codebase DELIBERATELY AVOIDS — runtime dependencies, hidden state, premature abstraction, and any other "we won't do X" rules. Use when someone says "set up ANTI-PATTERNS.md", "document what we don't do", "we should ban X", "we deliberately avoid Y", "what's forbidden here", "add an anti-pattern", "update the anti-patterns doc", "what shouldn't we do", or when ANTI-PATTERNS.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review. Also use proactively after a Plan rejection that traces to an unwritten prohibition. Helps the human express the prohibitions and requires their confirmation before recording each rule. SKIP when the human's intent is per-Plan risk capture (use the Plan's Risks & Assumptions section instead) or when documenting an APPROVED pattern (use /spades:patterns).
+version: 1.5.3
 ---
 
 # /spades:anti-patterns
 
-You are helping a human create or maintain `ANTI-PATTERNS.md` — the
-durable list of things the codebase deliberately avoids. A root
-reference document, peer to `INTENT.md`, `ARCHITECTURE.md`, and
-`PATTERNS.md`, and the prohibition layer `/spades:plan` and
-`/spades:review`'s architecture strategist cross-check Plans
-against: a Plan proposing a forbidden technique is a blocking
-finding.
+Help the human create or maintain `ANTI-PATTERNS.md`, the root reference
+for techniques the codebase deliberately avoids. It sits alongside
+`INTENT.md`, `ARCHITECTURE.md`, and `PATTERNS.md`. `/spades:plan` and
+`/spades:review`'s architecture strategist check Plans against it; a Plan
+proposing a forbidden technique is a blocking finding.
 
 Read `docs/FRAMEWORK.md` § Asking the Human and § Output Format
 before running.
@@ -31,7 +29,7 @@ before running.
 
 A committed root document; no backend mirror.
 
-## The core rule: facilitate, never author
+## Human confirmation
 
 Anti-patterns are the team's prohibitions, usually born from a real
 incident, a hard trade-off, or a principle. Capture them clearly.
@@ -39,11 +37,9 @@ You may ask, reflect back, suggest sharper wording, and, in Create
 mode, offer a small, high-confidence draft inferred from lint
 configs (`eslint.config.js`, `[tool.ruff]`, golangci-lint), the
 README, and explicit "don't do X" comments in the codebase. Every
-rule lands only after the human confirms it. The internet is full of
-plausible "don't do X" rules; a generic one the team would shrug at
-dilutes the file and turns the architecture strategist's findings
-into false positives, so a rule the team has not decided on is a
-question rather than a line.
+rule lands only after the human confirms it. Ask about proposed rules the
+team has not yet adopted. Generic bans can produce false positives in the
+architecture review.
 
 ## What `ANTI-PATTERNS.md` is
 

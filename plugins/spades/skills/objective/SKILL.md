@@ -1,16 +1,14 @@
 ---
 name: objective
-description: Create or edit a SPADES Objective — a coherent strategic action associated with a project (Rumelt/OKR sense), prefixed O-. Use when someone says "create an objective", "set an objective", "add an objective", "new objective", "add a milestone for this project", or "/spades:objective <description>". An Objective is independent of Scopes — it never contains, requires, or gates on one. Closing an Objective is done via /spades:close O-<slug>.
-version: 1.3.1
+description: Creates or edits a SPADES Objective — a coherent strategic action associated with a project (Rumelt/OKR sense), prefixed O-. Use when someone says "create an objective", "set an objective", "add an objective", "new objective", "add a milestone for this project", or "/spades:objective <description>". An Objective is independent of Scopes — it never contains, requires, or gates on one. Closing an Objective is done via /spades:close O-<slug>.
+version: 1.3.2
 ---
 
 # /spades:objective
 
 You are creating or editing an **Objective** — a coherent strategic
 action associated with a project, in the *Good Strategy / Bad
-Strategy* sense and close to the Objective in OKRs. It is the
-in-SPADES anchor that records *"this project has this strategic
-objective."*
+Strategy* sense and close to the Objective in OKRs.
 
 An Objective is independent of Scopes: it never contains, requires,
 or gates on one, and it does not run the six-phase loop. Its record
@@ -42,9 +40,8 @@ Read `docs/FRAMEWORK.md` § Hierarchy → Objectives, § ID Format,
    Resolution → Parent-status precondition`; an `abandoned` or
    `archived` Project is a hard abort for create and edit. (Closing
    an Objective is exempt.)
-4. **INTENT is a soft nudge here.** An Objective is itself a
-   strategy-level statement, so a missing `INTENT.md` is mentioned
-   and the skill proceeds.
+4. **Check `INTENT.md`.** Mention a missing file and proceed;
+   creating an Objective does not require it.
 
 ## Step 1 — Mode
 

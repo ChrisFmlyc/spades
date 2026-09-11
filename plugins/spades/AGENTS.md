@@ -1,16 +1,12 @@
 # SPADES Framework — Agent Operating Rules
 
 This file defines mandatory behaviour for all AI agents operating in this project.
-These rules are non-negotiable. If you are an AI agent reading this file, you must
-follow every instruction below. Violations of the SPADES loop undermine the audit
-trail and the trust model that makes human-AI collaboration safe.
+Follow the phase rules and record each decision in the audit trail.
 
-`AGENTS.md` is the canonical operating-rules file for any agent that
-reads project context — Claude Code, Cursor, Codex, Aider, and the
-rest. SPADES deliberately does **not** ship a `CLAUDE.md`,
-`CURSOR.md`, or any other per-vendor variant.
+`AGENTS.md` is the only operating-rules file SPADES maintains for agents
+that read project context, including Claude Code, Cursor, Codex and Aider.
 
-## SPADES Skills (v2.0)
+## SPADES Skills
 
 This repo ships SPADES itself, so the plugin's 22 skills are available
 when working in it. Invoke the main ones by their namespaced names:
@@ -18,7 +14,7 @@ when working in it. Invoke the main ones by their namespaced names:
 | Skill | What it does |
 |-------|-------------|
 | `/spades:setup` | Configure backend + scaffold this repo (re-runnable) |
-| `/spades:loop` | Drive one Scope from Plan to closed-out unattended — chains plan → approve → deliver → evaluate → **human sign-off** → ship → bot review → squash-merge → close → bot review → merge. Slash-only. Never scopes. |
+| `/spades:loop` | Drive an existing Scope through Plan, Approve, Deliver, Evaluate, Ship, review, merge and close-out. Runs on explicit invocation or delegation by a user-defined goal; pauses for checks that require the human. |
 | `/spades:newproject` | Create a new Project record |
 | `/spades:objective` | Create or edit an Objective (`O-<description-slug>`) — a coherent strategic action associated with a project; independent of Scopes |
 | `/spades:scope` | Create or edit a Scope (`S-<description-slug>`) |
@@ -36,6 +32,9 @@ when working in it. Invoke the main ones by their namespaced names:
 | `/spades:list` | List active scopes, filterable by phase or project |
 | `/spades:status` | Show current SPADES phase + dependency graph |
 | `/spades:intent` | Maintain `INTENT.md` — the durable project statement |
+| `/spades:architecture` | Maintain `ARCHITECTURE.md` — how the system is built |
+| `/spades:patterns` | Maintain `PATTERNS.md` — approved conventions |
+| `/spades:anti-patterns` | Maintain `ANTI-PATTERNS.md` — deliberate exclusions |
 
 The active backend is **linear** (see `.spades/config`); the active
 project is `spades-framework` — the framework dogfooding itself.
@@ -58,38 +57,24 @@ When in doubt, use the full loop.
 
 ### Running the phases: by hand, or via `/spades:loop`
 
-The six phases can be driven one command at a time — that has always
-been the model and still is. `/spades:loop` is the alternative: the
-human writes the Scope, types `/spades:loop`, and the agent walks
-Plan → Approve → Deliver → Evaluate, **stops for the human to sign off the
-evaluation**, then carries on through Ship, bot review, squash-merge,
-`/spades:close`, and the bookkeeping PR's own review and merge. Worktrees
-remain available after completion.
+Drive each phase by its command, or invoke `/spades:loop` after a
+human-owned Scope exists. The loop executes the phase skills and answers
+their questions from the Scope, Plan, config and project documents.
+It records those answers as `AI (/spades:loop)`.
 
-Three things the loop does not change:
+The loop runs all six approval checks and self-approves only when they
+pass. It derives evaluation from the verification rows: when every row has been
+AI-verified, it confirms the verdict; when a row requires a human, that
+human performs the check and confirms the verdict. Other pauses follow
+`skills/loop/SKILL.md § Pauses`.
 
-- **Scope stays human-owned.** The loop starts *after* a Scope
-  exists and never invokes `/spades:scope`.
-- **The gates are executed, not skipped.** Approve walks all six
-  checks and self-approves only on a clean sweep; any failed check,
-  doc conflict, or sensitive-area Plan pauses for the human. The
-  Evaluate verdict is derived by `/spades:evaluate` and confirmed by
-  a human — never by the AI that produced the work.
-- **Every artefact is identical.** The loop derives its position from
-  the same `status:` fields and audit-trail markers the phases
-  already write, so a looped run and a hand-driven run are
-  indistinguishable to `/spades:status`, `/spades:close`, and the
-  backends. A human can take over — or hand back — at any stage.
+Route tasks and checks to `ai` by default, and to `human` when the agent
+cannot perform them. The loop uses the same status fields and audit records
+as manual execution, so the human can take over at any stage. Completed
+branches and worktrees remain available.
 
-Routing doctrine inside the loop: **default everything to `ai`;
-route to `human` only when the AI genuinely cannot do it** (physical
-access, credentials it can't hold, knowledge only the human has, an
-outward-facing act the human must own). "A human would do it better"
-is not a reason. Oversight lands at the Evaluate sign-off gate; it
-doesn't need duplicating across every task.
-
-See `docs/FRAMEWORK.md § Orchestration Order (/spades:loop)` for the
-DAG and the rules that keep it acyclic.
+See `docs/FRAMEWORK.md § Orchestration Order (/spades:loop)` for invocation
+boundaries, capped rework and resumption.
 
 ## Hierarchy
 
@@ -113,6 +98,15 @@ See `docs/FRAMEWORK.md § Hierarchy → Objectives` for the full contract.
 
 ## Phase Rules
 
+The rules below describe manually driven phases. An explicitly invoked
+`/spades:loop` answers child-skill questions under the orchestration contract
+above.
+
+Before producing work, verify the target's ancestors under
+`docs/FRAMEWORK.md § Target Resolution → Parent-status precondition`.
+That contract defines the hard refusal for abandoned or archived containers
+and the exemptions for closure and read-only views.
+
 ### 1. Scope (Human-Owned)
 
 - You must NEVER begin planning or writing code without a written Scope.
@@ -125,6 +119,8 @@ See `docs/FRAMEWORK.md § Hierarchy → Objectives` for the full contract.
 - If a human asks you to "just do X" without a Scope, ask them to
   define one first. Help them write it if needed via `/spades:scope`,
   but do not proceed to Plan without a documented Scope.
+- Ask the human for organisational context that is missing. Combining
+  multiple Scopes into one delivery requires human agreement.
 - **Before writing a Scope, check the fast-track gate.** If every
   criterion in "Fast-Track Path" below passes, invoke `/spades:quick`
   instead of `/spades:scope`.
@@ -349,37 +345,20 @@ auto-resolved by either plugin. Same one-directional rule: SPADES →
 Before any commit or `/spades:ship` that touches `plugins/spades/`, run
 the § Versioning release gate (version bump + changed skills + CHANGELOG).
 
-### If you don't have a git repo yet
+### Repository setup
 
-Running SPADES in a directory that isn't a git repo? `/spades:setup`
-runs `/repo:init` **for you, inline**, as its first prerequisite —
-you don't run it by hand or re-invoke setup afterwards. Setup is the
-single entry point and drives its prerequisites (a one-directional
-`setup → repo:init` edge; see `docs/FRAMEWORK.md § Bootstrap Order`).
-SPADES expects an initialised repo — it scaffolds files under git's
-expectation that they will be committed (`AGENTS.md`,
-`ARCHITECTURE.md`, `.spades/config`, etc.) — so setup guarantees the
-repo exists before it scaffolds.
-
-### Why this rule
-
-SPADES is the **implementation framework**; the `repo` plugin is the
-**git-discipline framework**. Each owns its concern. "Defer" means
-SPADES never *reimplements* git logic — running `/repo:init` inline
-still defers (it calls the repo plugin rather than hand-rolling `git
-init`); what it doesn't do is make the human perform the hand-off.
-Mixing ownership the wrong way — a SPADES skill that runs `git init`
-itself, or hand-rolls a post-merge cleanup — splits ownership and
-risks the two plugins drifting out of agreement. Always defer.
+When the directory is not a git repo, `/spades:setup` invokes `/repo:init`
+inline, then continues scaffolding. Setup owns this sequence; the repo
+plugin owns git initialisation. See `docs/FRAMEWORK.md § Bootstrap Order`.
 
 ## Backend
 
 The backend is configured in `.spades/config` under `backend:`. SPADES
-v2.0 ships two drivers:
+ships two drivers:
 
 - **`backend: linear`** — Project ↔ Linear Project; Scope ↔ parent
   Issue; Plan ↔ sub-issue. Audit records (approval, evaluation,
-  shipment) post as comments on the parent issue.
+  shipment) post as comments on the Plan sub-issue.
 - **`backend: local`** — every artefact lives under `.spades/`. Audit
   records append to an `## Audit Trail` heading on the scope/plan
   file.
@@ -394,12 +373,11 @@ Every PR to this plugin **must** bump the plugin version. The
 component versions (per-skill and AGENTS.md) bump only when that
 component's own content changes.
 
-### 🚦 Release gate — the version bump is part of the change
+### Release gate
 
-**IMPORTANT — YOU MUST complete this before any commit that touches
-`plugins/spades/`.** Stop and write out these four lines with a real
-`old → new` (or an explicit "n/a") filled in for each. If you cannot
-fill one in, the change is not ready to commit:
+Before any commit that touches `plugins/spades/`, you MUST report all
+four checks below with actual `old → new` values or an explicit `n/a`.
+Commit only when every applicable check is complete:
 
 ```
 [ ] plugin version  X.Y.Z → X.Y.Z   (plugin.json + marketplace ×2 + .spades/version — all four)
@@ -408,25 +386,9 @@ fill one in, the change is not ready to commit:
 [ ] CHANGELOG entry added under the new plugin version
 ```
 
-The bump is not a follow-up PR; an unbumped version is silently deduped
-by the updater and reaches **no one**. This forced check exists because
-PR #57 redesigned all 26 skill templates, bumped nothing, and CI stayed
-green — so the redesign never installed. CI verifies only that a
-`version:` field *exists*, never that a change *bumped* it, so this gate
-is the only thing covering that gap. Do not skip it because CI is green.
-
-### The principle
-
-The plugin version is the umbrella: **if anything inside the plugin
-changes, the plugin version bumps.** A change to a skill, a change to
-`AGENTS.md`, a change to `docs/`, a metadata tweak — any of them forces
-a plugin bump. The component versions are narrower: each bumps **only**
-when its own content changes. A component change always implies a
-plugin bump; a plugin bump does not imply any given component changed.
-
-This is what makes consumer updates work: Claude Code's plugin updater
-dedups by version string, so an unchanged plugin version after a real
-change means the update is silently skipped and never reaches anyone.
+The updater deduplicates by plugin version, so every plugin change needs
+a version bump in the same PR. Lints check version-field presence; the
+release gate checks that changed components received a bump.
 
 ### Three levels of versioning
 
@@ -438,21 +400,16 @@ change means the update is silently skipped and never reaches anyone.
   values must match. Bumps on **every** merged PR.
 - **Skill version** — declared as a `version:` field in each skill's
   frontmatter (`plugins/spades/skills/<name>/SKILL.md`). Bumps **only**
-  when that skill's body, frontmatter, or behaviour changes.
+  when any file in that skill's directory changes, including references
+  and templates.
 - **AGENTS.md version** — the operating rules are themselves a
   versioned, consumer-facing unit. Pinned in
   `plugins/spades/.spades/version` as `agents_version=X.Y.Z`, and
   stamped into the consumer-repo marker
   (`<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`) by `/spades:setup`. Bumps
-  **only** when the rules consumers carry change. Because the marker
-  tracks the AGENTS.md version (not the plugin version), a consumer's
-  block reads as stale only when the rules they hold actually moved —
-  not on every unrelated plugin PR.
-
-So a PR that touches three skills bumps those three skills plus the
-plugin; a PR that edits `AGENTS.md` bumps `agents_version` plus the
-plugin; a PR that only touches `docs/FRAMEWORK.md` bumps only the
-plugin.
+  **only** when the rules consumers carry change, including
+  `skills/setup/reference/agents-md-block.md`. The marker tracks this
+  rules version so consumers can detect stale operating instructions.
 
 ### Choosing major / minor / patch
 
@@ -475,9 +432,7 @@ Apply semver based on what changed:
   - Wording change with no behavioural shift
   - Formatting / presentation change to output
 
-When in doubt, **lean toward bumping higher**. A minor that should
-have been patch costs nothing; a patch that should have been minor
-hides a real change from anyone reading the changelog.
+When the classification is uncertain, choose the higher semver level.
 
 ### Per-skill semver follows the same rules
 
@@ -493,21 +448,8 @@ The plugin version is always **at least** the highest of the skill
 versions that changed — a breaking change in any one skill forces
 the plugin to bump major.
 
-### Where versions live
-
-| Where | What |
-|-------|------|
-| `plugins/spades/.claude-plugin/plugin.json` `"version"` | Plugin |
-| `.claude-plugin/marketplace.json` `metadata.version` + plugins[0].`version` | Plugin (mirror — must match) |
-| `plugins/spades/.spades/version` (`spades_version=X.Y.Z`) | Plugin pin |
-| `plugins/spades/.spades/version` (`agents_version=X.Y.Z`) | AGENTS.md pin (canonical) |
-| `plugins/spades/skills/<name>/SKILL.md` frontmatter `version:` | Per-skill |
-| AGENTS.md marker block (`<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`) | AGENTS.md version (consumer-facing) |
-
-### Lint enforces presence
-
-`scripts/lint/lint-skill-frontmatter.sh` requires a `version:` field
-on every skill's SKILL.md. CI fails if a skill is missing one.
+`scripts/lint/lint-skill-frontmatter.sh` requires a `version:` field on
+every skill's SKILL.md. Missing versions fail CI.
 
 ### CHANGELOG
 
@@ -534,15 +476,13 @@ Every piece of work must trace through:
 6. An evaluation verdict
 7. A shipment record
 
-Work that cannot be traced through this chain must not ship. The audit
-trail is the mechanism by which AI-delivered work remains trustworthy.
+Work that cannot be traced through this chain must not ship.
 
 ## Fast-Track Path (Small Work)
 
-Not every change deserves a Scope. The fast-track path handles trivial
-work — typo fixes, one-line tweaks, small config nudges, docs changes
-— through `/spades:quick`. On this path the **PR description is the
-audit artefact**: no separate Scope or Plan record is created.
+Trivial work that passes every criterion below uses `/spades:quick`.
+The quick-item marker is the canonical audit record; the PR description
+carries its checklist. No separate Scope or Plan record is created.
 
 **When a human describes a small fix, check the fast-track gate
 BEFORE invoking `/spades:scope`.** If every criterion below passes,
@@ -551,7 +491,7 @@ run `/spades:quick`. Otherwise fall back to the full loop.
 ### The Gate — ALL must be true
 
 1. Single concern (one bug, one tweak, one touch-up)
-2. ≤ 50 lines of code changed total; hard stop above ~100
+2. ≤ 50 lines of code changed total
 3. One file, or a tight cluster in one module
 4. No new dependencies (package manifests untouched)
 5. No schema, migration, or data-layer changes
@@ -567,9 +507,7 @@ loop. The gate is all-or-nothing.
 
 ### Incident response
 
-Incidents and larger reactive work do NOT use the fast-track path.
-Ceremony is cheap during an incident — use the full loop so the audit
-trail is complete.
+Incidents and larger reactive work use the full loop and its audit trail.
 
 ### Evaluating quick-path work
 
@@ -580,9 +518,7 @@ verdict.
 
 ## Deliberate Non-Goals
 
-Things SPADES does NOT do, by design. Each entry records the
-decision and why, so a future contributor can tell *"deliberately
-omitted"* apart from *"never thought of it"*.
+These exclusions define the framework's scope.
 
 ### No cross-Scope dependencies
 
@@ -601,55 +537,21 @@ dependency graph.
 
 ### No `abandoned` status for Quick items
 
-`/spades:close --abandon` applies to Scopes and Projects only.
+`/spades:close --abandon` applies to Scopes, Projects and Objectives.
 Plans use `rejected` (via `/spades:approve` or `/spades:evaluate`
 FAIL); Quick items have no terminal walk-away status at all.
 
-**Why:** Quick items are intentionally the lightweight path — the
-whole point is to skip ceremony. If you start a quick item and
-bail, just delete the marker file at `.spades/quick/Q-<id>.md`.
-Adding a status enum + a setter skill for the quick path would
-inflate exactly the ceremony the quick path exists to avoid. A
-deleted file is a sufficient signal; if you want a trace, the git
-history records the delete.
+An unfinished Quick item is dropped by deleting its marker at
+`.spades/quick/Q-<id>.md`; git history records the deletion. Quick items
+therefore need no separate abandonment status.
 
-## What You Must Never Do
 
-- Begin writing code without a documented Scope (or a valid fast-track
-  gate pass)
-- Begin Deliver without an approved Plan (on the full loop)
-- Begin any producing work (Scope, Plan, Approve, Deliver, Evaluate,
-  Ship, or Close-Pass) on a child of an `abandoned` Scope or an
-  `abandoned`/`archived` Project. Producing skills refuse hard at
-  the gate — see `docs/FRAMEWORK.md § Target Resolution →
-  Parent-status precondition`. The deliberate no-cascade design
-  (abandoning a Scope does not auto-reject its Plans) is paired
-  with this hard refusal; without it, work would silently land on
-  a dead initiative.
-- Mark work shipped without verifying the deliverable is real (PR
-  merged, artefact reachable, action evidenced)
-- Skip the Plan documentation step — Plans are first-class artefacts
-- Misuse `/spades:quick` for work that fails any gate criterion
-- Create sub-records on the fast-track path
-- Introduce technologies or patterns that conflict with
-  `ARCHITECTURE.md` without flagging the conflict and getting explicit
-  approval
-- Assume organisational context you do not have (ask the human)
-- Combine multiple Scopes into one delivery without human agreement
-- Write a `CLAUDE.md` (or any other per-vendor agent file) — AGENTS.md
-  is the only file SPADES maintains in consumer repos
-- **Commit or ship a change under `plugins/spades/` without bumping the
-  plugin version** (and every changed skill, and a CHANGELOG entry) —
-  run the § Versioning release gate. An unbumped version is deduped by
-  the updater and reaches no one; this is the single most-missed rule in
-  the repo.
 
 <!--
   Framework-repo note: this file is the canonical SPADES agent
   operating rules. Consumer repos carry a compressed,
   marker-wrapped subset of the rules above, delimited by
   `SPADES-FRAMEWORK-START vX.Y.Z` and `SPADES-FRAMEWORK-END` markers.
-  We deliberately do NOT carry that block here — this repo is the
-  source of truth. The /spades:setup skill refuses to run inside this
-  repository for the same reason.
+  This source file remains unwrapped. /spades:setup targets consumer
+  repositories; explicit dogfood setup follows its self-init guard.
 -->

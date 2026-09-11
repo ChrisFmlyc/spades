@@ -17,7 +17,7 @@ updated: 2026-05-29
 
 Operators need a single endpoint they can curl from the load balancer
 to confirm the service is healthy enough to receive traffic. Without
-it, deployments rely on log scraping and tail-of-the-eye guesswork.
+it, deployments rely on log scraping and guesswork.
 
 ## Acceptance Criteria
 

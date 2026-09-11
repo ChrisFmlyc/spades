@@ -6,8 +6,6 @@ Confluence, ClickUp, GitHub Projects, Jira — can host SPADES artefacts
 if a driver is written against the contract in `docs/FRAMEWORK.md`
 § Backend Interface.
 
-This document explains how to add one.
-
 ---
 
 ## What a Driver Is
@@ -49,14 +47,11 @@ than silently succeeding.
    backend's native states. Document the mapping in your driver
    contract. The shipped Linear driver maps:
 
-   | SPADES status   | Linear workflow state    |
-   |-----------------|--------------------------|
-   | scoped          | Scoped                   |
-   | planning        | Planning                 |
-   | delivering      | Delivering / In Progress |
-   | evaluating      | Evaluating / In Review   |
-   | shipping        | Shipping                 |
-   | done            | Done                     |
+   | Record | Linear mapping |
+   |--------|----------------|
+   | Scope | Open from creation until Close sets Done or Cancelled |
+   | Plan | Sub-issue carries phase transitions and audit comments |
+   | Objective | Milestone plus sister issue; the issue reaching Done signals completion |
 
    Your driver should publish a similar table.
 
@@ -121,11 +116,10 @@ Sketch of what adding `backend: notion` would entail:
 
 ---
 
-## Things a Driver Author Should Resist
+## Preserve the framework contract
 
-- **Don't invent new artefact types.** SPADES has Project, Scope, Plan,
-  Learning, Review. A new backend does not get to introduce a new
-  artefact tier.
+- **Don't invent new artefact types.** Use the artefact types defined
+  in `docs/FRAMEWORK.md`; a new backend preserves that hierarchy.
 
 - **Don't reshape the ID format.** Backends may have their own native
   IDs (Linear's `M-1234`, Notion's page IDs); store those as
@@ -133,8 +127,9 @@ Sketch of what adding `backend: notion` would entail:
   SPADES ID (`S-…`, `P-…`) remains canonical for filenames and
   cross-references.
 
-- **Don't move the gate.** Approval, evaluation, and shipping are
-  always human-gated. A backend that auto-transitions on a webhook
+- **Don't move the gate.** Approval, evaluation, and shipping
+  follow the ownership and routing in `docs/FRAMEWORK.md`. A backend
+  that auto-transitions on a webhook
   isn't compatible without first wiring those transitions through the
   SPADES skills.
 

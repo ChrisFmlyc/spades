@@ -1,7 +1,7 @@
 ---
 name: architecture
-description: Create or maintain ARCHITECTURE.md, the project's durable statement of HOW the system is built — components, tech stack, data flow, security posture, operational posture. Use when someone says "set up ARCHITECTURE.md", "document our architecture", "what's our tech stack", "describe the system", "capture the components", "what's the data flow", "what's our threat model", "update the architecture doc", "refresh the architecture", "where does the data go", or when ARCHITECTURE.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review (architecture-strategist persona). Also use proactively after a major dependency change, new component introduction, or a Plan that exposes drift between the doc and reality. The human composes the architecture; this skill structures and probes but never authors it. SKIP when the human's intent is per-Plan technical approach (use the Plan's Technical Approach section instead), API-level documentation (use in-code docs / OpenAPI), or process conventions (use /spades:patterns).
-version: 1.4.2
+description: Creates or maintains ARCHITECTURE.md, the project's durable statement of HOW the system is built — components, tech stack, data flow, security posture, operational posture. Use when someone says "set up ARCHITECTURE.md", "document our architecture", "what's our tech stack", "describe the system", "capture the components", "what's the data flow", "what's our threat model", "update the architecture doc", "refresh the architecture", "where does the data go", or when ARCHITECTURE.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review (architecture-strategist persona). Also use proactively after a major dependency change, new component introduction, or a Plan that exposes drift between the doc and reality. Helps the human express the architecture and requires their confirmation before recording each section. SKIP when the human's intent is per-Plan technical approach (use the Plan's Technical Approach section instead), API-level documentation (use in-code docs / OpenAPI), or process conventions (use /spades:patterns).
+version: 1.4.3
 ---
 
 # /spades:architecture
@@ -30,7 +30,7 @@ before running.
 
 A committed root document; no backend mirror.
 
-## The core rule: facilitate, never author
+## Human confirmation
 
 The human's team made real decisions about how the system is built;
 your job is to capture them. You may ask, reflect back, propose
@@ -134,15 +134,15 @@ ceremony to the work.
 
 A locked schema.
 
-1. **Overview** — two or three paragraphs; the physical shape of the
-   system, past the elevator pitch.
+1. **Overview** — two or three paragraphs describing the system, what
+   runs where, and who uses it.
 2. **Tech Stack** — languages, frameworks, databases, infra,
    third-party services, with versions.
 3. **Components** — the things a new engineer needs to know exist,
    five to ten typically, each a `### <name> — <tech>` heading with a
    one-line responsibility so the renderer can card and count them.
    Confirm the `runtime` and `datastore` frontmatter keys here; they
-   drive the page's deck.
+   populate the page's summary.
 4. **Data Flow** — where data enters, lands, and is transformed; the
    request, event, or batch lifecycle.
 5. **Security Posture** — auth model, secrets, data classification,

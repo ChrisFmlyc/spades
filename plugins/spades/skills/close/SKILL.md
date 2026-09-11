@@ -1,15 +1,14 @@
 ---
 name: close
-description: The single conversational entry point for closing out a Plan, Scope, Project, or Objective. Asks the human what they're doing — finalise as shipped/done/archived/complete (the happy path), reject (Plans only), or abandon (Scopes, Projects, and Objectives). Always asks before acting; flags `--reject "reason"` and `--abandon "reason"` are optional power-user shortcuts that skip the menu but still capture a reason. Use whenever someone says "close this", "close P-…", "close S-…", "close O-…", "complete this objective", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging" — the skill figures out which flow applies.
-version: 4.14.0
+description: Closes a Plan, Scope, Project, Objective, or Quick item through its matching lifecycle flow. Asks the human to finalise as shipped/done/archived/complete, reject a Plan, or abandon a Scope, Project, or Objective; Quick items follow their verified PR state. Flags `--reject "reason"` and `--abandon "reason"` skip the menu with the supplied reason. Use whenever someone says "close this", "close P-…", "close S-…", "close O-…", "complete this objective", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging".
+version: 4.14.1
 ---
 
 # /spades:close
 
-You are the close-out entry point. The human names what to close;
-you ask what kind of close it is and run the matching flow. Every
-close lands on `main` through a small bookkeeping PR, so the audit
-trail is committed history.
+Resolve the target and run its close-out flow. Plans, Scopes, Projects
+and Objectives record their terminal state on `main` through a bookkeeping
+PR. Quick items update or delete their marker in the existing worktree.
 
 Four close actions:
 
@@ -18,9 +17,8 @@ Four close actions:
    `archived`. Objective → `complete` (the team lead's ungated
    judgement). Quick item → `shipped` (no bookkeeping PR, no rollup).
 2. **Reject** — a non-terminal Plan → `rejected`, with a reason.
-   Plans are attempts; rejection is the judgement on this attempt.
 3. **Abandon** — a Scope, Project, or Objective → `abandoned`, with
-   a reason. Containers are initiatives; abandonment is a walk-away.
+   a reason.
 4. **Drop** — a Quick item whose PR closed unmerged: delete the
    marker. Git history keeps the trace.
 
@@ -70,7 +68,7 @@ mode, re-dispatch the producing skill's `worker-html-*` with
 | `draft` | *Leave in draft (no-op)* / *Reject* |
 | `approved`, `delivering`, `evaluating` | *Reject* |
 | `shipping` (has `PR opened:`, no `Shipped`) | *Pass — finalise as shipped* / *Reject* |
-| `shipped`, `rejected` | abort: *"Plan `<id>` is already `<status>`. Terminal means terminal."* |
+| `shipped`, `rejected` | abort: *"Plan `<id>` is already `<status>`."* |
 
 | Scope status | Menu |
 |---|---|
@@ -149,8 +147,7 @@ merging them with the fresh records and verifying the result. Preserve the
 source worktree's files and index.
 
 On resume, locate the existing bookkeeping PR/branch for the same target
-and call `/repo:newbranch --resume <branch>`; use the recorded worktree
-rather than requiring deletion and recreating it.
+and call `/repo:newbranch --resume <branch>` to use the recorded worktree.
 
 ### B3 — Stage and commit
 
@@ -171,7 +168,7 @@ gh pr create --head <bookkeeping-branch> --base <default-branch> --title "<title
 
 Body: `## Summary`, `## Linked artefacts` (IDs, and the ship PR plus
 merge SHA where relevant), `## Files touched`, and a plain statement
-that the PR is audit trail only plus anything swept from the tree.
+that the PR contains audit-trail changes and any approved transferred records.
 
 ```
 ○ Bookkeeping PR opened: <bookkeeping-pr-url>
@@ -200,8 +197,9 @@ gh pr view <bookkeeping-pr> --json state,mergeCommit \
 ### B6 — Retain the worktree
 
 Verify the bookkeeping PR is merged and retain its branch, worktree and
-remaining state. Report the merge reference and any uncommitted residue.
-Completion requires no checkout switch, pull or branch/worktree deletion.
+remaining state in the current checkout. Report the merge reference and
+any uncommitted residue; default-branch preparation belongs to the next
+`/repo:newbranch` call.
 
 ### B7 — Linear mirror (`backend: linear`)
 

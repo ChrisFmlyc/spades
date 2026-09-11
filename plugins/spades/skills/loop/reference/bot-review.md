@@ -4,9 +4,9 @@
 run it again against the bookkeeping PR. Return to the calling stage
 once the sweep is clean.
 
-Two owners, cleanly split: `/codereview:loop` owns every review bot
-(CodeRabbit, Greptile, any other coding agent); this file owns what
-it leaves alone — human threads and the final sweep before merge.
+`/codereview:loop` handles every review bot (CodeRabbit, Greptile, or any
+other coding agent). This flow checks for human threads and runs the final
+sweep before merge.
 
 ## Contents
 
@@ -25,8 +25,7 @@ waiting for each review, pulling the open threads, handing them to
 `/codereview:fix`, closing threads a fix didn't auto-resolve,
 pushing, re-checking, and its own cycle cap. It reports one line at
 the end — cycles run, findings found, how many fixed in code versus
-answered and closed. Trust that contract: the loop does no waiting,
-counting, or fixing of its own here.
+answered and closed. Resume this flow when `/codereview:loop` returns.
 
 When `/codereview:loop` stops short — cycle cap, a guardrail refusal,
 a PR closed mid-flight — it says why. Surface that reason verbatim

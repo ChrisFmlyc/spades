@@ -38,10 +38,10 @@ today. Files edited: `.spades/plans/<id>.md`,
 ## Route-specific pre-checks (after B1, before B2)
 
 **All routes** — a target already terminal aborts: *"`<id>` is
-already `<status>`. Terminal means terminal."*
+already `<status>`."*
 
-**Plan reject** — applies to `approved`, `delivering`, `evaluating`,
-`shipping`. With a `PR opened:` line and no `Shipped`, query the PR
+**Plan reject** — applies to `draft`, `approved`, `delivering`,
+`evaluating`, `shipping`. With a `PR opened:` line and no `Shipped`, query the PR
 and inform: *"PR `<URL>` is currently `<state>`. Rejecting marks the
 Plan rejected; close the PR on GitHub if you haven't."* The
 rejection proceeds either way.
@@ -66,8 +66,7 @@ rejection proceeds either way.
 
 **Project archive** — with child Scopes in flight, list them and ask
 via `AskUserQuestion`: *Proceed — archive; in-flight Scopes keep
-their status* / *Abort — close them first*. Archive needs no reason;
-graceful sunset is its own explanation.
+their status* / *Abort — close them first*. Archive needs no reason.
 
 **Objectives (both routes)** — resolve
 `.spades/objectives/O-<slug>.md` (abort if missing). The
@@ -128,5 +127,5 @@ siblings and the Scope alone; abandoning a Scope leaves its Plans at
 their status; archiving or abandoning a Project leaves its Scopes;
 completing or abandoning an Objective changes nothing else. The
 producing skills' parent-status refusal is the other half of this
-design: nothing auto-rejects, and no new work starts under a dead
-ancestor.
+design: children retain their status, while new work requires active
+ancestors per `docs/FRAMEWORK.md § Target Resolution`.

@@ -1,4 +1,4 @@
-# SPADES Framework v3.0.1
+# SPADES Framework
 
 SPADES is a human–AI operating model for engineering teams. It is
 backend-agnostic: artefacts can live in Linear (via the Linear MCP), on
@@ -30,15 +30,12 @@ SCOPE → PLAN → APPROVE → DELIVER → EVALUATE → SHIP
 The phases are mandatory and ordered. The only sanctioned shortcut is
 the **fast-track path** (see § Fast-Track Path).
 
-### Why six (not five)
+### Deliver and Ship
 
-**Deliver** builds the approved output; **Ship** releases it to where it
-needs to go. The split exists because
-delivery and shipping have different reviewers, different cadences, and
-different success conditions: building a feature is not the same as
-opening a PR, running review, and merging. Shipping a non-code
-deliverable (a server install, a published doc, a sent email) is yet
-another kind of work and deserves its own phase.
+**Deliver** builds the approved output; **Ship** releases it. They have
+different reviewers, cadences and success conditions. Ship covers PR review
+and merge for code, and publication or evidence of completion for non-code
+deliverables.
 
 ---
 
@@ -76,12 +73,10 @@ Project (project-slug)
     └── Plan (P-<description>-<id>)
 ```
 
-An **Objective** is *a coherent strategic action associated with a
-project* — in the *Good Strategy / Bad Strategy* (Rumelt) sense of a
-coherent objective, close to the **Objective in OKRs** (though not tied to
-OKRs). SPADES does not own the strategy or roadmap (those live upstream);
-an Objective is the in-SPADES anchor that records *"this project has this
-strategic objective associated with it."*
+An **Objective** records a coherent strategic action associated with a
+project, in the sense used in Rumelt's *Good Strategy / Bad Strategy*.
+It is similar to an OKR Objective but requires no OKR process. Strategy
+and roadmap remain in the organisation's upstream planning tools.
 
 Rules that define an Objective (the full contract):
 
@@ -148,19 +143,15 @@ section per Scope:
 | **Project** | `INTENT.md` at the repo root | Why this whole initiative exists |
 | **Scope** | The `## Statement of Intent` section in each `S-…md` | Why this specific outcome, now |
 
-The Scope's Statement of Intent IS the scope-level intent doc. There
-is no separate per-scope INTENT file; the section is the intent. Each
-Scope's intent should be **measured against** the project-level
-`INTENT.md`. A Scope whose intent contradicts INTENT is a drift
-signal — refresh INTENT before scoping (or revise the Scope so it
-fits).
+The Scope's `## Statement of Intent` section holds its intent; no separate
+per-scope INTENT file is created. Compare it with the project-level
+`INTENT.md`. If they conflict, refresh INTENT before scoping or revise the
+Scope to fit.
 
 **`/spades:scope` hard-gates on INTENT.md existence.** If `INTENT.md`
 is missing at the repo root, the skill refuses to create a Scope
 until `/spades:intent` has been run (or the human explicitly
-overrides, which records a marker in the Scope's audit trail). This
-prevents the most common drift pattern: weeks of scoping with no
-north star to measure against.
+overrides, which records a marker in the Scope's audit trail).
 
 ### Scope status rollup (from child Plans)
 
@@ -297,11 +288,9 @@ mirror.
 
 ### Why slugs and not random IDs everywhere
 
-Pure random IDs are robust but unreadable. Pure slugs collide. The
-chosen compromise — `S-<readable-slug>` for scopes, and slug + 4-char
-suffix for plans — gives readability where collisions are rare (scopes,
-which name big outcomes) and gives collision resistance where the
-volume is high (plans, where the same description may recur).
+Scopes use readable slugs to name outcomes. Plans add a random 4-char
+suffix because the same description may recur; the suffix reduces collisions
+while retaining a readable filename.
 
 ---
 
@@ -466,11 +455,8 @@ scope_ref: S-add-ai-helper-bot      # optional
 
 ## Bootstrap Order
 
-`/spades:setup` is the **single entry point** for adopting SPADES in
-a repo. A human runs exactly one command. Setup completes in a
-**single pass** and **drives its own prerequisites inline** — it
-never exits to ask the human to run another skill and then re-invoke
-setup. The ordering is a strict DAG:
+`/spades:setup` configures a repo in one pass, invoking its prerequisites
+inline in this order:
 
 ```
 /spades:setup
@@ -480,50 +466,20 @@ setup. The ordering is a strict DAG:
    └─(no active project)──►  /spades:newproject  # inline; fills project:
 ```
 
-### The two prerequisite edges are one-directional
+### Prerequisite order
 
-- **`setup → /repo:init`.** If the directory is not a git repo,
-  setup runs `/repo:init` inline. SPADES still doesn't *own* git —
-  it defers to the `repo` plugin (§ *Defer to the `repo` Plugin* in
-  AGENTS.md) — it just doesn't make the human perform the hand-off
-  by hand. `/repo:init` is terminal: it never calls back into
-  SPADES.
-- **`setup → /spades:newproject`.** `newproject` needs to know the
-  backend, which lives in `.spades/config`. Setup therefore writes
-  `.spades/config` (with `project:` unset) **before** it invokes
-  `newproject` inline, so newproject's precondition
-  ("a config with a backend exists") is always satisfied on the
-  setup-driven path. newproject creates the record, sets `project:`,
-  and returns.
+1. If the directory is not a git repo, Setup invokes `/repo:init` and
+   resumes after it returns. `/repo:init` handles git operations and
+   never calls SPADES.
+2. Setup writes `.spades/config` with the chosen backend before invoking
+   `/spades:newproject`. On a fresh install, `project:` remains unset until
+   Newproject creates the record, fills that field and returns.
+3. When invoked standalone without `.spades/config`, Newproject directs
+   the human to `/spades:setup` and stops. Setup then creates the project
+   through the sequence above.
 
-### No mutual dependency — the invariant that must never break
-
-The historical bug was a three-way deadlock:
-
-- setup aborted with *"run `/repo:init`, then re-invoke setup"*;
-- setup exited with *"run `/spades:newproject`, then re-run setup"*;
-- newproject aborted with *"run `/spades:setup` first"* whenever
-  `.spades/config` was missing.
-
-Since `.spades/config` is only written **after** setup's project
-step, newproject could never satisfy its precondition before setup
-finished, yet setup demanded newproject finish first — a cycle with
-no valid start. The human got bounced between three skills forever.
-
-The fix makes every edge point one way, away from setup:
-
-- Setup **never** says "run X, then re-run setup." It runs X inline.
-- `newproject`, run **standalone** with no `.spades/config`, tells
-  the human to run `/spades:setup` — and setup then creates the
-  project itself, inline, so the human is never sent back to
-  newproject. Guidance flows `newproject → setup → (creates project)`
-  and stops. No back-edge.
-
-This is load-bearing. Any future edit that makes `setup`
-exit-and-wait on `/repo:init` or `/spades:newproject`, or makes
-`newproject` invoke `/spades:setup`, reintroduces the deadlock.
-Preserve the DAG: prerequisites are driven *from* setup, never
-required *before* it.
+Setup owns prerequisite execution. Newproject requires the config and
+never invokes Setup.
 
 ---
 
@@ -534,8 +490,7 @@ required *before* it.
 loop takes one Scope from Plan to closed-out bookkeeping without the
 human driving each phase by hand.
 
-The two entry points sit at opposite ends of the same DAG and must
-never meet:
+Setup and Loop have separate invocation paths:
 
 ```
 /spades:setup            (bootstrap — drives prerequisites inline)
@@ -551,23 +506,17 @@ never meet:
    └─► /repo:newbranch     (delegated by Deliver and Close; documentation entry from main)
 ```
 
-### The three rules that keep it acyclic
+### Invocation boundaries
 
-1. **No callee invokes `/spades:loop`.** A child skill's `Next:`
-   brief may *name* the loop as guidance to a human; it must never
-   invoke it. Guidance is text, not an edge.
-2. **Loop aborts on prerequisites; setup drives them.** This is the
-   deliberate asymmetry. `/spades:setup` runs `/repo:init` and
-   `/spades:newproject` inline because it is the bootstrap and there
-   is nothing upstream of it to bounce to. `/spades:loop` has plenty
-   upstream — setup, newproject, and the human-owned Scope — so it
-   **aborts with a pointer** instead. If loop ever drove setup
-   inline, and setup ever suggested loop, the § Bootstrap Order
-   deadlock returns one layer up.
-3. **Loop never re-invokes itself.** Not to resume after a pause,
-   not to advance to a sibling Plan. Resumption is a fresh human
-   invocation or in-conversation continuation; advancing is falling
-   through to the next stage inside one run.
+1. Child skills return to their caller. Their `Next:` briefs may name
+   `/spades:loop` as guidance to the human; they must never invoke it.
+2. Loop checks for setup, an active project and an existing human-owned
+   Scope. Missing prerequisites abort the run with a pointer to the
+   appropriate upstream skill. Setup executes its own prerequisites per
+   § Bootstrap Order.
+3. Loop never re-invokes itself. Resume through a fresh human invocation
+   or an in-conversation continuation; advance to sibling Plans within
+   the current run.
 
 ### Bounded back-edges
 
@@ -579,8 +528,7 @@ counted in the Plan's audit trail and both terminate:
 | Evaluate `PARTIAL` → `/spades:deliver` | 2 reworks per Plan | `Loop — rework <n>/2 after PARTIAL: …` |
 | Bot review cycle → push → re-review | Owned and capped entirely by `/codereview:loop`; `/spades:loop` runs no review cycle of its own | `Loop — bot review clean on <url>` |
 
-Every other edge is forward-only. An uncapped back-edge is the same
-bug class as a cycle — it just fails slowly instead of immediately.
+Every other edge is forward-only.
 
 ### Loop state is derived, never duplicated
 
@@ -591,11 +539,9 @@ Plan's `status:` and the markers other skills already write
 otherwise record (who signed the evaluation off, rework count,
 review-round count, merge SHA, pause reason).
 
-This is what makes a looped run and a hand-driven run
-indistinguishable to every other skill: `/spades:status`,
-`/spades:list`, `/spades:close`, and the backend drivers all read
-the same artefacts either way, and a human can take over
-mid-pipeline — or hand back — at any stage boundary.
+`/spades:status`, `/spades:list`, `/spades:close` and the backend drivers
+read these same artefacts in manual and loop-driven runs. The human can
+take over or return control at any stage boundary.
 
 ### The human gate
 
@@ -607,13 +553,9 @@ AI-verified, the loop confirms the verdict itself and carries on; if
 one or more rows could only be run by a human, the human runs them
 and confirms the verdict.
 
-So the gate is reached by **routing, not policy** — see
-`skills/loop/SKILL.md § Autonomy doctrine`. A `human` row means "no
-agent can run this check", never "a human should double-check this
-one". Sensitivity is not a routing input: auth, secrets, schema
-migrations, and data deletion route on verifiability like anything
-else. Scattering `human` rows through the pipeline invents gates
-nobody asked for and turns an unattended loop back into a manual one.
+Assign a `human` row only when no agent can run the check, per
+`skills/loop/SKILL.md § Autonomy doctrine`. Route auth, secrets, schema
+migrations and data deletion checks by the same verifiability criterion.
 
 Under the loop, the child skills' own questions are answered by the
 loop, not forwarded — `/spades:plan`'s title and breakdown,
@@ -689,7 +631,7 @@ their storage; skills don't need to know how.
   Mirrored whenever the project's backend is Linear, on the same terms
   as every other artefact — the `leads:` key is a kill switch, never a
   backend selector.
-- `record_*` operations → comments on the parent issue
+- `record_*` operations → comments on the Plan sub-issue
 - Statuses → Linear workflow states
 
 **Local driver** (`backend: local`):
@@ -870,30 +812,20 @@ the **Pass** route (Plan ship and Scope rollup).
 > work in a fresh container, create a new Scope (or Project) via
 > `/spades:scope` (or `/spades:newproject`) and draft Plans there.
 
-**Why hard refusal.** The framework deliberately does not cascade
-abandonment to child Plans (see § Terminal states — `rejected` vs
-`abandoned` → No cascade). The cost of that deliberate-no-cascade
-design is that every producing skill becomes the gatekeeper —
-without this rule, new work would silently land on a dead
-initiative and the audit trail would lose its meaning. Refusing at
-the gate, with a hard abort, is what makes the no-cascade design
-safe.
+Abandonment preserves child records and their statuses. The parent-status
+precondition prevents further producing work in those containers; see
+§ Terminal states — `rejected` vs `abandoned`.
 
-### Why this lives in FRAMEWORK.md
-
-Restating the same picker logic in six skills means six places to
-fix when it changes. Skills reference this section by name (*"see
-docs/FRAMEWORK.md § Target Resolution"*) and only state their own
-artefact type + status filter.
+Skills reference § Target Resolution and declare only their artefact type
+and status filter.
 
 ---
 
 ## Fast-Track Path
 
-Not every change deserves the full loop. Trivial work — typos, one-line
-tweaks, small config nudges, docs changes — routes through
-`/spades:quick`. On this path, the PR description is the audit artefact;
-no separate Scope or Plan record is created.
+Trivial work that meets every criterion below uses `/spades:quick`.
+The quick-item marker is the canonical audit record; the PR description
+carries its checklist. No separate Scope or Plan record is created.
 
 The quick path is **two-phase**, matching the Plan ship → close shape:
 
@@ -985,8 +917,8 @@ Work that cannot be traced through this chain must not ship.
 
 ### Terminal states — `rejected` vs `abandoned`
 
-Three terminal states exist across the artefact hierarchy, with
-deliberately different meanings:
+Terminal statuses distinguish a rejected approach, an abandoned initiative
+and completed work:
 
 - **`rejected`** (Plans only) — *"We evaluated this attempt and
   said no."* A judgement on **this particular approach**. The
@@ -996,16 +928,12 @@ deliberately different meanings:
   Plan does NOT terminate the parent Scope — write another Plan and
   keep going.
 
-- **`abandoned`** (Scopes, Projects, and Objectives) — *"We're not
-  doing this initiative. Full stop, never."* A terminal walk-away on
-  **the whole thing**. Set by `/spades:close <target> --abandon
-  "reason"`. The reason text is required; abandoning an initiative
-  without recording why is exactly the audit-trail hole this framework
-  exists to prevent.
+- **`abandoned`** (Scopes, Projects, and Objectives) — the initiative
+  is permanently discontinued. Set by `/spades:close <target> --abandon
+  "reason"`; the reason is required.
 
 - **`done`** (Scopes) / **`shipped`** (Plans) / **`archived`**
-  (Projects) / **`complete`** (Objectives) — graceful completion. The
-  artefact ran its arc.
+  (Projects) / **`complete`** (Objectives) — the work is complete.
 
 Objectives have **no `rejected`** state (there is no approach to reject —
 an Objective is a strategic statement, not an attempt). Completing an
@@ -1061,11 +989,8 @@ whatever state they were in (`draft`, `approved`) — but they are
   - Mark the dependants `rejected` too, with a one-line rationale in
     each Plan's audit trail.
 
-The framework never makes this decision automatically. Cascading a
-rejection silently would risk auto-cancelling work that the human
-might have wanted to salvage independently; refusing to start
-silently would risk wasted Deliver-phase cycles on stale dependencies.
-The middle ground is explicit refusal + human choice.
+The human chooses whether to replan or reject the dependants; the framework
+never makes that decision automatically.
 
 ### The `Shipped` marker (contract)
 
@@ -1323,66 +1248,28 @@ stays with the active task's target. Existing per-skill CLI output rules apply.
 
 ### Universal rule — `.md` always, `.html` additive in HTML mode
 
-**Every producing skill writes its canonical `.md` in BOTH
-modes.** The `.md` is the AI-readable source of truth — the AI,
-sub-agents, and other harnesses (Cursor, Codex, Aider, Cline,
-the GitHub web UI) all read this. The `.md` lives at the
-artefact's canonical path in `.spades/<dir>/<id>.md` (or the
-repo-root path for project docs: `INTENT.md`,
-`ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`).
+Every producing skill writes its canonical `.md` in both modes, at
+`.spades/<dir>/<id>.md` or the repo-root path for project documents.
+Agents and other skills read this Markdown as the source of truth.
 
-**In HTML mode, the skill ADDITIONALLY writes an `.html`
-companion alongside the `.md`** — same data, rendered through
-the skill's bundled `template.html` for the human's view. Opening follows
-§ Review-page ownership: only the active skill's selected review page is
-presented. The `.html` is purely a human-view enrichment; it never replaces
-the `.md`.
+| Mode | Files and presentation |
+|------|------------------------|
+| `cli` | Write canonical Markdown and present review content in the terminal. |
+| `html` | Write the same Markdown plus a companion rendered from the bundled `template.html`; present the selected page per § Review-page ownership. |
 
-This is the load-bearing rule:
+#### Evaluation output
 
-- **CLI mode** = `.md` is the only file. Skill body summarises
-  inline to the terminal where the skill prose already does
-  that.
-- **HTML mode** = `.md` PLUS `.html`. Both files coexist on
-  disk. The human reviews the `.html`; the AI continues to read
-  the `.md`.
+Evaluate records its verdict in the Plan's existing Markdown audit trail;
+it creates no separate per-evaluation Markdown file. In HTML mode it also
+writes a verification-plan page and a completed-report page. See
+§ Consumer skills — `cli` vs `html` presentation for their paths and timing.
 
-Strip `.html` out of HTML mode and you have CLI mode. Add
-`.html` to CLI mode and you have HTML mode. The two are
-alternatives in the sense that you pick a mode, not in the
-sense that they produce different sets of files — HTML is a
-strict superset of CLI.
+#### Transient views
 
-There is no "format swap" — that pattern existed in earlier
-versions and has been removed. Any skill prose still mentioning
-"format swap only" or "do NOT also write a `.md`" is stale and
-should be fixed.
-
-#### What about evaluate's two-page HTML output?
-
-`/spades:evaluate` is a special case in two respects:
-
-1. It does NOT write a per-evaluation `.md` — the verdict lives
-   only as an audit-trail line on the Plan's existing `.md`.
-   That audit line is the AI-readable source of truth.
-2. In HTML mode it writes **two** `.html` files
-   (`<plan>-<date>-plan.html` at Step 2.5 and `-report.html` at
-   Step 5.5) — the verification plan + the completed evaluation
-   report.
-
-The universal rule still applies in spirit: the AI's source of
-truth lives in the `.md` (the Plan's audit trail); HTML mode
-adds human-viewable `.html` artefacts on top. CLI mode just
-omits the `.html`s.
-
-#### What about cross-cutting transient views (status, list)?
-
-`/spades:status` and `/spades:list` don't produce persistent
-artefacts — they render a current-state view from existing
-artefacts. In CLI mode they print to the terminal; in HTML mode
-they additionally write `.spades/.tmp/<view>.html` (gitignored,
-regenerated each call) and auto-open it. The terminal output
-still appears for short status text in both modes.
+Status and List read existing artefacts to produce a current-state view.
+CLI mode prints that view. HTML mode also writes and opens
+`.spades/.tmp/<view>.html`, a gitignored file regenerated on each call.
+Short status messages remain in the terminal in both modes.
 
 ### Producing skills — `cli` vs `html` write
 
@@ -1426,40 +1313,23 @@ Intent, Technical Approach, etc.) follows standard CommonMark; the
 skill renders the converted HTML into the `{{spades.X_html}}`
 placeholders.
 
-#### HTML mode is review-via-file, not review-via-CLI
+#### HTML review flow
 
-In HTML mode the artefact file itself IS the review surface. The
-producing skill MUST NOT paste the artefact body (or any substantive
-excerpt of it) to the CLI for the human's approval before the write
-step runs. Instead:
+In HTML mode, the producing skill MUST NOT paste the artefact body or a
+substantive excerpt to the CLI for approval. Use this sequence:
 
-1. The skill gathers inputs through its existing field-by-field
-   conversation step.
-2. The write step renders and writes the file as a working draft,
-   auto-opens it in the browser, and stands down.
-3. The human reviews in the browser.
-4. To iterate, the coordinator applies **targeted edits** to the
-   file (the human reloads to see changes). Never re-paste a new
-   full draft to the CLI.
+1. Gather inputs through the existing field-by-field conversation.
+2. Render and write the working draft, open the selected review page and
+   wait for review.
+3. Apply requested edits to the file; the human reloads the page.
 
-In CLI mode the existing "draft → paste to terminal → human
-approves → write" pattern is preserved unchanged. The
-no-pre-write-paste rule applies only to HTML mode.
-
-This rule exists because the value of HTML mode is *not* a fancier
-final artefact — it's that the human's review happens against a
-rendered page rather than a wall of terminal markdown. A pre-write
-CLI paste defeats that and turns HTML mode into "CLI mode plus an
-extra file at the end".
+CLI mode retains the sequence: draft, present in the terminal, obtain
+approval, then write.
 
 #### What counts as "review-form text" (HTML in HTML mode) vs "conversational text" (CLI in both modes)
 
-The rule above forbids pre-write CLI pastes in producing skills. The
-same principle applies to consumer skills (`approve`, `evaluate`,
-`deliver`, `ship`, `close`, `intent`): when in HTML mode and the `.html`
-file is open, do NOT also paste long review-form text to the CLI.
-
-To make the line crisp:
+Consumer skills (`approve`, `evaluate`, `deliver`, `ship`, `close`,
+`intent`) use the same presentation split:
 
 **Stays CLI in both modes — short, conversational, operational:**
 
@@ -1486,14 +1356,10 @@ In **HTML mode**, review-form content goes through the open `.html`
 (via `OPEN_CMD` to surface it, plus targeted edits to update it).
 The CLI carries only the conversational layer.
 
-In **CLI mode**, review-form content goes inline to the terminal as
-today. No HTML is written or opened.
+CLI mode never writes or opens HTML; HTML mode never pastes review-form
+text to the terminal.
 
-The reverse direction is symmetric: **CLI mode never opens an HTML
-file or writes one; HTML mode never pastes review-form text to the
-terminal**.
-
-#### HTML rendering: validate and use the bundled template, never hand-roll
+#### HTML rendering: template validation and substitution
 
 Every skill that produces an HTML artefact ships a sibling
 `template.html` resource at
@@ -1502,8 +1368,6 @@ bundled template is the **canonical presentation**: it carries
 the sidebar + fluid main grid (375px + `minmax(0, 1fr)`), the
 B-style 17.5px typography, the gold/black/white palette, and the
 declared `SPADES-BLOCK` sections each skill fills.
-
-The rule:
 
 1. **Before rendering, validate the template.** Read the sibling
    `template.html`. Confirm it exists and is non-empty. If
@@ -1524,22 +1388,13 @@ The rule:
    fill the `<script type="application/yaml" id="spades-audit-trail">`
    tag (when present), validate per § Placeholder substitution and
    output validation, then write the result to the declared output path.
-4. **Never invent layout.** No custom `<style>` block, no fresh
-   `<head>`, no alternative grid, no `max-width` cap, no
-   different colour palette. If the bundled template doesn't
-   cover what you want to render, the answer is a framework PR
-   that extends the template — not a one-off hand-roll.
+4. **Preserve the bundled layout, styles, grid, widths and palette.**
+   If the template cannot represent the required content, extend it
+   through a framework PR before rendering.
 
 The skills that ship a bundled template: `scope`, `plan`,
 `newproject`, `learn`, `review`, `status`, `list`, `intent`,
 `evaluate`, `architecture`, `patterns`, `anti-patterns`.
-
-This rule exists because the *value* of HTML mode comes from the
-agreed-on presentation — the sidebar, the typography, the colour
-language, the consistency across artefacts. A hand-rolled
-rendering loses all of that even if it looks reasonable on its
-own. The bundled template is the canonical form; everything else
-is improvisation.
 
 ### Consumer skills — `cli` vs `html` presentation
 
@@ -1548,21 +1403,19 @@ Consumer skills are `/spades:approve`, `/spades:evaluate`,
 `/spades:list`, `/spades:intent`. Each, at some point in its flow,
 presents an artefact for the human to review.
 
-`/spades:evaluate` is a **two-page producer** in HTML mode. It
-does NOT open the Plan's `.html` at Pre-Flight any more — that
-caused users to mistake the Plan render for the eval output. The
-two pages it writes are:
+In HTML mode, Evaluate presents these two evaluation pages at their
+respective review steps:
 
 1. **Page 1 — Verification plan**:
    `.spades/evaluations/<plan-id>-<date>-plan.html`, written at
-   Step 2.5 after the verification plan is proposed and before
-   the human approves it at Step 2.6. Shows the concrete
+   Step 3 after the verification plan is proposed and before
+   it is approved at Step 4. Shows the concrete
    verification steps with verifier chips (AI / Human / Test /
    Lint / Manual); verdicts: `PENDING`.
 2. **Page 2 — Evaluation report**:
    `.spades/evaluations/<plan-id>-<date>-report.html`, written at
-   Step 5.5 after the human picks the verdict at Step 5 and
-   provides a one-paragraph rationale. Same template; verdicts
+   Step 6 from the results recorded at Step 5, before verdict
+   confirmation at Step 7. Same template; verdicts
    filled in; aggregate verdict pill in the sidebar.
 
 `{{spades.mode}}` (`plan` | `report`) in the template drives the
@@ -1577,8 +1430,6 @@ prefix, tagline, browser title.
     the `.html` already exists at `.spades/<dir>/<id>.html`
     because the producing skill wrote it. Open only the target selected
     under § Review-page ownership; keep related records and refreshes quiet.
-    (`evaluate` is **not** in this list — see below; it writes
-    its own pair of pages and does NOT open the Plan's `.html`.)
   - For transient cross-cutting views (status / list / intent):
     render to `.spades/.tmp/<view>.html` using the consumer
     skill's sibling `template.html`, then open. Transient files
@@ -1587,14 +1438,13 @@ prefix, tagline, browser title.
     time, so these files are never committed.
   - For evaluate's *produced* pages: persistent at
     `.spades/evaluations/<plan-id>-<date>-plan.html` (page 1,
-    written at Step 2.5) and
+    written at Step 3) and
     `.spades/evaluations/<plan-id>-<date>-report.html` (page 2,
-    written at Step 5.5). Both ship in the Scope branch's own
+    written at Step 6). Both ship in the Scope branch's own
     PR (no separate bookkeeping flow because evaluate runs
     mid-flow, not on `main`).
 
-In CLI mode, every consumer skill behaves exactly as in v2 — no
-HTML written, no browser opens.
+In CLI mode, consumer skills present review content in the terminal.
 
 ### OPEN_CMD detection prelude
 
@@ -1681,25 +1531,14 @@ external assets. They render correctly on `file://`. Each
 template's top comment carries a version stamp:
 `<!-- SPADES template: <name> vX.Y.Z (matches plugin v3.0.0) -->`.
 
-### Why this lives in FRAMEWORK.md
-
-Same logic as Freshness: the dual-format contract is something
-every producing and consumer skill participates in. Defining it
-once here means individual skills don't repeat the rendering
-instructions; they reference this section and inherit the
-contract. Adding a new artefact type later? The skill author
-authors a new `template.html` sibling, fills it with the right
-placeholders, and references this section's render contract from
-the skill body.
+New artefact types supply a sibling `template.html` with the required
+placeholders and reference this rendering contract from their skill.
 
 ## Sub-agent Dispatch (Fan-Out)
 
-Producing and writeback-heavy consumer skills do work that's
-naturally independent — render a local file, talk to Linear, append
-to a parent artefact — but historically run those operations
-serially. SPADES 3.1.0 introduces a parallel **fan-out** dispatch:
-the skill spawns one sub-agent per resource in a single tool-call
-wave, then stitches the results.
+Producing and writeback-heavy consumer skills dispatch independent file,
+Linear and analysis work in parallel. Each resource has one sub-agent;
+the coordinator collects and integrates their results.
 
 ### The rule
 
@@ -1783,8 +1622,6 @@ acting on any of them. Then:
   record has nothing to mirror. The human re-runs.
 - **Linear sub-agent failed, file ok** → keep the local file
   (it IS canonical), surface the Linear failure, offer a retry.
-  Same contract as today's "Backend Mirror" section in each
-  skill — only the dispatch mechanism changes.
 - **Multiple file sub-agents failed** → abort, surface all
   failures, recommend manual recovery (the failed files may be
   partial-written; the human inspects and reverts as needed).
@@ -1976,12 +1813,12 @@ its worker's `opened: true` result.
 something useful in parallel (Linear drift probe, freshness
 check) rather than blocking on the render.
 
-**Skills that produce two HTML pages** (`evaluate`): each is its
-own dispatch wave. Wave 1 renders the evaluation plan; wave 2
-runs only after the human has executed verification, and renders
-the report. Each wave pairs `worker-file-evaluation` with
-`worker-html-evaluation` and selects only that step's evaluation output as
-`open_path`. Related Plan/Scope refreshes use `open_path: null`.
+**Skills that produce two HTML pages** (`evaluate`): each page has its
+own dispatch wave. Wave 1 renders the verification plan; wave 2 renders
+the report after verification results are collected. Each wave selects
+only that step's evaluation output as `open_path`. Evaluate's writeback
+workers update the existing Plan and Scope records per its skill; related
+HTML refreshes use `open_path: null`.
 
 **Skills that produce persistent + transient HTML** (`intent`,
 `architecture`, `patterns`, `anti-patterns`): two `.html` files
@@ -1992,17 +1829,9 @@ the transient review path as `open_path` for initial presentation. Only the
 transient worker matches; the persistent worker renders quietly. For later
 refreshes, or when these documents are background context, use `null`.
 
-### Why this lives in FRAMEWORK.md
-
-The fan-out contract is something multiple skills participate in
-(today: `newproject`, `scope`, `plan`, `approve`, `evaluate`;
-later: `deliver`, `ship`, `close`). Defining it once here means
-individual skill bodies can reference this section instead of
-repeating dispatch-mode bookkeeping and failure-semantics prose.
-Adding a new skill that mirrors to Linear later? Author a per-skill
-fan-out table (one sub-agent per resource) and reference this
-section's contract. The dispatch-mode reporting, freshness probe,
-and failure semantics are inherited.
+Each participating skill declares a fan-out table with one worker per
+resource and references this contract for dispatch modes, context checks
+and failure handling.
 
 ### Objective banner
 
@@ -2011,11 +1840,8 @@ block (0 or 1 item, fields `id, title`). It renders the single `O-`
 Objective a piece of work rolls up to, as a documentary
 cross-reference (it never gates anything).
 
-**Always pass this block** — an empty list `[]` when there is no
-objective — so the `<!-- SPADES-BLOCK:objective-banner -->` marker
-strips cleanly. A block the worker is never told about may otherwise
-leave a literal placeholder; passing `[]` guarantees it renders
-nothing.
+Always pass `objective-banner`, using `[]` when there is no matching
+Objective, so its template marker is consumed.
 
 How a skill fills it:
 
@@ -2070,8 +1896,8 @@ For each Objective, Plan, Scope, and Project surfaced by the skill:
 | Local SPADES status | Expected Linear workflow type |
 |---|---|
 | Scope `scoped` | `backlog` or `unstarted` |
-| Scope `planning` | `unstarted` |
-| Scope `delivering` / `evaluating` / `shipping` | `started` |
+| Scope `planning` | `backlog` or `unstarted` (creation state retained) |
+| Scope `delivering` / `evaluating` / `shipping` | `backlog` or `unstarted` (creation state retained) |
 | Scope `done` | `completed` |
 | Scope `abandoned` | `canceled` |
 | Plan `draft` | `unstarted` |
@@ -2124,16 +1950,3 @@ subsection below the table.
   when the Linear API is unreachable (`/list` and `/status` continue
   with a one-line note: *"Drift probe skipped — Linear unreachable.
   Showing local view only."*).
-
-#### Why active probe, not passive markers
-
-A passive-marker scheme (writers record a `pending-reconcile:`
-audit-trail line when a worker returns `fail`) would catch the
-known failure case but miss silent failures and out-of-band edits.
-The active probe catches all three because it always compares the
-two truth-claims regardless of how the drift was introduced.
-
-The cost is one extra Linear comparison pass per `/list` or
-`/status` invocation — cheap because the skills already fetch both
-sides; the probe is just *"do the comparison we previously
-skipped"*.

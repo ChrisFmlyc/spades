@@ -1,7 +1,7 @@
 ---
 name: newproject
-description: Create a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.6.3
+description: Creates a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
+version: 3.6.4
 ---
 
 # /spades:newproject
@@ -39,8 +39,8 @@ Read `docs/FRAMEWORK.md` § Hierarchy, § .spades/ Local Layout,
 
    `missing` → abort: *"Run `/spades:setup` first — it configures the
    backend and, on the same pass, creates your first project."*
-   Setup creates the project itself, so the human is never sent
-   back here; the `setup → newproject` edge points one way.
+   Setup calls this skill inline after writing the config, per
+   § Bootstrap Order.
 
 ## Step 1 — Gather
 

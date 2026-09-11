@@ -1,14 +1,13 @@
 ---
 name: ship
-description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.6.4
+description: Ships the deliverable produced by an approved Plan after evaluation. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
+version: 3.6.5
 ---
 
 # /spades:ship
 
-You are shipping the deliverable of an evaluated Plan. Ship is the
-moment work becomes real to the outside world: a PR is published, an
-artefact is filed, an action's evidence is recorded.
+Ship the evaluated Plan's deliverable: publish its PR, record its artefact
+reference, or record evidence of the completed action.
 
 Read `docs/FRAMEWORK.md` § Hierarchy (`deliverable_type`), § Target
 Resolution, § Audit Trail (the `Shipped` marker), § Carry-Forward of

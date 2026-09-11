@@ -23,7 +23,7 @@ marker tells them when their copy went stale.
 - Fast-Track Path — the 10-criterion gate
 - Artefacts Carry Forward
 - Architecture Constraints
-- Freshness Before Read-Across
+- Scope Worktrees and Freshness
 - Defer to the `repo` and `codereview` Plugins
 - Versioning
 - Audit Trail
@@ -42,26 +42,20 @@ Claude Code, Cursor, Codex, Aider, or anything else that honours
 
 ## Operating Principles — Agile, four pillars
 
-SPADES is an agile-by-design operating model. The whole loop, every
-skill, and every gate ladder back to four pillars. Hold these as the
-"why" behind any individual rule below.
+Four operating principles guide the phases and skills:
 
-1. **Collaborate.** Humans and AI work in close-loop conversation.
+1. **Collaborate.** Humans and AI develop the work through conversation.
    Scope, Plan, and Approve are explicit collaboration gates — the
    AI proposes structure; the human owns intent and acceptance.
    `/spades:review` exists to broaden collaboration with multiple
    perspectives (four reviewer personas) on demand.
-2. **Deliver.** Working output beats documentation about output.
-   Deliver and Ship close the loop with something real — code merged,
-   an artefact recorded, an action evidenced. Quick-path
-   (`/spades:quick`) exists so small work can deliver without
-   ceremony.
-3. **Reflect.** Evaluate is a real gate, not a rubber stamp.
-   PASS / PARTIAL / FAIL is captured with reasoning. Every Plan
-   produces an evaluation record the human can revisit. The next
-   pass starts with reflection on the last one.
-4. **Improve.** Learnings (`/spades:learn`) and Leads
-   (`/spades:leads`) are first-class. INTENT, ARCHITECTURE,
+2. **Deliver.** Deliver builds the output; shipment is complete when
+   code is merged, an artefact is recorded or an action is evidenced.
+   `/spades:quick` handles small work that meets the fast-track criteria.
+3. **Reflect.** Evaluate records PASS / PARTIAL / FAIL with reasoning
+   for every Plan, giving later work an evaluation record to consult.
+4. **Improve.** `/spades:learn` records lessons; `/spades:leads` tracks
+   out-of-scope discoveries. INTENT, ARCHITECTURE,
    PATTERNS, ANTI-PATTERNS all carry a `last_reviewed` field and
    get refreshed when reality drifts. Drift between docs and code
    is a signal to act.
@@ -91,7 +85,7 @@ The SPADES plugin (`spades`) provides these 22 skills:
 | `/spades:evaluate` | Check delivered output against the Scope's acceptance criteria |
 | `/spades:ship` | Open the PR (code) or record the deliverable (artefact / action) |
 | `/spades:close` | Conversational close-out: pass / reject / abandon based on target. Pass finalises (Plan → shipped, Scope → done, Project → archived, Objective → complete); reject (Plans) and abandon (Scopes, Projects, Objectives) require a reason. Lands via a bookkeeping PR. |
-| `/spades:loop` | Drive one Scope from Plan to closed-out — plan → approve → deliver → evaluate → **human sign-off** → ship → bot review → merge → close. Slash-only; never writes a Scope. |
+| `/spades:loop` | Drive an existing Scope through Plan, Approve, Deliver, Evaluate, Ship, review, merge and close-out. Runs on explicit invocation or delegation by a user-defined goal; pauses for checks that require the human. |
 | `/spades:quick` | Fast-track for trivial work — quick-item marker file (`.spades/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |
@@ -130,6 +124,13 @@ part of it, and pauses again on a failed approval check, a human
 review comment, or a red CI check.
 
 ## Phase Rules
+
+These rules describe manually driven phases. An explicitly invoked
+`/spades:loop` answers child-skill questions under `docs/FRAMEWORK.md
+§ Orchestration Order`: it self-approves after all six checks pass,
+confirms fully AI-verified evaluations and records its answers as
+`AI (/spades:loop)`. Human-only checks and the loop's other declared
+pauses still require the human.
 
 ### 1. Scope (Human-owned)
 - Planning and coding begin from a signed-off Scope.
@@ -186,10 +187,9 @@ review comment, or a red CI check.
 
 ## Fast-Track Path (Small Work)
 
-Not every change deserves a Scope. Trivial work — typos, one-line
-tweaks, small config nudges, docs changes — uses `/spades:quick`. On
-this path the quick-item marker file is the audit artefact; no
-separate Scope or Plan is created.
+Trivial work that meets every criterion below uses `/spades:quick`.
+The quick-item marker is its audit record; no separate Scope or Plan
+is created.
 
 ### The gate — ALL must be true
 
@@ -291,20 +291,15 @@ Deliver, Quick and Close call `/repo:newbranch`; established delivery
 resumes the Scope worktree. Documentation reuses a working branch. The commit guardrail remains `/repo:branch`.
 The dependency is one-directional: SPADES → `repo` / `codereview`.
 
-**If you don't have a git repo yet**, `/spades:setup` runs
-`/repo:init` for you automatically as its first prerequisite —
-setup is the single entry point and drives `/repo:init` inline (a
-one-directional `setup → repo:init` edge). SPADES expects an
-initialised repo — it scaffolds files (`AGENTS.md`,
-`ARCHITECTURE.md`, `.spades/config`) under git's expectation that
-they will be committed — so setup guarantees the repo exists before
-it scaffolds. See `docs/FRAMEWORK.md § Bootstrap Order`.
+When the directory is not a git repo, `/spades:setup` invokes `/repo:init`
+inline before scaffolding. Setup resumes after initialisation; the repo
+plugin owns the git operations. See `docs/FRAMEWORK.md § Bootstrap Order`.
 
 ## Versioning
 
 Every PR to the SPADES plugin must bump the plugin version. Per-skill
-versions in the plugin's own SKILL.md frontmatter bump only when that
-skill's body changes, and the **AGENTS.md version** bumps only when the
+versions in the plugin's own SKILL.md frontmatter bump only when a file
+in that skill's directory changes, and the **AGENTS.md version** bumps only when the
 operating rules change. The marker block above (`vX.Y.Z`) carries the
 AGENTS.md version — it tells you which version of the rules your
 AGENTS.md was last stamped against, and only reads as stale when those

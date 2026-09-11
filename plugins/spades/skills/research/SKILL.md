@@ -1,18 +1,16 @@
 ---
 name: research
-description: Landscape research on a topic via an isolated researcher subagent. Use when the human says "properly research this", "look into X", "check the prior art", "second opinion on the landscape", "what does the SOTA look like for X", or asks any open question that needs external fact-finding (libraries, frameworks, benchmarks, postmortems, comparisons). Returns a structured findings report; optionally posts to a Linear parent issue with explicit human consent. Callable any time — not tied to a SPADES phase. Also matches the explicit slash-command form `/spades:research`.
-version: 2.3.2
+description: Researches a topic through an isolated researcher subagent. Use when the human says "properly research this", "look into X", "check the prior art", "second opinion on the landscape", "what does the SOTA look like for X", or asks any open question that needs external fact-finding (libraries, frameworks, benchmarks, postmortems, comparisons). Returns a structured findings report; optionally posts to a Linear parent issue with explicit human consent. Callable any time — not tied to a SPADES phase. Also matches the explicit slash-command form `/spades:research`.
+version: 2.3.3
 ---
 
 # /spades:research
 
-You are dispatching landscape research to an isolated subagent and
-presenting its report. The skill is a thin coordinator: the research
-happens inside a fresh `researcher` context (the bundled agent under
-`agents/researcher.md`, read-only tools plus web search and fetch),
-and the report comes back in the fixed shape that agent's output
-contract defines — `## Question`, `## Findings` with footnoted
-citations, `## Recommendation`, `## Sources`.
+Dispatch the question to a fresh `researcher` context and present its
+report. The bundled agent at `agents/researcher.md` uses read-only tools,
+web search and fetch. Its output contract requires `## Question`,
+`## Findings` with footnoted citations, `## Recommendation`, and
+`## Sources`.
 
 Research is callable at any point in the loop. The researcher stays
 read-only; its coordinator completes the leads handoff to capture discoveries

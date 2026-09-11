@@ -3,10 +3,43 @@
 All notable changes to the SPADES Framework are documented here.
 Versions follow [semver](https://semver.org/) at the plugin level
 (see `AGENTS.md` § Versioning for the policy: every merged PR bumps
-the plugin version; per-skill `version:` fields bump only when that
-skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
-changes). The consumer-repo marker block in `AGENTS.md` carries the
+the plugin version; per-skill `version:` fields bump only when a file in that
+skill's directory changes; `agents_version` bumps only when `AGENTS.md`
+or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
+
+## [6.2.1] — 2026-09-11
+
+- **Patch**: Review all 70 Markdown files. Replace repeated warnings, historical
+  fix narratives and vague framing with direct instructions; preserve clear
+  text and historical audit records.
+- Consolidate bootstrap, HTML presentation, versioning and lifecycle rules.
+  Align current documentation with shared Scope PRs, canonical local records,
+  and Loop's verification routing. Correct contradictory migration cancellation,
+  Quick deletion, draft rejection, privacy classification and dependency-readiness
+  instructions.
+- Rules bumped: `agents_version` 3.0.1 → 3.0.2.
+- Skills bumped:
+  - `anti-patterns` 1.5.2 → 1.5.3
+  - `approve` 3.3.3 → 3.3.4
+  - `architecture` 1.4.2 → 1.4.3
+  - `close` 4.14.0 → 4.14.1
+  - `evaluate` 3.9.7 → 3.9.8
+  - `intent` 4.4.2 → 4.4.3
+  - `learn` 5.0.4 → 5.0.5
+  - `list` 3.6.3 → 3.6.4
+  - `loop` 1.10.2 → 1.10.3
+  - `newproject` 3.6.3 → 3.6.4
+  - `objective` 1.3.1 → 1.3.2
+  - `patterns` 1.4.2 → 1.4.3
+  - `plan` 3.7.2 → 3.7.3
+  - `quick` 2.4.1 → 2.4.2
+  - `research` 2.3.2 → 2.3.3
+  - `review` 3.9.2 → 3.9.3
+  - `scope` 4.1.1 → 4.1.2
+  - `setup` 4.10.2 → 4.10.3
+  - `ship` 3.6.4 → 3.6.5
+  - `status` 3.6.3 → 3.6.4
 
 ## [6.2.0] — 2026-09-11
 

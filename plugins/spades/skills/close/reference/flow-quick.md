@@ -34,9 +34,8 @@ Scope rollup, no B1–B7.
 gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy
 ```
 
-Two outcome classes. A failed probe and a non-merged PR are
-different signals: Drop deletes the canonical record, so it is
-offered only on a confirmed `CLOSED`.
+Dispatch on the verified PR state. Offer Drop only for a confirmed
+`CLOSED` PR because it deletes the canonical marker.
 
 **Probe failure** — `gh` error, unparseable JSON, `state` missing, or
 `mergeCommit.oid` missing on `MERGED` → abort:
@@ -48,8 +47,8 @@ offered only on a confirmed `CLOSED`.
 **Probe succeeded**:
 
 - **`MERGED`** → Q3.
-- **`OPEN`** → `AskUserQuestion`: *Wait — exit and come back later*
-  (recommended) / *Drop the quick item* → Q4.
+- **`OPEN`** → report that the PR is still open and exit; re-run after
+  its state changes.
 - **`CLOSED`** → the work may have shipped under a replacement PR.
   `AskUserQuestion`: *Update PR — the work shipped under a different
   PR* (sub-flow below) / *Drop the quick item* → Q4 / *Cancel*.

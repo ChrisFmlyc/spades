@@ -26,7 +26,7 @@ With this directory as the working directory:
 
 1. **`/spades:status`** and **`/spades:list`** read `.spades/config`,
    see `backend: linear`, and operate against the Linear MCP for any
-   live work. The local files mirror the canonical Linear state.
+   mirror operations. The local Markdown files remain canonical.
 2. The local `.spades/scopes/` and `.spades/plans/` files in this
    fixture aren't tied to a real Linear workspace — they exist only
    to demonstrate the shape and parse cleanly under the v2 schema
@@ -34,4 +34,4 @@ With this directory as the working directory:
 
 **Pass:** the skills see `backend: linear` and call out to Linear
 when active work exists. **Fail:** a skill ignores `backend:` and
-treats the local files as canonical, or auto-probes the backend.
+skips required Linear mirroring, or auto-probes the backend.

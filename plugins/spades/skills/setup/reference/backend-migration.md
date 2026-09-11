@@ -5,8 +5,8 @@ Read this when `/spades:setup` Step 6 fires — i.e. when
 team/project change alone does **not** reach here; it goes straight
 to Step 7.
 
-Return to SKILL.md Step 7 when the walk completes, is skipped, or is
-cancelled.
+Return to SKILL.md Step 7 when the walk completes or is skipped.
+Cancelling the backend switch returns to Step 1.
 
 ## Contents
 
@@ -39,14 +39,14 @@ links via frontmatter ID, no match creates.
    the bound Project. Body = the Scope's markdown (Statement of
    Intent, Acceptance Criteria, Architectural Constraints, Out of
    Scope, Risk / Unknowns, Delivery Preference, Audit Trail). Write
-   `linear_issue_id` back.
+   `linear_issue_id` back. Active Scopes retain their open creation state
+   per `docs/FRAMEWORK.md § Scope status rollup`; Plans carry the phases.
 
    | Scope status | Linear |
    |---|---|
-   | `scoped` | Triage / team default |
-   | `planning` | Planning |
-   | `delivering` | In Progress |
+   | `scoped`, `planning`, `delivering`, `evaluating`, `shipping` | Open creation state (Triage / team default) |
    | `done` | Done |
+   | `abandoned` | Cancelled |
 
 3. **Plans** — `.spades/plans/P-<…>.md` → sub-Issue under the
    Scope's parent Issue. Body = Plan markdown (Technical Approach,
