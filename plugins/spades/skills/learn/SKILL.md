@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 5.0.3
+version: 5.0.4
 ---
 
 # /spades:learn
@@ -158,7 +158,9 @@ explicit choice.
 
 ## Mandatory completion handoff
 
-After capture, Skip or `--refresh` finishes, MUST invoke `/spades:leads`
-(Claude Code) or `$spades:lead` (Codex) in a dedicated subagent with the
-learning context and privacy classification per `docs/FRAMEWORK.md § Leads
-handoff`. Wait for and report its result before returning or advancing.
+After capture, Skip or `--refresh`, run the dedicated Leads worker and
+verify its receipt per `docs/FRAMEWORK.md § Leads handoff`. Supply the
+learning context, privacy classification, discoveries and earlier captures
+with their observation keys. Record the receipt with a captured learning;
+for Skip or refresh, include it in the brief. Report the IDs, source paths
+and pending publication or mirror work before returning or advancing.

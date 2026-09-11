@@ -8,6 +8,17 @@ skill's SKILL.md changes; `agents_version` bumps only when `AGENTS.md`
 changes). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.2.0] — 2026-09-11
+
+- Leads captures recurring discoveries with stable observation contexts,
+  verifies local writes and mirror operations, and reports pending publication.
+- `--list --all-worktrees` inventories distinct Leads and their source copies;
+  `--sync L-<id>` reconciles pending mirror operations for recorded decisions.
+- Evaluate, Learn and Research return verified worker receipts. Loop and Ship
+  check evaluation completion and carry the authorised Lead records forward.
+- Skills: `leads` 3.1.0, `evaluate` 3.9.7, `learn` 5.0.4, `research` 2.3.2,
+  `loop` 1.10.2 and `ship` 3.6.4.
+
 ## [6.1.3] — 2026-09-06
 
 - **patch**: Evaluate, Learn and Research end with a mandatory leads

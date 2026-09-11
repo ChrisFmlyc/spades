@@ -1,7 +1,7 @@
 ---
 name: research
 description: Landscape research on a topic via an isolated researcher subagent. Use when the human says "properly research this", "look into X", "check the prior art", "second opinion on the landscape", "what does the SOTA look like for X", or asks any open question that needs external fact-finding (libraries, frameworks, benchmarks, postmortems, comparisons). Returns a structured findings report; optionally posts to a Linear parent issue with explicit human consent. Callable any time — not tied to a SPADES phase. Also matches the explicit slash-command form `/spades:research`.
-version: 2.3.1
+version: 2.3.2
 ---
 
 # /spades:research
@@ -103,8 +103,10 @@ the next step and leave the decision with them:
 
 ## Mandatory completion handoff
 
-After displaying the report and finishing any scoped posting decision, MUST
-invoke `/spades:leads` (Claude Code) or `$spades:lead` (Codex) in a dedicated
-subagent with the question, scope boundaries, report and source evidence per
-`docs/FRAMEWORK.md § Leads handoff`. This applies to standalone and scoped
-runs. Wait for and report its result before returning or advancing.
+After displaying the report and completing any scoped posting decision,
+run the dedicated Leads worker and verify its receipt per
+`docs/FRAMEWORK.md § Leads handoff`. Supply the question, scope boundaries,
+report, source evidence, privacy classification and earlier captures with
+their observation keys. Standalone and scoped runs both reach this step,
+including a declined or failed optional post. Return the receipt alongside
+the report, with IDs, source paths and pending publication or mirror work.

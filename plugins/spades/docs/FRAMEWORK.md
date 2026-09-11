@@ -1791,54 +1791,109 @@ acting on any of them. Then:
 
 ### Leads handoff
 
-After Evaluate, Learn or Research completes its substantive work, its
-coordinator MUST invoke `/spades:leads` (Claude Code) or `$spades:lead`
-(Codex) in a dedicated `worker-leads` subagent and wait for its result.
-These spellings select the bundled `skills/leads/SKILL.md`; pass that
-file explicitly when the harness does not resolve the command alias.
-This completion check supplements capture at the moment of discovery.
-It runs even when the coordinator has no candidates to suggest.
+Invoke `skills/leads/SKILL.md` in a dedicated `worker-leads` subagent when an
+out-of-scope discovery is observed. Evaluate, Learn and Research also invoke
+it after their substantive work, including when they have no candidates.
+Use `/spades:leads` in Claude Code or `$spades:leads` in Codex; supply the
+bundled file path when command resolution needs it. The coordinator
+delegates once; the worker executes the skill body.
 
-Dispatch with `subagent_type: general-purpose` and a self-contained prompt:
+#### Inputs and ownership
 
-- The requested leads operation, original task and its scope boundaries.
-- Absolute worktree path, branch and revision; project and Scope/Plan/Quick
-  IDs when present. Use the caller's checkout; this handoff creates no branch.
-- The completed evaluation evidence, learning or research report, relevant
-  discoveries and cited file paths, plus Leads already raised in this run.
-- Privacy classification and external-write authorization. Keep private
-  source material private; record or mirror only public-safe summaries.
+Pass one self-contained request with:
 
-The worker reviews this supplied context for overlooked out-of-scope
-findings, checks cited evidence as needed, and runs the leads skill's
-classification and deduplication. Its task is capture, not a fresh repository
-review or implementation. A completed task's expected outputs and on-scope
-failures remain with that task. Return raised/matched IDs and paths, `none`
-when there are no discoveries, `disabled` for `leads: off`, `unconfigured`
-when `.spades/config` or its project is absent, or a concrete error.
-A completion handoff with no setup reports `unconfigured` without starting
-setup. Every invocation still dispatches the worker, including these no-ops.
+- The operation, original task, acceptance criteria and scope boundaries.
+- Absolute worktree and SPADES root, branch, revision, project and relevant
+  Scope/Plan/Quick IDs. The worker verifies this context before writing.
+- Evidence from the completed work, including warnings, known limitations,
+  failures and cited paths. Include existing Lead IDs, recorded observation
+  contexts and earlier worker results from this run.
+- Stable context keys for independent observations. Preserve them when the
+  same evidence passes through delivery, evaluation, learning or a retry.
+- Privacy classification, permitted storage and external-write authorization.
+  Public records and mirrors receive public-safe summaries or references.
 
-The coordinator reports the result before returning or advancing. A capture
-failure leaves the handoff incomplete; preserve completed work, surface the
-error and retry the handoff before advancing. A failed optional Linear mirror
-retains the local Lead and is reported per the leads skill. If subagents are
-unavailable, report the handoff as blocked; this operation requires isolation.
+The worker checks the supplied evidence, accounts for each candidate and
+runs classification and deduplication. An unresolved known finding remains
+a candidate; the Leads skill decides whether its context adds a sighting.
+On-scope failures stay with the task. The caller owns implementation,
+publication and decisions about incorporating another worktree's changes.
 
-After an evaluation handoff succeeds, the coordinator appends to each
-completed Plan's (or Quick item's) audit trail, after its latest verdict:
+One invocation handles the findings available together. Each Lead has one
+writer at a time; a coordinator queues overlapping operations. The worker
+re-reads before saving and reports concurrent conflicts for reconciliation.
+Its capture work uses the caller's checkout. Registered-worktree inventory
+runs when requested, with coverage and source ownership reported.
+
+#### Result and verification
+
+Await the worker and collect a receipt containing:
+
+| Field | Evidence returned |
+|---|---|
+| Outcome | `captured`, `none`, `disabled`, `unconfigured`, or `error`. `captured` includes matched and already-recorded discoveries. |
+| Context | Operation, worktree, branch, revision, task and observation keys inspected. |
+| Candidates | Each finding's disposition and evidence or exclusion reason. |
+| Records | Lead IDs, absolute paths, source worktrees, and sighting/lifecycle changes verified by read-back. |
+| Publication | Current local/git state of changed records and their intended next commit or handoff. |
+| Mirrors | Per-operation `verified`, `pending` with reason, or `not applicable`, with issue/comment references when available. |
+
+`none` means the supplied evidence contains no supported out-of-scope
+discovery. `disabled` requires `leads: off`; `unconfigured` identifies the
+missing configuration or project. Every outcome comes from the worker,
+including these no-ops. Missing worker isolation returns a blocked handoff.
+
+The coordinator compares the receipt with its inputs and reads back the
+reported local changes. Each supplied candidate must have a disposition;
+each captured observation must have a matching record. Resolve missing
+results, mismatched context or a failed capture before advancing. Retry the
+incomplete operation with its original observation keys. Keep successful
+local capture when an optional mirror is pending and report that pending
+operation separately.
+
+Preserve a concise receipt with the completed work: in the evaluation's
+audit trail, in a captured learning's audit entry, or alongside the Research
+report or Learn Skip/refresh brief. Include IDs and source paths, candidate
+dispositions, observation contexts and outstanding publication/mirror work.
+This allows a later caller to reuse completed work and identify pending steps.
+
+#### Evaluation and publication
+
+After every completed PASS, PARTIAL or FAIL, including Quick items,
+Evaluate performs this handoff before its next-step brief. A scope-wide
+evaluation sends the combined evidence once and records the receipt on each
+evaluated Plan. Pending verification reaches the handoff after its verdict
+has been recorded.
+
+After the verified receipt, append this marker after the latest verdict on
+each completed Plan or Quick item, then read it back:
+
 `- YYYY-MM-DD: Leads checked — source: evaluate; result: <IDs | none | disabled | unconfigured>.`
-A scope-wide evaluation checks the combined evidence once and records the
-result on each evaluated Plan. A pending verification or rejected verification
-plan has no completed verdict and does not reach this handoff yet.
 
-Before Ship publishes, require this marker after the latest evaluation
-verdict for every participating Plan. If absent on a resumed or older run,
-execute the handoff from its stored evaluation evidence and record the result
-first. Reuse a marker for that verdict; a new evaluation requires a new check.
-Learn (capture, Skip, and `--refresh`) and Research (standalone and scoped,
-including a declined or failed optional report post) finish with the same
-worker handoff and report its result without requiring an evaluation marker.
+Keep the receipt and marker with that evaluation's evidence and revision.
+Reuse a completed check for the same verdict and evidence. A new evaluation
+requires a new check; the observation keys determine which sightings it adds.
+
+Loop and Ship verify the marker belongs to the latest completed evaluation
+for every participating Plan, and that its reported records are available
+in the delivery context. A resumed or older run with missing or unverifiable
+completion evidence runs the handoff from the stored evaluation context and
+records today's result. Insufficient stored context returns the evidence
+needed to finish that check.
+
+Ship includes the current run's authorised Lead changes and evaluation
+records in the proposed commit under § Carry-Forward of SPADES-Owned
+Artefacts. Verify their inclusion before publication. Identify pending
+records owned by other worktrees with their source and next handoff; their
+inclusion follows the same ownership rules. Publication of local records
+and verification of optional mirrors have separate outcomes.
+
+Learn's capture, Skip and `--refresh` paths, and Research's standalone and
+scoped paths, all finish with the verified receipt and brief. Research does
+so after a completed, declined or failed optional report post. These paths
+preserve their existing storage and posting decisions and return their
+Leads result without an evaluation marker.
+
 
 ### `worker-html-*` — parallel HTML rendering
 

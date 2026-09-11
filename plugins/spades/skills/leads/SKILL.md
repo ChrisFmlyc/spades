@@ -1,233 +1,258 @@
 ---
 name: leads
-description: Raises a Lead — a tracked, out-of-scope discovery — the moment one is noticed while doing other work, then returns to that work; also lists, shows, promotes, and closes Leads on demand. A Lead is a bug, tech debt, an improvement, a security smell, a flaky test, a missing doc, or a good idea that is not part of the current task. Invoke it immediately, mid-task and without asking the human, whenever such a thing is spotted during any work in this repo and would otherwise be fixed off-scope, buried in a final summary, or forgotten. Also use when someone says "raise a lead", "log that as a lead", "any leads?", "show leads", "promote lead L-…", or "close lead L-…".
-version: 3.0.4
-argument-hint: "[--list | --show L-<id> | --promote L-<id> [<work-id>] | --close L-<id> \"<reason>\"]"
+description: Captures out-of-scope discoveries as Leads immediately during any task, including recurring known issues, and returns to that task. Classifies findings, reuses existing Leads, and records one sighting per observation context. Also runs completion checks for Evaluate, Learn and Research; lists Leads across the requested worktrees; and shows, promotes, closes or synchronises a Lead on request.
+version: 3.1.0
+argument-hint: '[--list [--all-worktrees] | --show L-<id> | --promote L-<id> [<work-id>] | --close L-<id> "<reason>" | --sync L-<id>]'
 ---
 
 # /spades:leads
 
-A **Lead** is something noticed *in passing* while doing other work
-— a bug, a bit of tech debt, an improvement, a security smell, a
-flaky or failing test, a missing docstring, or a genuinely good idea
-— that is **out of scope for the task in hand**.
+A Lead records a supported discovery outside the current task: a bug,
+security concern, test failure, missing documentation, improvement or
+maintenance need. Capture it when observed, then continue the task. A known
+issue observed again is a candidate for another sighting.
 
-The rule: **don't derail the task, and don't lose the discovery.**
-Raise the Lead, keep working, and let a human triage it later.
+Read `docs/FRAMEWORK.md` § Lead ID, § Leads handoff, § Carry-Forward of
+SPADES-Owned Artefacts and § Output Format. Local Markdown is canonical;
+Linear mirrors it when configured.
 
-This skill does two things:
+## Dispatch and context
 
-1. **Raise** Leads as a standing behaviour while any work is in
-   progress.
-2. **Manage** Leads on demand with `--list`, `--show`, `--promote`,
-   and `--close`.
+The coordinator invokes this skill in one dedicated `worker-leads` subagent
+per operation, using the handoff contract. The worker executes this body
+and returns a receipt. Findings already available together share one
+invocation. Each Lead file has one writer at a time.
 
-Read `docs/FRAMEWORK.md` § ID Format → Lead ID, § Sub-agent
-Dispatch, and § Output Format before running.
+Use the supplied absolute worktree, branch, revision, project and task
+boundaries. Check cited evidence as needed. Completion checks review the
+supplied work and its discoveries; repository-wide inventory is a separate
+operation. Carry the original observation contexts through later phases.
 
-### Output format
+Read `.spades/config`. Raising and completion checks return `unconfigured`
+when configuration or `project:` is missing, and `disabled` for `leads: off`.
+The default is `leads: on`. Management commands remain available when
+raising is off; missing configuration returns a `/spades:setup` pointer.
+Read `backend:` and `review_format:` and create `.spades/leads/` when writing.
 
-- **Both backends** — `.spades/leads/L-<slug>-<suffix>.md`, one file
-  per Lead, the canonical record.
-- **`backend: linear`** — additionally a mirrored Issue on the
-  project, labelled `spades:lead` plus the Lead's classification.
-  The file is the capture; the mirror is reported.
-- **`--list`, HTML mode** — the board rendered to
-  `.spades/.tmp/leads.html` from
-  `${CLAUDE_PLUGIN_ROOT}/skills/leads/template.html` and opened.
-- **`--list`, CLI mode** — the board written to
-  `.spades/.tmp/leads.md`, printed inline, and opened.
+## Capture
 
-## Execution context
+### 1. Decide where the finding belongs
 
-Every invocation runs in a dedicated subagent with the caller's task context
-per `docs/FRAMEWORK.md § Leads handoff`: `/spades:leads` in Claude Code,
-`$spades:lead` in Codex. A coordinator loading this skill delegates once to
-`worker-leads`; that worker executes the body directly and returns its result.
-This applies to immediate capture, completion checks and management commands.
-Pass any user decisions required by management back through the coordinator.
+Compare the evidence with the task's acceptance criteria. Work needed to
+meet those criteria belongs to the task, including its failing checks.
+A trivial correction on the line already being edited can be completed
+inline and reported with that work. A supported finding that needs work
+outside those boundaries becomes a Lead immediately.
 
-For a completion check, inspect the supplied work for overlooked discoveries
-and raise or match each supported out-of-scope finding. Return `none` when
-there are none. Capture an observed finding only; implementing a fix remains
-with the original task or later work selected by the human.
+Include unresolved warnings and limitations mentioned in the work's
+evidence, even when an earlier task already reported them. For each
+candidate, return its disposition: captured, matched, already recorded in
+this context, on-scope, or insufficient evidence. State the evidence or
+reason so the coordinator can account for every candidate.
 
-## Pre-Flight
+### 2. Classify
 
-1. `.spades/config` exists with `project:` set — otherwise return
-   `unconfigured` for a completion check; direct management requests receive
-   a `/spades:setup` pointer.
-2. Read `backend:` (whether a mirror is made) and `review_format:`
-   (how the board renders).
-3. Read `leads:` — `on` when absent. `off` disables raising; the
-   management commands still run. A raising/completion invocation returns
-   `disabled` before creating records when off.
-4. Ensure `.spades/leads/` exists.
+Choose exactly one `type`, taking the first applicable entry:
 
-## Raise or fix inline
+| Type | Work described by the finding |
+|---|---|
+| `security` | Security, privacy, access, secrets or supply-chain risk. |
+| `documentation` | Changes limited to human-readable documentation. |
+| `testing` | Changes limited to tests, fixtures or test infrastructure. |
+| `bug` | Incorrect existing behaviour. |
+| `feature` | A new externally observable capability. |
+| `enhancement` | Improvement to an existing capability whose behaviour is correct. |
+| `maintenance` | Internal cleanup, dependencies, refactoring or other technical debt. |
 
-Judge every discovery against the current task:
+A documentation-only security concern is `security`; a product defect
+requiring regression tests is `bug`.
 
-- **Trivial and on the line already being edited** (a typo, an
-  obvious one-liner in the same function) — fix it inline and
-  mention it in the summary.
-- **Anything else** — out of scope, non-trivial, or a good idea for
-  later — becomes a Lead. This is the default for anything that
-  would otherwise cause a stop, a context switch, or a wider task.
-- **If it is worth a sentence in the final summary, it is worth a
-  Lead.**
+### 3. Match the Lead and observation
 
-Raise without asking, in the middle of the task, and carry on.
-Every Lead raised or matched is reported in the final summary.
+Read the active project's Lead titles, areas and statuses once per
+invocation. Inspect the bodies of plausible matches. Match the mechanism
+and affected area, then compare the supplied observation with `## Sightings`.
 
-## Raising a Lead
+Use a stable context key for each independent observation: a Plan or Quick
+ID plus the work episode, or a named research/learning task and evidence
+reference. For example, `P-build-report-aB12/delivery-1` identifies an
+observation carried from delivery into evaluation and learning. Repeated
+builds, worker retries and phase handoffs reuse that key. A later task or
+fresh evaluation that independently observes recurrence uses a new key.
 
-### 1. Classify
+- An open matching Lead receives one sighting for a new context. Append the
+  evidence reference and source branch/revision, then increment `sightings:`.
+- An observation already recorded in that context returns the existing ID
+  and sighting unchanged. Legacy entries can match by their task and evidence.
+- A promoted match links the finding to `promoted_to:` and records a new
+  observation when warranted. Changes needed by that active work stay there.
+- A closed match whose cited resolution predates the new observation can
+  support a new Lead for the recurrence. Link the earlier Lead and distinguish
+  the new evidence from historical output.
+- A finding with no matching Lead receives a new ID per § Lead ID.
 
-Exactly one `type`, chosen before anything is written. Walk the list
-in order and stop at the first match:
+Re-read a Lead before saving so concurrent edits remain intact. If a caller
+supplies a matching record from another worktree, resolve its owner and any
+authorised transfer through § Carry-Forward before writing. Conflicting
+copies return their paths and the decision needed to reconcile them.
 
-1. `security` — security, privacy, access, secret, or supply-chain
-   risk.
-2. `documentation` — work limited to human-readable documentation.
-3. `testing` — work limited to tests, fixtures, or test
-   infrastructure.
-4. `bug` — incorrect existing behaviour.
-5. `feature` — a new externally observable capability.
-6. `enhancement` — an improvement to an existing capability that
-   fixes no incorrect behaviour.
-7. `maintenance` — internal cleanup, dependency work, refactoring,
-   or other technical debt.
+### 4. Write and verify the canonical record
 
-The order resolves overlaps: a documentation-only security concern
-is `security`; a product bug that also needs regression tests is
-`bug`, because the work is not limited to tests.
-
-### 2. Deduplicate
-
-Read the `title` and `area` of every `status: open` Lead in
-`.spades/leads/`. A match on the same mechanism in the same area is
-a **sighting** of that Lead rather than a new one: append
-`- YYYY-MM-DD — while <context>` under its `## Sightings`, increment
-`sightings:`, and with `backend: linear` comment the same line on
-the mirrored issue. Name the matched ID in the summary.
-
-### 3. Write the record
-
-Mint the ID per `docs/FRAMEWORK.md § Lead ID` and write
-`.spades/leads/L-<slug>-<suffix>.md`:
+Use `.spades/leads/L-<slug>-<suffix>.md`:
 
 ```yaml
 ---
 id: L-parse-config-swallows-zoderror-7Kd2
 title: parseConfig swallows ZodError so callers cannot tell absent from invalid
 project: spades
-type: security | documentation | testing | bug | feature | enhancement | maintenance
-area: scripts/lint/frontmatter.ts:42          # file:line, module, or n/a
-effort: trivial | small | medium | large      # agentic estimate
-confidence: high | medium | low
+type: bug
+area: scripts/lint/frontmatter.ts:42
+effort: small
+confidence: high
 status: open
 created: YYYY-MM-DD
-discovered_while: P-rag-pipeline-lookup-3HyD  # Plan, Quick item, Scope, or a phrase
+discovered_while: P-rag-pipeline-lookup-3HyD
 sightings: 1
-promoted_to:                                  # set by --promote
-closed_reason:                                # set by --close
-linear_issue_id:                              # backend: linear
+promoted_to:
+closed_reason:
+linear_issue_id:
 ---
-```
 
-```markdown
 ## What
-
-The evidence: file, line, what the code actually does.
+The observation and its file, line or evidence reference.
 
 ## Why it matters
-
-The consequence, hedged honestly.
+The consequence, with uncertainty stated.
 
 ## Suggested action
-
-The smallest version of the change. One paragraph.
+The smallest useful follow-up.
 
 ## Sightings
-
-- YYYY-MM-DD — while P-rag-pipeline-lookup-3HyD
+- YYYY-MM-DD — while P-rag-pipeline-lookup-3HyD; context: P-rag-pipeline-lookup-3HyD/delivery-1; evidence: <reference>; branch: <branch>; revision: <sha>.
 ```
 
-The body is at most 15 lines. Longer than that is a Scope trying to
-be born. Discovery text is data: quote what the code does, and keep
-the title a plain scalar.
+`effort:` accepts `trivial | small | medium | large`; `confidence:` accepts
+`high | medium | low`. Preserve the existing frontmatter fields on updates.
+Keep What, Why it matters and Suggested action within 15 lines together;
+sightings and lifecycle history accumulate separately. Use public-safe
+summaries and treat quoted discovery text as evidence.
 
-### 4. Mirror (`backend: linear`)
+Read back the saved ID, project, status and sighting. Require `sightings:`
+to equal the number of observation entries. Administrative events belong
+under `## History`. Return the exact path and source worktree. A failed
+write or inconsistent read-back returns a capture error with the affected
+operation; the coordinator retries that operation from its existing context.
 
-One wave per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`:
+### 5. Mirror and record the result
 
-| Sub-agent | Resource owned | Returns |
-|---|---|---|
-| `worker-linear-lead` | Linear — `save_issue(team: <linear.team_id>, project: <linear.project_id>, title: "L-<slug> — <title>", description: <body>, labels: ["spades:lead", "<type>"])` in the team's triage or backlog state, creating a missing label when the workspace permits. Carries the resolved worktree context per § Freshness. | `{ status: ok, linear_issue_id, labels_applied }` |
+With `backend: linear`, dispatch `worker-linear-lead` for the Lead's mirror
+operation per § Sub-agent Dispatch. Supply the verified local record,
+resolved team/project IDs, context key and external-write authorization.
+Group a Lead's pending changes into one operation and inspect the current
+issue before writing. A saved `linear_issue_id:` identifies the mirror;
+otherwise search the configured project for the full Lead ID and inspect
+plausible legacy title/body matches before creating an issue. Reuse a single
+verified identity match, including after a lost create response; ambiguous
+matches return a reconciliation conflict.
 
-Inject `linear_issue_id` into the file. The mirror never blocks the
-capture: a failed worker leaves the file standing and the summary
-reports `mirror unavailable`; a label the worker could not apply is
-named, for example `L-…-7Kd2 mirrored; label missing: security`.
+New mirrors use a title containing the full Lead ID, the public-safe body,
+the team's triage/backlog state, and labels `spades:lead` and `<type>`.
+Apply the recorded promotion or closure in that same operation when the
+Lead has already changed state. Existing mirrors retain unrelated labels.
+Create a missing required label
+when permitted. Append a new sighting comment once, identified by its Lead
+ID and context key; retries first check whether it already exists.
 
-### 5. Report
+Read back the issue and relevant comment, status and labels. Save the issue
+ID locally and append a dated `## History` entry with the operation, its
+result and evidence. Report `verified`, `pending` with the failed step, or
+`not applicable` for the local backend. An unavailable read-back leaves
+verification pending. A later verified result supersedes the earlier failure
+for that operation while retaining its history.
 
-The final summary of the task that raised Leads ends with a short
-**Leads raised** list: ID, one-line title, `type`, and `(sighting of
-L-…)` where a match was recorded instead of a new file.
+Local capture remains complete when its optional mirror is pending. Attempt
+only unresolved mirror operations, within the caller's authorization. A
+permission rejection records the pending step and reason; retries require
+changed authorization or an allowed alternative. Private evidence stays in
+its authorised location; a safe reference can support a permitted mirror.
 
-## Managing Leads
+## Manage
 
-| Invocation | Effect |
+Management uses the same local-write and mirror read-back procedure. Relay
+decisions through the coordinator and reuse decisions already supplied by
+the user. List and show operations are read-only apart from their rendered
+views; they report reconciliation needs for a later management operation.
+
+| Operation | Result |
 |---|---|
-| `/spades:leads --list` | The board: every `open` Lead for the active project, grouped by `area`, ordered by `sightings` then `created`. Header: `open · promoted · closed`. |
-| `/spades:leads --show L-<id>` | Print the Lead's record in the terminal. |
-| `/spades:leads --promote L-<id> [<work-id>]` | `status: promoted`; with a work ID (`S-…`, `Q-…`, or a doc name) set `promoted_to:`. With `backend: linear`, remove the `spades:lead` label and comment `Promoted from Lead to active work.` Then print `Next: /spades:scope "<title>"` or `/spades:quick "<suggested action>"` by `effort`. |
-| `/spades:leads --close L-<id> "<reason>"` | `status: closed`, `closed_reason:` — `done`, `not worth it`, or `duplicate of L-…`. With `backend: linear`, close the issue with the reason as a comment. |
+| `--show L-<id>` | Display the record, source worktree and current publication/mirror evidence. |
+| `--promote L-<id> [<work-id>]` | Set `status: promoted` and record the supplied `S-…`, `Q-…` or document in `promoted_to:`. With no target, report target pending and the Scope/Quick next step. Mirror the target in a comment and remove `spades:lead`, preserving other labels. |
+| `--close L-<id> "<reason>"` | Set `status: closed` and `closed_reason:` such as `done`, `not worth it`, or `duplicate of L-…`. Record supporting evidence when closed as done. Mirror the reason and the team's appropriate terminal state. |
+| `--sync L-<id>` | Read the local record and mirror, then complete pending mirror operations for the recorded decision. Verify the result and append reconciliation evidence. |
 
-A promoted Lead is confirmed real work and enters the loop through
-`/spades:scope` or `/spades:quick` like any other request; this
-skill records the decision and hands off.
+Write related local fields together and read them back before mirroring.
+An explicit, previously authorised promotion or closure can be reconciled
+from its evidence when one side is incomplete. A disagreement about intent,
+an ambiguous target or conflicting decisions returns the evidence and the
+user decision needed. A remote label or workflow state alone establishes
+only the remote state.
 
-### Rendering the board
+Promotion records the decision and points to `/spades:scope` or
+`/spades:quick`; execution proceeds through that work's own gates.
 
-Create `.spades/.tmp/` if missing.
+## Inventory
 
-**CLI mode** — write the board to `.spades/.tmp/leads.md` (header,
-areas, rows), print it inline, and open it via the OPEN_CMD prelude.
+`--list` lists the active project's Leads in the caller's checkout, grouped
+by `area`, ordered by `sightings` then `created`. Show counts for open,
+promoted and closed records and identify the inspected worktree/revision.
 
-**HTML mode** — dispatch `worker-html-leads` per
-`docs/FRAMEWORK.md § worker-html-*`, which renders and opens the
-page:
+`--list --all-worktrees`, or a request for all Leads across the process,
+reads Lead records from every registered worktree and the supplied current
+default-branch revision. Group copies by Lead ID and show each identity once.
+Use branch lineage, recorded transfers and lifecycle evidence to resolve
+the current source; list differing copies when ownership is unresolved.
+Count each distinct observation once across copies. Report ambiguous counts
+separately so uncertainty remains visible in the totals.
 
-- `open_path`: the absolute `output_path` for this skill’s initial review
-  presentation; `null` for refreshes or background use, per
-  `docs/FRAMEWORK.md § Review-page ownership`.
+For each record, distinguish local capture from publication of its current
+content: uncommitted, committed on its source branch, included in a PR, or
+present on the default branch. Verify each claimed state from git/SCM
+evidence. Compare configured mirrors when available and show pending or
+unknown operations, including missing issue IDs and conflicting lifecycle
+states. An in-progress branch can legitimately contain newer sightings
+than the default branch.
+
+Batch the local inventory and available mirror reads. Report coverage and
+unavailable worktrees, revisions or services. Limit reads to records and
+cited lifecycle/publication evidence; the inventory describes recorded
+discoveries rather than reproducing their underlying defects.
+
+### Render the board
+
+Create `.spades/.tmp/` as needed. In CLI mode, write
+`.spades/.tmp/leads.md`, print it and use the OPEN_CMD prelude. Include source,
+publication, mirror and conflict details alongside the counts and open rows.
+
+In HTML mode dispatch `worker-html-leads` using the existing template:
+
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/leads/template.html`
 - `output_path`: `.spades/.tmp/leads.html`
-- `frontmatter`: `{ project_slug, open_count, promoted_count,
-  closed_count, rendered_at, plugin_version }`, also embedded in
-  `<script id="spades-frontmatter">`
-- `blocks`:
-  - `area-groups` — one per `area`. Fields: `area, count`.
-  - `lead-rows` — one per open Lead. Fields: `id, title, type,
-    area, effort, confidence, sightings, created`.
+- `open_path`: the absolute output path for an initial presentation;
+  `null` for background renders and refreshes per § Review-page ownership.
+- `frontmatter`: `{ project_slug, open_count, promoted_count, closed_count,
+  rendered_at, plugin_version }`, also in `spades-frontmatter`.
+- `area-groups`: `{ area, count }` per area.
+- `lead-rows`: `{ id, title, type, area, effort, confidence, sightings,
+  created }` per open Lead.
 
-Required markers: `area-groups`, `lead-rows`.
+Require `area-groups` and `lead-rows`. Write a companion `leads.md` for
+source, publication, mirror and conflict details and link it in the brief.
+Report the renderer's actual `opened` result; when false, provide the path.
 
-```
-✓ Leads board: .spades/.tmp/leads.html
-○ opened in your browser
-```
+## Return
 
-An empty `OPEN_CMD` returns `opened: false`; print
-`○ Open it in your browser: file:///<absolute-path>` and carry on.
-
-## Completion
-
-This skill is complete only when every requested raise or
-management action has an observable file, mirror, board, or view
-result; every Lead raised or matched is in the final summary; and
-control has returned to the original task with nothing promoted
-implemented.
+Return the receipt defined in § Leads handoff, including the disposition of
+each candidate, IDs and paths, reused or added sightings, lifecycle results,
+and pending publication or mirror work. Report every raised or matched Lead
+by ID, title and type. The caller carries its authorised records into its
+next commit per § Carry-Forward and continues the original task.
