@@ -4,9 +4,9 @@ id_suffix: 4Y6N
 scope: S-reliable-leads-workflow
 title: "Reliable Leads capture and completion checks"
 depends_on: []
-status: delivering
+status: shipping
 delivery: ai
-evaluation: undecided
+evaluation: ai
 deliverable_type: code
 created: 2026-09-11
 updated: 2026-09-11
@@ -75,3 +75,12 @@ Use the repository's existing lints and the installed unslop rewrite workflow. R
 - 2026-09-11: Deliver phase started — routing: ai, branch: fix/reliable-leads-workflow. Approved records transferred and verified from documentation worktree.
 - 2026-09-11: Delivery verification — five repository lint suites passed; new Plan field warning resolved and local frontmatter lint rerun without warnings. Unslop rewrite retained 113/113 draft constraints with zero banned phrases or structural flags; technical-document readability and soft silhouette signals reviewed.
 - 2026-09-11: Leads receipt — source: delivery; result: L-maintainer-docs-drift-from-framework-GuUE (documentation); context: P-reliable-leads-workflow-4Y6N/delivery-1; record: .spades/leads/L-maintainer-docs-drift-from-framework-GuUE.md in fix/reliable-leads-workflow. Dedicated capture and replay workers verified one observation, sightings 1 -> 1; replay made no writes. Plan field correction is on-scope; expected lint and prose checks add no discovery. Publication: included in the next delivery commit; mirror: not applicable (local backend).
+- 2026-09-11: Deliver phase complete — routing: ai. Tasks completed: 3. Commits: 04448dcb2cff835fb7a17640a94b27605da3f79e. Authorised Lead and evaluation report inclusion verified in that commit.
+- 2026-09-11: Evaluation started — routing: ai. Verification methods are recorded in the approved Plan and .spades/evaluations/P-reliable-leads-workflow-4Y6N-2026-09-11-report.md. AI checks complete; proposed PASS awaits human confirmation.
+
+- 2026-09-11: Evaluation — verdict: PASS; routing: ai. All seven Scope acceptance criteria pass as recorded in .spades/evaluations/P-reliable-leads-workflow-4Y6N-2026-09-11-report.md. Five repository lint suites pass; unslop preserves 113/113 draft constraints with zero banned-phrase or structural findings. Dedicated capture and replay verified one contextual sighting (1 -> 1) with no replay writes. Completion, lifecycle, publication, and inventory checks use documented contract walkthroughs; live Linear mutation was not exercised with this project's local backend.
+- 2026-09-11: Human sign-off to ship after completed checks — Chris instructed: “when complete commit, push, merge pr etc, then run repo:sync in the spades repo on main”. This later instruction authorizes shipment and merge of the verified implementation, extending the earlier review-only boundary. It is recorded as the actual authorization evidence; no separate interactive Confirm PASS answer is claimed.
+- 2026-09-11: Shipment routing — use the GitHub PR driver for this run under the user's explicit push/merge request; this overrides the absent scm field's local-git default without changing project configuration.
+- 2026-09-11: Leads receipt — source: evaluate; outcome: captured (already recorded); context: P-reliable-leads-workflow-4Y6N/delivery-1; revision: 04448dcb2cff835fb7a17640a94b27605da3f79e with authorised evaluation records; worktree: fix/reliable-leads-workflow. L-maintainer-docs-drift-from-framework-GuUE at .spades/leads/L-maintainer-docs-drift-from-framework-GuUE.md is open with one sighting, byte-identical to the committed record. Dedicated worker and coordinator read-back verified the context, disposition and count. Plan field correction and expected verification outputs are on-scope; shipment routing is a task decision. Pending captures: none; publication: committed, included in this Scope PR; mirror: not applicable (local backend).
+- 2026-09-11: Leads checked — source: evaluate; result: L-maintainer-docs-drift-from-framework-GuUE.
+- 2026-09-11: Ship phase started — deliverable_type: code. GitHub PR and squash-merge authorised by Chris after completed checks.

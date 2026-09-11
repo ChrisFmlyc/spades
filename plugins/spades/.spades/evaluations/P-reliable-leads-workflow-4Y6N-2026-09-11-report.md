@@ -1,7 +1,7 @@
 # Evaluation report: P-reliable-leads-workflow-4Y6N
 
-AI verification completed on 2026-09-11. Proposed verdict: PASS.
-Human confirmation is pending; the Plan has no confirmed Evaluation verdict.
+AI verification completed on 2026-09-11. Verdict: PASS.
+Chris subsequently instructed: "when complete commit, push, merge pr etc, then run repo:sync in the spades repo on main". The Plan records that shipment authorization after the completed checks.
 
 ## Acceptance checks
 
