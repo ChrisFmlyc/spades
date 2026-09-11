@@ -227,7 +227,7 @@ const PLAN_CORE_REQUIRED = [
 ] as const;
 const PLAN_ENUMS: Enums = {
   status: [
-    "draft", "approved", "delivering", "evaluating", "shipped", "rejected",
+    "draft", "approved", "delivering", "evaluating", "shipping", "shipped", "rejected",
   ],
   delivery: ["ai", "human", "hybrid", "undecided"],
   evaluation: ["ai", "human", "hybrid", "undecided"],

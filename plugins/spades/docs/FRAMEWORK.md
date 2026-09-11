@@ -426,7 +426,7 @@ id_suffix: 3HyD                     # 4-char base62, randomly minted
 scope: S-add-ai-helper-bot
 title: "RAG Pipeline Lookup"
 depends_on: [28sD]                  # list of prior plans' id_suffix values
-status: draft | approved | delivering | evaluating | shipped | rejected
+status: draft | approved | delivering | evaluating | shipping | shipped | rejected
 delivery: ai | human | hybrid       # set by /spades:approve
 evaluation: ai | human | hybrid     # set by /spades:evaluate
 deliverable_type: code | artefact | action  # what Ship needs to do

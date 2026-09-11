@@ -16,6 +16,8 @@ changes). The consumer-repo marker block in `AGENTS.md` carries the
   `--sync L-<id>` reconciles pending mirror operations for recorded decisions.
 - Evaluate, Learn and Research return verified worker receipts. Loop and Ship
   check evaluation completion and carry the authorised Lead records forward.
+- The Plan schema accepts the `shipping` phase used for an open delivery PR,
+  with a regression fixture in the local-frontmatter lint.
 - Skills: `leads` 3.1.0, `evaluate` 3.9.7, `learn` 5.0.4, `research` 2.3.2,
   `loop` 1.10.2 and `ship` 3.6.4.
 

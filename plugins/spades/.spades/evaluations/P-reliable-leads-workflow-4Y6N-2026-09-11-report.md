@@ -12,7 +12,7 @@ Chris subsequently instructed: "when complete commit, push, merge pr etc, then r
 | Completion evidence | PASS by contract walkthrough: worker receipt, candidate accounting, local read-back and a marker after the latest verdict precede advancement; all five callers point to the shared contract. |
 | Lifecycle and publication | PASS by contract walkthrough: related local fields are written together, remote state is read back, operation results remain distinct from publication, and later verified reconciliation supersedes earlier failure for that operation. |
 | Cross-worktree inventory | PASS by contract walkthrough: explicit all-worktrees mode groups identities and observations, resolves source through lineage and transfer evidence, reports conflicting copies and unavailable coverage, and keeps management separate. |
-| Targeted changes | PASS: only Leads and the relevant portions of Evaluate, Ship, Loop, Learn and Research changed, with the shared contract, release metadata and this work's audit records. |
+| Targeted changes | PASS: only Leads and the relevant portions of Evaluate, Ship, Loop, Learn and Research changed, with the shared contract, release metadata and this work's audit records. Shipment also required the CI schema alignment and regression fixture documented below. |
 | Prose and repository validation | PASS: green-field instructions state intended behaviour directly. All five lint suites pass; draft-to-final unslop preservation is 113/113, with zero banned phrases and zero structure flags. |
 
 ## Scenario walkthrough
@@ -56,3 +56,7 @@ The automated preservation check retained all 113 extracted draft constraints. B
 ## Release checks
 
 Plugin 6.1.3 -> 6.2.0 agrees across plugin.json, marketplace metadata, marketplace plugin entry and .spades/version. Leads is 3.1.0; Evaluate 3.9.7; Learn 5.0.4; Research 2.3.2; Loop 1.10.2; Ship 3.6.4. The AGENTS version remains 3.0.1. The changelog contains the 6.2.0 entry. All 16 other skill directories retain their original content.
+
+## CI shipment follow-up
+
+The first PR run rejected the documented shipping Plan phase because its enum was missing from the schema and validator. The enum now includes shipping in both places, and good-shipping-plan.md exercises that phase alongside the existing valid and invalid fixtures. The new fixture was reproduced as failing against the original validator and passes with the alignment. This CI-only follow-up supports the existing Ship phase.
