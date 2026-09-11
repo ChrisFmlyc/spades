@@ -11,7 +11,7 @@ run them locally before pushing with:
 
 | Script                          | What it guards |
 |---------------------------------|----------------|
-| `lint-skill-frontmatter.sh`     | Every `skills/*/SKILL.md` parses and carries `name`, `description`, and a semver `version`. |
+| `lint-skill-frontmatter.sh`     | Every `skills/*/SKILL.md` parses and carries `name`, `description`, and a plain `X.Y.Z` `version`. |
 | `lint-agents.sh`                | Every `agents/*.md` parses and carries `name`, `description`, `model`, `tools`, `persona`, `focus`. Skips cleanly if the directory is absent. |
 | `lint-examples.sh`              | `examples/example-scope.md` and `examples/example-plan.md` conform to the v2 Scope and Plan schemas; `examples/example-intent.md` has the six locked INTENT sections + `last_reviewed:`; the local-mode fixture's scopes/plans conform. |
 | `lint-learnings.sh`             | `.spades/learnings/*.md` carry the required learning frontmatter (`title`, `area`, `tags`, `created`, `status`, `public_safe`); `area` is one of `scope|plan|approve|deliver|evaluate|ship|other`; `created` is `YYYY-MM-DD`. Warns on active entries older than 180 days. |
