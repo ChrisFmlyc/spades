@@ -1881,12 +1881,16 @@ completion evidence runs the handoff from the stored evaluation context and
 records today's result. Insufficient stored context returns the evidence
 needed to finish that check.
 
-Ship includes the current run's authorised Lead changes and evaluation
-records in the proposed commit under § Carry-Forward of SPADES-Owned
-Artefacts. Verify their inclusion before publication. Identify pending
-records owned by other worktrees with their source and next handoff; their
-inclusion follows the same ownership rules. Publication of local records
-and verification of optional mirrors have separate outcomes.
+For `deliverable_type: code`, Ship includes the current run's authorised
+Lead changes and evaluation records in the proposed commit under
+§ Carry-Forward of SPADES-Owned Artefacts and verifies their inclusion before
+publication. For `artefact` and `action`, Ship retains those records and their
+receipt in the delivery context and records their next authorised commit
+handoff. Every deliverable type requires the verified Leads handoff and
+receipt. Identify pending records owned by other worktrees with their source
+and next handoff; their inclusion follows the same ownership rules.
+Publication of local records and verification of optional mirrors have
+separate outcomes.
 
 Learn's capture, Skip and `--refresh` paths, and Research's standalone and
 scoped paths, all finish with the verified receipt and brief. Research does

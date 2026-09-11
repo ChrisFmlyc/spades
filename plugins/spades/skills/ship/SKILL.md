@@ -53,10 +53,13 @@ keep the files current while the Plan remains the active review page.
    `docs/FRAMEWORK.md § Leads handoff` for every participating Plan. Require
    the completion marker after its latest verdict and verify the reported
    records in the delivery context. Complete a missing or unverifiable
-   handoff from stored evidence before publishing. Include the current run's
-   authorised Lead changes and evaluation records in the proposed commit
-   and verify their inclusion. Report pending mirror operations and records
-   owned by other worktrees with their source and next handoff.
+   handoff from stored evidence before publishing. For `deliverable_type: code`,
+   include the current run's authorised Lead changes and evaluation records
+   in the proposed commit and verify their inclusion. For `artefact` and
+   `action`, retain those records and their receipt in the delivery context,
+   with their next authorised commit handoff recorded. Report pending mirror
+   operations and records owned by other worktrees with their source and next
+   handoff.
 9. **Open the review surface** per § Output format.
 
 ## Step 1 — Fresh run or resume (`deliverable_type: code`)
