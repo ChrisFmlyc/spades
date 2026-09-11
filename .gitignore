@@ -49,3 +49,6 @@ node_modules/
 
 # Local Playwright MCP debug output.
 .playwright-mcp/
+
+# Claude Code worktree isolation — keep subagent worktrees out of the repo
+.claude/worktrees/
