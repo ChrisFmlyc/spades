@@ -197,8 +197,21 @@ an ambiguous target or conflicting decisions returns the evidence and the
 user decision needed. A remote label or workflow state alone establishes
 only the remote state.
 
-Promotion records the decision and points to `/spades:scope` or
-`/spades:quick`; execution proceeds through that work's own gates.
+Promotion to `S-…` proceeds through that Scope's approved Plans; promotion
+to `Q-…` proceeds through `/spades:quick` eligibility and validation.
+
+A document target is a repository-relative file path or a stable document
+URL, stored as the `promoted_to:` value. Record its owning `S-…` or `Q-…`,
+and the implementing `P-…` where applicable, in `## History`. Resolve that
+ownership from the linked work records or the user's decision; an unresolved
+owner returns target pending. Document changes follow the owner's approved
+Plan or Quick workflow, including its evaluation and shipment requirements.
+
+To close a promoted Lead as `done`, use the authorised closure decision and
+record the owner's shipment evidence together with the result that addresses
+the discovery. For a document, cite its delivered revision or published
+reference and the section that addresses the Lead. Apply the same local
+closure and mirror verification procedure as `--close`.
 
 ## Inventory
 
