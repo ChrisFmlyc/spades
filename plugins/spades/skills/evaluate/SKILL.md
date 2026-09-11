@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.9.6
+version: 3.9.7
 ---
 
 # /spades:evaluate
@@ -70,9 +70,9 @@ Read the Plan's audit trail:
   complete. Awaiting human report on …` (hybrid) or `Verification
   plan written, awaiting human execution.` (human) → resume at
   Step 5.
-- Already followed by `Evaluation — verdict:` → the evaluation is
-  complete; ask whether to re-evaluate fresh or go to
-  `/spades:ship`.
+- Already followed by `Evaluation — verdict:` → verify the completed
+  Leads handoff for that verdict, finishing it from stored evidence when
+  needed. Then ask whether to re-evaluate fresh or go to `/spades:ship`.
 
 ## Step 1 — Routing — `AskUserQuestion`
 
@@ -366,9 +366,15 @@ record; the check is against the PR.
 
 ## Mandatory completion handoff
 
-After the verdict and its records are complete (PASS, PARTIAL or FAIL,
-including scope-wide and Quick evaluations), MUST invoke `/spades:leads`
-(Claude Code) or `$spades:lead` (Codex) in a dedicated subagent with the
-evaluation context per `docs/FRAMEWORK.md § Leads handoff`. Wait, report the
-result and record the evaluation handoff marker before returning; Ship may
-start only after this handoff has completed.
+After each completed PASS, PARTIAL or FAIL, run the dedicated Leads worker
+and verify its receipt per `docs/FRAMEWORK.md § Leads handoff`. Supply all
+evaluation evidence, including known warnings and earlier captures with
+their observation keys. Account for every candidate and read back the
+reported records before recording completion.
+
+Persist the receipt, append the `Leads checked — source: evaluate;` marker
+after the latest verdict, and read it back before the next-step brief or
+return to the caller. Scope-wide evaluation checks combined evidence once
+and records the result on each evaluated Plan; Quick evaluations record it
+on the Quick item. Reuse verified completion for the same evidence and
+verdict. Report pending publication and mirror operations with the result.

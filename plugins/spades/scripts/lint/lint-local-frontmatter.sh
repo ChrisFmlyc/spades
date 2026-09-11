@@ -76,8 +76,7 @@ run_dir scope   "$SCOPES_DIR"
 run_dir plan    "$PLANS_DIR"
 
 # --- Self-test ----------------------------------------------------------
-# The planted fixtures must continue to behave: bad-scope.md MUST fail;
-# good-scope.md MUST pass; bad-plan.md MUST fail; good-plan.md MUST pass.
+# Valid Scope and draft/shipping Plan fixtures pass; malformed fixtures fail.
 echo
 self_test() {
     local kind="$1" fixture="$2" expect="$3"
@@ -108,6 +107,7 @@ self_test scope bad-scope.md  fail
 self_test scope good-scope.md pass
 self_test plan  bad-plan.md   fail
 self_test plan  good-plan.md  pass
+self_test plan  good-shipping-plan.md pass
 
 echo
 if [ "$fail" -eq 0 ]; then
