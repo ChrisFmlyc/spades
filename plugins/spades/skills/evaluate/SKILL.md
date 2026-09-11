@@ -1,7 +1,7 @@
 ---
 name: evaluate
-description: Check delivered output against a Plan's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.9.7
+description: Checks delivered output against the Scope's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
+version: 3.9.8
 ---
 
 # /spades:evaluate
@@ -259,9 +259,9 @@ Overall: PARTIAL — C4 needs a follow-up.
 with `output_path` ending `-report.html`, `open_path` selecting that
 report for its initial presentation, `mode: "report"`,
 `brand_label: "Evaluation Report"`, `heading_prefix: "Evaluation
-report"`, `page_title: "Evaluation"`, `tagline: "All verdicts
-confirmed. The Plan's audit-trail line is the authoritative record;
-this report is the human's rich view."`, the derived `verdict` /
+report"`, `page_title: "Evaluation"`, `tagline: "Review the verification
+results and proposed verdict. The confirmed verdict is recorded in
+the Plan's audit trail."`, the derived `verdict` /
 `verdict_class`, the rationale as `verdict_summary_html` (escaped,
 in `<p>`), and `pass_count` / `partial_count` / `fail_count` from
 the rows. `verification-rows` carry the recorded verdicts and notes;

@@ -14,9 +14,8 @@ through a bookkeeping PR, and mirroring to Linear — is
 ## 1. Verify the Scope worktree
 
 Resolve the Scope branch through `/repo:newbranch --resume <branch>` per
-`docs/FRAMEWORK.md § Scope Worktrees`. Use its returned directory. A
-mismatched branch requires returning to the recorded worktree, not publishing
-whichever checkout happens to be current.
+`docs/FRAMEWORK.md § Scope Worktrees`. Publish from its returned directory
+after verifying that it matches the recorded branch.
 
 ## 2. Commit approved pending records
 
@@ -41,18 +40,14 @@ Look up the PR by the Scope branch and explicit configured base branch.
 Reuse an existing open PR on resume; if it is merged or closed, surface
 that state rather than creating another delivery PR from the old branch.
 For a new PR, invoke `/repo:pr` with a title and body covering the Scope's
-result, all participating Plans and their validation, then create it with
-explicit `--head <scope-branch>` and `--base <default-branch>`.
+result, all participating Plan IDs, approval/evaluation evidence and relevant
+validation.
 
 Write the `/repo:pr` result to a body file, then create:
 
 ```bash
 gh pr create --head <scope-branch> --base <default-branch> --title "<title>" --body-file <body-file>
 ```
-
-The description covers the Scope's result, all participating Plan IDs,
-approval/evaluation evidence and relevant validation. It describes the
-whole branch's reviewed result rather than only the last Plan executed.
 
 Capture the PR URL from the output.
 

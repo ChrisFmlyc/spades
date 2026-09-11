@@ -6,16 +6,13 @@ last_reviewed: 2026-05-29
 
 ## Problem
 
-Teams adopting AI agents for engineering work fall into one of two failure
-modes. Either AI is used as fancy autocomplete — humans still do all the
-planning, structuring, and project management, so there is no leverage. Or AI
-is handed open-ended goals with no review gates — and produces work that is
-confidently wrong: architecturally off, insecure, or solving the wrong
-problem. There is no shared, auditable operating model for *where humans
-decide and where AI executes*. A second pain compounds it: AI-delivered work
-becomes opaque — with no recorded plan, nobody can later explain what
-frameworks, patterns, or decisions went into the output, and debugging it in
-production is guesswork.
+Teams need a shared, auditable model for deciding what humans and AI
+handle. Using AI only for code completion leaves humans with all the
+planning and project management. Giving it open-ended goals without
+review gates can produce work that is architecturally wrong, insecure,
+or solves the wrong problem. Without a recorded plan, developers also
+lack an explanation of the frameworks, patterns, and decisions behind
+the output when debugging it.
 
 ## Users
 
@@ -32,24 +29,23 @@ ships to customers.
 
 SPADES is a convention-plus-skills framework. It defines a six-phase loop —
 Scope → Plan → Approve → Deliver → Evaluate → Ship — with explicit ownership:
-humans own the edges (intent at Scope, verification at Evaluate, gating at
-Approve), AI owns the middle (planning and execution), and Deliver is routed at
-Approve time (AI / human / hybrid). A Project layer above Scopes groups
-related work; pluggable backends (Linear MCP, local filesystem,
+humans define Scope, AI drafts Plans, and approval records delivery
+routing (AI / human / hybrid). Evaluation checks the result. Under
+`/spades:loop`, the AI handles gates it can complete; verification
+that requires a human waits for that person. A Project layer above
+Scopes groups related work; pluggable backends (Linear MCP, local filesystem,
 extensible) keep the framework agnostic about where artefacts live.
-It ships as Claude Code skills (`/spades:*`), with templates embedded
-inside each producing skill, and an `AGENTS.md` enforcement layer any
-agent reads.
+It ships as Claude Code skills (`/spades:*`), with templates bundled
+inside each producing skill directory, and `AGENTS.md` operating rules
+for agents that read project context.
 
 ## Success
 
 SPADES is working when every delivered piece of work can be traced back through
 project → scope → plan(s) → approval (with routing) → deliver → evaluation → ship,
-and a developer can explain *why* the output looks the way it does. When the
-Approve gate genuinely catches bad plans rather than rubber-stamping them.
-When neither failure mode (all-manual, or unsupervised-slop) shows up in
-practice. And when each pass of the loop makes the next one stronger —
-captured learnings actually reach the next Plan.
+and a developer can explain *why* the output looks the way it does.
+Approval catches defective Plans, delivery follows its recorded routing,
+and captured learnings inform later Plans.
 
 ## Non-goals
 
@@ -58,8 +54,9 @@ captured learnings actually reach the next Plan.
 - SPADES does **not** plan strategy. Deciding *what* to build and *why it
   matters to the business* is human-owned; SPADES consumes the output of
   strategic thinking as Scopes, it does not generate it.
-- AI never decides what to build, and AI output is never shipped without
-  human verification — this is a permanent boundary, not a maturity stage.
+- AI never decides what to build. Shipment requires verification under
+  the recorded evaluation routing; checks that require a human wait
+  for that person.
 - SPADES does **not** bind to a single agent vendor (no `CLAUDE.md`,
   no `CURSOR.md`) and does **not** auto-probe for a backend — backend
   selection is explicit.
@@ -67,8 +64,8 @@ captured learnings actually reach the next Plan.
 
 ## Maturity
 
-In production at v2.0 and dogfooding itself — SPADES governs its own
-development through the same loop it provides. v2.0 was a substantial
+SPADES governs its own development through the same loop it provides.
+It has been in production since v2.0, which introduced a substantial
 restructure (Project layer above Scopes, six-phase loop with Deliver and
 Ship as first-class phases, pluggable backends behind a documented
 contract, every template embedded in its producing skill). The core

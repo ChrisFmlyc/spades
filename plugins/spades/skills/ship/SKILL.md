@@ -1,14 +1,13 @@
 ---
 name: ship
-description: Ship the deliverable produced by an approved + done Plan. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.6.4
+description: Ships the deliverable produced by an approved Plan after evaluation. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
+version: 3.6.5
 ---
 
 # /spades:ship
 
-You are shipping the deliverable of an evaluated Plan. Ship is the
-moment work becomes real to the outside world: a PR is published, an
-artefact is filed, an action's evidence is recorded.
+Ship the evaluated Plan's deliverable: publish its PR, record its artefact
+reference, or record evidence of the completed action.
 
 Read `docs/FRAMEWORK.md` § Hierarchy (`deliverable_type`), § Target
 Resolution, § Audit Trail (the `Shipped` marker), § Carry-Forward of
@@ -31,19 +30,16 @@ keep the files current while the Plan remains the active review page.
    `.spades/config`.
 3. **Resolve the target Plan** per `docs/FRAMEWORK.md § Target
    Resolution` — artefact type Plan; status filter `evaluating` with
-   a PASS verdict in the audit trail (PASS Plans listed first,
-   PARTIAL below with an annotation, FAIL excluded); zero candidates
-   → suggest `/spades:evaluate P-…`.
+   a PASS verdict in the audit trail; zero candidates → suggest
+   `/spades:evaluate P-…`.
 4. **Read the Plan and its parent Scope** in the resolved Scope worktree
    per § Scope Worktrees. Reuse that context for all drivers.
 5. **Verify ancestors active** per § Target Resolution →
    Parent-status precondition; hard abort on an `abandoned` Scope or
    an `abandoned` / `archived` Project.
-6. **Verify the verdict.** `evaluating` + PASS → ship. `evaluating`
-   + PARTIAL → ask whether to ship with the remaining gaps accepted
-   (recorded in the audit trail) or return to `/spades:deliver`.
-   `evaluating` + FAIL, or any other status → abort with a clear
-   message.
+6. **Verify the verdict.** `evaluating` + PASS → ship. PARTIAL →
+   stop and direct the caller to `/spades:deliver P-…` for the remaining
+   gaps. Any other status or verdict → abort with a clear message.
 7. **Scope PR readiness (`code`, `scm: github`).** Before marking any Plan
    shipping, check every non-rejected code Plan in the Scope has completed
    delivery and a current confirmed PASS. If siblings are pending, keep

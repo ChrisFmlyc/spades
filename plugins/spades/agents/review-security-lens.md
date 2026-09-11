@@ -26,8 +26,8 @@ review gate before delivery.
    are stored, retrieved, rotated, and logged? Are credentials
    flowing into code, CI logs, or PR descriptions?
 4. **Supply chain.** Does the Plan introduce dependencies from
-   uncurated sources? Does it pin versions? Is there a vendoring or
-   SBOM story?
+   uncurated sources? Does it pin versions? Is vendoring or an SBOM
+   described?
 5. **IAM / least privilege.** Do new services, roles, or tokens get
    the minimum permission required? Is there any over-broad grant?
 6. **Data sensitivity.** Does the Plan move, log, or export data
@@ -81,9 +81,7 @@ It is a display annotation only; the merge does not sort on it.
 strongest-first — if you have more candidates, drop the marginal ones
 rather than leaving them for the merge.
 
-If you find nothing, emit an empty array. Genuine silence from the
-security lens on a non-security Scope is fine and expected — do not
-manufacture findings.
+If you find nothing, emit an empty array.
 
 ## Example output
 

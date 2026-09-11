@@ -1,7 +1,7 @@
 ---
 name: status
-description: Show the current SPADES phase, progress, and dependency graph for active work. Use when someone asks "where are we", "what's the status", "show progress", or any question about current state. Renders the Plan dependency graph so the human can see which plans are unblocked vs waiting.
-version: 3.6.3
+description: Shows the current SPADES phase, progress, and dependency graph for active work. Use when someone asks "where are we", "what's the status", "show progress", or any question about current state. Renders the Plan dependency graph so the human can see which plans are unblocked vs waiting.
+version: 3.6.4
 ---
 
 # /spades:status
@@ -25,8 +25,8 @@ and prints a one-line brief with the path.
 1. **Read `.spades/config`** — `backend:`, `project:`,
    `review_format:`.
 2. **Apply `--project <slug>`** when given; otherwise the active
-   project. An `abandoned` active Project aborts with *"Project
-   `<slug>` is abandoned. Run `/spades:status --project <other>`."*
+   project. Report an `abandoned` Project's status and continue with the
+   selected filter per § Target Resolution → Parent-status precondition.
 
 ## Step 1 — Fetch
 
@@ -116,17 +116,17 @@ Plans (dependency order):
   ✓ P-rag-pipeline-lookup-3HyD-28sD     [shipped]    code   ai
   ⏵ P-deploy-bot-9XaZ-3HyD-28sD         [delivering] code   ai
   ⊘ P-launch-announcement-7QkP-9XaZ     [draft]      artefact human
-         └─ blocked: waiting for P-deploy-bot-9XaZ to ship
+         └─ blocked: waiting for P-deploy-bot-9XaZ to pass evaluation or ship
 ```
 
 Symbols: `✓` shipped · `⏵` in progress (delivering / evaluating /
-shipping) · `▷` ready (approved, dependencies shipped) · `◐` partial
-(a PARTIAL verdict) · `⊘` blocked · `⌧` rejected. Columns after the
+shipping) · `▷` ready (approved, dependencies ready per § Scope Worktrees) ·
+`◐` partial (a PARTIAL verdict) · `⊘` blocked · `⌧` rejected. Columns after the
 ID: status, `deliverable_type`, `delivery`.
 
-A Plan is blocked when any `depends_on` sibling is not `shipped`;
-show the blocking edge inline. A `▷ ready` Plan is the next thing to
-do.
+A non-terminal Plan is blocked when any `depends_on` sibling is not ready
+per § Scope Worktrees; show the blocking edge inline. Recommend a
+`▷ ready` Plan for delivery.
 
 ## Step 4 — Recommendation
 

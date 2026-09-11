@@ -79,10 +79,8 @@ classify each as `shipped`, `rejected`, or in flight.
 | Every sibling `rejected` | No rollup; the Scope shipped nothing. Say so; the Plan's own close-out proceeds. |
 | A sibling in flight | No rollup. |
 
-"All Plans terminal" is not "the Scope is done": Plans deferred at
-planning and never written leave criteria untouched. Read the
-Scope's acceptance criteria and check the shipped Plans cover them.
-Where they don't, surface the uncovered criteria via
+Check the shipped Plans cover the Scope's acceptance criteria, including
+work deferred during planning. Surface uncovered criteria via
 `AskUserQuestion`:
 
 - **Leave the Scope open** *(recommended)* — append `- YYYY-MM-DD:
@@ -115,7 +113,8 @@ frontmatter alongside `status: done`. **No outcome** leaves
 Scope outside a strategy is a valid Scope. This question is asked on
 roll-up only; the abandon route never asks it.
 
-A declined one leaves the Scope unchanged and appends to the Plan:
+If the human declines a mixed-terminal rollup, leave the Scope unchanged
+and append to the Plan:
 
 ```markdown
 - YYYY-MM-DD: Scope rollup deferred (mixed-terminal; human declined).

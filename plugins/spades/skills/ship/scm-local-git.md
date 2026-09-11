@@ -13,16 +13,15 @@ this run.
 ## 1. Verify the Scope worktree
 
 Resolve the Scope branch through `/repo:newbranch --resume <branch>` per
-`docs/FRAMEWORK.md § Scope Worktrees`. Use its returned directory. A
-mismatched branch requires returning to the recorded worktree, not publishing
-whichever checkout happens to be current.
+`docs/FRAMEWORK.md § Scope Worktrees`. Publish from its returned directory
+after verifying that it matches the recorded branch.
 
 ## 2. Commit approved pending records
 
 Follow `docs/FRAMEWORK.md § Carry-Forward → Commit contents`. Inspect the
 complete index, include authorised pending records, and preserve excluded
 staged/unstaged changes. Existing committed work is already part of this
-branch's PR and needs no additional inclusion question. Unknown uncommitted
+branch's shipment and needs no additional inclusion question. Unknown uncommitted
 work needs the human's decision before adding it.
 
 If approved records remain, commit them through `/repo:branch` with

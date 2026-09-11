@@ -1,21 +1,14 @@
 ---
 name: quick
-description: Fast-track path for trivial work — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when someone says "just fix this small thing", "quick tweak", "one-line change", "typo fix", "rename this variable", or when you would otherwise invoke /spades:scope for a change that clearly meets every gate criterion below. Work that touches architecture, auth, schemas, or public APIs, or needs more than one focused commit, takes the full loop via /spades:scope.
-version: 2.4.1
+description: Delivers trivial work through the fast-track path — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when someone says "just fix this small thing", "quick tweak", "one-line change", "typo fix", "rename this variable", or when you would otherwise invoke /spades:scope for a change that clearly meets every gate criterion below. Work that touches architecture, auth, schemas, or public APIs, or needs more than one focused commit, takes the full loop via /spades:scope.
+version: 2.4.2
 ---
 
 # /spades:quick
 
-You are delivering a trivial change through the fast-track path.
-The full loop is the wrong shape for a typo or a one-line config
-nudge; `/spades:quick` compresses it into **Identify → Fix → Verify →
-Publish**, with a quick-item marker file as the audit record and no
-Scope or Plan.
-
-The path is a privilege gated by ten criteria. Every criterion
-passes or the work goes to `/spades:scope`. When in doubt, the full
-loop costs minutes; a fast-tracked change that needed a Scope costs
-the audit trail.
+Deliver a trivial change through **Identify → Fix → Verify → Publish**,
+using a quick-item marker file as the audit record and no Scope or Plan.
+Every fast-track criterion must pass; otherwise use `/spades:scope`.
 
 Read `docs/FRAMEWORK.md` § Fast-Track Path, § ID Format, and
 § Carry-Forward of SPADES-Owned Artefacts before running.
@@ -50,10 +43,15 @@ When a criterion fails:
 > This doesn't fit the fast-track gate because <criterion>. Running
 > `/spades:scope` for the full loop is the right call here.
 
-The gate also holds mid-flight. A "simple" fix that grows a second
-file or exposes a schema issue stops immediately, uncommitted; the
-human hears which criterion now fails, and the work carries into a
-proper Scope. Bailing out is the gate working.
+Recheck the gate as the fix develops. If any criterion fails, stop
+immediately with the work uncommitted, tell the human which criterion
+failed, and invoke `/spades:scope`. Record the Quick worktree path and the
+implementation changes proposed for inclusion in the Scope's context.
+After Plan approval, when `/spades:deliver` establishes the Scope's delivery
+worktree, apply only the approved implementation changes to its fresh base
+and verify the transfer against the Quick source. Follow the carry-forward
+contract for inclusion decisions and preserve the source files and index;
+excluded edits remain uncommitted in the Quick worktree.
 
 ## Classification
 

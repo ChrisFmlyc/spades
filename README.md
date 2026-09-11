@@ -1,22 +1,22 @@
 # SPADES Framework
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-5.21.0-green.svg)](.claude-plugin/marketplace.json)
+[![Version](https://img.shields.io/badge/version-6.2.1-green.svg)](.claude-plugin/marketplace.json)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-marketplace-blueviolet.svg)](https://claude.ai/code)
 
 A human–AI operating model for engineering work. SPADES is a
-six-phase loop (**S**cope → **P**lan → **A**pprove → **D**o →
-**E**valuate → **S**hip) with explicit human gates, an
-audit-trail-first artefact shape, and pluggable backends.
+six-phase loop (**S**cope → **P**lan → **A**pprove → **D**eliver →
+**E**valuate → **S**hip) with explicit human gates,
+records that preserve an audit trail, and pluggable backends.
 
 This repo ships the [`spades`](./plugins/spades) plugin for coding
 harnesses — Claude Code, Codex CLI, Gemini CLI, Cursor, Aider,
 Cline. 22 skills, 5 agents, Linear / local backends, opt-in HTML
 mode, sub-agent fan-out.
 
-The framework is markdown-only — no bash, no external runtime,
-no per-vendor tooling. Plugins are portable; only the *install
-mechanism* varies by harness.
+Skills describe the workflow in Markdown and use the tools available
+in the coding harness. Installation and tool names vary by harness.
+The repository also includes HTML templates and CI lint scripts.
 
 ---
 
@@ -110,17 +110,17 @@ into the harness's context.
 
 ---
 
-## Caveats — what works today vs what's aspirational
+## Harness compatibility
 
 Only **Claude Code** has a native one-command install. Codex CLI
 and Gemini CLI accept the plugin's content through their own
 primitives (Skills, Extensions) — install works, but the skill
 prose references Claude-Code tool names (`AskUserQuestion`,
-`Agent`) that those harnesses don't have; the dispatch-mode
-triplet in `FRAMEWORK.md § Sub-agent Dispatch` handles the
-absence gracefully (sub-agent → sequential → degraded). Every gate
-and skill still works because the framework is markdown-only with
-no runtime tool dependency.
+`Agent`) that those harnesses don't have. `FRAMEWORK.md
+§ Sub-agent Dispatch` defines the available modes
+(sub-agent → sequential → degraded).
+A skill can run only when the harness supplies its required tools;
+its contract defines what happens when a capability is missing.
 
 The framework is **deliberately harness-agnostic at the contract
 level** — six phases, gates, audit trail, artefact shape, Linear /

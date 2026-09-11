@@ -1,15 +1,13 @@
 ---
 name: scope
 description: Creates or edits a SPADES Scope in the current documentation session and records its intended delivery branch for later execution. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 4.1.1
+version: 4.1.2
 ---
 
 # /spades:scope
 
-You are creating or editing a Scope. A Scope is the contract that
-everything downstream is measured against: the Plan is drafted from
-it, Evaluate verifies against its acceptance criteria, and Ship is
-the moment it becomes real. A weak Scope produces a weak Plan.
+Create or edit a Scope with the outcome, acceptance criteria and constraints
+that guide Plan, Evaluate and Ship.
 
 Read `docs/FRAMEWORK.md` § ID Format, § .spades/ Local Layout, and
 § Output Format before running. The schema below mirrors that
@@ -162,7 +160,7 @@ What this Scope explicitly excludes. Be specific; the section is
 always filled.
 
 ### 7. Risk / Unknowns
-Known landmines the Plan must respect, or *"None identified"*.
+Known risks the Plan must address, or *"None identified"*.
 
 ### 8. Delivery Preference
 Ask via `AskUserQuestion`, the inferred value first and marked
@@ -365,8 +363,7 @@ Next:
   /spades:review S-add-ai-helper-bot   — optional second opinion before planning
 ```
 
-The second-opinion suggestion is a pointer; this skill invokes no
-other skill.
+Offer `/spades:review` as a separate, optional next step.
 
 ## Edit mode
 

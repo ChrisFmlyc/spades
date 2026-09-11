@@ -14,26 +14,27 @@ a package.
 
 - **Users** are engineers working in any coding agent that honours
   `AGENTS.md` (Claude Code, Cursor, Codex, Aider, …). The SPADES
-  Claude Code plugin adds 15 slash-commands; in other agents, the
+  Claude Code plugin adds 22 slash-commands; in other agents, the
   rules still apply via `AGENTS.md`.
 - **Surface area** is a set of Markdown skill files
   (`plugins/spades/skills/<name>/SKILL.md`), five subagent definitions
   (`plugins/spades/agents/*.md`), framework reference docs under
   `plugins/spades/docs/`, and CI-only lint scripts.
 - **Core loop** is six phases with explicit ownership:
-  Scope (H) → Plan (AI) → Approve (H gate) → Deliver (routed) →
-  Evaluate (H gate) → Ship (mixed).
+  Scope (H) → Plan (AI) → Approve (gate) → Deliver (routed) →
+  Evaluate (gate) → Ship (mixed). Gate ownership follows
+  `docs/FRAMEWORK.md § The human gate` when `/spades:loop` runs.
 
-The "system" is a set of files. There is no server, no database, no
-compiled artefact, no runtime agent of our own. Behaviour emerges from
-skill prose that the agent reads and follows.
+Agents execute the instructions in these files. SPADES owns no
+server, database, compiled artefact, or runtime agent.
 
 ## Hierarchy
 
-A new layer above Scope, introduced in v2.0:
+Projects contain independent Objectives and Scopes:
 
 ```
 Project (a repo, a service, or a set of repos)
+├── Objective (a strategic action, O-<description-slug>)
 └── Scope (one outcome, S-<description-slug>)
     └── Plan (one unit of executable work, P-<slug>-<suffix>[-<dep>...])
 ```
@@ -45,12 +46,13 @@ and § ID Format for the contracts.
 
 ## Backend Abstraction
 
-SPADES v2.0 is **backend-agnostic**. The active backend is named
+SPADES supports multiple backends. The active backend is named
 explicitly in `.spades/config` (`backend: linear | local`) — no
 auto-probe. Two drivers ship today:
 
 - **Linear** (via the Linear MCP) — Project ↔ Linear Project; Scope ↔
   parent Issue; Plan ↔ sub-issue; audit records post as comments.
+  Local Markdown remains canonical; Linear mirrors it.
 - **Local** (filesystem) — every artefact is a Markdown file under
   `.spades/`; audit records append to an `## Audit Trail` heading on
   the relevant record.
@@ -68,13 +70,14 @@ the worked example.
   `plugins/spades/` contains everything the framework needs at
   runtime — skills, agent definitions, docs, examples.
 - **Storage:** per-repo state in `.spades/` (`config`, `version`,
-  `projects/`, `scopes/`, `plans/`, `learnings/`, `reviews/`).
+  `projects/`, `objectives/`, `scopes/`, `plans/`, `quick/`,
+  `learnings/`, `reviews/`, `leads/`).
   Intended to be committed alongside project code, except
   `.spades/reviews/` (full panel-review reports) which is gitignored
   by default.
 - **Integrations:** any system reachable via an MCP server. Linear is
-  the only driver shipped in-tree today; the rest are extension
-  points.
+  the only MCP backend shipped in-tree; local storage uses the
+  filesystem. Other MCP backends are extension points.
 - **Runtime:** any coding agent that honours `AGENTS.md`. Skills are
   pure-Markdown prose the agent reads and follows; behaviour is
   described, not coded. Zero bash in the runtime path.
@@ -99,8 +102,10 @@ no helper binary on PATH owned by this framework.
 6. `/spades:deliver` executes per the routing.
 7. `/spades:evaluate` checks delivered output against the Scope's
    acceptance criteria.
-8. `/spades:ship` releases the deliverable — PR + review + merge for
-   code, or a recorded reference for artefact / action deliverables.
+8. `/spades:ship` opens the shared Scope PR for GitHub code work;
+   `/spades:close` records shipment after verified merge. Local-git
+   shipment records the commit directly. Artefact / action
+   deliverables use their own recorded evidence.
 
 `/spades:review` is available throughout as an independent panel-based
 second opinion (advisory, never gating). `/spades:learn` captures
@@ -113,16 +118,15 @@ later surfaces automatically on related Scopes.
 |------------------|------------------------------------------|-------|
 | Skill format     | Markdown with YAML frontmatter           | `plugins/spades/skills/<name>/SKILL.md`. Plugin-namespaced as `/spades:<name>`. |
 | Distribution     | Claude Code plugin marketplace           | `.claude-plugin/marketplace.json` at repo root; plugin at `plugins/spades/`. |
-| Bundled resources| `agents/`, `docs/`, `examples/`          | All siblings of `skills/` in the plugin tree. Skills do NOT cross-reference siblings via `${CLAUDE_PLUGIN_ROOT}` — the runtime auto-loads agents by name and skills carry their own templates inline. |
+| Bundled resources| `agents/`, `docs/`, `examples/`          | All siblings of `skills/` in the plugin tree. The runtime loads agents by name; skills read their bundled templates and references by explicit path. |
 | Backend drivers  | Linear MCP, local filesystem             | Linear is the only MCP-backed driver shipped today; local is filesystem-only. Other MCPs (Notion, Confluence) are extension points documented in `docs/EXTENDING-BACKENDS.md`. |
 | Agents           | Any AGENTS.md-honouring coding agent     | Skills target Claude Code first because of the plugin surface, but the rules in `AGENTS.md` apply to every agent. |
-| Versioning       | Marker block + `.spades/version`          | `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->` delimits the framework-owned block inside consumer `AGENTS.md`. Version sourced from `.claude-plugin/plugin.json`. |
+| Versioning       | Marker block + `.spades/version`          | `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->` delimits the framework-owned block inside consumer `AGENTS.md`. The marker uses `agents_version` from `.spades/version`; the plugin version comes from `.claude-plugin/plugin.json`. |
 | CI               | GitHub Actions (`.github/workflows/lint.yml`) | Parallel lint jobs — see `scripts/lint/README.md` for the list. Node 22.18+ (built-ins only) for the frontmatter parser. |
 
 ## External Toolchain Policy
 
-TypeScript-on-Node is the only non-Markdown toolchain permitted in
-this repo, and only under the narrow conditions below. New toolchain
+CI lint uses TypeScript on Node and Bash under the conditions below. New toolchain
 additions require a new Scope.
 
 ### TypeScript is allowed for CI lint only — never at runtime
@@ -132,10 +136,10 @@ additions require a new Scope.
 `npm install`, no third-party packages, no build step. This is
 acceptable because:
 
-- CI-only: the parser never ships inside the plugin or runs in an
-  agent session — it executes inside GitHub Actions via
+- CI-only: the parser never runs as part of a skill workflow.
+  Maintainers run it locally or in GitHub Actions via
   `actions/setup-node@v4`.
-- Built-ins only: no supply-chain surface beyond Node itself and the
+- Built-ins only: no third-party packages beyond Node itself and the
   pinned GitHub Action version.
 - No build step: Node 22.18+ runs `.ts` files directly via native
   type-stripping (`node frontmatter.ts`), so there is no transpiler,
@@ -162,15 +166,13 @@ the standard Read / Edit / Bash tools. This is the property that
 makes SPADES cross-platform: it works on macOS, Linux, and native
 Windows alike, with no PowerShell parity to maintain.
 
-### Templates and fragments are embedded in skill prose
+### Templates belong to the producing skill
 
-v1 carried a `templates/` and a `fragments/` directory of files that
-the `init` skill copied into consumer repos. v2.0 embeds those
-templates directly into the SKILL.md of the producing skill — the
-AGENTS.md block lives inside `skills/setup/SKILL.md`, the INTENT.md
-template inside `skills/intent/SKILL.md`, the Scope body shape inside
-`skills/scope/SKILL.md`, and so on. There is no separate file to copy
-and no `${CLAUDE_PLUGIN_ROOT}` substitution needed.
+Each producing skill directory contains its templates and references.
+Small Markdown templates stay inline in `SKILL.md`; the setup marker
+block lives in `skills/setup/reference/agents-md-block.md`. HTML
+renderers read the sibling `template.html`. See `PATTERNS.md` for
+the directory layout and reference rules.
 
 ## Security Requirements
 
@@ -191,8 +193,8 @@ and no `${CLAUDE_PLUGIN_ROOT}` substitution needed.
 - **Skill invocation:** slash-commands (`/spades:scope`,
   `/spades:plan`, …) — the plugin namespace is `spades`.
 - **Skill frontmatter** (YAML) is the contract between the framework
-  and the agent runtime. All skills carry at minimum `name` and
-  `description`.
+  and the agent runtime. All skills carry at minimum `name`,
+  `description`, and `version`.
 - **Backend labels** (Linear): full-loop labels are `ai-planned`,
   `ai-delivered`, `human-delivery`, `hybrid-delivery`, `plan-rejected`,
   `needs-arch-review`, `deliverable_type:<value>`; fast-track labels

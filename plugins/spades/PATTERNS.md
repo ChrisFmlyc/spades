@@ -8,17 +8,19 @@ get human approval before deviating.
 ## Code Patterns
 
 - **Prose over code.** Skills are Markdown. Behaviour is described in
-  natural language so the agent can reason about it. Resist the
-  temptation to write scripts or binaries that "enforce" skill logic —
-  that belongs in the prose. The marker-block state machine inside
+  natural language so the agent can reason about it. Describe
+  workflow decisions in the skill rather than a helper script or binary.
+  The marker-block state machine inside
   `skills/setup/SKILL.md` is the canonical example.
 - **Idempotent writes.** Any prose flow that modifies a consumer repo
-  (setup, marker-block refresh) must be safe to run twice. Use marker
-  blocks, never append. Same inputs → same outputs.
-- **Pure-Markdown plugin.** No bash, no helper binaries on PATH, no
-  `bin/` directory. The plugin tree contains only `.md` files,
-  `.json` manifests, and the `scripts/lint/` CI helpers (TypeScript
-  on Node built-ins only, run without a build step).
+  (setup, marker-block refresh) must be safe to run twice. Replace
+  existing marker blocks in place; insert a block once when absent. Same inputs →
+  same outputs.
+- **Markdown workflow.** Skill behaviour lives in prose and uses
+  the harness's tools. The framework has no helper binaries on PATH
+  or `bin/` directory. The plugin tree also contains JSON manifests,
+  HTML templates, configuration, and `scripts/lint/` CI helpers
+  (Bash and TypeScript on Node built-ins, without a build step).
 - **Templates live inside the producing skill's directory.** Scope
   and Plan body shapes, INTENT.md / ARCHITECTURE.md / PATTERNS.md /
   ANTI-PATTERNS.md scaffolding, and the AGENTS.md marker block all
@@ -65,7 +67,7 @@ spades/                                       # repo root (this repo)
         ├── .claude-plugin/
         │   └── plugin.json                   # plugin manifest
         ├── skills/<name>/
-        │   ├── SKILL.md                      # one directory per skill (21 skills)
+        │   ├── SKILL.md                      # one directory per skill (22 skills)
         │   ├── template.html                 # HTML-mode render target (producing skills)
         │   └── reference/<name>.md           # read on demand; keeps SKILL.md under 500 lines
         ├── agents/<name>.md                  # subagent definitions (4 reviewers + researcher)
@@ -92,10 +94,6 @@ spades/                                       # repo root (this repo)
         └── README.md                         # quick start + philosophy
 ```
 
-There is no `fragments/` or `templates/` directory in v2 — every
-template the framework injects into a consumer repo lives inline in
-the SKILL.md of the producing skill.
-
 ## Data Patterns
 
 - **Markdown + YAML frontmatter** is the only data format. Skills,
@@ -116,11 +114,9 @@ the SKILL.md of the producing skill.
   `S-<description-slug>`. Plans use
   `P-<description-slug>-<4-char-suffix>[-<dep-suffix>...]`. Learnings
   use `YYYY-MM-DD-<short-slug>`. See `docs/FRAMEWORK.md` § ID Format.
-- **Plugin path references** are not needed in v2. Skills do NOT
-  cross-reference siblings via `${CLAUDE_PLUGIN_ROOT}/...` — the
-  Claude Code runtime auto-loads bundled agents by name, and skills
-  carry their own templates inline. The substitution is still
-  technically supported but unused by this plugin.
+- **Plugin path references** resolve bundled resources through the
+  installed plugin root. Skills read templates and reference files by
+  explicit path; the runtime loads bundled agents by name.
 
 ## Integration Patterns
 
@@ -138,13 +134,12 @@ the SKILL.md of the producing skill.
 ## Deployment Patterns
 
 - **"Deployment" is `/plugin update`.** Claude Code's plugin
-  marketplace handles distribution. There is no separate release
-  pipeline beyond the version bump in
-  `plugins/spades/.claude-plugin/plugin.json` (mirrored in
-  `.claude-plugin/marketplace.json`) and the git tag.
+  marketplace handles distribution. Release metadata and
+  checks follow `AGENTS.md § Versioning`.
 - **Versioning** is semver. The plugin's `version` field is the
-  source of truth. The AGENTS.md marker block carries the version so
-  consumers can see which framework version wrote their docs section.
+  source of truth. The AGENTS.md marker block carries the independent
+  `agents_version` from `.spades/version` so consumers can identify
+  their operating rules.
   Re-running `/spades:setup` after a plugin upgrade re-stamps the
   marker block in place.
 - **Breaking changes** to skill contracts or frontmatter schemas must
@@ -166,13 +161,11 @@ shift and must be scoped explicitly.
 
 ## Documentation Patterns
 
-- **Every skill has a SKILL.md.** It IS the skill — there is nothing
-  else. Behaviour lives in prose, not in a sidecar binary.
-- **Each skill embeds its own templates.** The setup skill carries
-  the AGENTS.md marker-block content and the ARCHITECTURE / PATTERNS
-  / ANTI-PATTERNS scaffolding inline. The intent skill carries the
-  INTENT.md template. The scope and plan skills carry their body
-  shapes. Editing a template means editing the producing skill.
+- **Every skill has a SKILL.md.** It defines the workflow and points
+  to bundled resources used by that workflow.
+- **Each skill owns its templates.** Follow the directory layout in
+  Code Patterns above. Editing any bundled template changes its
+  owning skill for versioning purposes.
 - **The single source of truth** for framework contracts is
   `docs/FRAMEWORK.md`. Skills link to its sections (`§ ID Format`,
   `§ Backend Interface`, `§ Fast-Track Path`) rather than restating.

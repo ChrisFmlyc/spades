@@ -1,15 +1,13 @@
 ---
 name: learn
-description: Capture a learning from completed work and store it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 5.0.4
+description: Captures a learning from completed work and stores it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
+version: 5.0.5
 ---
 
 # /spades:learn
 
-Each pass of the loop should strengthen the next. This skill
-captures what a pass taught as a structured entry under
-`.spades/learnings/`, where `/spades:plan` surfaces it the next time
-a related Scope comes through.
+Capture lessons from completed work as structured entries under
+`.spades/learnings/`. `/spades:plan` surfaces them for related Scopes.
 
 Learning records are local for both backends. The mandatory leads handoff
 may separately mirror public-safe discoveries using the configured backend.
@@ -79,9 +77,10 @@ for. Link code, docs, or prior issues where helpful.
 
 1. **Read the context.** A Scope or Plan ID in the request becomes
    `scope_ref` / `plan_ref`; a file path or area pre-fills `area`.
-2. **Draft the whole learning** from the conversation so far — one
-   draft beats eight questions. CLI mode: paste it for correction.
-   HTML mode: continue to Step 4, which writes it and opens the page.
+2. **Draft the whole learning** from the conversation so far.
+   CLI mode: paste it for correction. In both
+   modes, continue to classification before writing; HTML mode presents
+   the draft on the page at Step 4.
 3. **Classify** via `AskUserQuestion`:
    - **Public-safe — commit to `.spades/learnings/`** — fine in a
      public fork.
