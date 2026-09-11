@@ -60,3 +60,11 @@ Plugin 6.1.3 -> 6.2.0 agrees across plugin.json, marketplace metadata, marketpla
 ## CI shipment follow-up
 
 The first PR run rejected the documented shipping Plan phase because its enum was missing from the schema and validator. The enum now includes shipping in both places, and good-shipping-plan.md exercises that phase alongside the existing valid and invalid fixtures. The new fixture was reproduced as failing against the original validator and passes with the alignment. This CI-only follow-up supports the existing Ship phase.
+
+## Review follow-up
+
+CodeRabbit reported four findings. The shipping enum finding was already covered by 7600f22 and its bot thread was answered and resolved. The other fixes define document promotion ownership and evidence (1f3fbde), scope commit checks to code delivery (ab75e5f), and report pending publication alongside mirrors (5c22313). The two Ship edits overlapped; their combined paragraph preserves both requirements.
+
+All five lint suites pass on the assembled branch. The refreshed unslop style check preserves 127/127 draft constraints with zero banned phrases or structure flags; technical-document advisory signals remain reviewed as above. Walkthroughs confirm artefact/action shipment retains the receipt and records its next authorised commit handoff, while code shipment verifies the proposed commit. Document targets retain their existing interface and now name their owner and completion evidence.
+
+Two actual all-worktree inventories also passed. The first covered 11 worktrees and found one committed Lead included in PR #101 but absent from supplied main 3072a813. After isolated review worktrees were created, a second covered all 15 worktrees: five identical copies resolved to one Lead and one observation. Recorded branch ownership and git ancestry identify the primary delivery worktree; the other four copies are inherited review snapshots. No canonical records changed during either inventory.
