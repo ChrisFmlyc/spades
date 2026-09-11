@@ -30,19 +30,16 @@ keep the files current while the Plan remains the active review page.
    `.spades/config`.
 3. **Resolve the target Plan** per `docs/FRAMEWORK.md § Target
    Resolution` — artefact type Plan; status filter `evaluating` with
-   a PASS verdict in the audit trail (PASS Plans listed first,
-   PARTIAL below with an annotation, FAIL excluded); zero candidates
-   → suggest `/spades:evaluate P-…`.
+   a PASS verdict in the audit trail; zero candidates → suggest
+   `/spades:evaluate P-…`.
 4. **Read the Plan and its parent Scope** in the resolved Scope worktree
    per § Scope Worktrees. Reuse that context for all drivers.
 5. **Verify ancestors active** per § Target Resolution →
    Parent-status precondition; hard abort on an `abandoned` Scope or
    an `abandoned` / `archived` Project.
-6. **Verify the verdict.** `evaluating` + PASS → ship. `evaluating`
-   + PARTIAL → ask whether to ship with the remaining gaps accepted
-   (recorded in the audit trail) or return to `/spades:deliver`.
-   `evaluating` + FAIL, or any other status → abort with a clear
-   message.
+6. **Verify the verdict.** `evaluating` + PASS → ship. PARTIAL →
+   stop and direct the caller to `/spades:deliver P-…` for the remaining
+   gaps. Any other status or verdict → abort with a clear message.
 7. **Scope PR readiness (`code`, `scm: github`).** Before marking any Plan
    shipping, check every non-rejected code Plan in the Scope has completed
    delivery and a current confirmed PASS. If siblings are pending, keep
