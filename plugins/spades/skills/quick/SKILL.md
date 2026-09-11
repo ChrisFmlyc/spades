@@ -45,7 +45,13 @@ When a criterion fails:
 
 Recheck the gate as the fix develops. If any criterion fails, stop
 immediately with the work uncommitted, tell the human which criterion
-failed, and carry the work into a Scope.
+failed, and invoke `/spades:scope`. Record the Quick worktree path and the
+implementation changes proposed for inclusion in the Scope's context.
+After Plan approval, when `/spades:deliver` establishes the Scope's delivery
+worktree, apply only the approved implementation changes to its fresh base
+and verify the transfer against the Quick source. Follow the carry-forward
+contract for inclusion decisions and preserve the source files and index;
+excluded edits remain uncommitted in the Quick worktree.
 
 ## Classification
 
