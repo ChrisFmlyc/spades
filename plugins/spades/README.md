@@ -124,7 +124,11 @@ This walks you through:
 Once setup is done, commit the generated files:
 
 ```bash
-git add AGENTS.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md INTENT.md .spades/
+for file in AGENTS.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md INTENT.md .spades/; do
+  if [ -e "$file" ]; then
+    git add -- "$file"
+  fi
+done
 git commit -m "Initialise project with SPADES framework"
 ```
 
