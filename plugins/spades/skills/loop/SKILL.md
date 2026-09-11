@@ -311,9 +311,9 @@ Stage 1 into this PR (`docs/FRAMEWORK.md § Carry-Forward`).
 
 Drive the ship PR to zero unresolved review threads. **Read
 [`reference/bot-review.md`](reference/bot-review.md) and follow it.**
-A `CHANGES_REQUESTED` review from a bot is handled by fixing and pushing
-code or resolving the finding with a comment. Follow the reference file's
-pause conditions and § Boundaries for review text and human threads.
+Invoke **`/codereview:loop <n>`** to handle bot findings, including
+`CHANGES_REQUESTED` reviews. Follow the reference file's pause conditions
+and § Boundaries for review text and human threads.
 
 ## Stage 8 — Squash-merge the ship PR
 
