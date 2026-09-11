@@ -44,7 +44,7 @@ links via frontmatter ID, no match creates.
 
    | Scope status | Linear |
    |---|---|
-   | `scoped`, `planning`, `delivering`, `evaluating`, `shipping` | Open creation state (Triage / team default) |
+   | `scoped`, `planning`, `delivering`, `evaluating`, `shipping` | Creation state with workflow type `backlog` or `unstarted` |
    | `done` | Done |
    | `abandoned` | Cancelled |
 
