@@ -12,7 +12,7 @@ Scope rollup, no B1–B7.
 - Q2 — Probe the PR (two outcome classes; the replacement-PR sub-flow)
 - Q3 — Flip to shipped
 - Q4 — Drop
-- Q5 — Linear mirror and confirm
+- Q5 — Persist, mirror and confirm
 
 ## Q1 — Pre-flight
 
@@ -78,16 +78,23 @@ and append:
 ```
 
 The grammar matches the Plan `Shipped` line, so every `Shipped`
-entry parses the same way.
+entry parses the same way. Continue to Q5.
 
 ## Q4 — Drop
 
 Capture `linear_issue_id` first (Q5 needs it), then delete
-`.spades/quick/<Q-id>.md`. Git history records the delete.
+`.spades/quick/<Q-id>.md`, then continue to Q5 to record the deletion.
 
-> *`Q-<id>` dropped. PR was closed without merging; marker deleted.*
+## Q5 — Persist, mirror and confirm
 
-## Q5 — Linear mirror and confirm
+Commit the Q3 marker edit or Q4 deletion in the resumed Quick worktree,
+following `docs/FRAMEWORK.md § Carry-Forward → Commit contents` and
+`/repo:branch`. Use `chore(spades): ship <Q-id>` or
+`chore(spades): drop <Q-id>`, then push that branch to the configured
+remote. Verify the commit contains the intended marker change and the push
+succeeded before mirroring or confirming completion. If either fails,
+report persistence as pending, retain the Q-id, branch, outcome and mirror
+metadata, and retry this step with that context.
 
 With `backend: linear` and a `linear_issue_id`:
 
