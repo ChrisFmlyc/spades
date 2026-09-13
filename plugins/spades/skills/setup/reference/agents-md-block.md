@@ -71,12 +71,13 @@ Skill mapping:
 
 ## SPADES Skills
 
-The SPADES plugin (`spades`) provides these 22 skills:
+The SPADES plugin (`spades`) provides these 23 skills:
 
 | Skill | What it does |
 |-------|-------------|
 | `/spades:setup` | Configure backend + scaffold this repo (re-runnable) |
 | `/spades:newproject` | Create a new project record |
+| `/spades:projectlead` | Assign a Project lead locally or confirm a Linear user before assignment |
 | `/spades:objective` | Create or edit an Objective (`O-<slug>`) — a strategic action associated with a project; independent of Scopes |
 | `/spades:scope` | Create or edit a Scope (`S-<description-slug>`) |
 | `/spades:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope |

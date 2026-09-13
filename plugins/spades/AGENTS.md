@@ -8,7 +8,7 @@ that read project context, including Claude Code, Cursor, Codex and Aider.
 
 ## SPADES Skills
 
-This repo ships SPADES itself, so the plugin's 22 skills are available
+This repo ships SPADES itself, so the plugin's 23 skills are available
 when working in it. Invoke the main ones by their namespaced names:
 
 | Skill | What it does |
@@ -16,6 +16,7 @@ when working in it. Invoke the main ones by their namespaced names:
 | `/spades:setup` | Configure backend + scaffold this repo (re-runnable) |
 | `/spades:loop` | Drive an existing Scope through Plan, Approve, Deliver, Evaluate, Ship, review, merge and close-out. Runs on explicit invocation or delegation by a user-defined goal; pauses for checks that require the human. |
 | `/spades:newproject` | Create a new Project record |
+| `/spades:projectlead` | Assign a Project lead locally or confirm a Linear user before assignment |
 | `/spades:objective` | Create or edit an Objective (`O-<description-slug>`) — a coherent strategic action associated with a project; independent of Scopes |
 | `/spades:scope` | Create or edit a Scope (`S-<description-slug>`) |
 | `/spades:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope |

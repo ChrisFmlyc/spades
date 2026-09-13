@@ -5,6 +5,9 @@
 # See docs/FRAMEWORK.md § Backend Interface.
 backend: local
 
+# GitHub PR lifecycle, selected through /spades:loop.
+scm: github
+
 # Active project for this repository.
 project: spades-framework
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- SPADES template: project v2.0.1 (matches plugin v6.1.2) -->
+<!-- SPADES template: project v2.1.0 (matches plugin v6.3.0) -->
 <!--
   Project overview page (.spades/projects/<slug>.html). "Cockpit"
   redesign — dark command deck. Long-lived container above Scopes.
@@ -12,7 +12,7 @@
     slug, title, description, description_html, backend, scm,
     created, updated, scope_count, plan_count, shipped_count,
     in_flight_count, plugin_version, rendered_at
-    Optional (|default): status (|active)
+    Optional (|default): status (|active), lead (|Unassigned)
 
   Required repeating blocks (worker validates ALL of these markers):
     repos-items    — url, label (|—)
@@ -233,6 +233,7 @@ updated: {{spades.updated}}
     <aside class="rail">
       <div class="card">
         <div class="hd">PROPERTIES</div>
+        <div class="prop"><span class="k">Project lead</span><span class="v">{{spades.lead|Unassigned}}</span></div>
         <div class="prop"><span class="k">Backend</span><span class="v">{{spades.backend}}</span></div>
         <div class="prop"><span class="k">SCM</span><span class="v">{{spades.scm}}</span></div>
         <div class="prop"><span class="k">Created</span><span class="v">{{spades.created}}</span></div>

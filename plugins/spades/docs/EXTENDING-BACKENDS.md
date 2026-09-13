@@ -61,7 +61,13 @@ than silently succeeding.
    section in the relevant scope/plan file; the Linear driver posts a
    comment. A Notion driver would post a sub-page, etc.
 
-4. **No silent retries.** A failed write surfaces to the human with the
+4. **Project lead identity.** Implement `lookup_project_lead` and
+   `assign_project_lead` per FRAMEWORK.md § Project lead assignment.
+   Resolve backend users, confirm the selected person before assignment,
+   verify the resulting Project lead, and preserve local canonical metadata.
+   Unsupported identity or assignment operations return an explicit error.
+
+5. **No silent retries.** A failed write surfaces to the human with the
    exact state — what landed, what didn't. Do not auto-retry
    indefinitely.
 
