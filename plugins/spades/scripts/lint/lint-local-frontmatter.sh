@@ -108,6 +108,11 @@ self_test() {
 self_test project good-project.md pass
 self_test project good-project-local-lead.md pass
 self_test project good-project-linear-lead.md pass
+self_test project bad-project-lead-escaped-newline.md fail
+self_test project bad-project-lead-escaped-return.md fail
+self_test project bad-project-lead-unicode-newline.md fail
+self_test project bad-project-lead-unicode-return.md fail
+self_test project good-project-lead-literal-backslashes.md pass
 self_test project bad-project-lead-list.md fail
 self_test project bad-project-lead-map.md fail
 self_test project bad-project-lead-boolean.md fail

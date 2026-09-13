@@ -318,7 +318,7 @@ function projectLeadString(raw: string | undefined): string | null {
   ) {
     return null;
   }
-  return value.trim() ? value : null;
+  return /[\r\n]/.test(value) || !value.trim() ? null : value;
 }
 
 function validateProject(fields: Fields, rel: string): Verdict {
