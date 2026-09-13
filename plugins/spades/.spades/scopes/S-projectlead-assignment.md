@@ -2,7 +2,7 @@
 id: S-projectlead-assignment
 title: "Assign a project lead through a dedicated skill"
 project: spades-framework
-status: shipping
+status: done
 branch: feat/projectlead-assignment
 base_commit: bbeff04f678312a4c0dd1c56c5bf87a1a1e7651b
 type: feature
@@ -20,13 +20,13 @@ A user can assign a person as a SPADES project's lead through `/spades:projectle
 
 ## Acceptance Criteria
 
-- [ ] `/spades:projectlead` requires initialized SPADES configuration and an existing local Project record for its target. Missing setup, an unset or invalid target, or a missing Project record stops the flow with an actionable message before lookup or writes.
-- [ ] A direct invocation uses the active project. With no person argument, it asks “Who is the project lead?”; `/spades:projectlead chris` and an email argument use that supplied identity without asking for it again.
-- [ ] With `backend: local`, the skill records the supplied name or email as the project lead in the canonical local Project record, preserving other project metadata and recording the change in its audit trail. It makes no Linear calls.
-- [ ] With `backend: linear`, the skill uses Linear MCP to look up workspace users by the supplied name or email. It presents the resolved name and email for final confirmation before assignment. Multiple matches require selection; no match or unavailable lookup offers correction, retry or cancellation without guessing an identity or changing the existing lead.
-- [ ] After confirmation, the Linear flow assigns the resolved user's stable identity to the intended Linear Project's lead, verifies the result, and records the confirmed identity locally. Cancellation preserves the existing assignment. Failed or partially completed writes are reported accurately and can be retried without claiming completion.
-- [ ] `/spades:newproject` asks whether to add a project lead after the new local Project exists and its Linear association is available when required. Yes invokes `/spades:projectlead` for that newly created project, including when the user leaves a different project active. No skips lead assignment. Bootstrap invocation returns to Setup after this optional handoff.
-- [ ] The new skill, project-record contract, affected project rendering, skill listings and release metadata agree. Existing lints pass, and scenario checks cover direct and prompted input, local assignment, Linear confirmation, ambiguous/no matches, cancellation, missing setup/project, update failures and the Newproject handoff.
+- [x] `/spades:projectlead` requires initialized SPADES configuration and an existing local Project record for its target. Missing setup, an unset or invalid target, or a missing Project record stops the flow with an actionable message before lookup or writes.
+- [x] A direct invocation uses the active project. With no person argument, it asks “Who is the project lead?”; `/spades:projectlead chris` and an email argument use that supplied identity without asking for it again.
+- [x] With `backend: local`, the skill records the supplied name or email as the project lead in the canonical local Project record, preserving other project metadata and recording the change in its audit trail. It makes no Linear calls.
+- [x] With `backend: linear`, the skill uses Linear MCP to look up workspace users by the supplied name or email. It presents the resolved name and email for final confirmation before assignment. Multiple matches require selection; no match or unavailable lookup offers correction, retry or cancellation without guessing an identity or changing the existing lead.
+- [x] After confirmation, the Linear flow assigns the resolved user's stable identity to the intended Linear Project's lead, verifies the result, and records the confirmed identity locally. Cancellation preserves the existing assignment. Failed or partially completed writes are reported accurately and can be retried without claiming completion.
+- [x] `/spades:newproject` asks whether to add a project lead after the new local Project exists and its Linear association is available when required. Yes invokes `/spades:projectlead` for that newly created project, including when the user leaves a different project active. No skips lead assignment. Bootstrap invocation returns to Setup after this optional handoff.
+- [x] The new skill, project-record contract, affected project rendering, skill listings and release metadata agree. Existing lints pass, and scenario checks cover direct and prompted input, local assignment, Linear confirmation, ambiguous/no matches, cancellation, missing setup/project, update failures and the Newproject handoff.
 
 ## Architectural Constraints
 
@@ -69,3 +69,4 @@ Mostly AI-delivered. Verify the instruction flows and existing lints; record any
 - 2026-09-13: Delivery worktree established — branch: feat/projectlead-assignment; base: bbeff04f678312a4c0dd1c56c5bf87a1a1e7651b; source: docs/projectlead-scope. Approved Scope, Plan and GitHub SCM setting transferred and verified; source retained.
 - 2026-09-13: P-projectlead-assignment-hX8p delivered; all five tasks complete, awaiting evaluation.
 - 2026-09-13: Evaluation PASS confirmed by AI (/spades:loop); C1–C7 covered; shared Scope PR publication started.
+- 2026-09-13: All plans shipped. Scope done. Outcome: none. C1–C7 verified by the confirmed evaluation and review regression checks; AI (/spades:loop) applied the rollup.
