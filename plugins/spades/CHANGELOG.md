@@ -8,6 +8,12 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.3.2] — 2026-09-13
+
+- **Patch**: Make Plan task disclosures keyboard operable with native buttons,
+  visible focus and synchronized expanded state and detail references.
+- Skills bumped: `plan` 3.7.3 → 3.7.4.
+
 ## [6.3.1] — 2026-09-13
 
 - **Patch**: Record the verified shipment of project-lead assignment, mark
