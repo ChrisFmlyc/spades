@@ -2,7 +2,7 @@
 id: S-projectlead-assignment
 title: "Assign a project lead through a dedicated skill"
 project: spades-framework
-status: delivering
+status: shipping
 branch: feat/projectlead-assignment
 base_commit: bbeff04f678312a4c0dd1c56c5bf87a1a1e7651b
 type: feature
@@ -67,3 +67,5 @@ Mostly AI-delivered. Verify the instruction flows and existing lints; record any
 - 2026-09-13: Plan drafted — P-projectlead-assignment-hX8p. Dispatch: subagent-dispatch.
 - 2026-09-13: P-projectlead-assignment-hX8p approved by AI (/spades:loop) — routing: ai; 6/6 checks pass. Dispatch: subagent-dispatch.
 - 2026-09-13: Delivery worktree established — branch: feat/projectlead-assignment; base: bbeff04f678312a4c0dd1c56c5bf87a1a1e7651b; source: docs/projectlead-scope. Approved Scope, Plan and GitHub SCM setting transferred and verified; source retained.
+- 2026-09-13: P-projectlead-assignment-hX8p delivered; all five tasks complete, awaiting evaluation.
+- 2026-09-13: Evaluation PASS confirmed by AI (/spades:loop); C1–C7 covered; shared Scope PR publication started.

@@ -4,9 +4,9 @@ id_suffix: hX8p
 scope: S-projectlead-assignment
 title: "Assign and confirm project leads"
 depends_on: []
-status: delivering
+status: shipping
 delivery: ai
-evaluation: undecided
+evaluation: ai
 deliverable_type: code
 created: 2026-09-13
 updated: 2026-09-13
@@ -84,3 +84,20 @@ Use the existing CI-only Node validator and planted fixtures for actual schema b
 - 2026-09-13: Plan drafted by AI (/spades:loop). Scope summary, title, dependency-free filename, five-task breakdown and deliverable_type code confirmed by AI; no prior learnings matched. GitHub SCM recorded from the requested loop and existing repository publishing workflow.
 - 2026-09-13: Approved by AI (/spades:loop) — routing: ai. Notes: 6/6 checks pass; optional fields preserve existing projects; controlled Linear scenarios verify instructions without production mutations. Dispatch: subagent-dispatch.
 - 2026-09-13: Deliver phase started — routing: ai, branch: feat/projectlead-assignment. Description skipped by AI (/spades:loop).
+- 2026-09-13: Deliver phase complete — routing: ai. Tasks completed: 5. Commits: 1093e8e0ef361f3571a1170c3cad1403e21e022a. Shared contract and callers committed together; initial scenario ambiguities corrected before evaluation.
+- 2026-09-13: Plan ready for evaluation — routing: ai.
+- 2026-09-13: Evaluation started — routing: ai.
+- 2026-09-13: Verification plan agreed and APPROVED by AI (/spades:loop):
+    - C1: AI — inspect missing configuration, invalid target and missing Project traces against committed instructions.
+    - C2: AI — inspect prompted/direct identity and correction traces.
+    - C3: AI — inspect local persistence traces and run Project schema fixtures.
+    - C4: AI — inspect MCP capability definitions and paginated matching/final-confirmation traces.
+    - C5: AI — inspect ID targeting, cancellation, read-before-write and partial-failure/retry traces.
+    - C6: AI — inspect Newproject/Setup handoff traces, including explicit target and failed binding.
+    - C7: AI — validate optional lead template output and visual screenshot, skill discovery and release metadata.
+    - Q1: AI — verify all five lint results and committed diff whitespace.
+- 2026-09-13: Evaluation — verdict: PASS. Notes: C1–C7 and Q1 PASS; 32 controlled instruction scenario groups, live read-only MCP identity lookup, three rendered cases and all five lints verified. Evidence: .spades/evaluations/p-projectlead-assignment-hx8p-2026-09-13-report.md. Live Project mutation not performed. Dispatch: subagent-dispatch.
+- 2026-09-13: Loop — evaluate sign-off: AI (all 8 rows AI-verified).
+- 2026-09-13: Leads completion receipt — isolated projectlead_evaluation_leads at 1093e8e; captured via L-agent-backend-statement-drift-GSnt, already recorded in P-projectlead-assignment-hX8p/delivery-1; one sighting, zero added; source .spades/leads/L-agent-backend-statement-drift-GSnt.md verified against HEAD. Checkout/reselection findings resolved on-scope; snapshot deltas accounted for; simulated mutation, network and atomicity limits have no observed independent defect. Lead committed; evaluation and audit records carried into this shipment. Mirrors not applicable (local); no pending capture or mirror operation.
+- 2026-09-13: Leads checked — source: evaluate; result: L-agent-backend-statement-drift-GSnt.
+- 2026-09-13: Ship phase started — deliverable_type: code. Description skipped by AI (/spades:loop).
