@@ -192,9 +192,10 @@ const PROJECT_CORE_REQUIRED = [
 ] as const;
 const PROJECT_KNOWN_FIELDS = new Set<string>([
   ...PROJECT_CORE_REQUIRED,
-  "repos", "owners", "linear_project_id",
+  "repos", "owners", "linear_project_id", "lead", "linear_lead_id",
 ]);
 const PROJECT_ID_RE = /^[a-z0-9](?:[a-z0-9-]{0,63})$/;
+const LINEAR_USER_ID_RE = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 
 // --- Scope schema -----------------------------------------------------------
 const SCOPE_CORE_REQUIRED = [
@@ -294,6 +295,32 @@ function checkUnknown(
     .map((key) => `${rel}: unrecognised ${kind} field: ${key}`);
 }
 
+/** Read the non-empty string scalars used by optional Project lead fields. */
+function projectLeadString(raw: string | undefined): string | null {
+  if (raw === undefined || raw.includes("\n")) return null;
+  let value = raw.trim();
+  if (/^'(?:[^']|'')*'$/.test(value)) {
+    value = value.slice(1, -1).replace(/''/g, "'");
+  } else if (value.startsWith('"')) {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return null;
+    }
+  } else if (
+    /^[\[\]{}'!&*|>#%@`]/.test(value) ||
+    /^[-?:](?:\s|$)/.test(value) ||
+    /:\s/.test(value) ||
+    /^(?:null|~|true|false|yes|no|on|off)$/i.test(value) ||
+    /^[+-]?(?:\d[\d_]*(?:\.[\d_]*)?|\.[\d_]+)(?:e[+-]?\d+)?$/i.test(value) ||
+    /^[+-]?0(?:x[\da-f_]+|o[0-7_]+|b[01_]+)$/i.test(value) ||
+    /^[+-]?\.(?:inf|nan)$/i.test(value)
+  ) {
+    return null;
+  }
+  return value.trim() ? value : null;
+}
+
 function validateProject(fields: Fields, rel: string): Verdict {
   const fails = checkRequired(fields, PROJECT_CORE_REQUIRED, rel, "Project");
   const warns = checkUnknown(fields, PROJECT_KNOWN_FIELDS, rel, "Project");
@@ -302,6 +329,18 @@ function validateProject(fields: Fields, rel: string): Verdict {
     fails.push(
       `${rel}: invalid project id ${repr(pid)} — must match [a-z0-9][a-z0-9-]{0,63}`,
     );
+  }
+  for (const key of ["lead", "linear_lead_id"]) {
+    if (fields.has(key) && projectLeadString(fields.get(key)) === null) {
+      fails.push(`${rel}: invalid Project '${key}' — expected a non-empty string scalar`);
+    }
+  }
+  const linearLeadId = projectLeadString(fields.get("linear_lead_id"));
+  if (linearLeadId !== null && !LINEAR_USER_ID_RE.test(linearLeadId)) {
+    fails.push(`${rel}: invalid Project 'linear_lead_id' — expected a Linear user UUID`);
+  }
+  if (fields.has("linear_lead_id") && projectLeadString(fields.get("lead")) === null) {
+    fails.push(`${rel}: Project 'linear_lead_id' requires a non-empty 'lead'`);
   }
   return { fails, warns };
 }

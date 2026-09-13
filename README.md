@@ -1,7 +1,7 @@
 # SPADES Framework
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-6.2.1-green.svg)](.claude-plugin/marketplace.json)
+[![Version](https://img.shields.io/badge/version-6.3.0-green.svg)](.claude-plugin/marketplace.json)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-marketplace-blueviolet.svg)](https://claude.ai/code)
 
 A human–AI operating model for engineering work. SPADES is a
@@ -11,7 +11,7 @@ records that preserve an audit trail, and pluggable backends.
 
 This repo ships the [`spades`](./plugins/spades) plugin for coding
 harnesses — Claude Code, Codex CLI, Gemini CLI, Cursor, Aider,
-Cline. 22 skills, 5 agents, Linear / local backends, opt-in HTML
+Cline. 23 skills, 5 agents, Linear / local backends, opt-in HTML
 mode, sub-agent fan-out.
 
 Skills describe the workflow in Markdown and use the tools available
@@ -142,7 +142,7 @@ spades/
         ├── .claude-plugin/plugin.json
         ├── AGENTS.md                    # consumer-facing operating rules
         ├── docs/FRAMEWORK.md            # canonical framework reference
-        ├── skills/<name>/SKILL.md       # 22 skills (HTML-rendering skills also ship template.html)
+        ├── skills/<name>/SKILL.md       # 23 skills (HTML-rendering skills also ship template.html)
         ├── agents/<name>.md             # 5 agents (4 reviewer personas + 1 researcher)
         ├── examples/                    # worked Scope / Plan / Intent examples
         ├── scripts/lint/                # CI lints (TypeScript on Node + bash)

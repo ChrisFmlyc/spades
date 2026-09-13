@@ -14,7 +14,7 @@ a package.
 
 - **Users** are engineers working in any coding agent that honours
   `AGENTS.md` (Claude Code, Cursor, Codex, Aider, …). The SPADES
-  Claude Code plugin adds 22 slash-commands; in other agents, the
+  Claude Code plugin adds 23 slash-commands; in other agents, the
   rules still apply via `AGENTS.md`.
 - **Surface area** is a set of Markdown skill files
   (`plugins/spades/skills/<name>/SKILL.md`), five subagent definitions

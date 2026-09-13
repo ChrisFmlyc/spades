@@ -7,7 +7,9 @@ set -euo pipefail
 #
 #   .spades/projects/*.md  — Project schema (id, title, description,
 #                            created, updated required; id must match
-#                            [a-z0-9][a-z0-9-]{0,63})
+#                            [a-z0-9][a-z0-9-]{0,63}; optional lead is a
+#                            non-empty string; linear_lead_id is a UUID
+#                            and requires lead)
 #   .spades/scopes/S-*.md  — Scope schema (id, title, project, status,
 #                            type, created, updated required; id must
 #                            match S-[a-z0-9][a-z0-9-]{0,63}; status/
@@ -76,7 +78,7 @@ run_dir scope   "$SCOPES_DIR"
 run_dir plan    "$PLANS_DIR"
 
 # --- Self-test ----------------------------------------------------------
-# Valid Scope and draft/shipping Plan fixtures pass; malformed fixtures fail.
+# Valid Project, Scope and Plan fixtures pass; malformed fixtures fail.
 echo
 self_test() {
     local kind="$1" fixture="$2" expect="$3"
@@ -102,6 +104,19 @@ self_test() {
         fi
     fi
 }
+
+self_test project good-project.md pass
+self_test project good-project-local-lead.md pass
+self_test project good-project-linear-lead.md pass
+self_test project bad-project-lead-list.md fail
+self_test project bad-project-lead-map.md fail
+self_test project bad-project-lead-boolean.md fail
+self_test project bad-project-lead-number.md fail
+self_test project bad-project-lead-empty.md fail
+self_test project bad-project-lead-null.md fail
+self_test project bad-project-linear-lead-type.md fail
+self_test project bad-project-linear-lead-id.md fail
+self_test project bad-project-linear-lead-without-lead.md fail
 
 self_test scope bad-scope.md  fail
 self_test scope good-scope.md pass

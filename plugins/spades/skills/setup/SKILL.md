@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configures SPADES in a repository by choosing the backend, SCM, review format and active project, writing .spades/config, and scaffolding agent rules and project documents. Use for initial setup, reconfiguration or a scaffolding refresh, including "set up SPADES", "configure SPADES", "initialise SPADES", or "I want to use SPADES in this repo". Preserves existing content on re-runs.
-version: 4.10.3
+version: 4.11.0
 ---
 
 # /spades:setup

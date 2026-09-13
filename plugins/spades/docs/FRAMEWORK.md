@@ -349,8 +349,77 @@ status: active | archived | abandoned   # see § Terminal States; default `activ
 created: 2026-05-29
 updated: 2026-05-29
 linear_project_id: <uuid>           # only if backend: linear
+lead: "chris@example.com"           # optional; supplied identity locally, verified email in Linear
+linear_lead_id: <uuid>              # optional; verified Linear user ID, requires lead
 ---
 ```
+
+### Project lead assignment
+
+`/spades:projectlead` assigns a person to an existing local Project record.
+The optional `lead` field is a nonempty string: the supplied name or email
+for a local project, or the confirmed user email for a Linear project.
+`linear_lead_id` is an optional user UUID paired with `lead` after verified
+Linear assignment. Both fields may be absent on an unassigned or older
+Project. Owners and discovery Leads retain their separate meanings.
+
+A direct invocation targets the active Project; a caller can pass an
+explicit Project slug while preserving the active-project setting.
+Configuration and the matching local Project record must exist before any
+lookup or write. Linear assignment also requires that record's
+`linear_project_id`; a conflicting active-project binding in configuration
+must be resolved before assignment. Newproject invokes the helper after
+creation and binding, passes its new slug, then resumes its own flow.
+
+The backend operations are:
+
+- `lookup_project_lead(query)` returns matching workspace users with stable
+  IDs, names and emails. The local driver accepts the supplied identity
+  without an external lookup. The Linear driver uses MCP `list_users` with
+  `query` and follows `cursor` until the search is complete; it does not
+  constrain results to the current project's membership. It retrieves the
+  selected user's current details with `get_user` by ID. Resolve multiple
+  matches through a human selection; a result count or a partial name is
+  not confirmation. Missing email, an unavailable account, or failed lookup
+  needs correction, retry or cancellation.
+- `assign_project_lead(project_id, identity)` updates the selected Project's
+  lead. The local driver writes `lead`, clears a stale `linear_lead_id`,
+  sets `updated` and appends an audit entry when the value changes. The
+  Linear driver requires confirmation of the target Project and resolved
+  user's name/email, then uses MCP `save_project` with only the existing
+  Project `id` and the selected user ID as `lead`. Read the remote Project
+  through `get_project` before the update and compare its current lead with
+  the value shown for confirmation. A changed value returns a conflict for
+  renewed confirmation. This is a read-before-write check; the driver does
+  not claim an atomic comparison that the available MCP cannot perform.
+
+Drivers inspect available MCP capabilities and use equivalent operations
+when tool names differ. Missing lookup or update support returns an explicit
+error; it does not select another backend or create users or Projects.
+
+After a Linear update, read the Project again and require its lead ID to
+match the confirmed user ID before writing local `lead` and
+`linear_lead_id`. Preserve all unrelated fields and record the verified
+assignment in the Project audit trail. Read the local record back to verify
+persistence. An unchanged assignment is idempotent; an already matching
+remote lead can still need local reconciliation.
+
+Cancellation before assignment preserves the existing values. A failed or
+uncertain remote update leaves local lead metadata intact and requires a
+remote read before retry. A successful remote assignment followed by a
+failed local write returns the confirmed identity and *local record pending*
+status; retry the local step after verifying remote state again. If the
+remote lead changed, request renewed confirmation. Never report a partial
+update as complete. The caller retains error context, and a fresh invocation
+re-resolves the Project and person rather than assuming an earlier write
+succeeded.
+
+Lead strings follow the flat frontmatter contract and are quoted as data.
+Project HTML uses Newproject's template and payload, displays `lead` or
+*Unassigned*, and embeds optional fields only when present in canonical
+Markdown. Escape display text and serialize embedded YAML per § Output
+Format. A failed HTML refresh reports a presentation error while retaining
+the verified assignment. Normal commits and publication follow § Carry-Forward.
 
 ### `.spades/objectives/O-<slug>.md` frontmatter
 
@@ -582,6 +651,8 @@ their storage; skills don't need to know how.
 | `create_project(record)` | Create a project. Returns the project ID. |
 | `get_project(id)` | Fetch a project record. |
 | `list_projects()` | List all known projects. |
+| `lookup_project_lead(query)` | Resolve project-lead identity per § Project lead assignment. |
+| `assign_project_lead(project_id, identity)` | Assign and verify a confirmed project lead per § Project lead assignment. |
 | `create_objective(record)` | Create an objective. Returns the objective ID. |
 | `get_objective(id)` | Fetch an objective record. |
 | `list_objectives(filter)` | List objectives for the active project, filterable by status. |
@@ -1400,7 +1471,7 @@ The skills that ship a bundled template: `scope`, `plan`,
 
 Consumer skills are `/spades:approve`, `/spades:evaluate`,
 `/spades:deliver`, `/spades:ship`, `/spades:close`, `/spades:status`,
-`/spades:list`, `/spades:intent`. Each, at some point in its flow,
+`/spades:list`, `/spades:intent`, `/spades:projectlead`. Each, at some point in its flow,
 presents an artefact for the human to review.
 
 In HTML mode, Evaluate presents these two evaluation pages at their

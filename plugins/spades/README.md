@@ -3,7 +3,7 @@
 **A human-AI operating model for engineering teams.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-6.2.1-green.svg)](.claude-plugin/plugin.json)
+[![Version](https://img.shields.io/badge/version-6.3.0-green.svg)](.claude-plugin/plugin.json)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-blueviolet.svg)](https://claude.ai/code)
 
 SPADES assigns ownership to each phase and records the decisions,
@@ -197,9 +197,9 @@ It then proceeds through shipment, bot review, squash-merge,
 and worktrees remain available after completion. Other blockers and
 human decisions follow `skills/loop/SKILL.md § Pauses`.
 
-### The 22 skills
+### The 23 skills
 
-SPADES ships 22 skills, grouped by *when you reach for them*:
+SPADES ships 23 skills, grouped by *when you reach for them*:
 
 #### One-time setup
 
@@ -207,6 +207,7 @@ SPADES ships 22 skills, grouped by *when you reach for them*:
 |-------|---------|
 | `/spades:setup` | Configure backend + scaffold this repo. Re-runnable to switch backend or refresh the SPADES marker block inside `AGENTS.md`. |
 | `/spades:newproject` | Create a Project record for a repo, service, or set of repos. |
+| `/spades:projectlead` | Assign or change a project lead by name or email; confirm the resolved user for Linear projects. |
 | `/spades:objective` | Create or edit an Objective (`O-<slug>`), a strategic action associated with a Project. |
 
 #### The core loop (run for every piece of work)
@@ -326,7 +327,7 @@ action.
 Supporting skills handle setup, reporting, and work outside the six phases:
 
 - **One-time** — `setup` (configure backend, re-runnable) and
-  `newproject` (create a Project record).
+  `newproject` (create a Project record) and `projectlead` (assign its lead).
 - **Side path** — `quick` (fast-track for trivial work; skips the
   whole loop, uses a Quick marker as the audit).
 - **Optional helpers** — `review` (independent panel second opinion),
@@ -335,7 +336,7 @@ Supporting skills handle setup, reporting, and work outside the six phases:
 - **Observability** — `list` (inventory of scopes by phase) and
   `status` (what's in flight, dep graph, next action).
 
-See "The 22 skills" above for trigger phrases and when each one fires.
+See "The 23 skills" above for trigger phrases and when each one fires.
 
 ---
 

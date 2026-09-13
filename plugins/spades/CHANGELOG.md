@@ -8,6 +8,18 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.3.0] — 2026-09-13
+
+- **Minor**: Add `/spades:projectlead` to assign a person to an existing
+  Project. Local projects save a name or email; Linear projects look up,
+  confirm and verify the selected user's assignment through MCP.
+- Newproject offers lead assignment for its explicit new target, including
+  during Setup. Project pages display the lead, and optional lead metadata
+  is covered by the Project schema and fixtures.
+- Skills: `projectlead` introduced at 1.0.0; `newproject` 3.6.4 → 3.7.0;
+  `setup` 4.10.3 → 4.11.0 for its updated consumer skill listing.
+- Rules bumped: `agents_version` 3.0.2 → 3.1.0 for the new skill listing.
+
 ## [6.2.1] — 2026-09-11
 
 - **Patch**: Review all 70 Markdown files. Replace repeated warnings, historical
