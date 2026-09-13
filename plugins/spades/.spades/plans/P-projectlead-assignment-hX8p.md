@@ -4,7 +4,7 @@ id_suffix: hX8p
 scope: S-projectlead-assignment
 title: "Assign and confirm project leads"
 depends_on: []
-status: shipping
+status: shipped
 delivery: ai
 evaluation: ai
 deliverable_type: code
@@ -101,3 +101,11 @@ Use the existing CI-only Node validator and planted fixtures for actual schema b
 - 2026-09-13: Leads completion receipt — isolated projectlead_evaluation_leads at 1093e8e; captured via L-agent-backend-statement-drift-GSnt, already recorded in P-projectlead-assignment-hX8p/delivery-1; one sighting, zero added; source .spades/leads/L-agent-backend-statement-drift-GSnt.md verified against HEAD. Checkout/reselection findings resolved on-scope; snapshot deltas accounted for; simulated mutation, network and atomicity limits have no observed independent defect. Lead committed; evaluation and audit records carried into this shipment. Mirrors not applicable (local); no pending capture or mirror operation.
 - 2026-09-13: Leads checked — source: evaluate; result: L-agent-backend-statement-drift-GSnt.
 - 2026-09-13: Ship phase started — deliverable_type: code. Description skipped by AI (/spades:loop).
+- 2026-09-13: PR opened: https://github.com/ChrisFmlyc/spades/pull/103.
+- 2026-09-13: Review regression verified — F1 fixed in 9c15693f539609db297a49c5f1186a472b9f1216; decoded CR/LF rejected, including Unicode escapes, while literal backslash identities remain valid. All five assembled lint checks pass, including 22 local-frontmatter fixtures. Existing workflow scenario evidence remains applicable; no skill or rendering behavior changed.
+- 2026-09-13: Loop — paused at stage 7: CodeRabbit rate-limited review of 9c15693f539609db297a49c5f1186a472b9f1216 (status description: Review rate limited; 2026-09-13T05:13:24Z). F1 was auto-resolved as addressed; CI passes. Latest completed review covers b7e058b only. Retry the incremental review after approximately 2026-09-13T05:58:00Z, then verify the current published head before merge.
+- 2026-09-13: Loop — bot review clean on https://github.com/ChrisFmlyc/spades/pull/103 (2 completed reviews; 1 fix cycle).
+- 2026-09-13: Loop — ship PR squash-merged: d6923907fc670c8bbb83db6047ee25f63926fea9.
+- 2026-09-13: Loop — deploy: not configured.
+- 2026-09-13: Loop — learning declined: assignment decisions are captured in the contract and regression tests; no separate future-planning lesson identified.
+- 2026-09-13: Shipped (github). PR: https://github.com/ChrisFmlyc/spades/pull/103. Merge: d6923907fc670c8bbb83db6047ee25f63926fea9. Merged by: ChrisFmlyc.

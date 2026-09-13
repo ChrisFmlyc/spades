@@ -8,6 +8,12 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.3.1] — 2026-09-13
+
+- **Patch**: Record the verified shipment of project-lead assignment, mark
+  its Plan shipped and Scope done, and retain the review and deployment audit.
+- Skills bumped: none.
+
 ## [6.3.0] — 2026-09-13
 
 - **Minor**: Add `/spades:projectlead` to assign a person to an existing
