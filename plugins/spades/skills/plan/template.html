@@ -327,7 +327,7 @@ updated: {{spades.updated}}
         <div class="task posture-{{block.posture_short}}" data-task="{{block.num}}">
           <div class="spine"></div>
           <div>
-            <button class="task-head" type="button" aria-expanded="false" aria-controls="task-body-{{block.num}}">
+            <button class="task-head" type="button" aria-expanded="false">
               <span class="task-title"><span class="chev" aria-hidden="true">&#9656;</span>{{block.title_html}}</span>
               <span class="task-sub">task {{block.num}} · depends on {{block.depends_on}}</span>
               <span class="task-badges">
@@ -336,7 +336,7 @@ updated: {{spades.updated}}
                 <span class="badge effort">{{block.effort}}</span>
               </span>
             </button>
-            <div class="task-body" id="task-body-{{block.num}}">
+            <div class="task-body">
               <div class="field"><span class="lab">DESCRIPTION</span>{{block.description_html}}</div>
               <div class="field"><span class="lab">APPROACH</span>{{block.approach_html}}</div>
               <div class="field"><span class="lab">TESTS</span>{{block.tests_html}}</div>
@@ -386,7 +386,12 @@ updated: {{spades.updated}}
 
 <script>
   // Expand/collapse task cards.
-  document.querySelectorAll('.task-head').forEach(function (h) {
+  document.querySelectorAll('.task-head').forEach(function (h, index) {
+    var body = h.closest('.task').querySelector('.task-body');
+    var bodyId = 'spades-task-body-' + (index + 1);
+    while (document.getElementById(bodyId)) bodyId += '-';
+    body.id = bodyId;
+    h.setAttribute('aria-controls', bodyId);
     h.addEventListener('click', function () {
       var expanded = h.closest('.task').classList.toggle('open');
       h.setAttribute('aria-expanded', String(expanded));
