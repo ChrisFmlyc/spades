@@ -3,7 +3,7 @@
 **A human-AI operating model for engineering teams.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-6.3.1-green.svg)](.claude-plugin/plugin.json)
+[![Version](https://img.shields.io/badge/version-6.3.2-green.svg)](.claude-plugin/plugin.json)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-blueviolet.svg)](https://claude.ai/code)
 
 SPADES assigns ownership to each phase and records the decisions,
