@@ -1353,10 +1353,10 @@ Producing skills are `/spades:newproject`, `/spades:scope`,
 `/spades:anti-patterns`. Each writes an artefact at the end of
 its flow.
 
-- **`review_format: cli`** — write the canonical `.md` under
-  `.spades/<dir>/<id>.md` (or repo root for project docs).
-  Present the draft for approval in the CLI review pane
-  (§ CLI review pane). No HTML written.
+- **`review_format: cli`** — present the draft for approval in the
+  CLI review pane (§ CLI review pane), and once the human approves
+  it write the canonical `.md` under `.spades/<dir>/<id>.md` (or the
+  repo root for project docs). No HTML written.
 - **`review_format: html`** — write the canonical `.md` exactly
   as in CLI mode, AND ADDITIONALLY write `.html` companion at
   `.spades/<dir>/<id>.html` (or `.spades/<name>.html` for

@@ -21,8 +21,9 @@ you reach § Presenting the report.
 
 - **Both modes** — `.spades/reviews/<target>-<date>.md`, the
   complete record.
-- **CLI mode** — the tiered digest is presented in the CLI review pane (`docs/FRAMEWORK.md § CLI review pane`) on the
-  acknowledge / act question.
+- **CLI mode** — the tiered digest is presented in the CLI review pane
+  (`docs/FRAMEWORK.md § CLI review pane`) on the human-decision
+  question, paged per tier when it exceeds about sixty lines.
 - **HTML mode** — additionally `.spades/reviews/<target>-<date>.html`
   from `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html` via
   `worker-html-review`; the coordinator selects that report's absolute

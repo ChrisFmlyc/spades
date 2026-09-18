@@ -29,7 +29,8 @@ Read `docs/FRAMEWORK.md` § Hierarchy → Two layers of intent,
   conversation stays in the terminal; the assembled document is
   reviewed on the page.
 - **CLI mode** — each section's draft is presented in the CLI review pane (`docs/FRAMEWORK.md § CLI review pane`) on its
-  confirmation question; the brief prints only the write line.
+  confirmation question; the brief prints the write confirmation
+  and the `Next:` line.
 
 `INTENT.md` is a committed root document, so there is no backend
 mirror.

@@ -23,9 +23,11 @@ The Plan and Scope are read from their `.md` files. HTML mode opens the
 Plan's `.html` via the OPEN_CMD prelude after Step 1 establishes the
 delivery context, and that page is the human's view of what is being
 executed; the terminal carries routing acknowledgements, status lines,
-errors, and the hand-off pointer. CLI mode presents the Plan in the CLI
-review pane (`docs/FRAMEWORK.md § CLI review pane`) on the routing
-question. After each audit-trail write in HTML mode, re-dispatch
+errors, and the hand-off pointer. CLI mode prints a one-line Plan
+summary (id, title, `deliverable_type`, `delivery:`) and does not
+re-present the body: it was reviewed at Approve, and Deliver asks no
+decision about its content (`docs/FRAMEWORK.md § CLI review pane`).
+After each audit-trail write in HTML mode, re-dispatch
 `worker-html-plan` with `open_path: null` so the already-presented page
 stays current.
 

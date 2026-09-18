@@ -16,8 +16,9 @@ Resolution, § Asking the Human, and § Output Format before running.
 
 The Plan and its Scope are read from their `.md` files in both modes. In
 CLI mode the Plan body is presented in the CLI review pane
-(`docs/FRAMEWORK.md § CLI review pane`) on the checklist and routing
-questions. In HTML mode the Plan's existing `.html` (written by
+(`docs/FRAMEWORK.md § CLI review pane`) on the checklist and decision
+questions, paged per section when long; routing follows as
+conversational text without re-presenting it. In HTML mode the Plan's existing `.html` (written by
 `/spades:plan`) is auto-opened via the OPEN_CMD prelude and is the
 review surface; the terminal carries the checklist assessments, the
 prompts, and the confirmation. After the decision is written, the

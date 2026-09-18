@@ -26,7 +26,8 @@ before running.
   the assembled document. The per-rule conversation stays in the
   terminal.
 - **CLI mode** — each section's draft is presented in the CLI review pane (`docs/FRAMEWORK.md § CLI review pane`) on its
-  confirmation question; the brief prints only the write line.
+  confirmation question; the brief prints the write confirmation
+  and the `Next:` line.
 
 A committed root document; no backend mirror.
 
