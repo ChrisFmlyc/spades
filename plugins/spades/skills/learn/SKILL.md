@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Captures a learning from completed work and stores it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 5.0.5
+version: 5.0.6
 ---
 
 # /spades:learn
@@ -23,8 +23,8 @@ schema), § Asking the Human, and § Output Format before running.
   path, rendered from `${CLAUDE_PLUGIN_ROOT}/skills/learn/template.html`
   by `worker-html-learning` and auto-opened as the review surface;
   iteration is a targeted `.md` edit plus a re-render.
-- **CLI mode** — the draft is pasted to the terminal for correction
-  before the write.
+- **CLI mode** — the draft is presented in the CLI review pane (`docs/FRAMEWORK.md § CLI review pane`) on the correction
+  question before the write.
 
 ## Pre-Flight
 
@@ -78,7 +78,8 @@ for. Link code, docs, or prior issues where helpful.
 1. **Read the context.** A Scope or Plan ID in the request becomes
    `scope_ref` / `plan_ref`; a file path or area pre-fills `area`.
 2. **Draft the whole learning** from the conversation so far.
-   CLI mode: paste it for correction. In both
+   CLI mode: present it in the CLI review pane on the correction
+   question. In both
    modes, continue to classification before writing; HTML mode presents
    the draft on the page at Step 4.
 3. **Classify** via `AskUserQuestion`:
@@ -120,8 +121,8 @@ for. Link code, docs, or prior issues where helpful.
    Next: /spades:status — see what else is in flight
    ```
 
-   CLI mode: the write confirmation, the learning body once, the
-   same `Next:` line. A private learning's brief names the private
+   CLI mode: the write confirmation and the same `Next:` line; the
+   learning body was already reviewed in the pane. A private learning's brief names the private
    path.
 
 ## Refresh flow (`--refresh`)

@@ -8,6 +8,24 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.4.0] — 2026-09-18
+
+- **Minor**: Add the CLI review pane. In `review_format: cli`, every
+  skill presents review-form content — drafts, artefact bodies,
+  verification and verdict tables, the review digest — in the `preview`
+  pane of the `AskUserQuestion` that asks the decision about it, instead
+  of pasting it to the terminal. Every option carries the full content,
+  long artefacts page one section per question, and nothing is cut off.
+  Defined once in `docs/FRAMEWORK.md § CLI review pane`; skills reference
+  it. Transient views (`status`, `list`, leads board) and briefs stay as
+  terminal text.
+- Skills bumped: `anti-patterns` 1.5.3 → 1.5.4, `approve` 3.3.4 → 3.3.5,
+  `architecture` 1.4.3 → 1.4.4, `close` 4.14.1 → 4.14.2,
+  `deliver` 4.0.2 → 4.0.3, `evaluate` 3.9.8 → 3.9.9, `intent` 4.4.3 → 4.4.4,
+  `learn` 5.0.5 → 5.0.6, `newproject` 3.7.0 → 3.7.1, `objective` 1.3.2 → 1.3.3,
+  `patterns` 1.4.3 → 1.4.4, `plan` 3.7.4 → 3.7.5, `review` 3.9.3 → 3.9.4,
+  `scope` 4.1.2 → 4.1.3, `ship` 3.6.5 → 3.6.6.
+
 ## [6.3.2] — 2026-09-13
 
 - **Patch**: Make Plan task disclosures keyboard operable with native buttons,

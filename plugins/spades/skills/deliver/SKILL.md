@@ -1,7 +1,7 @@
 ---
 name: deliver
 description: Delivers an approved SPADES Plan in its Scope’s separate delivery branch and worktree. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "deliver this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 4.0.2
+version: 4.0.3
 ---
 
 # /spades:deliver
@@ -19,14 +19,15 @@ before running.
 
 ### Output format
 
-The Plan and Scope are read from their `.md` files. HTML mode opens
-the Plan's `.html` via the OPEN_CMD prelude after Step 1 establishes
-the delivery context,
-and that page is the human's view of what is being executed; the
-terminal carries routing acknowledgements, status lines, errors, and
-the hand-off pointer. CLI mode summarises the Plan inline. After
-each audit-trail write in HTML mode, re-dispatch `worker-html-plan` with
-`open_path: null` so the already-presented page stays current.
+The Plan and Scope are read from their `.md` files. HTML mode opens the
+Plan's `.html` via the OPEN_CMD prelude after Step 1 establishes the
+delivery context, and that page is the human's view of what is being
+executed; the terminal carries routing acknowledgements, status lines,
+errors, and the hand-off pointer. CLI mode presents the Plan in the CLI
+review pane (`docs/FRAMEWORK.md § CLI review pane`) on the routing
+question. After each audit-trail write in HTML mode, re-dispatch
+`worker-html-plan` with `open_path: null` so the already-presented page
+stays current.
 
 ## Pre-Flight
 
