@@ -23,7 +23,9 @@ you reach § Presenting the report.
   complete record.
 - **CLI mode** — the tiered digest is presented in the CLI review pane
   (`docs/FRAMEWORK.md § CLI review pane`) on the human-decision
-  question, paged per tier when it exceeds about sixty lines.
+  question, paged per tier when it exceeds about sixty lines. Unlike
+  a draft, the report is a record: it is written first, then
+  presented, then the human decides what to do with it.
 - **HTML mode** — additionally `.spades/reviews/<target>-<date>.html`
   from `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html` via
   `worker-html-review`; the coordinator selects that report's absolute
