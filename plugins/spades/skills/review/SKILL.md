@@ -1,7 +1,7 @@
 ---
 name: review
 description: Provides an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
-version: 3.9.3
+version: 3.9.4
 ---
 
 # /spades:review
@@ -21,7 +21,11 @@ you reach § Presenting the report.
 
 - **Both modes** — `.spades/reviews/<target>-<date>.md`, the
   complete record.
-- **CLI mode** — the tiered digest prints to the terminal.
+- **CLI mode** — the tiered digest is presented in the CLI review pane
+  (`docs/FRAMEWORK.md § CLI review pane`) on the human-decision
+  question, paged per tier when it exceeds about sixty lines. Unlike
+  a draft, the report is a record: it is written first, then
+  presented, then the human decides what to do with it.
 - **HTML mode** — additionally `.spades/reviews/<target>-<date>.html`
   from `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html` via
   `worker-html-review`; the coordinator selects that report's absolute
@@ -247,8 +251,8 @@ Plan only on their instruction.
 Next: /spades:approve P-<id>   — apply or override findings
 ```
 
-**CLI mode:** the write confirmation, the merged digest once, then
-the same `Next:` line.
+**CLI mode:** the write confirmation and the same `Next:` line; the
+merged digest was already presented in the pane.
 
 ## With `/spades:approve`
 

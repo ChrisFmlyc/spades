@@ -1,7 +1,7 @@
 ---
 name: anti-patterns
 description: Creates or maintains ANTI-PATTERNS.md, the project's durable list of things the codebase DELIBERATELY AVOIDS — runtime dependencies, hidden state, premature abstraction, and any other "we won't do X" rules. Use when someone says "set up ANTI-PATTERNS.md", "document what we don't do", "we should ban X", "we deliberately avoid Y", "what's forbidden here", "add an anti-pattern", "update the anti-patterns doc", "what shouldn't we do", or when ANTI-PATTERNS.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review. Also use proactively after a Plan rejection that traces to an unwritten prohibition. Helps the human express the prohibitions and requires their confirmation before recording each rule. SKIP when the human's intent is per-Plan risk capture (use the Plan's Risks & Assumptions section instead) or when documenting an APPROVED pattern (use /spades:patterns).
-version: 1.5.3
+version: 1.5.4
 ---
 
 # /spades:anti-patterns
@@ -25,7 +25,9 @@ before running.
   `.spades/.tmp/anti-patterns.html` opened as the review surface for
   the assembled document. The per-rule conversation stays in the
   terminal.
-- **CLI mode** — the assembled document prints once in the brief.
+- **CLI mode** — each section's draft is presented in the CLI review pane (`docs/FRAMEWORK.md § CLI review pane`) on its
+  confirmation question; the brief prints the write confirmation
+  and the `Next:` line.
 
 A committed root document; no backend mirror.
 
@@ -173,5 +175,5 @@ requested but failed, link that selected page for manual opening. With
 Next: /spades:scope <title>
 ```
 
-**CLI mode:** the write confirmation, the assembled
-`ANTI-PATTERNS.md` once, the same `Next:` line.
+**CLI mode:** the write confirmation and the same `Next:` line; every
+section was already reviewed in the pane.

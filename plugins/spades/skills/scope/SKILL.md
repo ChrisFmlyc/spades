@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Creates or edits a SPADES Scope in the current documentation session and records its intended delivery branch for later execution. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 4.1.2
+version: 4.1.3
 ---
 
 # /spades:scope
@@ -26,8 +26,8 @@ Format`:
   human's review surface: Step 6 writes the working draft, the
   human reviews it in the browser, and iteration is a targeted edit
   to the `.md` followed by a re-render.
-- **CLI mode** — the draft is pasted to the terminal for review
-  before Step 6 writes it.
+- **CLI mode** — the draft is presented in the CLI review pane (`docs/FRAMEWORK.md § CLI review pane`) for review before Step 6
+  writes it.
 
 ## Pre-Flight
 
@@ -208,8 +208,9 @@ Help the human fix any gap before continuing.
 
 ## Step 6 — Write the Scope
 
-This step always writes the `.md`. In CLI mode, paste the assembled
-draft first and write once the human approves it. In HTML mode,
+This step always writes the `.md`. In CLI mode, present the assembled
+draft in the CLI review pane on the approval question (paged per
+section when long) and write once the human approves it. In HTML mode,
 write the draft once Step 4 is complete and let the rendered page
 carry the review.
 

@@ -1,7 +1,7 @@
 ---
 name: patterns
 description: Creates or maintains PATTERNS.md, the project's durable list of APPROVED patterns and conventions — code organisation, error handling, testing, naming. Use when someone says "set up PATTERNS.md", "document our conventions", "what patterns do we use", "update the patterns doc", or when PATTERNS.md is missing, still an unfilled template, or flagged stale. Helps the human express the patterns and requires their confirmation before recording each section.
-version: 1.4.3
+version: 1.4.4
 ---
 
 # /spades:patterns
@@ -26,7 +26,9 @@ before running.
   `.spades/.tmp/patterns.html` opened as the review surface for the
   assembled document. The per-section conversation stays in the
   terminal.
-- **CLI mode** — the assembled document prints once in the brief.
+- **CLI mode** — each section's draft is presented in the CLI review pane (`docs/FRAMEWORK.md § CLI review pane`) on its
+  confirmation question; the brief prints the write confirmation
+  and the `Next:` line.
 
 A committed root document; no backend mirror.
 
@@ -169,5 +171,5 @@ requested but failed, link that selected page for manual opening. With
 Next: /spades:anti-patterns · /spades:scope <title>
 ```
 
-**CLI mode:** the write confirmation, the assembled `PATTERNS.md`
-once, the same `Next:` line.
+**CLI mode:** the write confirmation and the same `Next:` line; every
+section was already reviewed in the pane.

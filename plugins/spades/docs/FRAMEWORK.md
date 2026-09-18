@@ -1281,9 +1281,10 @@ checkout onto another branch or sweeping an entire directory blindly.
 `/spades:setup` Step 1.7 records `review_format:` in
 `.spades/config` — one of `cli` (default) or `html`. The value
 controls *whether* an HTML companion file is written alongside
-the canonical Markdown, and the *medium* of presentation when a
-skill would otherwise paste a large block to the CLI. The skill
-flows, prompts, and decisions don't change between modes.
+the canonical Markdown, and the *medium* of presentation for
+review-form content: the browser page in HTML mode, the CLI review
+pane (§ CLI review pane) in CLI mode. The skill flows, prompts, and
+decisions don't change between modes.
 
 ### Review-page ownership
 
@@ -1315,7 +1316,8 @@ opens follow the same ownership rule; helper skills inherit it.
   Capturing a Lead during another task keeps that task's presentation context.
 
 In CLI mode, reference documents are read as context and any file presentation
-stays with the active task's target. Existing per-skill CLI output rules apply.
+stays with the active task's target. Review-form content is presented in the
+CLI review pane (§ CLI review pane).
 
 ### Universal rule — `.md` always, `.html` additive in HTML mode
 
@@ -1325,7 +1327,7 @@ Agents and other skills read this Markdown as the source of truth.
 
 | Mode | Files and presentation |
 |------|------------------------|
-| `cli` | Write canonical Markdown and present review content in the terminal. |
+| `cli` | Write canonical Markdown and present review content in the CLI review pane (§ CLI review pane). |
 | `html` | Write the same Markdown plus a companion rendered from the bundled `template.html`; present the selected page per § Review-page ownership. |
 
 #### Evaluation output
@@ -1338,7 +1340,8 @@ writes a verification-plan page and a completed-report page. See
 #### Transient views
 
 Status and List read existing artefacts to produce a current-state view.
-CLI mode prints that view. HTML mode also writes and opens
+CLI mode prints that view to the terminal — it asks no decision, so the
+CLI review pane does not apply. HTML mode also writes and opens
 `.spades/.tmp/<view>.html`, a gitignored file regenerated on each call.
 Short status messages remain in the terminal in both modes.
 
@@ -1350,10 +1353,10 @@ Producing skills are `/spades:newproject`, `/spades:scope`,
 `/spades:anti-patterns`. Each writes an artefact at the end of
 its flow.
 
-- **`review_format: cli`** — write the canonical `.md` under
-  `.spades/<dir>/<id>.md` (or repo root for project docs).
-  Paste a summary to the terminal where the skill body already
-  does that. No HTML written.
+- **`review_format: cli`** — present the draft for approval in the
+  CLI review pane (§ CLI review pane), and once the human approves
+  it write the canonical `.md` under `.spades/<dir>/<id>.md` (or the
+  repo root for project docs). No HTML written.
 - **`review_format: html`** — write the canonical `.md` exactly
   as in CLI mode, AND ADDITIONALLY write `.html` companion at
   `.spades/<dir>/<id>.html` (or `.spades/<name>.html` for
@@ -1394,8 +1397,55 @@ substantive excerpt to the CLI for approval. Use this sequence:
    wait for review.
 3. Apply requested edits to the file; the human reloads the page.
 
-CLI mode retains the sequence: draft, present in the terminal, obtain
-approval, then write.
+CLI mode retains the sequence: draft, present in the CLI review pane,
+obtain approval, then write.
+
+#### CLI review pane
+
+In CLI mode, review-form content is presented in the `preview` pane of
+the `AskUserQuestion` call that asks for the decision about it, never
+as a block of terminal text above the prompt. The pane renders Markdown
+in a monospace box beside the options, so the human reads the draft and
+answers in one place. Every skill that presents review-form content in
+CLI mode follows this contract:
+
+- **The decision question carries the content.** The `AskUserQuestion`
+  that would otherwise follow a paste (confirm / tweak / rewrite;
+  approve / reject; write / cancel) puts the content in `preview`. The
+  question text and option labels stay short and conversational.
+- **Every option shows the full content.** The pane shows the focused
+  option's preview, so each option carries the same complete content,
+  headed by one line naming that option's effect (`Confirm as drafted`,
+  `Confirm with tweaks — say what changes in Other`). Moving between
+  options never empties or truncates the pane. Probes for the human go
+  at the foot of the preview under a `---` rule, not in the question.
+- **Nothing is cut off.** The pane must show the whole content. A
+  section-by-section flow (Intent, Architecture, Patterns,
+  Anti-Patterns, Learn) presents one section per question and that
+  section always fits. A whole-artefact review (Scope, Plan, Project,
+  Objective, review digest, the approve / deliver / ship / close
+  presentations) presents the artefact in pages when it exceeds about
+  sixty lines: one question per top-level section in the artefact's
+  own order, each pane holding that section complete, with a final
+  question whose pane holds the frontmatter and the list of sections
+  reviewed and asks the closing decision. Paging changes only how the
+  content is shown; the decisions and their order are the same as in
+  HTML mode.
+- **Single-select only.** The pane is available on single-select
+  questions. When the decision is genuinely multi-select, present the
+  content on a preceding single-select question (`Reviewed — continue`
+  / `Change something first`) and then ask the multi-select.
+- **Markdown as written.** The preview holds the artefact's Markdown as
+  it will be written (or already stands in the file), with a first
+  line `## <Section>  (draft)` or `# <Artefact id>` so the human knows
+  what they are looking at. No HTML, no colour codes, no line numbers.
+- **Once presented, not repeated.** After the human approves content
+  from the pane, the confirmation brief prints the write line and the
+  `Next:` pointer; it does not paste the assembled document again.
+
+Content that asks no decision — transient views (`status`, `list`,
+the leads board), pre-flight narration, error text, and confirmation
+briefs — stays as terminal text in both modes.
 
 #### What counts as "review-form text" (HTML in HTML mode) vs "conversational text" (CLI in both modes)
 
@@ -1425,9 +1475,10 @@ Consumer skills (`approve`, `evaluate`, `deliver`, `ship`, `close`,
 
 In **HTML mode**, review-form content goes through the open `.html`
 (via `OPEN_CMD` to surface it, plus targeted edits to update it).
-The CLI carries only the conversational layer.
+In **CLI mode**, it goes through the CLI review pane. The terminal
+carries only the conversational layer in both modes.
 
-CLI mode never writes or opens HTML; HTML mode never pastes review-form
+CLI mode never writes or opens HTML; neither mode pastes review-form
 text to the terminal.
 
 #### HTML rendering: template validation and substitution
@@ -1493,8 +1544,9 @@ respective review steps:
 visible differences between the two pages — sidebar brand, H1
 prefix, tagline, browser title.
 
-- **`review_format: cli`** — paste the artefact's content (or a
-  summary) to the terminal as today.
+- **`review_format: cli`** — present the artefact's content in the
+  CLI review pane on the question that asks the decision about it
+  (§ CLI review pane).
 - **`review_format: html`** — auto-open the relevant `.html`
   artefact in the default browser via the OPEN_CMD prelude.
   - For artefact-bound reviews (approve / deliver / ship / close):
@@ -1515,7 +1567,8 @@ prefix, tagline, browser title.
     PR (no separate bookkeeping flow because evaluate runs
     mid-flow, not on `main`).
 
-In CLI mode, consumer skills present review content in the terminal.
+In CLI mode, consumer skills present review content in the CLI review
+pane (§ CLI review pane).
 
 ### OPEN_CMD detection prelude
 

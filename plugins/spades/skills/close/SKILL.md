@@ -1,7 +1,7 @@
 ---
 name: close
 description: Closes a Plan, Scope, Project, Objective, or Quick item through its matching lifecycle flow. Asks the human to finalise as shipped/done/archived/complete, reject a Plan, or abandon a Scope, Project, or Objective; Quick items follow their verified PR state. Flags `--reject "reason"` and `--abandon "reason"` skip the menu with the supplied reason. Use whenever someone says "close this", "close P-…", "close S-…", "close O-…", "complete this objective", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging".
-version: 4.14.1
+version: 4.14.2
 ---
 
 # /spades:close
@@ -38,12 +38,13 @@ shares. Read the flow file Step 3 routes you to:
 
 ### Output format
 
-The target is read from its `.md`. HTML mode opens the target's
-existing `.html` via the OPEN_CMD prelude as the human's view; the
-terminal carries progress, prompts, and the confirmation. CLI mode
-summarises the target inline. After the close-out edit in HTML
-mode, re-dispatch the producing skill's `worker-html-*` with
-`open_path: null` so the already-presented page shows the terminal status.
+The target is read from its `.md`. HTML mode opens the target's existing
+`.html` via the OPEN_CMD prelude as the human's view; the terminal
+carries progress, prompts, and the confirmation. CLI mode presents the
+target in the CLI review pane (`docs/FRAMEWORK.md § CLI review pane`) on
+the close-out question. After the close-out edit in HTML mode,
+re-dispatch the producing skill's `worker-html-*` with `open_path: null`
+so the already-presented page shows the terminal status.
 
 ## Conversational entry
 

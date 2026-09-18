@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Checks delivered output against the Scope's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.9.8
+version: 3.9.9
 ---
 
 # /spades:evaluate
@@ -20,8 +20,8 @@ verification plan before any check runs (Step 3) and the report
 after (Step 6). The verdict itself lives as audit-trail lines on the
 Plan's `.md`; that is the AI-readable record.
 
-- **CLI mode** — the table printed in each step is the surface,
-  anchored by a one-line pointer.
+- **CLI mode** — the table built in each step is the surface,
+  presented in the CLI review pane (`docs/FRAMEWORK.md § CLI review pane`) on that step's decision question.
 - **HTML mode** — each surface is a page rendered from
   `${CLAUDE_PLUGIN_ROOT}/skills/evaluate/template.html` by
   `worker-html-evaluation` into `.spades/evaluations/` and
@@ -126,10 +126,12 @@ Append the agreed plan:
 
 ## Step 3 — Present the locked plan
 
-**CLI mode** — the Step 2 table stays on screen; print one anchor:
+**CLI mode** — carry the Step 2 table as the `preview` of the Step 4
+approve / edit / reject question (every option shows the full table),
+and print one anchor:
 
 ```
-○ Verification plan locked above — approve, edit, or reject at the prompt next.
+○ Verification plan locked — approve, edit, or reject at the prompt next.
 ```
 
 **HTML mode — page 1.** Dispatch `worker-html-evaluation` per
@@ -249,7 +251,9 @@ Routing: hybrid (AI verified C1, C3, Q; Human verified C2, C4)
 Overall: PARTIAL — C4 needs a follow-up.
 ```
 
-**CLI mode** — print the table, then:
+**CLI mode** — carry the results table as the `preview` of the Step 7
+verdict confirmation question (every option shows the full table),
+and print one anchor:
 
 ```
 ○ Verdict (proposed): <PASS|PARTIAL|FAIL>. Confirm or override below.

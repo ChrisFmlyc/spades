@@ -1,7 +1,7 @@
 ---
 name: approve
 description: Presents a SPADES Plan for human review against the approval checklist, then records the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`.
-version: 3.3.4
+version: 3.3.5
 ---
 
 # /spades:approve
@@ -14,9 +14,11 @@ Resolution, § Asking the Human, and § Output Format before running.
 
 ### Output format
 
-The Plan and its Scope are read from their `.md` files in both
-modes. In CLI mode the Plan body is pasted to the terminal alongside
-the checklist. In HTML mode the Plan's existing `.html` (written by
+The Plan and its Scope are read from their `.md` files in both modes. In
+CLI mode the Plan body is presented in the CLI review pane
+(`docs/FRAMEWORK.md § CLI review pane`) on the checklist and decision
+questions, paged per section when long; routing follows as
+conversational text without re-presenting it. In HTML mode the Plan's existing `.html` (written by
 `/spades:plan`) is auto-opened via the OPEN_CMD prelude and is the
 review surface; the terminal carries the checklist assessments, the
 prompts, and the confirmation. After the decision is written, the
@@ -41,7 +43,8 @@ reuses that context; it does not create the intended delivery branch.
 7. **Read any panel report** at `.spades/reviews/<plan-id-lower>-*.md`
    for this Plan; its findings feed the checklist.
 8. **Open the review surface.** HTML mode: OPEN_CMD the Plan's
-   `.html`. CLI mode: paste the Plan body.
+   `.html`. CLI mode: present the Plan body in the CLI review pane on
+   the questions that follow, paged per section when it is long.
 
 Before the checklist, offer the second opinion in one line: *"Want
 an independent review first? Run `/spades:review P-<id>`, then

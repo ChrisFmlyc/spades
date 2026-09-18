@@ -1,7 +1,7 @@
 ---
 name: intent
 description: Creates or maintains INTENT.md, the project's durable statement of intent — the problem it solves, who it serves, what it does, what success looks like, and its non-goals. Use when someone says "set up INTENT.md", "capture our project intent", "what is this project for", "update the intent doc", "review our non-goals", or when INTENT.md is missing, still an unfilled template, or flagged stale. Helps the human express the intent and requires their confirmation before recording each section.
-version: 4.4.3
+version: 4.4.4
 ---
 
 # /spades:intent
@@ -28,7 +28,9 @@ Read `docs/FRAMEWORK.md` § Hierarchy → Two layers of intent,
   for the assembled document during the walk. The per-section
   conversation stays in the terminal; the assembled document is
   reviewed on the page.
-- **CLI mode** — the assembled document prints once in the brief.
+- **CLI mode** — each section's draft is presented in the CLI review pane (`docs/FRAMEWORK.md § CLI review pane`) on its
+  confirmation question; the brief prints the write confirmation
+  and the `Next:` line.
 
 `INTENT.md` is a committed root document, so there is no backend
 mirror.
@@ -207,8 +209,8 @@ requested but failed, link that selected page for manual opening. With
 Next: /spades:architecture · /spades:scope <title>
 ```
 
-**CLI mode:** the write confirmation, the assembled `INTENT.md`
-once, the same `Next:` line.
+**CLI mode:** the write confirmation and the same `Next:` line; every
+section was already reviewed in the pane.
 
 ## Quality check
 

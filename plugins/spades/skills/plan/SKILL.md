@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generates a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 3.7.4
+version: 3.7.5
 ---
 
 # /spades:plan
@@ -24,8 +24,8 @@ running.
   `worker-html-plan` and auto-opened. The page is the review surface:
   Step 5 writes the working draft, the human reviews in the browser,
   and iteration is a targeted `.md` edit plus a re-render.
-- **CLI mode** — Step 4 pastes the draft to the terminal and iterates
-  there before Step 5 writes it.
+- **CLI mode** — Step 4 presents the draft in the CLI review pane (`docs/FRAMEWORK.md § CLI review pane`), paged per section, and
+  iterates there before Step 5 writes it.
 
 ## Pre-Flight
 
@@ -125,11 +125,13 @@ The Plan has these sections:
   software work), `artefact` (a document, dataset, config), or
   `action` (a one-off human act). This drives `/spades:ship`.
 
-**CLI mode.** Paste the full draft, including the proposed
-`deliverable_type`, and ask: *"Does the task breakdown feel right?
+**CLI mode.** Present the full draft, including the proposed
+`deliverable_type`, in the CLI review pane — one question per
+top-level section when the Plan exceeds about sixty lines — and ask
+on the closing question: *"Does the task breakdown feel right?
 Anything I'm underestimating? Should any tasks be human-delivered?"*
-Iterate by re-pasting revised sections; confirm `deliverable_type`
-via `AskUserQuestion`; then write in Step 5.
+Iterate by re-presenting revised sections in the pane; confirm
+`deliverable_type` via `AskUserQuestion`; then write in Step 5.
 
 **HTML mode.** Confirm only the shape verbally — task count,
 headline approach — and go straight to Step 5. The

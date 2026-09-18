@@ -1,7 +1,7 @@
 ---
 name: newproject
 description: Creates a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.7.0
+version: 3.7.1
 ---
 
 # /spades:newproject
@@ -22,8 +22,8 @@ running.
   `${CLAUDE_PLUGIN_ROOT}/skills/newproject/template.html` via
   `worker-html-project`, auto-opened as the review surface;
   iteration is a targeted `.md` edit plus a re-render.
-- **CLI mode** — the record is pasted for confirmation before the
-  write.
+- **CLI mode** — the record is presented in the CLI review pane (`docs/FRAMEWORK.md § CLI review pane`) on the confirmation
+  question before the write.
 
 ## Pre-Flight
 

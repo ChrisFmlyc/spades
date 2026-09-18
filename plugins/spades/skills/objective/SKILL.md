@@ -1,7 +1,7 @@
 ---
 name: objective
 description: Creates or edits a SPADES Objective — a coherent strategic action associated with a project (Rumelt/OKR sense), prefixed O-. Use when someone says "create an objective", "set an objective", "add an objective", "new objective", "add a milestone for this project", or "/spades:objective <description>". An Objective is independent of Scopes — it never contains, requires, or gates on one. Closing an Objective is done via /spades:close O-<slug>.
-version: 1.3.2
+version: 1.3.3
 ---
 
 # /spades:objective
@@ -28,8 +28,8 @@ Read `docs/FRAMEWORK.md` § Hierarchy → Objectives, § ID Format,
   from `${CLAUDE_PLUGIN_ROOT}/skills/objective/template.html` via
   `worker-html-objective`, auto-opened as the review surface;
   iteration is a targeted `.md` edit plus a re-render.
-- **CLI mode** — the record is pasted for confirmation before the
-  write.
+- **CLI mode** — the record is presented in the CLI review pane (`docs/FRAMEWORK.md § CLI review pane`) on the confirmation
+  question before the write.
 
 ## Pre-Flight
 
