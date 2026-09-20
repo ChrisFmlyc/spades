@@ -227,12 +227,21 @@ does not skip their conversation or gates.
    confirmation. A coordinator that is itself the human's session does the
    same: invoke the skill; do not write the record from the packet.
 4. **Finish the promotion.** With the `S-…` or `Q-…` ID the target skill
-   confirmed, run `--promote L-<id> <work-id>`: set `status: promoted` and
-   `promoted_to:`, append the `## History` line naming the target and the
-   invoking skill, mirror the comment and remove `spades:lead`. A Lead
-   whose record lives on the default branch is edited in the target's
-   delivery or Quick worktree so the change ships with that work; the
-   mirror is updated at once.
+   confirmed, run `--promote L-<id> <work-id>`, split by route:
+   - **Quick target:** finish the local promotion at once in the Quick
+     worktree — set `status: promoted` and `promoted_to:`, append the
+     `## History` line naming the target and the invoking skill — so it
+     ships in that item's PR; update the mirror at once.
+   - **Scope target:** update the mirror at once (the promotion comment
+     naming the Scope, `spades:lead` removed) and record the local write
+     as pending: note it in the receipt and append an audit line on the
+     Scope, `Lead promotion pending: L-<id> → S-<slug>, written at first
+     delivery`. The first `/spades:deliver` for that Scope applies the
+     local edit (`status`, `promoted_to`, `## History`) in the established
+     delivery worktree so it ships with the Scope's PR.
+
+   Never edit the Lead record in the documentation or Scope session
+   worktree.
 
 A human who declines the route the worker chose answers inside the target
 skill (`/spades:scope` offers the quick path and `/spades:quick` falls back
