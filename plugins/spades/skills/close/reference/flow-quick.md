@@ -110,9 +110,11 @@ the source marker untouched throughout:
    PR landed the work without the marker, copy the source marker into
    the worktree first, then apply the edit.
 2. **B3** with `chore(spades): ship <Q-id>`. One commit, the marker only.
-3. **B4** — push and open the bookkeeping PR. Its body is one short
-   paragraph: the Quick item, its PR and merge SHA, and that the change
-   is the marker alone.
+3. **B4** — push and open the bookkeeping PR. Its body uses the shared
+   B4 shape: `## Summary` (the Quick item shipped), `## Linked
+   artefacts` (the Q-id, its PR and merge SHA, and the Linear issue if
+   any), `## Files touched` (the marker alone), and the plain statement
+   that the PR contains audit-trail changes.
 4. **B5** — verify that PR merged. A driver that opened it and can
    merge it (a bot-review sweep, then squash) merges it here; otherwise
    exit and re-run `/spades:close Q-<id>` after the human merges it.
