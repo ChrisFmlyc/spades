@@ -8,6 +8,18 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.4.1] — 2026-09-20
+
+- **Patch**: `/spades:leads --promote` with no target hands the Lead to
+  `/spades:scope` or `/spades:quick` instead of composing the record
+  itself. The worker walks the fast-track gate to choose the route, returns
+  a context packet (the Lead's What, Why, Suggested action, evidence and
+  related Leads), the coordinator invokes the target skill so the human
+  answers its questions, and the promotion is finished with the ID that
+  skill confirms. Found when a Scope was written from a Lead without the
+  Scope skill's conversation running.
+- Skills bumped: `leads` 3.1.0 → 3.1.1.
+
 ## [6.4.0] — 2026-09-18
 
 - **Minor**: Add the CLI review pane. In `review_format: cli`, every

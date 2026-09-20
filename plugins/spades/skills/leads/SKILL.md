@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Captures out-of-scope discoveries as Leads immediately during any task, including recurring known issues, and returns to that task. Classifies findings, reuses existing Leads, and records one sighting per observation context. Also runs completion checks for Evaluate, Learn and Research; lists Leads across the requested worktrees; and shows, promotes, closes or synchronises a Lead on request.
-version: 3.1.0
+version: 3.1.1
 argument-hint: '[--list [--all-worktrees] | --show L-<id> | --promote L-<id> [<work-id>] | --close L-<id> "<reason>" | --sync L-<id>]'
 ---
 
@@ -186,7 +186,7 @@ views; they report reconciliation needs for a later management operation.
 | Operation | Result |
 |---|---|
 | `--show L-<id>` | Display the record, source worktree and current publication/mirror evidence. |
-| `--promote L-<id> [<work-id>]` | Set `status: promoted` and record the supplied `S-…`, `Q-…` or document in `promoted_to:`. With no target, report target pending and the Scope/Quick next step. Mirror the target in a comment and remove `spades:lead`, preserving other labels. |
+| `--promote L-<id> [<work-id>]` | With a target, set `status: promoted`, record the supplied `S-…`, `Q-…` or document in `promoted_to:`, mirror the target in a comment and remove `spades:lead`, preserving other labels. With no target, follow § Promotion without a target: decide the route, hand the Lead to `/spades:scope` or `/spades:quick`, and finish the promotion with the ID that skill returns. |
 | `--close L-<id> "<reason>"` | Set `status: closed` and `closed_reason:` such as `done`, `not worth it`, or `duplicate of L-…`. Record supporting evidence when closed as done. Mirror the reason and the team's appropriate terminal state. |
 | `--sync L-<id>` | Read the local record and mirror, then complete pending mirror operations for the recorded decision. Verify the result and append reconciliation evidence. |
 
@@ -199,6 +199,45 @@ only the remote state.
 
 Promotion to `S-…` proceeds through that Scope's approved Plans; promotion
 to `Q-…` proceeds through `/spades:quick` eligibility and validation.
+
+### Promotion without a target
+
+`--promote L-<id>` with no work ID turns a Lead into work through the
+skill that owns that kind of record. The Leads skill never composes a
+Scope or a Quick item itself, in any dispatch mode: it does not write
+`.spades/scopes/S-…` or `.spades/quick/Q-…`, does not infer the answers
+those skills ask the human for (delivery, priority, type, slug, gate), and
+does not skip their conversation or gates.
+
+1. **Decide the route.** Walk the fast-track gate in
+   `docs/FRAMEWORK.md § Fast-Track Path` against the Lead's *Suggested
+   action*, area and effort. Every criterion holds → `quick`; any fails,
+   or the Lead needs investigation before a fix is known → `scope`. Record
+   the reasoning in the receipt.
+2. **Prepare the context packet**: the Lead ID and Linear issue; its
+   title, *What*, *Why it matters* and *Suggested action* verbatim; area,
+   type, effort, confidence; every sighting's evidence; related Lead IDs;
+   and the route with its reasoning.
+3. **Hand off.** The target skill asks the human questions, so it runs in
+   the coordinator's turn, not in the worker. The worker returns
+   `outcome: target pending` with the route and the packet; the
+   coordinator then invokes `/spades:scope <packet>` or
+   `/spades:quick <packet>` (Claude Code: the Skill tool; Codex:
+   `$spades:scope` / `$spades:quick`) and lets that skill run to its own
+   confirmation. A coordinator that is itself the human's session does the
+   same: invoke the skill; do not write the record from the packet.
+4. **Finish the promotion.** With the `S-…` or `Q-…` ID the target skill
+   confirmed, run `--promote L-<id> <work-id>`: set `status: promoted` and
+   `promoted_to:`, append the `## History` line naming the target and the
+   invoking skill, mirror the comment and remove `spades:lead`. A Lead
+   whose record lives on the default branch is edited in the target's
+   delivery or Quick worktree so the change ships with that work; the
+   mirror is updated at once.
+
+A human who declines the route the worker chose answers inside the target
+skill (`/spades:scope` offers the quick path and `/spades:quick` falls back
+to `/spades:scope` when its gate fails), so the decision is theirs either
+way.
 
 A document target is a repository-relative file path or a stable document
 URL, stored as the `promoted_to:` value. Record its owning `S-…` or `Q-…`,
