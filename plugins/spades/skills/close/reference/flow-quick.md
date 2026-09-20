@@ -3,8 +3,13 @@
 Reached from `SKILL.md` Step 0 for a `Q-<slug>-<suffix>` target.
 There is no menu: the action is to verify the PR merged and flip the
 marker to `shipped`, with *Drop* offered once the PR is confirmed
-closed unmerged. Quick items are leaf nodes — no bookkeeping PR, no
-Scope rollup, no B1–B7.
+closed unmerged. Quick items are leaf nodes — no Scope rollup — but the
+flip has to reach `main`, and the Quick branch is already merged, so a
+commit there never lands. The flip travels the same way a Plan's
+`Shipped` marker does: a one-commit bookkeeping branch and PR from
+`main` (**B2–B6**), prepared through `/repo:newbranch`. Found on a
+consumer repo where four merged Quick items still read `shipping` on
+`main`.
 
 ## Contents
 
@@ -23,9 +28,8 @@ Scope rollup, no B1–B7.
    `shipped`."*
 3. **`scm: github`.** With `scm: local-git` the marker was written
    at `shipped` by `/spades:quick`; there is nothing to close.
-4. Resolve the marker's branch with `/repo:newbranch --resume <branch>`
-   and use that worktree for marker edits. Preserve any uncommitted work
-   according to the inclusion decisions returned by that skill.
+4. Read the marker from the current checkout; the Quick branch is not
+   resumed. Q5 prepares the bookkeeping worktree the edit is made in.
 5. Print the marker's title and `pr_url`.
 
 ## Q2 — Probe the PR
@@ -87,16 +91,33 @@ Capture `linear_issue_id` first (Q5 needs it), then delete
 
 ## Q5 — Persist, mirror and confirm
 
-Commit the Q3 marker edit or Q4 deletion in the resumed Quick worktree,
-following `docs/FRAMEWORK.md § Carry-Forward → Commit contents` and
-`/repo:branch`. Use `chore(spades): ship <Q-id>` or
-`chore(spades): drop <Q-id>`, then push that branch to the configured
-remote. Verify the commit contains the intended marker change and the push
-succeeded before mirroring or confirming completion. If either fails,
-report persistence as pending, retain the Q-id, branch, outcome and mirror
-metadata, and retry this step with that context.
+The Quick branch is merged; a commit on it never reaches `main`. Land the
+Q3 edit or Q4 deletion through the shared bookkeeping machinery:
 
-With `backend: linear` and a `linear_issue_id`:
+1. **B2** with the description *"ship <Q-id>"* (or *"drop <Q-id>"*) and
+   the preferred name `chore/ship-<q-slug>` (or `chore/drop-<q-slug>`),
+   where `<q-slug>` is the marker's slug without the `Q-` prefix,
+   truncated to fit the branch-name limit. Apply the Q3 edit or the Q4
+   deletion to the fresh marker in the returned worktree; the marker
+   there already carries `status: shipping` and `pr_url` from the
+   Quick PR.
+2. **B3** with `chore(spades): ship <Q-id>` or `chore(spades): drop
+   <Q-id>`. One commit, the marker only.
+3. **B4** — push and open the bookkeeping PR. Its body is one short
+   paragraph: the Quick item, its PR and merge SHA, and that the change
+   is the marker alone.
+4. **B5** — verify that PR merged. A driver that opened it and can
+   merge it (a bot-review sweep, then squash) merges it here; otherwise
+   exit and re-run `/spades:close Q-<id>` after the human merges it.
+5. **B6** — retain the worktree.
+
+Verify the bookkeeping commit contains the intended marker change and
+the PR merged before mirroring or confirming completion. If any step
+fails, report persistence as pending, retain the Q-id, bookkeeping branch,
+outcome and mirror metadata, and resume from that step.
+
+With `backend: linear` and a `linear_issue_id` (**B7**, after the
+bookkeeping commit is on `main`):
 
 - **After Q3** — issue In Review → Done; comment *"Merged via
   `/spades:close Q-<id>`. Merge: `<merge-sha>` by `<login>`."*
@@ -104,5 +125,6 @@ With `backend: linear` and a `linear_issue_id`:
   convention); comment *"Quick item dropped — PR closed without
   merging."*
 
-Confirm in one line: `✓ Q-<id> shipped. Merge: <merge-sha>.` or
-`✓ Q-<id> dropped.`
+Confirm in one line: `✓ Q-<id> shipped. Merge: <merge-sha>. Bookkeeping:
+<bookkeeping-pr-url>.` or `✓ Q-<id> dropped. Bookkeeping:
+<bookkeeping-pr-url>.`

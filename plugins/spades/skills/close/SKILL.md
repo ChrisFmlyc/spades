@@ -1,21 +1,24 @@
 ---
 name: close
 description: Closes a Plan, Scope, Project, Objective, or Quick item through its matching lifecycle flow. Asks the human to finalise as shipped/done/archived/complete, reject a Plan, or abandon a Scope, Project, or Objective; Quick items follow their verified PR state. Flags `--reject "reason"` and `--abandon "reason"` skip the menu with the supplied reason. Use whenever someone says "close this", "close P-…", "close S-…", "close O-…", "complete this objective", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging".
-version: 4.14.2
+version: 4.15.0
 ---
 
 # /spades:close
 
 Resolve the target and run its close-out flow. Plans, Scopes, Projects
 and Objectives record their terminal state on `main` through a bookkeeping
-PR. Quick items update or delete their marker in the existing worktree.
+PR. Quick items land their marker flip or deletion on `main` the same way,
+through a one-commit bookkeeping PR of their own: the Quick branch is
+already merged, so a commit there never reaches `main`.
 
 Four close actions:
 
 1. **Pass** — finalise the lifecycle. Plan → `shipped` (a merged
    ship PR). Scope → `done` (every child Plan terminal). Project →
    `archived`. Objective → `complete` (the team lead's ungated
-   judgement). Quick item → `shipped` (no bookkeeping PR, no rollup).
+   judgement). Quick item → `shipped` (a one-commit bookkeeping PR, no
+   rollup).
 2. **Reject** — a non-terminal Plan → `rejected`, with a reason.
 3. **Abandon** — a Scope, Project, or Objective → `abandoned`, with
    a reason.
@@ -109,7 +112,9 @@ type, or a flag without a reason, aborts with the correct form.
 
 ## Bookkeeping-PR machinery
 
-Every flow except the Quick close uses these steps by name.
+Every flow uses these steps by name. The Quick close skips B1's Scope
+resolution and B7's parent-Issue work; `flow-quick.md` says which of
+B2–B7 it runs.
 
 ### B1 — Preconditions
 

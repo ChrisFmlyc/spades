@@ -268,10 +268,11 @@ from its filename), filesystem-safe, and stable.
 - **Two-phase lifecycle.** `/spades:quick` opens the marker at
   `status: shipping` and opens the PR. After the PR merges, the
   human runs `/spades:close Q-<id>` to flip to `status: shipped`
-  (matching the Plan ship → close two-phase shape). `status:
-  shipped` always means *actually merged* — never PR-opened-but-
-  unmerged. See `/spades:quick` and the Quick Close Flow in
-  `/spades:close`.
+  (matching the Plan ship → close two-phase shape). The flip lands on
+  `main` through a one-commit bookkeeping PR of its own, because the
+  Quick branch is already merged. `status: shipped` always means
+  *actually merged* — never PR-opened-but-unmerged. See `/spades:quick`
+  and the Quick Close Flow in `/spades:close`.
 
 Worked examples:
 
@@ -905,7 +906,9 @@ The quick path is **two-phase**, matching the Plan ship → close shape:
 - `/spades:close Q-<id>` finalises after PR merge → verifies merge
   via `gh pr view`, flips to `status: shipped`, appends the
   canonical `Shipped (github). PR: …. Merge: …. Merged by: ….`
-  audit-trail line.
+  audit-trail line, and lands that edit on `main` through a
+  one-commit bookkeeping PR (the Quick branch is already merged, so
+  a commit there would never reach `main`).
 
 `status: shipped` always means the deliverable is real to the
 outside world (merged on main) — never PR-opened-but-unmerged. If
