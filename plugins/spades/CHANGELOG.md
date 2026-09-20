@@ -8,6 +8,22 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.4.3] — 2026-09-20
+
+- **Patch**: `/spades:close Q-<id>` lands the marker flip on `main`. The
+  Quick close committed `status: shipped` on the Quick branch and pushed
+  it, but that branch was already squash-merged, so the flip never reached
+  `main`: four merged Quick items on a consumer repo still read
+  `shipping`. The close now prepares a one-commit bookkeeping branch from
+  `main` through `/repo:newbranch` (B2–B6, `chore/ship-<q-slug>`), opens
+  its PR, merges or hands it to the human, and mirrors Linear after the
+  commit is on `main`. The source marker stays untouched until that
+  landing step, so a failed run re-reads it. A Drop (PR closed unmerged)
+  opens no bookkeeping PR — the marker never reached `main` — and deletes
+  the marker from the checkout only after the Linear mirror.
+  `docs/FRAMEWORK.md` says so in both Quick passages.
+- Skills bumped: `close` 4.14.2 → 4.15.0.
+
 ## [6.4.2] — 2026-09-20
 
 - **Patch**: `/spades:leads --list` renders one table per lifecycle state
