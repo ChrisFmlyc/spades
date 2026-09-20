@@ -8,6 +8,18 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.4.2] — 2026-09-20
+
+- **Patch**: `/spades:leads --list` renders one table per lifecycle state
+  with the full Lead ID as the first column, instead of a heading per
+  `area` — which, with one Lead per area, was a heading per Lead and hid
+  the IDs the reader needs for `--show`, `--promote` and `--close`. Open
+  rows sort by sightings then created; Area is the first path the record
+  names; source, publication and mirror details print only for records
+  that are unpublished, unmirrored or in conflict. Found on a 39-record
+  board in a consumer repo.
+- Skills bumped: `leads` 3.1.1 → 3.2.0.
+
 ## [6.4.1] — 2026-09-20
 
 - **Patch**: `/spades:leads --promote` with no target hands the Lead to
