@@ -8,9 +8,10 @@ version: 4.15.0
 
 Resolve the target and run its close-out flow. Plans, Scopes, Projects
 and Objectives record their terminal state on `main` through a bookkeeping
-PR. Quick items land their marker flip or deletion on `main` the same way,
-through a one-commit bookkeeping PR of their own: the Quick branch is
-already merged, so a commit there never reaches `main`.
+PR. Quick items land their marker flip on `main` the same way, through a
+one-commit bookkeeping PR of their own: the Quick branch is already
+merged, so a commit there never reaches `main`. A dropped Quick item's
+marker never reached `main`, so its deletion is local.
 
 Four close actions:
 
