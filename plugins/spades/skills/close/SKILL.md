@@ -113,9 +113,8 @@ type, or a flag without a reason, aborts with the correct form.
 
 ## Bookkeeping-PR machinery
 
-Every flow uses these steps by name. The Quick close skips B1's Scope
-resolution and B7's parent-Issue work; `flow-quick.md` says which of
-B2–B7 it runs.
+Every flow uses these steps by name. The Quick close skips only B1's
+Scope resolution; `flow-quick.md` selects which of B2–B7 apply.
 
 ### B1 — Preconditions
 
