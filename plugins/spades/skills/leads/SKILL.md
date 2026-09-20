@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Captures out-of-scope discoveries as Leads immediately during any task, including recurring known issues, and returns to that task. Classifies findings, reuses existing Leads, and records one sighting per observation context. Also runs completion checks for Evaluate, Learn and Research; lists Leads across the requested worktrees; and shows, promotes, closes or synchronises a Lead on request.
-version: 3.1.1
+version: 3.2.0
 argument-hint: '[--list [--all-worktrees] | --show L-<id> | --promote L-<id> [<work-id>] | --close L-<id> "<reason>" | --sync L-<id>]'
 ---
 
@@ -263,9 +263,12 @@ closure and mirror verification procedure as `--close`.
 
 ## Inventory
 
-`--list` lists the active project's Leads in the caller's checkout, grouped
-by `area`, ordered by `sightings` then `created`. Show counts for open,
+`--list` lists the active project's Leads in the caller's checkout as one
+table per lifecycle state, ordered by `sightings` then `created`, with the
+full Lead ID as the first column of every row. Show counts for open,
 promoted and closed records and identify the inspected worktree/revision.
+Never group by `area` with a heading per group: with one Lead per area that
+is a heading per Lead, and the reader has to scan headings to find an ID.
 
 `--list --all-worktrees`, or a request for all Leads across the process,
 reads Lead records from every registered worktree and the supplied current
@@ -290,9 +293,50 @@ discoveries rather than reproducing their underlying defects.
 
 ### Render the board
 
-Create `.spades/.tmp/` as needed. In CLI mode, write
-`.spades/.tmp/leads.md`, print it and use the OPEN_CMD prelude. Include source,
-publication, mirror and conflict details alongside the counts and open rows.
+Create `.spades/.tmp/` as needed. In CLI mode, write `.spades/.tmp/leads.md`,
+print it and use the OPEN_CMD prelude. The board is built for scanning
+down the ID column and reading across, and for copying an ID straight into
+`--show`, `--promote` or `--close`:
+
+```markdown
+# Leads — <project> · <worktree> @ <revision> · <date>
+
+Open <n> · Promoted <n> · Closed <n> · Total <n>
+
+## Open
+
+| Lead | S | Type | Effort | Area | Title |
+|---|---|---|---|---|---|
+| L-parse-config-swallows-zoderror-7Kd2 | 2 | bug | small | scripts/lint/frontmatter.ts | parseConfig swallows ZodError so callers cannot tell absent from invalid |
+
+## Promoted
+
+| Lead | Promoted to | S | Title |
+|---|---|---|---|
+
+## Closed
+
+| Lead | Reason | Title |
+|---|---|---|
+```
+
+- **Lead** is the full `L-<slug>-<suffix>` ID, first in every row, never
+  abbreviated or replaced by the title.
+- **S** is `sightings:`. Open rows sort by sightings descending, then
+  `created` ascending; promoted and closed rows by `created`.
+- **Area** is the first file or document the record's `area:` names, cut
+  at its first `:`, `(` or `;` — a path, not the full annotation. The
+  record keeps the full text; `--show` prints it.
+- **Title** is the record's `title:` in full. **Reason** is
+  `closed_reason:` cut at its first ` — `.
+- Omit an empty Promoted or Closed section rather than print an empty table.
+- Source, publication and mirror details follow the tables, and only for
+  records that are not on the default branch, carry no `linear_issue_id:`
+  or have a pending mirror or lifecycle conflict; when every record is
+  published and mirrored, one line under the counts says so.
+- With `--all-worktrees`, add a **Source** column (branch, or `main`) after
+  **Lead**, and a **Conflicts** section listing Lead IDs whose copies differ
+  with the paths and the decision needed.
 
 In HTML mode dispatch `worker-html-leads` using the existing template:
 
