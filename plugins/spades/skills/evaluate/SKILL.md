@@ -258,9 +258,11 @@ through `AskUserQuestion`, in whichever shape suits the rows:
 A question holds up to four options and a call up to four questions,
 so a longer list runs over several pages. Results the human has
 already described — in a `/spades:loop` pause, say — become the
-proposed answers, marked *(Recommended)*, for them to confirm. A
-PARTIAL or FAIL needs a one-line cause: take it from the text the
-human adds under *Other*, or ask for it.
+proposed answers, marked *(Recommended)*, for them to confirm. Every
+result carries a one-line note, as an AI row's does: what was
+observed for a PASS, the cause for a PARTIAL or FAIL. Take each note
+from what the human has described or added under *Other*, and ask
+for any still missing in one short follow-up covering those rows.
 
 Record each verdict and note in place. Rows answered *Not checked
 yet* stay `pending`: print the hand-off for them and exit with the
