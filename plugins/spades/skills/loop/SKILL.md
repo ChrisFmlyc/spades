@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, deliver, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. Runs only on direct user invocation or delegation from a user-created goal or driver. See "Who may invoke this".
-version: 1.10.3
+version: 1.11.0
 ---
 
 # /spades:loop
@@ -97,6 +97,7 @@ one-line reason beside each `human` row.
 | `/spades:deliver` — ambiguous branch prefix | `/repo:newbranch` naming conventions; `feat/` when none match. |
 | `/spades:deliver`, `/spades:ship` — one-line description | *Skip.* |
 | `/spades:evaluate` — approve the verification plan | Stage 4. |
+| `/spades:evaluate` — Human row results | The human's, at Stage 5A. |
 | `/spades:evaluate` — confirm the verdict | Stage 5 — yours in 5B, the human's in 5A. |
 | `/spades:ship` — a `Shipped` line already exists | *Exit*, then re-derive the stage. |
 | `/spades:ship` — branch ≠ the audit-trail branch | *Switch to the recorded branch.* |
@@ -261,8 +262,9 @@ Print one block, then end your turn:
 The pause is a free conversation, so it uses no `AskUserQuestion`.
 Answering questions and re-running AI rows keeps the stage where it
 is; the human's own results advance it. When they report back,
-re-enter `/spades:evaluate` at its resume step, let it derive the
-verdict, and let the human answer the confirmation. Then append
+re-enter `/spades:evaluate` at its resume step and let the human
+answer its questions: the Human rows, with what they told you as the
+proposed answers, and then the verdict confirmation. Then append
 `Loop — evaluate sign-off: human (<n> human-verified row(s)).`
 
 ### 5B — Every row AI-verified
