@@ -124,8 +124,11 @@ Propose, then confirm per routing via `AskUserQuestion`:
 - **AI** — every verifier is AI. *Run this plan* / *Adjust first*
   (Adjust switches to hybrid and asks for the split).
 - **Hybrid** — propose the split by what each criterion needs. *Run
-  this plan* / *Adjust the split* (a multi-select of the rows the
-  human takes; loop until confirmed).
+  this plan* / *Adjust the split*. Adjust lists every row in
+  multi-select questions — up to four rows a question and four
+  questions a call, over as many pages as the rows need; the rows
+  ticked across all pages go to Human, the rest to AI. Show the new
+  split and ask again until the human runs it.
 - **Human** — every verifier is Human; each method is written
   clearly enough to execute without guessing. *Looks good* /
   *Adjust*.
