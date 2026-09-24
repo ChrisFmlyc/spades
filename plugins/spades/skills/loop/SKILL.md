@@ -263,9 +263,12 @@ The pause is a free conversation, so it uses no `AskUserQuestion`.
 Answering questions and re-running AI rows keeps the stage where it
 is; the human's own results advance it. When they report back,
 re-enter `/spades:evaluate` at its resume step and let the human
-answer its questions: the Human rows, with what they told you as the
-proposed answers, and then the verdict confirmation. Then append
-`Loop — evaluate sign-off: human (<n> human-verified row(s)).`
+answer its questions on the Human rows, with what they told you as
+the proposed answers. Once every Human row has a result, the human
+answers the verdict confirmation; then append `Loop — evaluate
+sign-off: human (<n> human-verified row(s)).` Rows left `pending`
+keep the loop at 5A: print the block above for them and end your
+turn.
 
 ### 5B — Every row AI-verified
 
