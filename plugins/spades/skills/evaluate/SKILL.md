@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Checks delivered output against the Scope's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.9.9
+version: 3.10.0
 ---
 
 # /spades:evaluate
@@ -12,6 +12,19 @@ criteria. The human owns the verdict in every routing mode.
 
 Read `docs/FRAMEWORK.md` § .spades/ Local Layout, § Target
 Resolution, § Asking the Human, and § Output Format before running.
+
+### Asking the human
+
+Every input the evaluation takes from the human is asked through
+`AskUserQuestion` (`docs/FRAMEWORK.md § Asking the Human`): the
+target, whether to re-run a finished evaluation, the routing,
+agreeing and approving the verification plan, the result of each
+Human row, the verdict, and the Quick-path verdict and follow-up. A
+Human row's result is a decision like the verdict, so the human
+reports it by picking an option at the prompt. Free text — a row's
+evidence, an edited method, a new rationale — arrives through the
+question's *Other* field, or through a short follow-up when an
+answer needs one.
 
 ### Output format
 
@@ -72,7 +85,8 @@ Read the Plan's audit trail:
   Step 5.
 - Already followed by `Evaluation — verdict:` → verify the completed
   Leads handoff for that verdict, finishing it from stored evidence when
-  needed. Then ask whether to re-evaluate fresh or go to `/spades:ship`.
+  needed. Then ask via `AskUserQuestion`: *Re-evaluate fresh* / *Go to
+  `/spades:ship`*.
 
 ## Step 1 — Routing — `AskUserQuestion`
 
@@ -105,12 +119,16 @@ docs). Each row names a **verifier** and a concrete **method**:
 | Q | No regressions in core flow   | AI       | `npm test` |
 ```
 
-Propose and confirm per routing:
+Propose, then confirm per routing via `AskUserQuestion`:
 
 - **AI** — every verifier is AI. *Run this plan* / *Adjust first*
   (Adjust switches to hybrid and asks for the split).
 - **Hybrid** — propose the split by what each criterion needs. *Run
-  this plan* / *Adjust the split* (free-form; loop until confirmed).
+  this plan* / *Adjust the split*. Adjust lists every row in
+  multi-select questions — up to four rows a question and four
+  questions a call, over as many pages as the rows need; the rows
+  ticked across all pages go to Human, the rest to AI. Show the new
+  split and ask again until the human runs it.
 - **Human** — every verifier is Human; each method is written
   clearly enough to execute without guessing. *Looks good* /
   *Adjust*.
@@ -225,10 +243,32 @@ the verdict.
 ```
 
 **Human rows (resume).** Show the AI verdicts already recorded
-verbatim, then ask row by row: *"C2 — Index updates within 5min.
-You were testing this manually against staging. What did you
-find?"* Record verdict and notes in place, append `- YYYY-MM-DD:
-Human verification complete.`, and continue.
+verbatim, then collect the result of every Human row still `pending`
+through `AskUserQuestion`, in whichever shape suits the rows:
+
+- **Checklist** *(preferred)* — multi-select questions listing the
+  pending rows (id, criterion, method); the human ticks each row that
+  passed. Each unticked row then gets a single-select question:
+  *PARTIAL* / *FAIL* / *Not checked yet*.
+- **Row by row** — one single-select question per row, naming its
+  criterion and method, with *PASS* / *PARTIAL* / *FAIL* / *Not
+  checked yet*. Suits a single row, or rows whose outcomes each need
+  their own evidence.
+
+A question holds up to four options and a call up to four questions,
+so a longer list runs over several pages. Results the human has
+already described — in a `/spades:loop` pause, say — become the
+proposed answers, marked *(Recommended)*, for them to confirm. Every
+result carries a one-line note, as an AI row's does: what was
+observed for a PASS, the cause for a PARTIAL or FAIL. Take each note
+from what the human has described or added under *Other*, and ask
+for any still missing in one short follow-up covering those rows.
+
+Record each verdict and note in place. Rows answered *Not checked
+yet* stay `pending`: print the hand-off for them and exit with the
+Plan at `evaluating`; the next run asks only for those rows. Once
+every Human row has a result, append `- YYYY-MM-DD: Human
+verification complete.` and continue.
 
 ## Step 6 — Compile, derive, present
 

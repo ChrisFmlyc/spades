@@ -8,6 +8,23 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.4.4] — 2026-09-24
+
+- **Patch**: `/spades:evaluate` asks the human for every input through
+  `AskUserQuestion`, including the result of each Human-verified row.
+  The resume step used to ask "What did you find?" as an open question
+  in the conversation. It now collects results as a checklist (tick the
+  rows that passed, then PARTIAL / FAIL / *Not checked yet* for the
+  rest) or one question per row, whichever suits the rows, across as
+  many pages as the list needs. Evidence arrives through *Other*. A row
+  left *Not checked yet* stays `pending` and is asked again on the next
+  run. The re-run choice and the verification-plan agreement name
+  `AskUserQuestion` too, and adjusting the hybrid split is a
+  multi-select of the rows the human takes. `/spades:loop` lets the
+  human answer the Human-row questions after its Stage 5A pause, with
+  what they already reported offered as the proposed answers.
+- Skills bumped: `evaluate` 3.9.9 → 3.10.0; `loop` 1.10.3 → 1.11.0.
+
 ## [6.4.3] — 2026-09-20
 
 - **Patch**: `/spades:close Q-<id>` lands the marker flip on `main`. The
