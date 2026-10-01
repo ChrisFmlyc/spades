@@ -99,8 +99,9 @@ If you find nothing, emit an empty array.
 
 ```
 The Plan respects ARCHITECTURE.md and PATTERNS.md, but Task 4
-introduces a second tracker integration (Notion) which
-ANTI-PATTERNS.md explicitly forbids ("no new external integration").
+adds a Notion integration with no recorded scope decision and no
+driver built to docs/EXTENDING-BACKENDS.md — the speculative second
+external integration that ANTI-PATTERNS.md rules out.
 ```
 
 ```spades-findings
@@ -110,7 +111,7 @@ ANTI-PATTERNS.md explicitly forbids ("no new external integration").
     "severity": "blocking",
     "confidence": "high",
     "category": "anti-pattern-violation",
-    "message": "Task 4 adds a Notion integration. ANTI-PATTERNS.md#architectural-anti-patterns forbids a second external tracker; Linear is the sole integration. Either drop Task 4 or obtain an explicit architecture override.",
+    "message": "Task 4 adds a Notion integration without a recorded scope decision or a driver built to docs/EXTENDING-BACKENDS.md; ANTI-PATTERNS.md#architectural-anti-patterns makes another external backend a scope decision. Either drop Task 4 or record the scope decision and build the driver to the backend contract.",
     "refs": ["ANTI-PATTERNS.md#architectural-anti-patterns", "Plan Task 4"]
   }
 ]
