@@ -8,6 +8,27 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.5.0] — 2026-10-01
+
+- **Minor**: With `scm: github`, `/spades:leads` publishes every Lead as a
+  GitHub issue in the repository behind `github.remote`, titled
+  `<Lead ID> — <title>` and labelled `spades:lead` plus its type (`bug`,
+  `feature`, `enhancement`, `security`, `documentation`, `testing`,
+  `maintenance`), creating any missing label. Leads had mirrored only to
+  Linear, so GitHub issues appeared only when an agent improvised one: a
+  consumer repo with `scm: github` held 69 Leads and one ad-hoc issue. A
+  repo with `backend: linear` too gets both mirrors, and promotion,
+  closure, sightings and `--sync` keep each one current. A GitHub issue
+  closes as completed for `done` and not planned otherwise. `security`
+  Leads are published with the area, consequence and an evidence
+  reference, keeping reproduction detail in the local record. New Lead
+  frontmatter field `github_issue:` holds the issue URL. `ANTI-PATTERNS.md`,
+  `ARCHITECTURE.md` and the README tracker table now say GitHub holds Lead
+  issues and PRs while Scopes and Plans stay in the backend. The
+  architecture-strategist persona's example finding names Notion
+  rather than GitHub Issues.
+- Skills bumped: `leads` 3.2.0 → 3.3.0, `setup` 4.11.0 → 4.11.1.
+
 ## [6.4.4] — 2026-09-24
 
 - **Patch**: `/spades:evaluate` asks the human for every input through

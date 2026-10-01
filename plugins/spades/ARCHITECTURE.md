@@ -57,10 +57,14 @@ auto-probe. Two drivers ship today:
   `.spades/`; audit records append to an `## Audit Trail` heading on
   the relevant record.
 
-Adding a backend (Notion, Confluence, GitHub Issues, …) means writing
-a driver against the contract in `docs/FRAMEWORK.md` § Backend
-Interface plus per-skill branches. See `docs/EXTENDING-BACKENDS.md` for
-the worked example.
+With `scm: github`, Leads are also published as GitHub issues labelled
+`spades:lead` and their type, whichever backend is active. GitHub holds
+only Lead issues and PRs; it is not a backend for Scopes or Plans.
+
+Adding a backend (Notion, Confluence, GitHub Issues as a tracker, …)
+means writing a driver against the contract in `docs/FRAMEWORK.md`
+§ Backend Interface plus per-skill branches. See
+`docs/EXTENDING-BACKENDS.md` for the worked example.
 
 ## Infrastructure
 
