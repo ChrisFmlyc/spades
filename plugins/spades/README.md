@@ -387,7 +387,7 @@ The skills provide the procedures and tool calls for each phase.
 | Tracker | Support Level | Notes |
 |---------|--------------|-------|
 | **Linear** | Full | Automated via MCP (issue creation, status updates, labels) |
-| **GitHub Issues** | Manual | Use the SPADES loop manually; issues as Scopes |
+| **GitHub Issues** | Leads | With `scm: github`, every Lead is filed as an issue labelled `spades:lead` and its type; Scopes and Plans stay manual |
 | **Jira** | Manual | Use the SPADES loop manually; tickets as Scopes |
 | **Any tracker** | Manual | The pattern holds regardless of tooling |
 

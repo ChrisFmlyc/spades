@@ -245,6 +245,11 @@ from its filename), filesystem-safe, and stable.
   where it came from (`origin_plan`, `learning_ref`) without being owned
   by it — the originating work is usually shipped and closed long before
   the Lead is picked up.
+- Published, with `scm: github`, as a GitHub issue in the repository
+  behind `github.remote`, titled `L-<slug> — <title>` and labelled
+  `spades:lead` plus its type. With `backend: linear` it is also mirrored
+  per § The two shipped drivers. The local file stays canonical;
+  `skills/leads/SKILL.md` owns the procedure.
 
 ### Plan ID
 - Form: `P-<description-slug>-<own-suffix>[-<dep-suffix>...]`.
@@ -322,7 +327,7 @@ linear:                             # only when backend: linear
   team_id: <uuid>
   project_id: <uuid>                # Linear's own Project ID for this project
 github:                             # only when scm: github
-  remote: origin                    # which git remote to use (default: origin)
+  remote: origin                    # which git remote to use (default: origin); its repository also receives Lead issues
 local_git:                          # only when scm: local-git AND a remote is configured
   remote: origin                    # which git remote to push to (optional)
 ```
@@ -1776,6 +1781,7 @@ Pass one self-contained request with:
   same evidence passes through delivery, evaluation, learning or a retry.
 - Privacy classification, permitted storage and external-write authorization.
   Public records and mirrors receive public-safe summaries or references.
+  `scm: github` authorises the Lead's GitHub issue writes.
 
 The worker checks the supplied evidence, accounts for each candidate and
 runs classification and deduplication. An unresolved known finding remains
@@ -1800,7 +1806,7 @@ Await the worker and collect a receipt containing:
 | Candidates | Each finding's disposition and evidence or exclusion reason. |
 | Records | Lead IDs, absolute paths, source worktrees, and sighting/lifecycle changes verified by read-back. |
 | Publication | Current local/git state of changed records and their intended next commit or handoff. |
-| Mirrors | Per-operation `verified`, `pending` with reason, or `not applicable`, with issue/comment references when available. |
+| Mirrors | Per mirror (GitHub issue, Linear issue) and operation: `verified`, `pending` with reason, or `not applicable`, with issue/comment references when available. |
 
 `none` means the supplied evidence contains no supported out-of-scope
 discovery. `disabled` requires `leads: off`; `unconfigured` identifies the

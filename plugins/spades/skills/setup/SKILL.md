@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configures SPADES in a repository by choosing the backend, SCM, review format and active project, writing .spades/config, and scaffolding agent rules and project documents. Use for initial setup, reconfiguration or a scaffolding refresh, including "set up SPADES", "configure SPADES", "initialise SPADES", or "I want to use SPADES in this repo". Preserves existing content on re-runs.
-version: 4.11.0
+version: 4.11.1
 ---
 
 # /spades:setup
@@ -229,7 +229,7 @@ backend: linear            # or: local
 project: <project-slug>    # unset when create_new_project; Step 8 fills it
 scm: github                # or: local-git
 review_format: html        # or: cli
-leads: on                  # or: off — a kill switch; Leads mirror to Linear per backend:
+leads: on                  # or: off — a kill switch; Leads mirror to Linear per backend: and to GitHub issues per scm:
 linear:                    # backend: linear
   team_id: <uuid>
   project_id: <uuid>       # unset when create_new_project

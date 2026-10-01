@@ -99,7 +99,7 @@ If you find nothing, emit an empty array.
 
 ```
 The Plan respects ARCHITECTURE.md and PATTERNS.md, but Task 4
-introduces a second tracker integration (GitHub issues) which
+introduces a second tracker integration (Notion) which
 ANTI-PATTERNS.md explicitly forbids ("no new external integration").
 ```
 
@@ -110,7 +110,7 @@ ANTI-PATTERNS.md explicitly forbids ("no new external integration").
     "severity": "blocking",
     "confidence": "high",
     "category": "anti-pattern-violation",
-    "message": "Task 4 adds a GitHub Issues integration. ANTI-PATTERNS.md#architectural-anti-patterns forbids a second external tracker; Linear is the sole integration. Either drop Task 4 or obtain an explicit architecture override.",
+    "message": "Task 4 adds a Notion integration. ANTI-PATTERNS.md#architectural-anti-patterns forbids a second external tracker; Linear is the sole integration. Either drop Task 4 or obtain an explicit architecture override.",
     "refs": ["ANTI-PATTERNS.md#architectural-anti-patterns", "Plan Task 4"]
   }
 ]
