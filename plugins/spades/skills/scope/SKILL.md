@@ -214,10 +214,13 @@ page, which carries the review.
 
 The call holds four questions:
 
-1. **The Scope** — when the request asked for the change itself rather
-   than only its Scope: *Use it and run `/spades:loop`* *(Recommended)* /
-   *Use it and stop at the Scope* / *Change something*. Otherwise:
-   *Use `S-<slug>` as drafted* *(Recommended)* / *Change something*.
+1. **The Scope** — when the loop is on offer: *Use it and run
+   `/spades:loop`* *(Recommended)* / *Use it and stop at the Scope* /
+   *Change something*. Otherwise: *Use `S-<slug>` as drafted*
+   *(Recommended)* / *Change something*. The loop is on offer when the
+   request asked for the change itself rather than only its Scope; for a
+   Lead promotion, when the `/spades:leads` context packet records that
+   the request came through `/spades:loop`.
    The human says what to change through *Other* or a short follow-up.
    Choosing the loop is the human's invocation of it; Step 8 starts it.
 2. **Delivery preference** — field 8.
@@ -384,8 +387,9 @@ Next:
 `/spades:review` stays a separate, optional next step, named in the
 `Next:` lines. When the human chose the loop in Step 6, start
 `/spades:loop S-<slug>` now. A Scope written for a Lead promotion instead
-returns its ID and the loop choice to `/spades:leads`, which records the
-promotion and then starts the loop.
+returns its ID to `/spades:leads`, with the loop choice when Step 6
+offered the loop; `/spades:leads` records the promotion and then starts
+the loop when the human chose it.
 
 ## Edit mode
 
