@@ -8,6 +8,21 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.5.1] — 2026-10-05
+
+- **Patch**: `/spades:loop` ends its pauses cleanly under a goal or
+  driver. Under `/goal /spades:loop S-…`, a hybrid Plan's human task paused
+  the loop as designed, but the goal's condition named only the loop's
+  completion and stayed unmet. The Stop hook re-prompted 78 times over
+  about three hours, each prompt answered "Waiting on you", until Claude
+  Code's no-progress guard handed control back. That happened 7 times. The
+  loop now suggests a pause-aware condition (`/goal S-<slug> is closed, or
+  /spades:loop has paused for my input`) when it starts under a goal that
+  names only completion. It also answers each prompt during a pause with
+  one status line and nothing else, so the harness returns control
+  promptly. The README shows the same wording.
+- Skills bumped: `loop` 1.11.0 → 1.12.0.
+
 ## [6.5.0] — 2026-10-01
 
 - **Minor**: With `scm: github`, `/spades:leads` publishes every Lead as a
