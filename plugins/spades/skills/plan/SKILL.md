@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generates a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 3.7.5
+version: 3.8.0
 ---
 
 # /spades:plan
@@ -67,23 +67,26 @@ for dependent delivery is a confirmed PASS on that branch or shipment.
 
 ## Step 2 — Show your understanding
 
-Summarise the Scope in three or four sentences and ask the human to
-confirm or correct before any tasks are drafted.
+Summarise the Scope in three or four sentences. The summary heads the
+draft in Step 4, so the human corrects a misreading together with the
+Plan.
 
 ## Step 3 — Identify the Plan
 
-Ask for a short title (*"RAG Pipeline Lookup"*). Derive the slug as
-for Scopes (lowercase, hyphens, ≤64 characters).
+Derive a short title from the Scope's outcome and this Plan's share of
+it (*"RAG Pipeline Lookup"*). Derive the slug as for Scopes (lowercase,
+hyphens, ≤64 characters).
 
 **Mint the suffix.** Generate a random 4-character base62 ID
 (`[A-Za-z0-9]{4}`) and re-mint on collision with any `id_suffix`
 under this Scope.
 
-**Dependencies.** Show the existing Plans and ask via
-`AskUserQuestion`: **No dependencies** / **Depends on
-`<P-foo-28sD>`** / **Depends on multiple** (free-form list follows).
-`depends_on:` holds the prior Plans' `id_suffix` values, most recent
-first.
+**Dependencies.** Derive them from what this Plan needs of the
+existing Plans: none when it stands alone. When the existing Plans leave
+that unclear, Step 4's confirmation asks it: **No dependencies** /
+**Depends on `<P-foo-28sD>`** / **Depends on multiple** (free-form list
+follows). `depends_on:` holds the prior Plans' `id_suffix` values, most
+recent first.
 
 **Filename.** `P-<plan-slug>-<own-suffix>[-<dep-suffix>…].md`:
 
@@ -91,7 +94,7 @@ first.
 - `P-rag-pipeline-lookup-3HyD-28sD.md` — depends on `28sD`
 - `P-deploy-bot-9XaZ-3HyD-28sD.md` — depends on `3HyD` and `28sD`
 
-Confirm the filename before continuing.
+The ID and filename head the draft.
 
 ## Step 4 — Draft the Plan
 
@@ -125,17 +128,26 @@ The Plan has these sections:
   software work), `artefact` (a document, dataset, config), or
   `action` (a one-off human act). This drives `/spades:ship`.
 
-**CLI mode.** Present the full draft, including the proposed
-`deliverable_type`, in the CLI review pane — one question per
-top-level section when the Plan exceeds about sixty lines — and ask
-on the closing question: *"Does the task breakdown feel right?
-Anything I'm underestimating? Should any tasks be human-delivered?"*
-Iterate by re-presenting revised sections in the pane; confirm
-`deliverable_type` via `AskUserQuestion`; then write in Step 5.
+The draft opens with the Scope summary, the ID and filename, the
+dependencies and the proposed `deliverable_type`. One `AskUserQuestion`
+call confirms it:
 
-**HTML mode.** Confirm only the shape verbally — task count,
-headline approach — and go straight to Step 5. The
-`deliverable_type` question comes after the page is open (Step 6).
+1. **The Plan** — *Use this Plan* *(Recommended)* / *Change something*.
+   A change names a misread Scope, a wrong task or estimate, or a task
+   that should be human-delivered, through *Other* or a short follow-up.
+2. **`deliverable_type`** — the inferred value first and marked
+   *(Recommended)*.
+3. **Dependencies** — only when Step 3 left them open.
+
+**CLI mode.** Present the draft in the CLI review pane on that call,
+one question per top-level section when the Plan exceeds about sixty
+lines. A change re-presents the revised sections and asks the Plan
+question again; a changed dependency re-derives the filename. Then write
+in Step 5.
+
+**HTML mode.** State the shape in one line (task count, headline
+approach) and go straight to Step 5. The call comes once the page is
+open (Step 6).
 
 ## Step 5 — Write the Plan
 
@@ -241,12 +253,12 @@ Dispatched in Step 7's wave per `docs/FRAMEWORK.md § worker-html-*`:
 Required markers: `tasks`, `risks-items`, `delivery-sequence`,
 `audit-events`.
 
-## Step 6 — Confirm `deliverable_type` (HTML mode)
+## Step 6 — Confirm the Plan (HTML mode)
 
-With the page open, ask via `AskUserQuestion`: **`code`** (default)
-/ **`artefact`** / **`action`**. A change is a targeted edit to the
-`.md` frontmatter followed by a re-dispatch of `worker-html-plan` with
-`open_path: null` to refresh the already-presented page.
+With the page open, ask Step 4's confirmation call. A change is a
+targeted edit to the `.md` followed by a re-dispatch of
+`worker-html-plan` with `open_path: null` to refresh the
+already-presented page, then the Plan question again.
 
 ## Step 7 — Write and mirror (fan-out)
 

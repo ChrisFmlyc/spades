@@ -1,7 +1,7 @@
 ---
 name: scope
-description: Creates or edits a SPADES Scope in the current documentation session and records its intended delivery branch for later execution. Use when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 4.1.3
+description: Creates or edits a SPADES Scope in the current documentation session and records its intended delivery branch for later execution. Use when a human asks for a change too large for /spades:quick ("add X", "we need a Y"), when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
+version: 4.2.0
 ---
 
 # /spades:scope
@@ -59,13 +59,10 @@ Format`:
 ## Step 1 — Fast-track check
 
 Walk the ten fast-track criteria in `docs/FRAMEWORK.md § Fast-Track
-Path`. If every one passes, offer the quick path:
-
-> This looks like fast-track work — it meets every gate criterion.
-> Want me to run `/spades:quick` and skip the full scope flow?
-
-Continue with this skill when any criterion fails or the human
-prefers the full loop.
+Path`. When every one passes and the human asked for the change rather
+than for a Scope by name, hand the description to `/spades:quick` with a
+one-line reason; Quick rechecks the gate as the fix develops. Continue
+with this skill when any criterion fails or the human asked for a Scope.
 
 ## Step 2 — Mode
 
@@ -110,21 +107,21 @@ Derive the slug from the description:
 4. Truncate to 64 characters after the `S-` prefix.
 5. Reject an empty result, a leading hyphen, or `..`.
 
-*"Add AI Helper Bot"* → `S-add-ai-helper-bot`. Confirm via
-`AskUserQuestion`: **Use this ID** / **Edit the slug**. If
-`.spades/scopes/S-<slug>.md` already exists, switch to Edit mode and
-say so.
+*"Add AI Helper Bot"* → `S-add-ai-helper-bot`. The ID heads the draft,
+and Step 6's confirmation covers it. If `.spades/scopes/S-<slug>.md`
+already exists, switch to Edit mode and say so.
 
-## Step 4 — Conversation, one field at a time
+## Step 4 — Draft every field
 
-Scope content is composition, so it stays free-form. Each field is
-one turn: propose what the description already implies, ask, wait
-for the answer, reflect back what you heard, then move on. A value
-inferred from the description is a proposal until the human
-confirms it, and fields 8, 9, and 10 are each one `AskUserQuestion`
-call whose answer is what gets recorded. Probe vague answers for
-testable detail, propose stronger wording for weak criteria, and
-flag a Scope that looks too large to plan in one session.
+Scope content is composition, drafted first per `docs/FRAMEWORK.md
+§ Asking the Human`. Draft each field below from the request, the
+conversation so far, the code, and the project documents. Write the
+outcome rather than the activity, turn a vague request into testable
+criteria, and flag a Scope that looks too large to plan in one session.
+Every drafted value is a proposal until the human confirms it in Step 6.
+
+A field with nothing to support a proposal is open. Ask about all open
+fields together in one message, then draft them from the answers.
 
 ### 1. Statement of Intent
 What is achieved and why it matters — outcome, not activity. One to
@@ -163,14 +160,14 @@ always filled.
 Known risks the Plan must address, or *"None identified"*.
 
 ### 8. Delivery Preference
-Ask via `AskUserQuestion`, the inferred value first and marked
+Asked in Step 6's confirmation, the inferred value first and marked
 *(Recommended)*:
 - **Mostly AI-delivered** — standard code, config, docs work
 - **Mostly human-delivered** — needs org context, vendor access
 - **Hybrid** — note which tasks are which
 
 ### 9. Priority
-Ask via `AskUserQuestion`, the inferred value first and marked
+Asked in Step 6's confirmation, the inferred value first and marked
 *(Recommended)*:
 - **urgent** — blocks a release or live incident
 - **high** — must complete soon
@@ -180,7 +177,7 @@ Ask via `AskUserQuestion`, the inferred value first and marked
 - **exploratory** — investigating whether it is worth doing
 
 ### 10. Type
-Ask via `AskUserQuestion`, the inferred value first and marked
+Asked in Step 6's confirmation, the inferred value first and marked
 *(Recommended)*: **feature** / **bug** / **chore** / **docs** /
 **refactor** / **investigation**.
 
@@ -193,8 +190,7 @@ rationale for reactive or ad-hoc work.
 
 ## Step 5 — Quality check
 
-With every field answered, including the tool's answers for
-delivery, priority, and type, confirm:
+With every field drafted, check the draft:
 
 - [ ] Someone could start planning this without a follow-up
       conversation.
@@ -204,15 +200,36 @@ delivery, priority, and type, confirm:
       explicitly "none".
 - [ ] Out of Scope is filled.
 
-Help the human fix any gap before continuing.
+Fix a gap in the draft before presenting it, asking the human only
+when nothing supports a fix.
 
-## Step 6 — Write the Scope
+## Step 6 — Confirm and write the Scope
 
-This step always writes the `.md`. In CLI mode, present the assembled
-draft in the CLI review pane on the approval question (paged per
-section when long) and write once the human approves it. In HTML mode,
-write the draft once Step 4 is complete and let the rendered page
-carry the review.
+This step always writes the `.md`. Present the whole draft once and
+confirm it with one `AskUserQuestion` call. In CLI mode, present the
+draft in the CLI review pane on that call (paged per section when long)
+and write once the human approves it. In HTML mode, write the draft once
+Step 5 is complete and ask the call once Step 7 has opened the rendered
+page, which carries the review.
+
+The call holds four questions:
+
+1. **The Scope** — when the request asked for the change itself rather
+   than only its Scope: *Use it and run `/spades:loop`* *(Recommended)* /
+   *Use it and stop at the Scope* / *Change something*. Otherwise:
+   *Use `S-<slug>` as drafted* *(Recommended)* / *Change something*.
+   The human says what to change through *Other* or a short follow-up.
+   Choosing the loop is the human's invocation of it; start
+   `/spades:loop S-<slug>` after Step 8.
+2. **Delivery preference** — field 8.
+3. **Priority** — field 9.
+4. **Type** — field 10.
+
+A change edits the draft, then the Scope question is asked again. Once
+the `.md` exists, the change is a targeted `.md` edit, a re-render in
+HTML mode, and with `backend: linear` an update to the Issue
+description. A changed title or type re-derives `branch:`. Answered
+decisions stay answered unless the human changes them.
 
 ### The canonical `.md` (both modes)
 
@@ -364,13 +381,16 @@ Next:
   /spades:review S-add-ai-helper-bot   — optional second opinion before planning
 ```
 
-Offer `/spades:review` as a separate, optional next step.
+`/spades:review` stays a separate, optional next step, named in the
+`Next:` lines. When the human chose the loop in Step 6, start it now.
 
 ## Edit mode
 
 1. Read the `.md`.
-2. Show the current content and highlight weak or missing fields.
-3. Walk the human through the gaps, one field at a time.
+2. Draft the changes the human asked for, and propose fixes for weak
+   or missing fields from the sources in Step 4.
+3. Present the changed fields together and confirm them with the Step 6
+   call, asking only the questions whose answers change.
 4. Write the file back, preserving `id:` and `created:`, setting
    `updated:` to today, and appending
    `- YYYY-MM-DD: Scope edited — <fields changed>.` to the audit

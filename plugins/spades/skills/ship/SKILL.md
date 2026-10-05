@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ships the deliverable produced by an approved Plan after evaluation. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.6.6
+version: 3.7.0
 ---
 
 # /spades:ship
@@ -77,8 +77,8 @@ continue.
 
 ## Step 2 — Mark shipping
 
-Capture an optional one-line description via `AskUserQuestion`:
-**Type a brief description** (free-form, ≤140 characters) / **Skip**.
+Record a one-line description (≤140 characters) when the human's
+request carries one; otherwise omit the clause.
 
 Set the Plan to `status: shipping`, `updated: <today>`, and append:
 

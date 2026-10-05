@@ -1,7 +1,7 @@
 ---
 name: newproject
 description: Creates a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.7.1
+version: 3.8.0
 ---
 
 # /spades:newproject
@@ -43,12 +43,12 @@ running.
    Setup calls this skill inline after writing the config, per
    § Bootstrap Order.
 
-## Step 1 — Gather
+## Step 1 — Draft the record
 
-Ask the human for each of these in turn, conversationally rather
-than as a form, and wait for the answer before moving on. A value
-the request already supplies is reflected back for confirmation
-rather than assumed:
+Draft each field from the request, the conversation so far, and the
+repository (its remotes, README and git identity), per
+`docs/FRAMEWORK.md § Asking the Human`. Every drafted value is a
+proposal until the human confirms it:
 
 - **Title** — *"Closed Door Security Website"*. The slug derives
   from it.
@@ -68,7 +68,16 @@ rather than assumed:
    matches an existing project file.
 
 *"Closed Door Security Website"* → `closed-door-security-website`.
-Confirm via `AskUserQuestion`: **Use this slug** / **Edit the slug**.
+
+### Confirm the draft
+
+Ask about the fields with nothing to support a proposal together in one
+message. Then confirm the draft, slug included, with one
+`AskUserQuestion`: *Use `<slug>` as drafted* *(Recommended)* / *Change
+something*, the change arriving through *Other* or a short follow-up.
+CLI mode presents the draft in the CLI review pane on that question
+before the write. HTML mode asks it once Step 3 has opened the page; a
+change is then a targeted `.md` edit plus a re-render.
 
 ## Step 2 — Collision check
 
