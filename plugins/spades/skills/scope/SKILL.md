@@ -227,9 +227,10 @@ The call holds four questions:
 
 A change edits the draft, then the Scope question is asked again. Once
 the `.md` exists, the change is a targeted `.md` edit, a re-render in
-HTML mode, and with `backend: linear` an update to the Issue
-description. A changed title or type re-derives `branch:`. Answered
-decisions stay answered unless the human changes them.
+HTML mode, and with `backend: linear` an update of the Issue's title
+and description from the `.md`. A changed title or type re-derives
+`branch:`. Answered decisions stay answered unless the human changes
+them.
 
 ### The canonical `.md` (both modes)
 
@@ -396,7 +397,7 @@ Next:
    `- YYYY-MM-DD: Scope edited — <fields changed>.` to the audit
    trail. In HTML mode, re-dispatch `worker-html-scope`.
 5. With `backend: linear` and a `linear_issue_id:`, push the updated
-   description to the Linear Issue.
+   title and description to the Linear Issue.
 
 Where the human's edits conflict with existing content, ask before
 replacing it.
