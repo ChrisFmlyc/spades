@@ -1,7 +1,7 @@
 ---
 name: deliver
 description: Delivers an approved SPADES Plan in its Scope’s separate delivery branch and worktree. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "deliver this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 4.1.0
+version: 4.1.1
 ---
 
 # /spades:deliver
@@ -66,8 +66,14 @@ Follow `docs/FRAMEWORK.md § Scope Worktrees → Starting delivery` and
 with the Scope's intended `branch:` and description to create a separate
 branch and worktree from the clean, current default branch. Transfer and
 verify the selected Scope's authorised records, then record the returned
-branch, base commit and establishment audit entry on the Scope. The
-shared documentation branch remains available for other Scopes and Plans.
+branch, base commit and establishment audit entry on the Scope. When the
+Scope's audit trail carries `Lead promotion pending: L-<id> → S-<slug>`,
+apply that Lead's local promotion in the new worktree, as
+`skills/leads/SKILL.md § Promotion without a target` describes: set
+`status: promoted` and `promoted_to: S-<slug>`, and append a
+`## History` line naming the Scope and `/spades:deliver`, so the change
+ships with the Scope's PR. The shared documentation branch remains
+available for other Scopes and Plans.
 
 When delivery is already established, use `/repo:newbranch --resume
 <branch>`. Every Plan in the Scope shares that delivery context, including
