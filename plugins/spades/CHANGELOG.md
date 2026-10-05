@@ -31,7 +31,7 @@ or the consumer marker rules change). The consumer-repo marker block in `AGENTS.
   - `docs/FRAMEWORK.md` says the same in § Asking the Human and
     § Orchestration Order.
 - `agents_version`: n/a.
-- Skills bumped: `leads` 3.3.0 → 3.4.0, `loop` 1.13.0 → 1.14.0.
+- Skills bumped: `leads` 3.3.0 → 3.4.0, `loop` 1.13.0 → 1.14.0, `scope` 4.2.0 → 4.2.1.
 
 ## [6.6.0] — 2026-10-05
 

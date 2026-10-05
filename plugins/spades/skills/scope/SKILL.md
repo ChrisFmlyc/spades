@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Creates or edits a SPADES Scope in the current documentation session and records its intended delivery branch for later execution. Use when a human asks for a change too large for /spades:quick ("add X", "we need a Y"), when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 4.2.0
+version: 4.2.1
 ---
 
 # /spades:scope
@@ -219,8 +219,7 @@ The call holds four questions:
    *Use it and stop at the Scope* / *Change something*. Otherwise:
    *Use `S-<slug>` as drafted* *(Recommended)* / *Change something*.
    The human says what to change through *Other* or a short follow-up.
-   Choosing the loop is the human's invocation of it; start
-   `/spades:loop S-<slug>` after Step 8.
+   Choosing the loop is the human's invocation of it; Step 8 starts it.
 2. **Delivery preference** — field 8.
 3. **Priority** — field 9.
 4. **Type** — field 10.
@@ -383,7 +382,10 @@ Next:
 ```
 
 `/spades:review` stays a separate, optional next step, named in the
-`Next:` lines. When the human chose the loop in Step 6, start it now.
+`Next:` lines. When the human chose the loop in Step 6, start
+`/spades:loop S-<slug>` now. A Scope written for a Lead promotion instead
+returns its ID and the loop choice to `/spades:leads`, which records the
+promotion and then starts the loop.
 
 ## Edit mode
 

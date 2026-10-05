@@ -255,7 +255,8 @@ the result.
    gates. The chosen skill composes and writes the record, using the
    packet as its input.
    `/spades:scope` ends at the Scope's confirmation, which offers
-   `/spades:loop` when the promotion came through `/spades:loop`.
+   `/spades:loop` when the promotion came through `/spades:loop`, and
+   returns the Scope ID and the human's loop choice to this step.
 5. **Finish the promotion.** With the `S-…` or `Q-…` ID the target skill
    confirmed, run `--promote L-<id> <work-id>`, split by route:
    - **Quick target:** finish the local promotion at once in the Quick
@@ -268,7 +269,9 @@ the result.
      Scope, `Lead promotion pending: L-<id> → S-<slug>, written at first
      delivery`. The first `/spades:deliver` for that Scope applies the
      local edit (`status`, `promoted_to`, `## History`) in the established
-     delivery worktree so it ships with the Scope's PR.
+     delivery worktree so it ships with the Scope's PR. When the human
+     chose the loop at the Scope's confirmation, start
+     `/spades:loop S-<slug>` once the audit line is on the Scope.
 
    The local Lead record changes only in the Quick worktree or the Scope's
    delivery worktree.
