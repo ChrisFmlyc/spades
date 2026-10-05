@@ -46,7 +46,22 @@ or the consumer marker rules change). The consumer-repo marker block in `AGENTS.
 - Skills bumped: `scope` 4.1.3 → 4.2.0, `plan` 3.7.5 → 3.8.0,
   `approve` 3.3.5 → 3.4.0, `deliver` 4.0.3 → 4.1.0, `ship` 3.6.6 →
   3.7.0, `quick` 2.4.2 → 2.5.0, `objective` 1.3.3 → 1.4.0, `newproject`
-  3.7.1 → 3.8.0, `loop` 1.11.0 → 1.12.0, `setup` 4.11.1 → 4.12.0.
+  3.7.1 → 3.8.0, `loop` 1.12.0 → 1.13.0, `setup` 4.11.1 → 4.12.0.
+
+## [6.5.1] — 2026-10-05
+
+- **Patch**: `/spades:loop` ends its pauses cleanly under a goal or
+  driver. Under `/goal /spades:loop S-…`, a hybrid Plan's human task paused
+  the loop as designed, but the goal's condition named only the loop's
+  completion and stayed unmet. The Stop hook re-prompted 78 times over
+  about three hours, each prompt answered "Waiting on you", until Claude
+  Code's no-progress guard handed control back. That happened 7 times. The
+  loop now suggests a pause-aware condition (`/goal S-<slug> is closed, or
+  /spades:loop has paused for my input`) when it starts under a goal that
+  names only completion. It also answers each prompt during a pause with
+  one status line and nothing else, so the harness returns control
+  promptly. The README shows the same wording.
+- Skills bumped: `loop` 1.11.0 → 1.12.0.
 
 ## [6.5.0] — 2026-10-01
 

@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, deliver, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. Runs only on direct user invocation or delegation from a user-created goal or driver. See "Who may invoke this".
-version: 1.12.0
+version: 1.13.0
 ---
 
 # /spades:loop
@@ -25,7 +25,8 @@ Scope's own Plans, branches, and PRs, within § Pauses and § Boundaries.
 
 Start only when the user invokes `/spades:loop` (optionally with a Scope
 or Plan ID), or a user-created goal or driver delegates the outcome of
-closing this Scope. When a Scope or draft Plan exists without that
+closing this Scope; § Pauses → Under a goal or driver covers how its
+pauses end. When a Scope or draft Plan exists without that
 authorisation, offer the loop and wait for the human's decision.
 
 The loop's output is short CLI status lines: one per stage
@@ -494,6 +495,27 @@ auth, secrets, migrations and data deletion under § Routing. Carry forward
 pending SPADES artefacts from this authorised run; pause for the human's
 inclusion decision on unknown pre-existing uncommitted changes. Surface a
 child skill's refusal verbatim and stop.
+
+### Under a goal or driver
+
+A goal or driver (Claude Code's `/goal`, or any harness that checks a
+condition after each turn) prompts again whenever its condition is unmet.
+A condition that names the loop's completion stays unmet for as long as
+a pause waits on the human, so each turn end brings another prompt.
+
+- **Recommend a condition that ends at a pause.** When the run starts
+  under a goal whose condition names only completion, add one line to the
+  pre-flight announcement suggesting
+  `/goal S-<slug> is closed, or /spades:loop has paused for my input`.
+  With that wording the goal is met at a pause and clears; the human
+  replies once their part is done, and the loop resumes per § Resuming.
+- **Answer each prompt during a pause with its status line.** Print the
+  pause block once. While the same pause stands, each later prompt from
+  the goal or driver gets this one line and nothing else:
+  `⏸ Paused at stage <k> — waiting on you: <what is needed>.`
+  A turn without tool calls lets a harness that watches for progress
+  hand control back to the human promptly. The pause ends when the human
+  replies.
 
 ## Resuming
 

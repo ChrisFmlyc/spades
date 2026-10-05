@@ -199,6 +199,16 @@ It then proceeds through shipment, bot review, squash-merge,
 and worktrees remain available after completion. Other blockers and
 human decisions follow `skills/loop/SKILL.md § Pauses`.
 
+To run the loop under Claude Code's `/goal`, word the condition so a
+pause counts as a stopping point:
+
+```
+/goal S-add-the-thing is closed, or /spades:loop has paused for my input
+```
+
+A condition that names only the loop's completion stays unmet while the
+loop waits on you, so the goal keeps prompting at every pause.
+
 ### The 23 skills
 
 SPADES ships 23 skills, grouped by *when you reach for them*:
