@@ -262,9 +262,11 @@ already-presented page, then the Plan question again.
 
 A changed dependency also re-derives the filename (Step 3). Rename the
 `.md` and `.html` to it, then re-dispatch `worker-html-plan` with
-`open_path` set to the renamed `.html`, which replaces the page the
-human had open. The Plan ID keeps its name, so the Scope's audit entry
-stays as written.
+`open_path` set to the renamed `.html` to present the Plan at its new
+path. Tell the human the review page has moved to that file: it opened
+in the browser when the worker returns `opened: true`; otherwise give
+its `file://` link. The Plan ID keeps its name, so the Scope's audit
+entry stays as written.
 
 ## Step 7 — Write and mirror (fan-out)
 
