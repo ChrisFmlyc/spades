@@ -20,10 +20,12 @@ missing config points at `/spades:setup`.
 
 ## The gate — all ten must hold
 
-Walk each criterion aloud before writing any code. A criterion the
-request and the code leave ambiguous is asked, not assumed, via
-`AskUserQuestion`: **Continue on the quick path** / **Fall back to
-/spades:scope**.
+Walk each criterion aloud before writing any code. For a criterion
+the request and the code leave open, ask the human for the fact that
+decides it, such as whether a changed function is part of the public
+API. Open criteria share one `AskUserQuestion` call. A criterion
+passes only when the code or the answer shows it holds; one still
+unresolved fails the gate.
 
 1. **Single concern.** One bug, one tweak, one touch-up.
 2. **≤ 50 lines changed** (soft cap; hard stop around 100).
