@@ -160,8 +160,10 @@ The typical first run, end to end:
 2. Fill the project documents with `/spades:intent`,
    `/spades:architecture`, `/spades:patterns`, and `/spades:anti-patterns`.
    Setup has already bound or created the active project.
-3. `/spades:scope "Add the thing"` — write the outcome you want, with
-   acceptance criteria.
+3. `/spades:scope "Add the thing"` — the AI drafts the outcome and
+   acceptance criteria from your request and the repo; you confirm or
+   correct the draft. Asking for a change in plain words starts this
+   step too.
 4. `/spades:plan S-add-the-thing` — break it down into 3–7 tasks, with
    dependencies among plans if needed.
 5. `/spades:approve P-add-the-thing-…` — human gate; pick the routing
@@ -247,7 +249,7 @@ SPADES ships 23 skills, grouped by *when you reach for them*:
 
 | Skill | Purpose |
 |-------|---------|
-| `/spades:review` | Multi-persona panel second opinion. Spawns four reviewer subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their findings, and presents a tiered report. Advisory only — never gates approval. **Use when you say:** "second opinion", "outside view", "challenge this", "review this". Also auto-offered by `/spades:scope` and `/spades:approve`. |
+| `/spades:review` | Multi-persona panel second opinion. Spawns four reviewer subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their findings, and presents a tiered report. Advisory only — never gates approval. **Use when you say:** "second opinion", "outside view", "challenge this", "review this". Also named in one line by `/spades:scope` and `/spades:approve`. |
 | `/spades:research` | Outside fact-finding via an isolated read-only Opus subagent. Returns a structured findings report; optional comment on the active Scope with explicit consent. Distinct from `review` — research looks *outward* at libraries, frameworks, prior art; review looks *inward* at our own work. **Use when you say:** "look into X", "prior art on Y", "check the SOTA for Z", "properly research this", "what does the landscape look like for…". |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` so future Plans automatically surface it on related Scopes. `--refresh` archives stale entries and flags contradictions. **Use when you say:** "we should remember this", "we just learned X", "log this learning", "capture what we figured out". Also auto-offered by `/spades:ship` after a successful shipment. |
 | `/spades:intent` | Create or maintain `INTENT.md` — the project's durable statement (problem, users, what-it-does, success, non-goals, maturity). Different cadence from a Scope: a Scope describes one unit of work; INTENT describes the project's reason for existing. **Use when you say:** "what is this project for", "set up INTENT.md", "review our non-goals", "the intent doc is stale". Run it after `/spades:setup` scaffolds `INTENT.md`. |
@@ -272,10 +274,11 @@ questions. `list` is the inventory; `status` is the focus tool.
 A few of the supporting skills hook into the core loop automatically,
 so you'll often invoke them without typing the slash command:
 
-- `/spades:scope` offers `/spades:review` (Scope Review mode) before
-  writing the Scope.
-- `/spades:approve` offers `/spades:review` (Full Review mode) before
-  the approval decision.
+- `/spades:scope` names `/spades:review` (Scope Review mode) in its
+  `Next:` lines, and its confirmation offers `/spades:loop` when you
+  asked for the change itself.
+- `/spades:approve` names `/spades:review` (Full Review mode) in one
+  line before the checklist.
 - `/spades:plan` automatically surfaces matching `.spades/learnings/`
   entries when drafting a Plan.
 - `/spades:ship` offers `/spades:learn` after a successful shipment.

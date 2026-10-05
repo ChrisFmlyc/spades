@@ -571,7 +571,7 @@ Setup and Loop have separate invocation paths:
 /spades:setup            (bootstrap — drives prerequisites inline)
    └─► /repo:init, /spades:newproject
                     ⋮
-        human writes the Scope   ← /spades:scope (shared documentation branch)
+      human confirms the Scope   ← /spades:scope (shared documentation branch)
                     ⋮
 /spades:loop             (delivery — drives phases, aborts on prerequisites)
    ├─► /spades:plan ──────► /spades:approve ──► /spades:deliver ──► /spades:evaluate
@@ -730,12 +730,46 @@ and a worked example for adding (e.g.) a Notion MCP driver.
 
 ## Asking the Human
 
+A human's request is their decision to have the work done. Act on it in
+the same turn, and put to the human only the decisions that the request,
+the artefacts and the repo leave open.
+
+### Requested work
+
+A request for a change ("add X", "fix Y", "there needs to be a Z")
+starts its intake in the same turn. Walk § Fast-Track Path: when every
+criterion passes, run `/spades:quick`; otherwise run `/spades:scope` with
+the request as its description. The human owns the Scope by confirming
+its content, so starting the draft needs no separate go-ahead. When the
+request asks for the change itself rather than only its Scope, the
+question that confirms the Scope also offers `/spades:loop`; choosing it
+is the human's invocation of the loop, which starts once the Scope is
+written.
+
+A request that arrives during other work, including a `/spades:loop`
+run, is acknowledged at once. Work that the current task's acceptance
+criteria need stays in that task. Other work starts its intake as soon as
+the current task finishes or pauses, in the same turn.
+
+### Decisions and composition
+
 When a skill needs a fixed-option decision (priority, routing, verdict,
-yes/no), it MUST use the `AskUserQuestion` tool with structured options.
+yes/no), it MUST use the `AskUserQuestion` tool with structured options,
+the inferred answer first and marked *(Recommended)*. Decisions that are
+open at the same point share one call, up to its four questions.
 Free-form prose (intent text, acceptance criteria wording, plan task
 descriptions) stays as conversation.
 
-The pattern: **decisions are structured; composition is free-form.**
+Composition is draft-first. Draft every part that the request, the
+artefacts and the repo support, present the whole draft once, and
+iterate on what the human corrects. Ask about a part only when nothing
+supports a proposal, and ask about all such parts together.
+
+An optional step the human may want, such as a panel review, is named in
+one line while the skill continues.
+
+The pattern: **requested work starts; decisions are structured;
+composition is drafted, then confirmed.**
 
 ---
 
@@ -787,7 +821,10 @@ restating it.
      option.
    - If there are 0 candidates: do NOT call `AskUserQuestion`. Tell
      the human what's missing and suggest the upstream skill (see
-     the per-skill table). Don't pretend to offer choices.
+     the per-skill table). Don't pretend to offer choices. When the
+     upstream skill is `/spades:scope` and the request describes the
+     work, start it with that description in the same turn per
+     § Asking the Human → Requested work.
 
    Each option's label is the artefact's **ID + short title** (e.g.
    `S-add-ai-helper-bot — Add AI Helper Bot`). The description
@@ -1400,7 +1437,9 @@ placeholders.
 In HTML mode, the producing skill MUST NOT paste the artefact body or a
 substantive excerpt to the CLI for approval. Use this sequence:
 
-1. Gather inputs through the existing field-by-field conversation.
+1. Gather inputs through the skill's own flow: a draft per § Asking the
+   Human for a whole artefact, or the section-by-section conversation
+   for a project document.
 2. Render and write the working draft, open the selected review page and
    wait for review.
 3. Apply requested edits to the file; the human reloads the page.

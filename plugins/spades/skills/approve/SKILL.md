@@ -1,7 +1,7 @@
 ---
 name: approve
 description: Presents a SPADES Plan for human review against the approval checklist, then records the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`.
-version: 3.3.5
+version: 3.4.0
 ---
 
 # /spades:approve
@@ -46,9 +46,9 @@ reuses that context; it does not create the intended delivery branch.
    `.html`. CLI mode: present the Plan body in the CLI review pane on
    the questions that follow, paged per section when it is long.
 
-Before the checklist, offer the second opinion in one line: *"Want
-an independent review first? Run `/spades:review P-<id>`, then
-re-run `/spades:approve`."* Continue when the human declines.
+Before the checklist, name the second opinion in one line and continue:
+*"For an independent review first, run `/spades:review P-<id>`, then
+re-run `/spades:approve`."*
 
 ## The checklist
 

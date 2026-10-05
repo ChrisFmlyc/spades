@@ -103,6 +103,11 @@ The rules below describe manually driven phases. An explicitly invoked
 `/spades:loop` answers child-skill questions under the orchestration contract
 above.
 
+Every skill asks the human only the decisions that the request, the
+artefacts and the repo leave open, puts the decisions open at the same
+point in one question, and drafts composition for the human to confirm
+(`docs/FRAMEWORK.md § Asking the Human`).
+
 Before producing work, verify the target's ancestors under
 `docs/FRAMEWORK.md § Target Resolution → Parent-status precondition`.
 That contract defines the hard refusal for abandoned or archived containers
@@ -117,14 +122,19 @@ and the exemptions for closure and read-only views.
 - A Scope must include: statement of intent, acceptance criteria,
   architectural constraints, dependencies, context, out-of-scope, risk,
   delivery preference, priority.
-- If a human asks you to "just do X" without a Scope, ask them to
-  define one first. Help them write it if needed via `/spades:scope`,
-  but do not proceed to Plan without a documented Scope.
-- Ask the human for organisational context that is missing. Combining
-  multiple Scopes into one delivery requires human agreement.
-- **Before writing a Scope, check the fast-track gate.** If every
-  criterion in "Fast-Track Path" below passes, invoke `/spades:quick`
-  instead of `/spades:scope`.
+- **A human's request for a change starts its intake in the same
+  turn.** Check the fast-track gate in "Fast-Track Path" below: when
+  every criterion passes, invoke `/spades:quick`; otherwise invoke
+  `/spades:scope` with the request as its description. The human owns
+  the Scope by confirming its content, so starting the draft needs no
+  separate go-ahead. Plan begins once the Scope is written.
+- A request that arrives during other work, including a `/spades:loop`
+  run, is acknowledged at once. Work the current task's acceptance
+  criteria need stays in that task; other work starts its intake as soon
+  as the current task finishes or pauses.
+- Ask the human for organisational context that the request and the
+  repo leave open. Combining multiple Scopes into one delivery requires
+  human agreement.
 
 ### 2. Plan (AI-Owned)
 

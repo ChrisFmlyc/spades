@@ -133,7 +133,21 @@ confirms fully AI-verified evaluations and records its answers as
 `AI (/spades:loop)`. Human-only checks and the loop's other declared
 pauses still require the human.
 
+Every skill asks the human only the decisions that the request, the
+artefacts and the repo leave open, puts the decisions open at the same
+point in one question, and drafts composition for the human to confirm
+(`docs/FRAMEWORK.md § Asking the Human`).
+
 ### 1. Scope (Human-owned)
+- A human's request for a change starts its intake in the same turn:
+  `/spades:quick` when the work passes every criterion in "Fast-Track
+  Path" below, otherwise `/spades:scope` with the request as its
+  description. The human owns the Scope by confirming its content, so
+  starting the draft needs no separate go-ahead.
+- A request that arrives during other work, including a `/spades:loop`
+  run, is acknowledged at once. Work the current task's acceptance
+  criteria need stays in that task; other work starts its intake as soon
+  as the current task finishes or pauses.
 - Planning and coding begin from a signed-off Scope.
 - A Scope must include: intent, acceptance criteria, constraints,
   dependencies, context, out-of-scope, risk, delivery preference,

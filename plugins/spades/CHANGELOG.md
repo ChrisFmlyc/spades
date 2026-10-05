@@ -8,6 +8,46 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.6.0] — 2026-10-05
+
+- **Minor**: A human's request for a change now starts the work in the
+  same turn. In a consumer repo, a human asked during a `/spades:loop`
+  run for a new identity-queue resolution. The agent finished the run,
+  then answered with analysis ending "Should I scope it?", and asked
+  twice more before scoping it. The operating rules told agents to "ask
+  them to define one first" when a human asks for work without a Scope,
+  and the Scope skill asked about each field in its own turn, so the
+  agent asked before starting a ten-turn interview. When pushed, it
+  wrote the Scope by hand without the skill.
+  - `docs/FRAMEWORK.md § Asking the Human` is the contract. A request
+    starts its intake at once: `/spades:quick` when the work passes the
+    fast-track gate, otherwise `/spades:scope`. A request that arrives
+    during other work is acknowledged at once and started when that
+    work finishes or pauses. Skills ask only the decisions that the
+    request, the artefacts and the repo leave open, put decisions open
+    at the same point in one question, draft composition for the human
+    to confirm, and name optional steps in one line.
+  - `AGENTS.md` and the consumer marker block carry the same rules.
+  - `/spades:scope` drafts every field and confirms the whole Scope with
+    one question, which also holds delivery preference, priority and
+    type. When the human asked for the change itself, that question
+    offers `/spades:loop`. A request that passes the fast-track gate
+    goes straight to `/spades:quick`.
+  - `/spades:plan` derives the title, dependencies and filename and
+    confirms the draft once. `/spades:objective` and
+    `/spades:newproject` draft their records and confirm them once.
+  - `/spades:approve` names the panel review in one line and continues.
+    `/spades:deliver` and `/spades:ship` take a description from the
+    request instead of asking for one. `/spades:quick` creates a Linear
+    issue for a behavioural change without asking.
+  - `/spades:loop` acknowledges a mid-run request and starts its intake
+    at FINISHED or a pause.
+- `agents_version` 3.1.0 → 3.2.0.
+- Skills bumped: `scope` 4.1.3 → 4.2.0, `plan` 3.7.5 → 3.8.0,
+  `approve` 3.3.5 → 3.4.0, `deliver` 4.0.3 → 4.1.0, `ship` 3.6.6 →
+  3.7.0, `quick` 2.4.2 → 2.5.0, `objective` 1.3.3 → 1.4.0, `newproject`
+  3.7.1 → 3.8.0, `loop` 1.12.0 → 1.13.0, `setup` 4.11.1 → 4.12.0.
+
 ## [6.5.1] — 2026-10-05
 
 - **Patch**: `/spades:loop` ends its pauses cleanly under a goal or

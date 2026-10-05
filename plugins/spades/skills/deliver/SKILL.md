@@ -1,7 +1,7 @@
 ---
 name: deliver
 description: Delivers an approved SPADES Plan in its Scope’s separate delivery branch and worktree. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "deliver this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 4.0.3
+version: 4.1.0
 ---
 
 # /spades:deliver
@@ -82,11 +82,11 @@ current-run authorisation and decisions already recorded.
 
 ## Step 2 — Mark delivering
 
-Capture an optional one-line description via `AskUserQuestion`:
-**Type a brief description** (free-form follow-up, ≤140 characters)
-/ **Skip**. For `delivery: ai` the commit messages already carry the
-detail, so Skip is typical; for `human` and `hybrid` a description
-helps the person picking it up.
+Record a one-line description (≤140 characters) when the human's
+request carries one. For `human` and `hybrid` routing without one, write
+it from the Plan's human tasks for the person picking them up. For
+`delivery: ai` the commit messages carry the detail, so the clause is
+omitted.
 
 Set the Plan to `status: delivering`, `updated: <today>`, and
 append one line:

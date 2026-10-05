@@ -1,7 +1,7 @@
 ---
 name: objective
 description: Creates or edits a SPADES Objective — a coherent strategic action associated with a project (Rumelt/OKR sense), prefixed O-. Use when someone says "create an objective", "set an objective", "add an objective", "new objective", "add a milestone for this project", or "/spades:objective <description>". An Objective is independent of Scopes — it never contains, requires, or gates on one. Closing an Objective is done via /spades:close O-<slug>.
-version: 1.3.3
+version: 1.4.0
 ---
 
 # /spades:objective
@@ -60,24 +60,33 @@ candidate, go straight to Create.
 Same rule as Scopes: lowercase; runs outside `[a-z0-9-]` to a single
 hyphen; trim; truncate to 64 characters after `O-`; reject empty, a
 leading hyphen, or `..`. *"Q3 Trust Launch"* → `O-q3-trust-launch`.
-Confirm via `AskUserQuestion`: **Use this ID** / **Edit the slug**.
+The ID heads the draft, and Step 3's confirmation covers it.
 
 An existing `.spades/objectives/O-<slug>.md` switches to Edit. With
 `backend: linear`, an existing milestone of the same name → ask:
 **Bind to the existing milestone** (recommended) / **Create a
 separate one** (with a differentiated name).
 
-## Step 3 — Gather
+## Step 3 — Draft and confirm
 
-Conversationally:
+Draft each field from the request, the conversation so far, and the
+project documents, per `docs/FRAMEWORK.md § Asking the Human`:
 
 - **Title.**
 - **Objective** — 2–4 sentences describing the coherent strategic
-  action or outcome. Push for a coherent action rather than a vague
-  aspiration or a task list, and reflect it back.
+  action or outcome: a coherent action rather than a vague aspiration
+  or a task list.
 - **Strategy link** (optional) — a URL, ID, or reference to the
   upstream roadmap or strategy item, or a fuller definition. "None"
-  is fine.
+  when the request names none.
+
+Ask about the Title or Objective together in one message only when
+nothing supports a proposal. Confirm the draft with one
+`AskUserQuestion`: *Use `O-<slug>` as drafted* *(Recommended)* /
+*Change something*, the change arriving through *Other* or a short
+follow-up. CLI mode presents the draft in the CLI review pane on that
+question before the write. HTML mode asks it once Step 4 has opened the
+page; a change is then a targeted `.md` edit plus a re-render.
 
 ## Step 4 — Write and mirror
 

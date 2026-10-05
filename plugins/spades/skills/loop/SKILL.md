@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, deliver, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. Runs only on direct user invocation or delegation from a user-created goal or driver. See "Who may invoke this".
-version: 1.12.0
+version: 1.13.0
 ---
 
 # /spades:loop
@@ -84,19 +84,14 @@ one-line reason beside each `human` row.
 
 | Child question | Your answer |
 |---|---|
-| `/spades:plan` — confirm the Scope summary | Confirm; correct it if wrong. |
-| `/spades:plan` — Plan title | Derive from the Scope's outcome; state it. |
-| `/spades:plan` — dependencies | From what this Plan needs of its siblings; `none` when alone. |
-| `/spades:plan` — confirm the filename | Confirm. |
-| `/spades:plan` — "does the breakdown feel right?" | You are the reviewer: fix a wrong task, then proceed. |
+| `/spades:plan` — the draft (Scope summary, title, breakdown) | You are the reviewer: correct a misread Scope or a wrong task, then confirm. |
+| `/spades:plan` — dependencies, when asked | From what this Plan needs of its siblings; `none` when alone. |
 | `/spades:plan` — `deliverable_type` | `code` unless the Scope's outcome plainly isn't code. |
-| `/spades:approve` — second-opinion pointer | Decline; `/spades:review` is human-invoked. |
 | `/spades:approve` — the decision | Stage 2. |
 | `/spades:approve`, `/spades:evaluate` — routing | § Routing. |
 | `/spades:deliver` — a dependency is not ready per § Scope Worktrees | *Wait*; deliver and evaluate the dependency first. |
 | `/spades:deliver` — first delivery | Create the Scope’s recorded delivery branch through `/repo:newbranch`; retain the documentation branch. |
 | `/spades:deliver` — ambiguous branch prefix | `/repo:newbranch` naming conventions; `feat/` when none match. |
-| `/spades:deliver`, `/spades:ship` — one-line description | *Skip.* |
 | `/spades:evaluate` — approve the verification plan | Stage 4. |
 | `/spades:evaluate` — Human row results | The human's, at Stage 5A. |
 | `/spades:evaluate` — confirm the verdict | Stage 5 — yours in 5B, the human's in 5A. |
@@ -111,6 +106,15 @@ one-line reason beside each `human` row.
 
 Answer other questions from the artefacts; use Pause 13 when they lack
 the information needed.
+
+### Requests during the run
+
+The human may ask for something while the run is under way. Acknowledge
+it in the next status line. Work that this Scope's acceptance criteria
+need joins the run. Other work is new work under `docs/FRAMEWORK.md
+§ Asking the Human → Requested work`: when the run reaches FINISHED or a
+pause, print that block, then start its intake in the same turn. A
+request to stop is Pause 14.
 
 ## Pre-flight
 
@@ -239,7 +243,8 @@ PASS / FAIL / PARTIAL with evidence.
 
 ### 5A — Human rows pending (the human gate)
 
-Print one block, then end your turn:
+Print one block, start the intake of any request held under § Requests
+during the run, then end your turn:
 
 ```
 ⏸ Loop paused — <n> check(s) need you.
@@ -268,8 +273,7 @@ answer its questions on the Human rows, with what they told you as
 the proposed answers. Once every Human row has a result, the human
 answers the verdict confirmation; then append `Loop — evaluate
 sign-off: human (<n> human-verified row(s)).` Rows left `pending`
-keep the loop at 5A: print the block above for them and end your
-turn.
+keep the loop at 5A: pause again as above for them.
 
 ### 5B — Every row AI-verified
 
@@ -465,7 +469,8 @@ verified. Use a `⏸` block for pauses.
 
 A pause is the loop's normal ending. Every pause appends `Loop —
 paused at stage <k>: <reason>.`, prints what happened and what is
-needed, and ends the turn. Nothing rolls back; resuming re-enters at
+needed, starts the intake of any request held under § Requests during
+the run, and ends the turn. Nothing rolls back; resuming re-enters at
 the derived stage.
 
 | # | Condition | Stage |

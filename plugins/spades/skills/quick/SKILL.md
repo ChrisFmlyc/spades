@@ -1,7 +1,7 @@
 ---
 name: quick
 description: Delivers trivial work through the fast-track path — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when someone says "just fix this small thing", "quick tweak", "one-line change", "typo fix", "rename this variable", or when you would otherwise invoke /spades:scope for a change that clearly meets every gate criterion below. Work that touches architecture, auth, schemas, or public APIs, or needs more than one focused commit, takes the full loop via /spades:scope.
-version: 2.4.2
+version: 2.5.0
 ---
 
 # /spades:quick
@@ -20,9 +20,12 @@ missing config points at `/spades:setup`.
 
 ## The gate — all ten must hold
 
-Walk each criterion with the human before writing any code. An
-ambiguous criterion is asked, not assumed, via `AskUserQuestion`:
-**Continue on the quick path** / **Fall back to /spades:scope**.
+Walk each criterion aloud before writing any code. For a criterion
+the request and the code leave open, ask the human for the fact that
+decides it, such as whether a changed function is part of the public
+API. Open criteria share one `AskUserQuestion` call. A criterion
+passes only when the code or the answer shows it holds; one still
+unresolved fails the gate.
 
 1. **Single concern.** One bug, one tweak, one touch-up.
 2. **≤ 50 lines changed** (soft cap; hard stop around 100).
@@ -69,9 +72,9 @@ mint the ID: `Q-<slug>-<suffix>`, slug from the one-line title
 (Scope slug rules, ≤50 characters), suffix a random 4-character
 base62 string collision-checked against `.spades/quick/`.
 
-With `backend: linear`, note an existing Linear issue's ID, or ask
-whether to create one — a comment-typo fix is fine with the marker
-alone; anything behavioural gets an issue.
+With `backend: linear`, note an existing Linear issue's ID. Otherwise
+create one for a behavioural change; a comment or typo fix needs only
+the marker.
 
 ### 2. Fix
 
