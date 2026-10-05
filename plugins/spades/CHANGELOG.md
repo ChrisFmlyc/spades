@@ -8,6 +8,16 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.7.1] — 2026-10-05
+
+- **Patch**: `/spades:deliver` applies a pending Lead promotion on first
+  delivery. When a Lead is promoted to a Scope, `/spades:leads` leaves
+  `Lead promotion pending: L-<id> → S-<slug>` on the Scope and says the
+  first delivery marks the Lead `promoted`. Deliver never said so, so the
+  update depended on the agent noticing the audit line. Step 1 now applies
+  it in the new delivery worktree, so it ships with the Scope's PR.
+- Skills bumped: `deliver` 4.1.0 → 4.1.1.
+
 ## [6.7.0] — 2026-10-05
 
 - **Minor**: Promoting a Lead asks the human for the route before anything
