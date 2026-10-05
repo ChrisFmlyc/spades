@@ -1,12 +1,12 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, deliver, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. Runs only on direct user invocation or delegation from a user-created goal or driver. See "Who may invoke this".
-version: 1.13.0
+version: 1.14.0
 ---
 
 # /spades:loop
 
-The human has written a Scope. Everything from Plan to closed-out
+The human has confirmed a Scope. Everything from Plan to closed-out
 bookkeeping is yours, including the questions the child skills would
 otherwise put to a human. One gate stays theirs: signing off an
 evaluation that needed a human to verify part of it.
@@ -104,8 +104,10 @@ one-line reason beside each `human` row.
 | `/spades:learn` — approve the draft | Approve. |
 | `/spades:learn` — public-safe or private | The skill's own rule; in doubt, `private/`. |
 
-Answer other questions from the artefacts; use Pause 13 when they lack
-the information needed.
+Answer other questions from Plan onward from the artefacts; use Pause
+13 when they lack the information needed. The Scope and a Lead's
+promotion route are the human's, so a run starts from a Scope the human
+confirmed.
 
 ### Requests during the run
 
@@ -137,8 +139,15 @@ Every failure is an abort with a pointer.
 6. Use § Scope Worktrees to select the working context after resolving the
    target: documentation before delivery, delivery worktree afterwards.
 7. Resolve the target Scope per § Target Resolution (any
-   non-terminal status; zero candidates → "Write the Scope first").
-   A `P-…` argument resolves to its parent Scope and pins that Plan.
+   non-terminal status). A `P-…` argument resolves to its parent Scope
+   and pins that Plan. An `L-…` argument, with or without `--promote`,
+   names a Lead rather than a Scope. For a Lead, or zero Scope
+   candidates, end the run with "Write the Scope first", then start the
+   intake in the human's turn, noting that the human asked for the loop:
+   `/spades:leads --promote L-…` for a Lead, `/spades:scope
+   <description>` otherwise. The human chooses the route and confirms
+   the Scope there, and the Scope's confirmation offers a fresh
+   `/spades:loop` run.
 8. Verify ancestors active per § Target Resolution →
    Parent-status precondition.
 9. Stay in the documentation context for Plan and Approve until delivery

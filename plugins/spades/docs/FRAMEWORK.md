@@ -587,8 +587,11 @@ Setup and Loop have separate invocation paths:
    `/spades:loop` as guidance to the human; they must never invoke it.
 2. Loop checks for setup, an active project and an existing human-owned
    Scope. Missing prerequisites abort the run with a pointer to the
-   appropriate upstream skill. Setup executes its own prerequisites per
-   § Bootstrap Order.
+   appropriate upstream skill. A missing Scope's intake then runs in the
+   human's turn (`/spades:scope`, or `/spades:leads --promote` for a
+   Lead), where the human confirms the Scope; choosing the loop at that
+   confirmation starts a fresh run. Setup executes its own prerequisites
+   per § Bootstrap Order.
 3. Loop never re-invokes itself. Resume through a fresh human invocation
    or an in-conversation continuation; advance to sibling Plans within
    the current run.
@@ -632,8 +635,8 @@ Assign a `human` row only when no agent can run the check, per
 `skills/loop/SKILL.md § Autonomy doctrine`. Route auth, secrets, schema
 migrations and data deletion checks by the same verifiability criterion.
 
-Under the loop, the child skills' own questions are answered by the
-loop, not forwarded — `/spades:plan`'s title and breakdown,
+Under the loop, the child skills' own questions from Plan onward are
+answered by the loop, not forwarded — `/spades:plan`'s title and breakdown,
 `/spades:approve`'s decision, `/spades:learn`'s classification, and
 the rest. The child skills stay written for hand-driving and are
 unchanged by this; **the loop is the override**, and it records its
@@ -745,6 +748,10 @@ request asks for the change itself rather than only its Scope, the
 question that confirms the Scope also offers `/spades:loop`; choosing it
 is the human's invocation of the loop, which starts once the Scope is
 written.
+
+Promoting a Lead (`/spades:leads --promote`) is the same intake, with
+the route chosen by the human before either skill runs: Quick when the
+gate holds, a Scope, or keeping the Lead.
 
 A request that arrives during other work, including a `/spades:loop`
 run, is acknowledged at once. Work that the current task's acceptance
