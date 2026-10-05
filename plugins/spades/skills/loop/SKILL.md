@@ -243,7 +243,8 @@ PASS / FAIL / PARTIAL with evidence.
 
 ### 5A — Human rows pending (the human gate)
 
-Print one block, then end your turn:
+Print one block, start the intake of any request held under § Requests
+during the run, then end your turn:
 
 ```
 ⏸ Loop paused — <n> check(s) need you.
@@ -272,8 +273,7 @@ answer its questions on the Human rows, with what they told you as
 the proposed answers. Once every Human row has a result, the human
 answers the verdict confirmation; then append `Loop — evaluate
 sign-off: human (<n> human-verified row(s)).` Rows left `pending`
-keep the loop at 5A: print the block above for them and end your
-turn.
+keep the loop at 5A: pause again as above for them.
 
 ### 5B — Every row AI-verified
 
