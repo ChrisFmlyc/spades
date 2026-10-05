@@ -1,7 +1,7 @@
 ---
 name: leads
-description: Captures out-of-scope discoveries as Leads immediately during any task, including recurring known issues, and returns to that task. Classifies findings, reuses existing Leads, and records one sighting per observation context. With `scm: github`, publishes every Lead as a GitHub issue labelled with its type. Also runs completion checks for Evaluate, Learn and Research; lists Leads across the requested worktrees; and shows, promotes, closes or synchronises a Lead on request.
-version: 3.3.0
+description: Captures out-of-scope discoveries as Leads immediately during any task, including recurring known issues, and returns to that task. Classifies findings, reuses existing Leads, and records one sighting per observation context. With `scm: github`, publishes every Lead as a GitHub issue labelled with its type. Also runs completion checks for Evaluate, Learn and Research; lists Leads across the requested worktrees; shows, closes or synchronises a Lead on request; and promotes one into a Scope or Quick item on the route the human chooses.
+version: 3.4.0
 argument-hint: '[--list [--all-worktrees] | --show L-<id> | --promote L-<id> [<work-id>] | --close L-<id> "<reason>" | --sync L-<id>]'
 ---
 
@@ -205,7 +205,7 @@ views; they report reconciliation needs for a later management operation.
 | Operation | Result |
 |---|---|
 | `--show L-<id>` | Display the record, source worktree and current publication/mirror evidence. |
-| `--promote L-<id> [<work-id>]` | With a target, set `status: promoted`, record the supplied `S-…`, `Q-…` or document in `promoted_to:`, mirror the target in a comment and remove `spades:lead`, preserving other labels. With no target, follow § Promotion without a target: decide the route, hand the Lead to `/spades:scope` or `/spades:quick`, and finish the promotion with the ID that skill returns. |
+| `--promote L-<id> [<work-id>]` | With a target, set `status: promoted`, record the supplied `S-…`, `Q-…` or document in `promoted_to:`, mirror the target in a comment and remove `spades:lead`, preserving other labels. With no target, follow § Promotion without a target: recommend a route, ask the human to choose, hand the Lead to the chosen skill, and finish the promotion with the ID that skill returns. |
 | `--close L-<id> "<reason>"` | Set `status: closed` and `closed_reason:` such as `done`, `not worth it`, or `duplicate of L-…`. Record supporting evidence when closed as done. Mirror the reason and close each mirror: the GitHub issue as completed for `done` and not planned otherwise, the Linear issue in the team's appropriate terminal state. |
 | `--sync L-<id>` | Read the local record and each configured mirror, then complete pending mirror operations, creating a missing mirror, for the recorded decision. Verify the result and append reconciliation evidence. |
 
@@ -221,31 +221,42 @@ to `Q-…` proceeds through `/spades:quick` eligibility and validation.
 
 ### Promotion without a target
 
-`--promote L-<id>` with no work ID turns a Lead into work through the
-skill that owns that kind of record. The Leads skill never composes a
-Scope or a Quick item itself, in any dispatch mode: it does not write
-`.spades/scopes/S-…` or `.spades/quick/Q-…`, does not infer the answers
-those skills ask the human for (delivery, priority, type, slug, gate), and
-does not skip their conversation or gates.
+`--promote L-<id>` with no work ID turns a Lead into work. The human
+chooses the route, and the skill that owns the record composes it:
+`/spades:scope` writes a Scope and `/spades:quick` a Quick item, each with
+its own questions and gates. Promotion supplies their context and records
+the result.
 
-1. **Decide the route.** Walk the fast-track gate in
+1. **Recommend a route.** Walk the fast-track gate in
    `docs/FRAMEWORK.md § Fast-Track Path` against the Lead's *Suggested
-   action*, area and effort. Every criterion holds → `quick`; any fails,
-   or the Lead needs investigation before a fix is known → `scope`. Record
-   the reasoning in the receipt.
+   action*, area and effort. Every criterion holds → recommend `quick`;
+   any fails, or the Lead needs investigation before a fix is known →
+   recommend `scope`. Record the reasoning in the receipt.
 2. **Prepare the context packet**: the Lead ID and its mirror issues; its
    title, *What*, *Why it matters* and *Suggested action* verbatim; area,
    type, effort, confidence; every sighting's evidence; related Lead IDs;
-   and the route with its reasoning.
-3. **Hand off.** The target skill asks the human questions, so it runs in
-   the coordinator's turn, not in the worker. The worker returns
-   `outcome: target pending` with the route and the packet; the
-   coordinator then invokes `/spades:scope <packet>` or
-   `/spades:quick <packet>` (Claude Code: the Skill tool; Codex:
-   `$spades:scope` / `$spades:quick`) and lets that skill run to its own
-   confirmation. A coordinator that is itself the human's session does the
-   same: invoke the skill; do not write the record from the packet.
-4. **Finish the promotion.** With the `S-…` or `Q-…` ID the target skill
+   the recommended route with its reasoning; and whether the request came
+   through `/spades:loop`.
+3. **Ask the human for the route.** The worker returns `outcome: target
+   pending` with the recommendation and the packet. In the human's turn,
+   the coordinator asks one `AskUserQuestion` before invoking either
+   skill, the recommendation first and marked *(Recommended)* with its
+   reason:
+   - Gate holds: **Fix it now with `/spades:quick`** / **Write a Scope with
+     `/spades:scope`** / **Keep it as a Lead**.
+   - Gate fails: **Write a Scope with `/spades:scope`** / **Keep it as a
+     Lead**, naming the criterion that fails.
+
+   A route the human already named in the request is their answer.
+   Keeping it as a Lead ends the promotion with the Lead unchanged.
+4. **Hand off.** Invoke the chosen skill with the packet (Claude Code: the
+   Skill tool; Codex: `$spades:scope` / `$spades:quick`), stating that the
+   human chose this route, and let it run its own drafts, questions and
+   gates. The chosen skill composes and writes the record, using the
+   packet as its input.
+   `/spades:scope` ends at the Scope's confirmation, which offers
+   `/spades:loop` when the promotion came through `/spades:loop`.
+5. **Finish the promotion.** With the `S-…` or `Q-…` ID the target skill
    confirmed, run `--promote L-<id> <work-id>`, split by route:
    - **Quick target:** finish the local promotion at once in the Quick
      worktree — set `status: promoted` and `promoted_to:`, append the
@@ -259,13 +270,8 @@ does not skip their conversation or gates.
      local edit (`status`, `promoted_to`, `## History`) in the established
      delivery worktree so it ships with the Scope's PR.
 
-   Never edit the Lead record in the documentation or Scope session
-   worktree.
-
-A human who declines the route the worker chose answers inside the target
-skill (`/spades:scope` offers the quick path and `/spades:quick` falls back
-to `/spades:scope` when its gate fails), so the decision is theirs either
-way.
+   The local Lead record changes only in the Quick worktree or the Scope's
+   delivery worktree.
 
 A document target is a repository-relative file path or a stable document
 URL, stored as the `promoted_to:` value. Record its owning `S-…` or `Q-…`,

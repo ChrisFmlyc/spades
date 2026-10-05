@@ -8,6 +8,31 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.7.0] — 2026-10-05
+
+- **Minor**: Promoting a Lead asks the human for the route before anything
+  runs. In a consumer repo, `/spades:leads --promote` chose the Quick route
+  itself, and `/spades:quick` edited 8 files without a question. A second
+  session ran `/spades:loop --promote L-…`. It wrote a Scope with its own
+  type and priority, never invoking `/spades:scope`, and set out to run the
+  loop on it. The promote section had the agent choose the route and said
+  the human's say came later inside the target skill, but `/spades:quick`
+  asks nothing once its gate passes. The loop's catch-all for "other
+  questions" let it answer the Scope's questions too.
+  - `/spades:leads --promote` recommends a route, then asks one question:
+    Quick (when the gate holds), a Scope, or keep the Lead. It invokes the
+    chosen skill, which composes the record. The Scope route ends at the
+    Scope's confirmation, which offers the loop only when the promotion
+    came through `/spades:loop`.
+  - `/spades:loop` answers questions from Plan onward. An `L-…` argument
+    (with or without `--promote`), or a missing Scope, ends the run with
+    "Write the Scope first" and starts the intake in the human's turn.
+    The Scope's confirmation there offers a fresh loop run.
+  - `docs/FRAMEWORK.md` says the same in § Asking the Human and
+    § Orchestration Order.
+- `agents_version`: n/a.
+- Skills bumped: `leads` 3.3.0 → 3.4.0, `loop` 1.13.0 → 1.14.0.
+
 ## [6.6.0] — 2026-10-05
 
 - **Minor**: A human's request for a change now starts the work in the
