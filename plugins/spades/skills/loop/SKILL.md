@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, deliver, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. Runs only on direct user invocation or delegation from a user-created goal or driver. See "Who may invoke this".
-version: 1.14.0
+version: 1.14.1
 ---
 
 # /spades:loop
@@ -498,12 +498,15 @@ the derived stage.
 | 12 | A mixed-terminal Scope rollup needs acknowledgement | 11 |
 | 13 | A child asks something the Scope, Plan, config, and repo docs don't answer | any |
 | 14 | The human says stop | any |
+| 15 | Claude Code's permission check refuses a command the remaining work needs | any |
 
 Apply the six Approve checks, verification rows, CI and bot review to
 auth, secrets, migrations and data deletion under § Routing. Carry forward
 pending SPADES artefacts from this authorised run; pause for the human's
 inclusion decision on unknown pre-existing uncommitted changes. Surface a
-child skill's refusal verbatim and stop.
+child skill's refusal verbatim and stop. For a refused command, the pause
+block names the command and the two ways forward: the human allows it
+or runs it with `!`.
 
 ### Under a goal or driver
 
