@@ -8,6 +8,17 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.7.2] — 2026-10-06
+
+- **Patch**: `/spades:loop` lists a refused command as a pause. In a
+  consumer repo, Claude Code's auto-mode permission check refused a
+  production dry run mid-delivery. The loop paused correctly, but its
+  Pauses table had no row for this, so the "Under a goal or driver" rules
+  applied only because the agent improvised. Pause 15 now covers a refused
+  command the remaining work needs, and the pause block names the command
+  and the two ways forward: allow it, or run it with `!`.
+- Skills bumped: `loop` 1.14.0 → 1.14.1.
+
 ## [6.7.1] — 2026-10-05
 
 - **Patch**: `/spades:deliver` applies a pending Lead promotion on first
