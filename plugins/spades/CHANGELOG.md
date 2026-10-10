@@ -28,7 +28,15 @@ or the consumer marker rules change). The consumer-repo marker block in `AGENTS.
     `preview` in Claude Code, the question text in Codex.
   - Skills say *ask* instead of naming `AskUserQuestion`. Claude Code
     behaviour is unchanged.
-  - `AGENTS.md` and the consumer marker block carry the same rule.
+  - `AGENTS.md` and the consumer marker block carry the same rule,
+    including the final-message fallback for harnesses without a
+    question tool.
+  - Questions keep to four options: setup's team, Linear Project and
+    active-project pickers, close's Objective question and the
+    migration disambiguations show up to three candidates plus a
+    create, search or "none" option. `/spades:quick` asks open gate
+    criteria up to four per call. The document skills mark their
+    draft-from-the-repo Create option *(Recommended)*.
 - `agents_version`: 3.2.0 → 3.3.0.
 - Skills bumped: `anti-patterns` 1.5.4 → 1.5.5, `approve` 3.4.0 → 3.4.1,
   `architecture` 1.4.4 → 1.4.5, `close` 4.15.0 → 4.15.1, `deliver`
