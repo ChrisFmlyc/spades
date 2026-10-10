@@ -121,9 +121,9 @@ Inspect `./INTENT.md`:
 When the request is ambiguous (a filled file and "set up our intent
 doc"), ask which mode applies.
 
-**Create.** Ask: **Draft a starting point
-from the README, then I correct it** / **Start blank — I'll describe
-it myself**. A draft is proposed per section, labelled as an
+**Create.** Ask: **Draft a starting point from the README, then
+I correct it** *(Recommended)* / **Start blank — I'll describe it
+myself**. A draft is proposed per section, labelled as an
 inference to correct, and the human's corrections are the content.
 
 **Edit.** Ask how far the edit goes: **Refresh

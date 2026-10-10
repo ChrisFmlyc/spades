@@ -100,8 +100,8 @@ Inspect `./ANTI-PATTERNS.md`: **Missing** → Create; **unfilled**
 (two or more placeholder comments) → Create in place; **filled** →
 Edit. Ask which mode applies when ambiguous.
 
-**Create.** Ask: **Draft a starting point
-inferred from the repo, then I correct it** / **Start blank**.
+**Create.** Ask: **Draft a starting point inferred from the
+repo, then I correct it** *(Recommended)* / **Start blank**.
 Propose few, high-confidence rules and let the human add the rest.
 
 **Edit.** Read the existing file first, then ask how far

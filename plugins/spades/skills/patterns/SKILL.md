@@ -97,8 +97,8 @@ Inspect `./PATTERNS.md`: **Missing** → Create; **unfilled** (two or
 more placeholder comments) → Create in place; **filled** → Edit.
 Ask which mode applies when ambiguous.
 
-**Create.** Ask: **Draft a starting point
-inferred from the repo, then I correct it** / **Start blank**.
+**Create.** Ask: **Draft a starting point inferred from the
+repo, then I correct it** *(Recommended)* / **Start blank**.
 
 **Edit.** Read the existing file first, then ask how far
 the edit goes: **Refresh `last_reviewed` only** / **Revise

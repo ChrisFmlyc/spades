@@ -115,8 +115,8 @@ Inspect `./ARCHITECTURE.md`: **Missing** → Create; **unfilled**
 **filled** → Edit. Ask which mode applies when the request is
 ambiguous.
 
-**Create.** Ask: **Draft a starting point
-from the repo files, then I correct it** / **Start blank**.
+**Create.** Ask: **Draft a starting point from the repo files,
+then I correct it** *(Recommended)* / **Start blank**.
 
 **Edit.** Read the existing file first, then ask how far
 the edit goes: **Refresh `last_reviewed` only** / **Revise
