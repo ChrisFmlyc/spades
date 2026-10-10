@@ -58,10 +58,12 @@ so the already-presented page shows the terminal status.
   `O-<slug>` → Objective; `S-<slug>` → Scope; `Q-<slug>-<suffix>` →
   Quick item; a bare slug matching `.spades/projects/<slug>.md` →
   Project. Test `O-` before `S-` and `P-`.
-- **No ID** — ask, then run the matching
-  picker: *Plan* (`approved`, `delivering`, `evaluating`,
-  `shipping`) / *Scope* (any non-terminal) / *Objective* (`open`) /
-  *Quick item* (`shipping`) / *Project* (`active`).
+- **No ID** — ask which kind of target to close, with the options
+  *Plan*, *Scope*, *Objective* and *Quick item*; the question names
+  *Project* as a typed answer. Then run the matching picker: *Plan*
+  (`approved`, `delivering`, `evaluating`, `shipping`) / *Scope* (any
+  non-terminal) / *Objective* (`open`) / *Quick item* (`shipping`) /
+  *Project* (`active`).
 - **Ambiguous phrase** — offer the best one to three candidates.
 - A Quick item skips Step 1: its action is unambiguous.
 
