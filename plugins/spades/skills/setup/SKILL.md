@@ -128,7 +128,8 @@ re-run `/spades:setup`.
 With teams listed: ask for the team with the picker of
 `docs/FRAMEWORK.md § Target Resolution` step 3, then for the Linear
 Project (up to three existing ones plus **Create new Linear Project**;
-a typed name selects any other).
+a typed name is matched against the team's Projects as in step 4, so
+the human confirms one Project before its ID is recorded).
 *Create new* records `team_id` and sets `create_new_project`; the
 Linear Project is created at Step 8 by `/spades:newproject`'s
 fan-out. Otherwise record `team_id` and `project_id`.
