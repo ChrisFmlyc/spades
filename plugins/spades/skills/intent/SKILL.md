@@ -1,7 +1,7 @@
 ---
 name: intent
 description: Creates or maintains INTENT.md, the project's durable statement of intent — the problem it solves, who it serves, what it does, what success looks like, and its non-goals. Use when someone says "set up INTENT.md", "capture our project intent", "what is this project for", "update the intent doc", "review our non-goals", or when INTENT.md is missing, still an unfilled template, or flagged stale. Helps the human express the intent and requires their confirmation before recording each section.
-version: 4.4.4
+version: 4.4.5
 ---
 
 # /spades:intent
@@ -119,14 +119,14 @@ Inspect `./INTENT.md`:
 - **Present and filled** → Edit.
 
 When the request is ambiguous (a filled file and "set up our intent
-doc"), confirm the mode via `AskUserQuestion`.
+doc"), ask which mode applies.
 
-**Create.** Offer via `AskUserQuestion`: **Draft a starting point
-from the README, then I correct it** / **Start blank — I'll describe
-it myself**. A draft is proposed per section, labelled as an
+**Create.** Ask: **Draft a starting point from the README, then
+I correct it** *(Recommended)* / **Start blank — I'll describe it
+myself**. A draft is proposed per section, labelled as an
 inference to correct, and the human's corrections are the content.
 
-**Edit.** Scope the edit via `AskUserQuestion`: **Refresh
+**Edit.** Ask how far the edit goes: **Refresh
 `last_reviewed` only** / **Revise specific sections** (ask which) /
 **Full review pass**. Show each section's current content before
 discussing changes.

@@ -1,7 +1,7 @@
 ---
 name: objective
 description: Creates or edits a SPADES Objective — a coherent strategic action associated with a project (Rumelt/OKR sense), prefixed O-. Use when someone says "create an objective", "set an objective", "add an objective", "new objective", "add a milestone for this project", or "/spades:objective <description>". An Objective is independent of Scopes — it never contains, requires, or gates on one. Closing an Objective is done via /spades:close O-<slug>.
-version: 1.4.0
+version: 1.4.1
 ---
 
 # /spades:objective
@@ -50,8 +50,8 @@ Read `docs/FRAMEWORK.md` § Hierarchy → Objectives, § ID Format,
   title that fuzzy-matches an existing Objective.
 
 Fuzzy match via `list_objectives(filter)` for the active project:
-score slug substring, title token overlap, and ID prefix; offer up
-to three candidates via `AskUserQuestion` (**Edit `O-<slug>`
+score slug substring, title token overlap, and ID prefix; ask with up
+to three candidates (**Edit `O-<slug>`
 (<title>)** …) plus **Create a new objective**; with no close
 candidate, go straight to Create.
 
@@ -82,7 +82,7 @@ project documents, per `docs/FRAMEWORK.md § Asking the Human`:
 
 Ask about the Title or Objective together in one message only when
 nothing supports a proposal. Confirm the draft with one
-`AskUserQuestion`: *Use `O-<slug>` as drafted* *(Recommended)* /
+question: *Use `O-<slug>` as drafted* *(Recommended)* /
 *Change something*, the change arriving through *Other* or a short
 follow-up. CLI mode presents the draft in the CLI review pane on that
 question before the write. HTML mode asks it once Step 4 has opened the

@@ -1,7 +1,7 @@
 ---
 name: research
 description: Researches a topic through an isolated researcher subagent. Use when the human says "properly research this", "look into X", "check the prior art", "second opinion on the landscape", "what does the SOTA look like for X", or asks any open question that needs external fact-finding (libraries, frameworks, benchmarks, postmortems, comparisons). Returns a structured findings report; optionally posts to a Linear parent issue with explicit human consent. Callable any time — not tied to a SPADES phase. Also matches the explicit slash-command form `/spades:research`.
-version: 2.3.3
+version: 2.3.4
 ---
 
 # /spades:research
@@ -56,7 +56,7 @@ the Scope's backend record.
 4. **Display the report** exactly as emitted; the shape is locked
    and consumers read it positionally.
 5. **Standalone → mandatory completion handoff below.**
-6. **Scoped → consent** via `AskUserQuestion`: *"This report can be
+6. **Scoped → consent** — ask: *"This report can be
    posted as a comment on <issue-id>. Which would you like?"*
    - **Post this comment to <issue-id>** — post verbatim, with
      `research:` on its own first line so it reads distinctly from

@@ -1,7 +1,7 @@
 ---
 name: anti-patterns
 description: Creates or maintains ANTI-PATTERNS.md, the project's durable list of things the codebase DELIBERATELY AVOIDS — runtime dependencies, hidden state, premature abstraction, and any other "we won't do X" rules. Use when someone says "set up ANTI-PATTERNS.md", "document what we don't do", "we should ban X", "we deliberately avoid Y", "what's forbidden here", "add an anti-pattern", "update the anti-patterns doc", "what shouldn't we do", or when ANTI-PATTERNS.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review. Also use proactively after a Plan rejection that traces to an unwritten prohibition. Helps the human express the prohibitions and requires their confirmation before recording each rule. SKIP when the human's intent is per-Plan risk capture (use the Plan's Risks & Assumptions section instead) or when documenting an APPROVED pattern (use /spades:patterns).
-version: 1.5.4
+version: 1.5.5
 ---
 
 # /spades:anti-patterns
@@ -98,14 +98,14 @@ instead — so the renderer can card and count them.
 
 Inspect `./ANTI-PATTERNS.md`: **Missing** → Create; **unfilled**
 (two or more placeholder comments) → Create in place; **filled** →
-Edit. Confirm via `AskUserQuestion` when ambiguous.
+Edit. Ask which mode applies when ambiguous.
 
-**Create.** Offer via `AskUserQuestion`: **Draft a starting point
-inferred from the repo, then I correct it** / **Start blank**.
+**Create.** Ask: **Draft a starting point inferred from the
+repo, then I correct it** *(Recommended)* / **Start blank**.
 Propose few, high-confidence rules and let the human add the rest.
 
-**Edit.** Read the existing file first, then scope via
-`AskUserQuestion`: **Refresh `last_reviewed` only** / **Revise
+**Edit.** Read the existing file first, then ask how far
+the edit goes: **Refresh `last_reviewed` only** / **Revise
 specific sections** / **Add a new prohibition** (free-form, in the
 human's own wording) / **Full review pass**. Untouched sections are
 preserved.

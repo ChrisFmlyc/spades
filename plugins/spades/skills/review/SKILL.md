@@ -1,7 +1,7 @@
 ---
 name: review
 description: Provides an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone says "second opinion", "outside view", "review this", "challenge this", or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
-version: 3.9.4
+version: 3.9.5
 ---
 
 # /spades:review
@@ -49,7 +49,7 @@ you reach § Presenting the report.
    - A Scope or Plan already in session context → offer it as the
      default via one confirm (*Use <ID> — <title>?*).
    - Bare invocation → `docs/FRAMEWORK.md § Target Resolution`:
-     artefact type via `AskUserQuestion` (*Scope review* / *Plan
+     ask the artefact type (*Scope review* / *Plan
      review* / *Full review*); candidates per the status filter
      (Scopes in any active phase; Plans in `draft`, `approved`,
      `delivering`, `evaluating`, most recently updated first); a
@@ -232,7 +232,7 @@ Tension points (for the human to resolve — omit when none):
 
 The synthesis appears in both the digest and the persisted report.
 
-## Human decision — `AskUserQuestion`
+## Human decision question
 
 - **Act on specific findings** — by severity, persona, or message.
 - **Continue as-is** — noted, proceed without changes.

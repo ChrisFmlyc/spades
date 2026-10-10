@@ -1,7 +1,7 @@
 ---
 name: patterns
 description: Creates or maintains PATTERNS.md, the project's durable list of APPROVED patterns and conventions — code organisation, error handling, testing, naming. Use when someone says "set up PATTERNS.md", "document our conventions", "what patterns do we use", "update the patterns doc", or when PATTERNS.md is missing, still an unfilled template, or flagged stale. Helps the human express the patterns and requires their confirmation before recording each section.
-version: 1.4.4
+version: 1.4.5
 ---
 
 # /spades:patterns
@@ -95,13 +95,13 @@ explanation.` — so the renderer can card and count them.
 
 Inspect `./PATTERNS.md`: **Missing** → Create; **unfilled** (two or
 more placeholder comments) → Create in place; **filled** → Edit.
-Confirm via `AskUserQuestion` when ambiguous.
+Ask which mode applies when ambiguous.
 
-**Create.** Offer via `AskUserQuestion`: **Draft a starting point
-inferred from the repo, then I correct it** / **Start blank**.
+**Create.** Ask: **Draft a starting point inferred from the
+repo, then I correct it** *(Recommended)* / **Start blank**.
 
-**Edit.** Read the existing file first, then scope via
-`AskUserQuestion`: **Refresh `last_reviewed` only** / **Revise
+**Edit.** Read the existing file first, then ask how far
+the edit goes: **Refresh `last_reviewed` only** / **Revise
 specific sections** / **Full review pass**. Untouched sections are
 preserved.
 

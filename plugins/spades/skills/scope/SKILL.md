@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Creates or edits a SPADES Scope in the current documentation session and records its intended delivery branch for later execution. Use when a human asks for a change too large for /spades:quick ("add X", "we need a Y"), when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 4.2.1
+version: 4.2.2
 ---
 
 # /spades:scope
@@ -47,7 +47,7 @@ Format`:
    [ -f INTENT.md ] && echo present || echo missing
    ```
 
-   `present` → continue. `missing` → ask via `AskUserQuestion`:
+   `present` → continue. `missing` → ask:
 
    - **Exit and run `/spades:intent` first** *(Recommended)* — print
      *"INTENT.md is missing. Run `/spades:intent` to compose it,
@@ -82,8 +82,8 @@ branch and use that worktree when editing.
    (`list_scopes(filter)`).
 2. Score each against the input: slug substring, title token
    overlap, exact ID prefix.
-3. Offer up to three candidates above a soft threshold via
-   `AskUserQuestion` — **Edit `S-<slug>` (<title>)** per candidate,
+3. Ask with up to three candidates above a soft threshold —
+   **Edit `S-<slug>` (<title>)** per candidate,
    plus **Create a new scope**. With no close candidate, go straight
    to Create.
 
@@ -206,7 +206,7 @@ when nothing supports a fix.
 ## Step 6 — Confirm and write the Scope
 
 This step always writes the `.md`. Present the whole draft once and
-confirm it with one `AskUserQuestion` call. In CLI mode, present the
+confirm it with one question. In CLI mode, present the
 draft in the CLI review pane on that call (paged per section when long)
 and write once the human approves it. In HTML mode, write the draft once
 Step 5 is complete and ask the call once Step 7 has opened the rendered

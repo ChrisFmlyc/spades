@@ -1,7 +1,7 @@
 ---
 name: close
 description: Closes a Plan, Scope, Project, Objective, or Quick item through its matching lifecycle flow. Asks the human to finalise as shipped/done/archived/complete, reject a Plan, or abandon a Scope, Project, or Objective; Quick items follow their verified PR state. Flags `--reject "reason"` and `--abandon "reason"` skip the menu with the supplied reason. Use whenever someone says "close this", "close P-…", "close S-…", "close O-…", "complete this objective", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging".
-version: 4.15.0
+version: 4.15.1
 ---
 
 # /spades:close
@@ -58,10 +58,12 @@ so the already-presented page shows the terminal status.
   `O-<slug>` → Objective; `S-<slug>` → Scope; `Q-<slug>-<suffix>` →
   Quick item; a bare slug matching `.spades/projects/<slug>.md` →
   Project. Test `O-` before `S-` and `P-`.
-- **No ID** — ask via `AskUserQuestion`, then run the matching
-  picker: *Plan* (`approved`, `delivering`, `evaluating`,
-  `shipping`) / *Scope* (any non-terminal) / *Objective* (`open`) /
-  *Quick item* (`shipping`) / *Project* (`active`).
+- **No ID** — ask which kind of target to close, with the options
+  *Plan*, *Scope*, *Objective* and *Quick item*; the question names
+  *Project* as a typed answer. Then run the matching picker: *Plan*
+  (`approved`, `delivering`, `evaluating`, `shipping`) / *Scope* (any
+  non-terminal) / *Objective* (`open`) / *Quick item* (`shipping`) /
+  *Project* (`active`).
 - **Ambiguous phrase** — offer the best one to three candidates.
 - A Quick item skips Step 1: its action is unambiguous.
 

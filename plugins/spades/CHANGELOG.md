@@ -8,6 +8,45 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.8.0] — 2026-10-10
+
+- **Minor**: Skills ask the human through each harness's own question
+  tool. In a consumer repo, Codex ran `/spades:intent` and asked for the
+  Non-goals with `request_user_input_async`, which returns before the
+  human answers. The agent then sent its final message, which ended the
+  turn and closed the question, so the human had to type "confirm"
+  instead of choosing an option. Each closing message also quoted the
+  skill's confirmation rule back at the human. The skills named only
+  Claude Code's `AskUserQuestion`, so Codex improvised.
+  - `docs/FRAMEWORK.md § Asking the Human → Asking in each harness` maps
+    *ask* to `AskUserQuestion` in Claude Code; to `request_user_input`
+    or `request_user_input_async` plus `sleep` in Codex, keeping the
+    turn open until the answer arrives; and to a final-message question
+    elsewhere. It covers the four-option limit, typed answers,
+    multi-select and keeping the skill's procedure out of the question.
+  - § CLI review pane describes the question's content area in general:
+    `preview` in Claude Code, the question text in Codex.
+  - Skills say *ask* instead of naming `AskUserQuestion`. Claude Code
+    behaviour is unchanged.
+  - `AGENTS.md` and the consumer marker block carry the same rule,
+    including the final-message fallback for harnesses without a
+    question tool.
+  - Questions keep to four options: setup's team, Linear Project and
+    active-project pickers, close's Objective question and the
+    migration disambiguations show up to three candidates plus a
+    create, search or "none" option. `/spades:quick` asks open gate
+    criteria up to four per call. The document skills mark their
+    draft-from-the-repo Create option *(Recommended)*.
+- `agents_version`: 3.2.0 → 3.3.0.
+- Skills bumped: `anti-patterns` 1.5.4 → 1.5.5, `approve` 3.4.0 → 3.4.1,
+  `architecture` 1.4.4 → 1.4.5, `close` 4.15.0 → 4.15.1, `deliver`
+  4.1.1 → 4.1.2, `evaluate` 3.10.0 → 3.10.1, `intent` 4.4.4 → 4.4.5,
+  `leads` 3.4.0 → 3.4.1, `learn` 5.0.6 → 5.0.7, `loop` 1.14.1 → 1.14.2,
+  `newproject` 3.8.0 → 3.8.1, `objective` 1.4.0 → 1.4.1, `patterns`
+  1.4.4 → 1.4.5, `plan` 3.8.0 → 3.8.1, `quick` 2.5.0 → 2.5.1, `research`
+  2.3.3 → 2.3.4, `review` 3.9.4 → 3.9.5, `scope` 4.2.1 → 4.2.2, `setup`
+  4.12.0 → 4.13.0, `ship` 3.7.0 → 3.7.1.
+
 ## [6.7.2] — 2026-10-06
 
 - **Patch**: `/spades:loop` lists a refused command as a pause. In a

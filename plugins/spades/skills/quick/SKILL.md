@@ -1,7 +1,7 @@
 ---
 name: quick
 description: Delivers trivial work through the fast-track path — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when someone says "just fix this small thing", "quick tweak", "one-line change", "typo fix", "rename this variable", or when you would otherwise invoke /spades:scope for a change that clearly meets every gate criterion below. Work that touches architecture, auth, schemas, or public APIs, or needs more than one focused commit, takes the full loop via /spades:scope.
-version: 2.5.0
+version: 2.5.1
 ---
 
 # /spades:quick
@@ -23,9 +23,10 @@ missing config points at `/spades:setup`.
 Walk each criterion aloud before writing any code. For a criterion
 the request and the code leave open, ask the human for the fact that
 decides it, such as whether a changed function is part of the public
-API. Open criteria share one `AskUserQuestion` call. A criterion
-passes only when the code or the answer shows it holds; one still
-unresolved fails the gate.
+API. Open criteria are asked together, up to four questions a call,
+over as many calls as they need. A criterion passes only when the
+code or the answer shows it holds; one still unresolved fails the
+gate.
 
 1. **Single concern.** One bug, one tweak, one touch-up.
 2. **≤ 50 lines changed** (soft cap; hard stop around 100).
@@ -61,7 +62,7 @@ excluded edits remain uncommitted in the Quick worktree.
 Every quick item carries a `type`: `bug` (incorrect behaviour),
 `tweak` (small behaviour or UX adjustment), `chore` (maintenance,
 non-breaking bumps), `docs`, or `refactor` (rename, extract, inline).
-When two fit, ask via `AskUserQuestion`.
+When two fit, ask.
 
 ## Workflow
 

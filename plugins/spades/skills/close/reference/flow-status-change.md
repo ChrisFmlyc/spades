@@ -64,8 +64,8 @@ rejection proceeds either way.
   `strategy_link: O-<slug>`; the audit line ends `Outcome: <O-slug |
   none>.` The abandon route never asks.
 
-**Project archive** — with child Scopes in flight, list them and ask
-via `AskUserQuestion`: *Proceed — archive; in-flight Scopes keep
+**Project archive** — with child Scopes in flight, list them and ask:
+*Proceed — archive; in-flight Scopes keep
 their status* / *Abort — close them first*. Archive needs no reason.
 
 **Objectives (both routes)** — resolve

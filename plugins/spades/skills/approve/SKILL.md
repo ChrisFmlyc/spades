@@ -1,7 +1,7 @@
 ---
 name: approve
 description: Presents a SPADES Plan for human review against the approval checklist, then records the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`.
-version: 3.4.0
+version: 3.4.1
 ---
 
 # /spades:approve
@@ -82,7 +82,7 @@ correct.
 coherent change; `artefact` has a clear home and reference;
 `action` has a specific evidence-of-completion criterion.
 
-## Decision — `AskUserQuestion`
+## Decision question
 
 1. **Approve** — proceed.
 2. **Approve with notes** — acceptable; capture the concerns to
@@ -90,7 +90,7 @@ coherent change; `artefact` has a clear home and reference;
 3. **Revise** — needs changes; capture what (free-form follow-up).
 4. **Reject** — the approach is wrong; back to scoping.
 
-## Routing — `AskUserQuestion` (Approve outcomes only)
+## Routing question (Approve outcomes only)
 
 Same wording as `/spades:evaluate`'s routing question, so the
 vocabulary is consistent across the loop:

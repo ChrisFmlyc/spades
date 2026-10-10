@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Captures a learning from completed work and stores it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 5.0.6
+version: 5.0.7
 ---
 
 # /spades:learn
@@ -82,7 +82,7 @@ for. Link code, docs, or prior issues where helpful.
    question. In both
    modes, continue to classification before writing; HTML mode presents
    the draft on the page at Step 4.
-3. **Classify** via `AskUserQuestion`:
+3. **Classify** — ask:
    - **Public-safe — commit to `.spades/learnings/`** — fine in a
      public fork.
    - **Private — `.spades/learnings/private/`** — names internal

@@ -1,7 +1,7 @@
 ---
 name: newproject
 description: Creates a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.8.0
+version: 3.8.1
 ---
 
 # /spades:newproject
@@ -73,7 +73,7 @@ proposal until the human confirms it:
 
 Ask about the fields with nothing to support a proposal together in one
 message. Then confirm the draft, slug included, with one
-`AskUserQuestion`: *Use `<slug>` as drafted* *(Recommended)* / *Change
+question: *Use `<slug>` as drafted* *(Recommended)* / *Change
 something*, the change arriving through *Other* or a short follow-up.
 CLI mode presents the draft in the CLI review pane on that question
 before the write. HTML mode asks it once Step 3 has opened the page; a
@@ -85,7 +85,7 @@ change is then a targeted `.md` edit plus a re-render.
   *"A project named `<slug>` already exists. Pick a different title
   or edit the existing project."*
 - **Linear** (`backend: linear`) — an existing Linear Project of the
-  same name → ask via `AskUserQuestion`: **Bind to the existing
+  same name → ask: **Bind to the existing
   Linear Project** (recommended) / **Create a separate one** (with a
   differentiated name).
 
@@ -193,7 +193,7 @@ claiming a Linear Project was created or a lead assigned.
 
 ## Step 4 — Active project
 
-Ask via `AskUserQuestion`: **Set as active project** (recommended)
+Ask: **Set as active project** (recommended)
 / **Leave the active project unchanged**. When invoked inline by
 `/spades:setup` during bootstrap (`project:` unset), set it active
 without asking, then continue through the optional lead step and confirmation
@@ -211,7 +211,7 @@ newly created `<slug>` as the handoff target independently of this choice.
 
 After the canonical `.spades/projects/<slug>.md` exists, and its
 `linear_project_id` has been resolved and persisted when `backend: linear`,
-ask once via `AskUserQuestion`: *"Add a project lead?"* — **Yes** / **No**.
+ask once: *"Add a project lead?"* — **Yes** / **No**.
 An identity supplied in the creation request is retained for the Yes path;
 `owners` do not imply a lead.
 
