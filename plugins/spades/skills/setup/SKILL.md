@@ -125,8 +125,10 @@ Scopes: default local (this project — recommended for a first run),
 with `claude mcp list` and `/mcp` (Linear connected, ~25 tools), and
 re-run `/spades:setup`.
 
-With teams listed: ask for the team, then for the
-Linear Project (existing ones plus **Create new Linear Project**).
+With teams listed: ask for the team with the picker of
+`docs/FRAMEWORK.md § Target Resolution` step 3, then for the Linear
+Project (up to three existing ones plus **Create new Linear Project**;
+a typed name selects any other).
 *Create new* records `team_id` and sets `create_new_project`; the
 Linear Project is created at Step 8 by `/spades:newproject`'s
 fan-out. Otherwise record `team_id` and `project_id`.
@@ -167,8 +169,9 @@ surface only; every flow, prompt, and decision is the same.
 
 ## Step 4 — Active project
 
-Ask, offering the existing
-`.spades/projects/<slug>.md` records plus **Create a new project**;
+Ask, offering up to three existing
+`.spades/projects/<slug>.md` records, most recently updated first,
+plus **Create a new project** (a typed slug selects any other);
 with no records, only the latter. Record the intent and write
 nothing yet:
 

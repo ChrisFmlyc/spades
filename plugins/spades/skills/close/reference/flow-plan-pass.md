@@ -104,7 +104,8 @@ as it closes. Resolve the project's `open` Objectives via
 
 - One open Objective → **O-<slug> — <title>** *(Recommended)* /
   **No outcome — not part of a strategy**.
-- Several → one option per Objective, plus **No outcome**.
+- Several → up to three Objectives, most recently updated first,
+  plus **No outcome**; a typed slug selects any other.
 - None → skip the question; the outcome is `none`.
 
 An Objective chosen writes `strategy_link: O-<slug>` into the Scope
