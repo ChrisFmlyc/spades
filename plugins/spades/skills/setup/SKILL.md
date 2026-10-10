@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configures SPADES in a repository by choosing the backend, SCM, review format and active project, writing .spades/config, and scaffolding agent rules and project documents. Use for initial setup, reconfiguration or a scaffolding refresh, including "set up SPADES", "configure SPADES", "initialise SPADES", or "I want to use SPADES in this repo". Preserves existing content on re-runs.
-version: 4.12.0
+version: 4.13.0
 ---
 
 # /spades:setup
@@ -13,8 +13,8 @@ Setup invokes `/repo:init` for a missing git repo (Pre-Flight 2) and
 `/spades:newproject` for a missing project after writing the config
 (Step 8), following `docs/FRAMEWORK.md § Bootstrap Order`.
 
-Steps 1 to 4 are one `AskUserQuestion` call each, asked on every
-run; the recorded value is the answer the tool returns, even when
+Steps 1 to 4 are one question each, asked on every run; the
+recorded value is the human's answer to it, even when
 the repo or the current config makes it look obvious. Re-runs show
 the current value as context above each prompt. Step 5 diffs old against new and confirms
 before any write; Step 6 offers migration on a backend switch.
@@ -45,7 +45,7 @@ SPADES defers git operations to `/repo:init`, `/repo:branch`, and
 [ -d "$HOME/.claude/plugins/cache/ai-skills/repo" ] && echo found || echo missing
 ```
 
-`missing` → show the install block and ask via `AskUserQuestion`:
+`missing` → show the install block and ask:
 **I've installed it — re-probe** / **Skip for now** (`/spades:close`,
 `/spades:deliver`, and `/spades:ship` refuse until it is installed).
 
@@ -103,8 +103,7 @@ older configs), and `current_leads` (default `on`).
 
 With a current value, print *"Currently configured: `backend:
 <value>`. The choice below replaces it — re-pick or switch."* The
-recommended option is never "keep current". Ask via
-`AskUserQuestion`:
+recommended option is never "keep current". Ask:
 
 - **Linear** — artefacts mirrored to Linear Issues (Project, parent
   Issue, sub-issues); requires the Linear MCP.
@@ -126,7 +125,7 @@ Scopes: default local (this project — recommended for a first run),
 with `claude mcp list` and `/mcp` (Linear connected, ~25 tools), and
 re-run `/spades:setup`.
 
-With teams listed: `AskUserQuestion` for the team, then for the
+With teams listed: ask for the team, then for the
 Linear Project (existing ones plus **Create new Linear Project**).
 *Create new* records `team_id` and sets `create_new_project`; the
 Linear Project is created at Step 8 by `/spades:newproject`'s
@@ -134,8 +133,7 @@ fan-out. Otherwise record `team_id` and `project_id`.
 
 ## Step 2 — SCM
 
-Same "currently configured" preamble on re-run. Ask via
-`AskUserQuestion`:
+Same "currently configured" preamble on re-run. Ask:
 
 - **Local git** — commits to local git; with a remote,
   `/spades:ship` pushes and records the commit. Single-phase ship.
@@ -154,7 +152,7 @@ remote), verify `gh auth status` shows the `repo` scope, and re-run
 
 ## Step 3 — Review format
 
-Ask via `AskUserQuestion`: *How should SPADES present reviews and
+Ask: *How should SPADES present reviews and
 artefacts?*
 
 - **HTML** *(Recommended)* — every producing skill writes its `.md`
@@ -169,7 +167,7 @@ surface only; every flow, prompt, and decision is the same.
 
 ## Step 4 — Active project
 
-Ask via `AskUserQuestion`, offering the existing
+Ask, offering the existing
 `.spades/projects/<slug>.md` records plus **Create a new project**;
 with no records, only the latter. Record the intent and write
 nothing yet:
@@ -187,7 +185,7 @@ nothing yet:
 - **Nothing changed** → *"Nothing changed — backend, SCM, review
   format, and active project all match. Refresh the scaffolding
   (marker block re-stamp, doc scaffold prompts)?"*
-  `AskUserQuestion`: **Yes, refresh** / **Cancel — exit without
+  Ask: **Yes, refresh** / **Cancel — exit without
   writes**.
 - **Something changed** → show the diff and confirm:
 
@@ -211,7 +209,7 @@ by this skill.
 List only fields present in either config. With
 `create_new_project`, the project line reads `<current_project> →
 (new project, created after config is written)`.
-`AskUserQuestion`: **Apply changes** (→ Step 6 when the backend
+Ask: **Apply changes** (→ Step 6 when the backend
 changed, else Step 7) / **Cancel — exit without writes**.
 
 ## Step 6 — Backend-switch migration
@@ -329,7 +327,7 @@ For each, in that order:
    *Complete*.
 2. **Complete** → print `✓ INTENT.md complete (last reviewed
    YYYY-MM-DD).` and move on.
-3. **Otherwise ask** via `AskUserQuestion`: **Scaffold an empty
+3. **Otherwise ask**: **Scaffold an empty
    template** *(recommended on a first run)* — write the
    facilitator's inline template verbatim with `last_reviewed:
    <today>`; / **Skip** — write nothing.

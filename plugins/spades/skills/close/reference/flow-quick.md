@@ -57,7 +57,7 @@ Dispatch on the verified PR state. Offer Drop only for a confirmed
 - **`OPEN`** → report that the PR is still open and exit; re-run after
   its state changes.
 - **`CLOSED`** → the work may have shipped under a replacement PR.
-  `AskUserQuestion`: *Update PR — the work shipped under a different
+  Ask: *Update PR — the work shipped under a different
   PR* (sub-flow below) / *Drop the quick item* → Q4 / *Cancel*.
 
 ### Replacement-PR sub-flow

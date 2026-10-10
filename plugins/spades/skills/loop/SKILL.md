@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, deliver, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. Runs only on direct user invocation or delegation from a user-created goal or driver. See "Who may invoke this".
-version: 1.14.1
+version: 1.14.2
 ---
 
 # /spades:loop
@@ -274,7 +274,7 @@ during the run, then end your turn:
   confirm, then take it through ship, review, merge, and close-out.
 ```
 
-The pause is a free conversation, so it uses no `AskUserQuestion`.
+The pause is a free conversation, so it asks no structured question.
 Answering questions and re-running AI rows keeps the stage where it
 is; the human's own results advance it. When they report back,
 re-enter `/spades:evaluate` at its resume step and let the human

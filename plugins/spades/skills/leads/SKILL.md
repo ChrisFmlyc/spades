@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Captures out-of-scope discoveries as Leads immediately during any task, including recurring known issues, and returns to that task. Classifies findings, reuses existing Leads, and records one sighting per observation context. With `scm: github`, publishes every Lead as a GitHub issue labelled with its type. Also runs completion checks for Evaluate, Learn and Research; lists Leads across the requested worktrees; shows, closes or synchronises a Lead on request; and promotes one into a Scope or Quick item on the route the human chooses.
-version: 3.4.0
+version: 3.4.1
 argument-hint: '[--list [--all-worktrees] | --show L-<id> | --promote L-<id> [<work-id>] | --close L-<id> "<reason>" | --sync L-<id>]'
 ---
 
@@ -239,7 +239,7 @@ the result.
    through `/spades:loop`.
 3. **Ask the human for the route.** The worker returns `outcome: target
    pending` with the recommendation and the packet. In the human's turn,
-   the coordinator asks one `AskUserQuestion` before invoking either
+   the coordinator asks one question before invoking either
    skill, the recommendation first and marked *(Recommended)* with its
    reason:
    - Gate holds: **Fix it now with `/spades:quick`** / **Write a Scope with

@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Checks delivered output against the Scope's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this", "check if this is done", "verify the output", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.10.0
+version: 3.10.1
 ---
 
 # /spades:evaluate
@@ -15,8 +15,8 @@ Resolution, § Asking the Human, and § Output Format before running.
 
 ### Asking the human
 
-Every input the evaluation takes from the human is asked through
-`AskUserQuestion` (`docs/FRAMEWORK.md § Asking the Human`): the
+Every input the evaluation takes from the human is asked as a
+question (`docs/FRAMEWORK.md § Asking the Human`): the
 target, whether to re-run a finished evaluation, the routing,
 agreeing and approving the verification plan, the result of each
 Human row, the verdict, and the Quick-path verdict and follow-up. A
@@ -55,7 +55,7 @@ so older Plans resume the correct evaluation cycle.
    evaluation), or a Quick item.
    - **ID passed** — `P-…` → Plan; `S-…` → Scope; `Q-…` → Quick
      item, go to § Quick path.
-   - **Bare invocation** — ask via `AskUserQuestion`: *One plan*
+   - **Bare invocation** — ask: *One plan*
      (picker over `delivering` / `evaluating`), *Whole scope* (picker
      over `evaluating`), *Quick item* (glob `.spades/quick/Q-*.md`
      for the active project without an `Evaluate — verdict:` line).
@@ -85,10 +85,10 @@ Read the Plan's audit trail:
   Step 5.
 - Already followed by `Evaluation — verdict:` → verify the completed
   Leads handoff for that verdict, finishing it from stored evidence when
-  needed. Then ask via `AskUserQuestion`: *Re-evaluate fresh* / *Go to
+  needed. Then ask: *Re-evaluate fresh* / *Go to
   `/spades:ship`*.
 
-## Step 1 — Routing — `AskUserQuestion`
+## Step 1 — Routing question
 
 Same wording as `/spades:approve`'s routing question:
 
@@ -119,7 +119,7 @@ docs). Each row names a **verifier** and a concrete **method**:
 | Q | No regressions in core flow   | AI       | `npm test` |
 ```
 
-Propose, then confirm per routing via `AskUserQuestion`:
+Propose, then ask to confirm, per routing:
 
 - **AI** — every verifier is AI. *Run this plan* / *Adjust first*
   (Adjust switches to hybrid and asks for the split).
@@ -144,8 +144,8 @@ Append the agreed plan:
 
 ## Step 3 — Present the locked plan
 
-**CLI mode** — carry the Step 2 table as the `preview` of the Step 4
-approve / edit / reject question (every option shows the full table),
+**CLI mode** — carry the Step 2 table in the CLI review pane of the
+Step 4 approve / edit / reject question (the full table, on every option),
 and print one anchor:
 
 ```
@@ -197,7 +197,7 @@ Required markers: `verification-rows`, `audit-events`. Then print:
 ○ Approve, edit, or reject below — then I'll run the checks.
 ```
 
-## Step 4 — Approve the verification plan — `AskUserQuestion`
+## Step 4 — Approve the verification plan
 
 1. **Approve as proposed** *(Recommended)* → append
    `- YYYY-MM-DD: Verification plan APPROVED by human.` and continue.
@@ -244,7 +244,7 @@ the verdict.
 
 **Human rows (resume).** Show the AI verdicts already recorded
 verbatim, then collect the result of every Human row still `pending`
-through `AskUserQuestion`, in whichever shape suits the rows:
+through questions, in whichever shape suits the rows:
 
 - **Checklist** *(preferred)* — multi-select questions listing the
   pending rows (id, criterion, method); the human ticks each row that
@@ -291,8 +291,8 @@ Routing: hybrid (AI verified C1, C3, Q; Human verified C2, C4)
 Overall: PARTIAL — C4 needs a follow-up.
 ```
 
-**CLI mode** — carry the results table as the `preview` of the Step 7
-verdict confirmation question (every option shows the full table),
+**CLI mode** — carry the results table in the CLI review pane of the
+Step 7 verdict confirmation question (the full table, on every option),
 and print one anchor:
 
 ```
@@ -316,7 +316,7 @@ the rows. `verification-rows` carry the recorded verdicts and notes;
 ○ Verdict (proposed): <PASS|PARTIAL|FAIL>. Confirm or override below.
 ```
 
-## Step 7 — Confirm the verdict — `AskUserQuestion`
+## Step 7 — Confirm the verdict
 
 1. **Confirm `<derived>`** — accept verdict and rationale.
 2. **Override to <the two verdicts not derived>**.
@@ -395,11 +395,11 @@ record; the check is against the PR.
 3. **Verify** — merged or open, CI green, description follows the
    `/spades:quick` template.
 4. **Re-walk the gate** against the actual diff.
-5. **Verdict** via `AskUserQuestion`: **PASS** (merged, CI green,
+5. **Verdict** — ask: **PASS** (merged, CI green,
    gate holds) / **PARTIAL** (a small fix is needed) / **FAIL** (the
    gate was violated; the work belongs in the full loop).
-6. **On PARTIAL, route the follow-up** via a second
-   `AskUserQuestion`: **Add commits to the existing PR**
+6. **On PARTIAL, route the follow-up** with a second
+   question: **Add commits to the existing PR**
    (`add-commits`; push to the same branch and re-run) / **Open a
    new quick-path PR** (`new-quick-pr`; reference this Q-id in the
    new item's Why) / **Re-route through the full loop**

@@ -1,7 +1,7 @@
 ---
 name: deliver
 description: Delivers an approved SPADES Plan in its Scope’s separate delivery branch and worktree. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "deliver this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 4.1.1
+version: 4.1.2
 ---
 
 # /spades:deliver
@@ -53,7 +53,7 @@ stays current.
      so the human replans it (or rejects the dependants) first. See
      `docs/FRAMEWORK.md § Plan rejection — no cascade`.
    - A dependency neither `shipped` nor ready on the same Scope branch
-     per § Scope Worktrees → ask via `AskUserQuestion`:
+     per § Scope Worktrees → ask:
      **Wait** (abort, finish the dependency first) / **Proceed
      anyway** (record the override in the audit trail).
 8. **Keep the source context** for transfer or resume in Step 1; open the
@@ -147,7 +147,7 @@ Continue to Step 5.
 
 ### B — `delivery: human`
 
-1. Ask via `AskUserQuestion` who takes the work: **The current
+1. Ask who takes the work: **The current
    human** / **Someone else** (free-form name and email).
 2. With `backend: linear`, assign the sub-issue.
 3. Append `- YYYY-MM-DD: Deliver phase complete — routing: human.

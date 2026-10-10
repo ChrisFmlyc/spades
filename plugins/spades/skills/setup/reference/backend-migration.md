@@ -17,7 +17,7 @@ Cancelling the backend switch returns to Step 1.
 
 ## The three options
 
-Offer these via `AskUserQuestion` in either direction:
+Offer these as a question in either direction:
 
 - **Migrate** *(Recommended)* — run the walk below.
 - **Skip — start fresh** — source files untouched; the target
@@ -32,8 +32,8 @@ links via frontmatter ID, no match creates.
 1. **Projects** — `.spades/projects/<slug>.md` → Linear Project
    (`mcp__linear-server__list_projects` filtered by team, then
    `mcp__linear-server__save_project` if no match). Write
-   `linear_project_id` back. Disambiguate a multi-match via
-   `AskUserQuestion`.
+   `linear_project_id` back. Disambiguate a multi-match with
+   a question.
 
 2. **Scopes** — `.spades/scopes/S-<slug>.md` → Linear Issue under
    the bound Project. Body = the Scope's markdown (Statement of
@@ -95,7 +95,7 @@ links. Skip comments; they are not SPADES artefacts.
   Already-linked items keep their `linear_*_id` frontmatter. On
   retry, Step 6 detects the partial state and offers *Resume
   migration* / *Skip resume* / *Cancel*.
-- **Duplicate title** — disambiguate via `AskUserQuestion` listing
+- **Duplicate title** — disambiguate with a question listing
   the candidate Linear IDs. Never blind-pick.
 - **Network / rate-limit** — surface the error verbatim; offer
   *Retry* / *Skip this item* / *Abort migration*.

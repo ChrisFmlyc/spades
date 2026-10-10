@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generates a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 3.8.0
+version: 3.8.1
 ---
 
 # /spades:plan
@@ -129,8 +129,8 @@ The Plan has these sections:
   `action` (a one-off human act). This drives `/spades:ship`.
 
 The draft opens with the Scope summary, the ID and filename, the
-dependencies and the proposed `deliverable_type`. One `AskUserQuestion`
-call confirms it:
+dependencies and the proposed `deliverable_type`. One question
+confirms it:
 
 1. **The Plan** — *Use this Plan* *(Recommended)* / *Change something*.
    A change names a misread Scope, a wrong task or estimate, or a task

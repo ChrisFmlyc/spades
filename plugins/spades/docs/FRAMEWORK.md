@@ -202,7 +202,7 @@ applies the rollup rules:
 
 - Every sibling `shipped` → roll up silently to `done`.
 - Mix of `shipped` and `rejected`, at least one `shipped` →
-  `/spades:close` prompts via `AskUserQuestion` listing the rejected
+  `/spades:close` asks the human, listing the rejected
   siblings; on confirmation the Scope rolls up to `done` with the
   rejections acknowledged in the audit trail.
 - Every sibling `rejected` (no `shipped`) → no rollup. The Scope
@@ -761,11 +761,12 @@ the current task finishes or pauses, in the same turn.
 ### Decisions and composition
 
 When a skill needs a fixed-option decision (priority, routing, verdict,
-yes/no), it MUST use the `AskUserQuestion` tool with structured options,
-the inferred answer first and marked *(Recommended)*. Decisions that are
-open at the same point share one call, up to its four questions.
-Free-form prose (intent text, acceptance criteria wording, plan task
-descriptions) stays as conversation.
+yes/no), it asks a question with structured options through the
+harness's question tool (§ Asking in each harness), the inferred answer
+first and marked *(Recommended)*. Decisions that are open at the same
+point share one call, up to four questions. Free-form prose (intent
+text, acceptance criteria wording, plan task descriptions) stays as
+conversation.
 
 Composition is draft-first. Draft every part that the request, the
 artefacts and the repo support, present the whole draft once, and
@@ -777,6 +778,32 @@ one line while the skill continues.
 
 The pattern: **requested work starts; decisions are structured;
 composition is drafted, then confirmed.**
+
+### Asking in each harness
+
+Where a skill says *ask*, the human answers before the skill continues.
+Ask through the harness's question tool and keep the turn open until the
+answer arrives; the skill resumes from that answer.
+
+| Harness | Question tool | Content under review | The answer |
+|---------|---------------|----------------------|------------|
+| Claude Code | `AskUserQuestion` | Each option's `preview` | The call returns it. |
+| Codex | `request_user_input` when listed, otherwise `request_user_input_async` | The question's `title`, above its options | `request_user_input` returns it. After `request_user_input_async`, call `sleep` for up to a minute at a time until the answer arrives as the next message. |
+| Other harnesses | Its question tool, when it has one | The question text | Without one, put the question and its numbered options in the final message and end the turn; the human's next message is the answer. |
+
+- **One question, four options.** A question offers at most four
+  options. The human can always type an answer instead of choosing one
+  (*Other* in Claude Code); skills that take a change "through *Other*"
+  take that typed answer.
+- **The turn ends after the answer.** The final message ends the turn,
+  and in Codex it also closes a pending question. While a question is
+  pending, the agent waits for its answer; the final message comes when
+  the skill finishes or pauses for free conversation.
+- **Multi-select.** Where the question tool has no multi-select, the
+  question lists the items and the human types the ones that apply.
+- **The question speaks about the work.** It says what is being decided
+  and holds the content under decision. The skill's own procedure stays
+  out of the question and the messages around it.
 
 ---
 
@@ -801,8 +828,7 @@ restating it.
    - For skills that work on exactly one type (e.g. `/spades:approve`
      always operates on a Plan), skip this step.
    - For type-flexible skills (today, only `/spades:review` qualifies
-     — Scope review, Plan review, or Full Review of both), ask via
-     `AskUserQuestion`:
+     — Scope review, Plan review, or Full Review of both), ask:
      - *Scope review* — target is a Scope
      - *Plan review* — target is a Plan
      - *Full review* — target is a Plan together with its parent Scope
@@ -816,8 +842,8 @@ restating it.
    `list_plans(scope_id)`) — do NOT hand-roll a filesystem glob in
    `linear` mode or a Linear MCP call in `local` mode.
 
-3. **Present a picker via `AskUserQuestion`.** `AskUserQuestion`
-   caps at 4 options, so:
+3. **Present a picker as a question.** A question offers at most
+   four options, so:
    - If there are ≤ 3 candidates: each candidate is one option,
      plus a *Describe a different one* free-form fallback as the
      fourth option (or omit the fallback if the human almost
@@ -826,7 +852,7 @@ restating it.
      (most-recently-updated first, then alphabetical by ID), plus
      *Describe a different one — list more / search* as the fourth
      option.
-   - If there are 0 candidates: do NOT call `AskUserQuestion`. Tell
+   - If there are 0 candidates: ask no question. Tell
      the human what's missing and suggest the upstream skill (see
      the per-skill table). Don't pretend to offer choices. When the
      upstream skill is `/spades:scope` and the request describes the
@@ -842,10 +868,10 @@ restating it.
    free-form for a search term. Fuzzy-match the term against the
    full candidate set (slug substring, title token overlap,
    id_suffix prefix). Then:
-   - One strong match → confirm via `AskUserQuestion` (*Use this
-     one* / *No, search again*).
-   - Multiple matches → present up to 3 via `AskUserQuestion` plus
-     a re-search option.
+   - One strong match → ask to confirm it (*Use this one* / *No,
+     search again*).
+   - Multiple matches → ask with up to 3 of them plus a re-search
+     option.
    - No matches → tell the human, offer to re-search or abort.
 
 5. **Resolve and continue.** The resolved ID is what the rest of
@@ -883,7 +909,7 @@ If the invocation passed an argument — an ID, a slug, or a phrase —
 skip steps 1–3 and go straight to fuzzy resolution against the
 candidate set. If the argument exactly matches an ID, no
 confirmation prompt is needed; if it's a slug or phrase, surface
-the resolution back via `AskUserQuestion` for one-step confirmation
+the resolution back as a question for one-step confirmation
 before continuing.
 
 ### Parent-status precondition
@@ -1456,23 +1482,26 @@ obtain approval, then write.
 
 #### CLI review pane
 
-In CLI mode, review-form content is presented in the `preview` pane of
-the `AskUserQuestion` call that asks for the decision about it, never
-as a block of terminal text above the prompt. The pane renders Markdown
-in a monospace box beside the options, so the human reads the draft and
-answers in one place. Every skill that presents review-form content in
-CLI mode follows this contract:
+In CLI mode, review-form content is presented in the question that asks
+for the decision about it, never as a block of terminal text above the
+prompt. The pane is that question's content area (§ Asking in each
+harness): the `preview` box beside the options in Claude Code, the
+question's `title` above the options in Codex. The human reads the
+draft and answers in one place. Every skill that presents review-form
+content in CLI mode follows this contract:
 
-- **The decision question carries the content.** The `AskUserQuestion`
-  that would otherwise follow a paste (confirm / tweak / rewrite;
-  approve / reject; write / cancel) puts the content in `preview`. The
-  question text and option labels stay short and conversational.
-- **Every option shows the full content.** The pane shows the focused
-  option's preview, so each option carries the same complete content,
-  headed by one line naming that option's effect (`Confirm as drafted`,
-  `Confirm with tweaks — say what changes in Other`). Moving between
-  options never empties or truncates the pane. Probes for the human go
-  at the foot of the preview under a `---` rule, not in the question.
+- **The decision question carries the content.** The question that
+  would otherwise follow a paste (confirm / tweak / rewrite; approve /
+  reject; write / cancel) holds the content in its pane. The question
+  wording and option labels stay short and conversational.
+- **Every option shows the full content.** Claude Code shows the
+  focused option's preview, so each option carries the same complete
+  content, headed by one line naming that option's effect (`Confirm as
+  drafted`, `Confirm with tweaks — say what changes in Other`). Moving
+  between options never empties or truncates the pane. Where the pane
+  is the question text, the content appears once, above the options.
+  Probes for the human go at the foot of the content under a `---`
+  rule.
 - **Nothing is cut off.** The pane must show the whole content. A
   section-by-section flow (Intent, Architecture, Patterns,
   Anti-Patterns, Learn) presents one section per question and that
@@ -1485,11 +1514,11 @@ CLI mode follows this contract:
   reviewed and asks the closing decision. Paging changes only how the
   content is shown; the decisions and their order are the same as in
   HTML mode.
-- **Single-select only.** The pane is available on single-select
-  questions. When the decision is genuinely multi-select, present the
+- **Single-select only.** The pane belongs to a single-select
+  question. When the decision is genuinely multi-select, present the
   content on a preceding single-select question (`Reviewed — continue`
   / `Change something first`) and then ask the multi-select.
-- **Markdown as written.** The preview holds the artefact's Markdown as
+- **Markdown as written.** The pane holds the artefact's Markdown as
   it will be written (or already stands in the file), with a first
   line `## <Section>  (draft)` or `# <Artefact id>` so the human knows
   what they are looking at. No HTML, no colour codes, no line numbers.
@@ -1508,7 +1537,7 @@ Consumer skills (`approve`, `evaluate`, `deliver`, `ship`, `close`,
 
 **Stays CLI in both modes — short, conversational, operational:**
 
-- `AskUserQuestion` prompts and option labels
+- Question wording and option labels
 - Final confirmation summaries (e.g. `✓ Plan shipped: P-…  ✓ Status: shipped`)
 - Pre-flight narration ("Reading the Plan…", "Resolving target…")
 - Error and abort messages
@@ -1520,7 +1549,7 @@ Consumer skills (`approve`, `evaluate`, `deliver`, `ship`, `close`,
 - Artefact bodies (Plan tasks, Scope criteria, INTENT sections,
   Project records, learning entries, full review reports)
 - Per-criterion / per-task verdict walks rendered as a *table* of
-  results (the per-criterion `AskUserQuestion` poll itself stays
+  results (the per-criterion question itself stays
   CLI — that's conversational; the *cumulative table* is review-form)
 - The ship-time INTENT success-criteria confirmation record (the
   evidence list lands in the audit trail, not as a CLI paste)

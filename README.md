@@ -53,10 +53,12 @@ before any work. `/spades:setup` scaffolds the AGENTS.md marker
 block; once that's in your repo, Codex honours the same operating
 rules as Claude Code.
 
-Caveats: Codex's slash-command syntax and tool names differ from
-Claude Code's (`AskUserQuestion`, `Agent`); skills work but
-sub-agent fan-out drops to `sequential-inproc` or `degraded` mode
-per [`FRAMEWORK.md § Sub-agent Dispatch`](./plugins/spades/docs/FRAMEWORK.md).
+Skills ask the human through Codex's own question tool, per
+[`FRAMEWORK.md § Asking the Human`](./plugins/spades/docs/FRAMEWORK.md).
+Caveats: Codex's slash-command syntax differs from Claude Code's, and
+it has no `Agent` tool, so sub-agent fan-out drops to
+`sequential-inproc` or `degraded` mode per
+[`FRAMEWORK.md § Sub-agent Dispatch`](./plugins/spades/docs/FRAMEWORK.md).
 
 ### Google Gemini CLI *(Extensions)*
 
@@ -114,10 +116,11 @@ into the harness's context.
 
 Only **Claude Code** has a native one-command install. Codex CLI
 and Gemini CLI accept the plugin's content through their own
-primitives (Skills, Extensions) — install works, but the skill
-prose references Claude-Code tool names (`AskUserQuestion`,
-`Agent`) that those harnesses don't have. `FRAMEWORK.md
-§ Sub-agent Dispatch` defines the available modes
+primitives (Skills, Extensions). Skills say *ask* where they need
+the human, and `FRAMEWORK.md § Asking the Human` maps that to each
+harness's question tool (Claude Code, Codex, or a plain message and
+reply). Sub-agent fan-out names Claude Code's `Agent` tool;
+`FRAMEWORK.md § Sub-agent Dispatch` defines the available modes
 (sub-agent → sequential → degraded).
 A skill can run only when the harness supplies its required tools;
 its contract defines what happens when a capability is missing.

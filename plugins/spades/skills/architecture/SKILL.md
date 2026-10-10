@@ -1,7 +1,7 @@
 ---
 name: architecture
 description: Creates or maintains ARCHITECTURE.md, the project's durable statement of HOW the system is built — components, tech stack, data flow, security posture, operational posture. Use when someone says "set up ARCHITECTURE.md", "document our architecture", "what's our tech stack", "describe the system", "capture the components", "what's the data flow", "what's our threat model", "update the architecture doc", "refresh the architecture", "where does the data go", or when ARCHITECTURE.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review (architecture-strategist persona). Also use proactively after a major dependency change, new component introduction, or a Plan that exposes drift between the doc and reality. Helps the human express the architecture and requires their confirmation before recording each section. SKIP when the human's intent is per-Plan technical approach (use the Plan's Technical Approach section instead), API-level documentation (use in-code docs / OpenAPI), or process conventions (use /spades:patterns).
-version: 1.4.4
+version: 1.4.5
 ---
 
 # /spades:architecture
@@ -112,14 +112,14 @@ The placeholder comments stay when the human starts blank.
 
 Inspect `./ARCHITECTURE.md`: **Missing** → Create; **unfilled**
 (two or more placeholder comments) → Create, filling in place;
-**filled** → Edit. Confirm via `AskUserQuestion` when the request
-is ambiguous.
+**filled** → Edit. Ask which mode applies when the request is
+ambiguous.
 
-**Create.** Offer via `AskUserQuestion`: **Draft a starting point
+**Create.** Ask: **Draft a starting point
 from the repo files, then I correct it** / **Start blank**.
 
-**Edit.** Read the existing file first, then scope via
-`AskUserQuestion`: **Refresh `last_reviewed` only** / **Revise
+**Edit.** Read the existing file first, then ask how far
+the edit goes: **Refresh `last_reviewed` only** / **Revise
 specific sections** / **Full review pass**. Show each section's
 current content before discussing changes; untouched sections are
 preserved.

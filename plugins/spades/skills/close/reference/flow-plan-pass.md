@@ -39,7 +39,7 @@ gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy
 - **`MERGED`** → capture `mergeCommit.oid`, `mergedBy.login`,
   `mergedAt`. Continue.
 - **`OPEN`** → report it with any CI or review status shown.
-  `AskUserQuestion`: *Wait — re-run later* / *Abort*. Both exit
+  Ask: *Wait — re-run later* / *Abort*. Both exit
   without changes.
 - **`CLOSED`** unmerged → exit with the pointer: *"PR `<URL>` is
   closed without merge. Re-open it on GitHub to retry, or re-run as
@@ -75,13 +75,13 @@ classify each as `shipped`, `rejected`, or in flight.
 |---|---|
 | Every sibling `shipped`, acceptance criteria covered | Ask the outcome (P3.3), then Scope `status: done`, `updated:` today, append `- YYYY-MM-DD: All plans shipped. Scope done. Outcome: <O-slug \| none>.` |
 | Every sibling `shipped`, criteria left uncovered | Ask first (below). |
-| All terminal, mix of `shipped` and `rejected`, ≥1 `shipped` | `AskUserQuestion` listing the rejected siblings. |
+| All terminal, mix of `shipped` and `rejected`, ≥1 `shipped` | Ask, listing the rejected siblings. |
 | Every sibling `rejected` | No rollup; the Scope shipped nothing. Say so; the Plan's own close-out proceeds. |
 | A sibling in flight | No rollup. |
 
 Check the shipped Plans cover the Scope's acceptance criteria, including
-work deferred during planning. Surface uncovered criteria via
-`AskUserQuestion`:
+work deferred during planning. Surface uncovered criteria in a
+question:
 
 - **Leave the Scope open** *(recommended)* — append `- YYYY-MM-DD:
   Rollup withheld — <n>/<m> acceptance criteria uncovered: <list>.`
@@ -100,7 +100,7 @@ to the Scope:
 
 A Scope names the Objective it delivered against exactly once, here,
 as it closes. Resolve the project's `open` Objectives via
-`list_objectives(status: open)` and ask via `AskUserQuestion`:
+`list_objectives(status: open)` and ask:
 
 - One open Objective → **O-<slug> — <title>** *(Recommended)* /
   **No outcome — not part of a strategy**.

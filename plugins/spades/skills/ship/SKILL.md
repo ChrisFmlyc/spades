@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ships the deliverable produced by an approved Plan after evaluation. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.7.0
+version: 3.7.1
 ---
 
 # /spades:ship
@@ -116,7 +116,7 @@ markers.
 The deliverable is a tangible thing outside the repo: a document, a
 video, a dataset, a configuration landing somewhere else.
 
-1. Ask via `AskUserQuestion` what kind of reference it is: **URL** /
+1. Ask what kind of reference it is: **URL** /
    **File path** / **Record in a system** (Confluence or Notion page
    ID, S3 key, …).
 2. Capture the exact reference free-form. Check its shape: a
@@ -161,7 +161,7 @@ rollup per `docs/FRAMEWORK.md § Scope status rollup`:
 - **Every sibling `shipped`** → Scope `status: done`; append
   `- YYYY-MM-DD: All plans shipped. Scope done.`
 - **All terminal, a mix of `shipped` and `rejected`, at least one
-  `shipped`** → ask the human to acknowledge via `AskUserQuestion`,
+  `shipped`** → ask the human to acknowledge it,
   listing the rejected siblings. On acceptance the Scope is `done`
   with `- YYYY-MM-DD: All plans terminal. Shipped: <n>. Rejected:
   <m> (acknowledged: P-…). Scope done.`; on decline the Scope is
