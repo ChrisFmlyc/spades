@@ -117,9 +117,11 @@ into the harness's context.
 Only **Claude Code** has a native one-command install. Codex CLI
 and Gemini CLI accept the plugin's content through their own
 primitives (Skills, Extensions). Skills say *ask* where they need
-the human, and `FRAMEWORK.md § Asking the Human` maps that to each
-harness's question tool (Claude Code, Codex, or a plain message and
-reply). Sub-agent fan-out names Claude Code's `Agent` tool;
+the human, and `FRAMEWORK.md § Asking the Human` maps that to the
+harness's question tool where it has one (Claude Code, Codex and
+others) and, where it has none, to a question with numbered options in
+the final message that the human answers in their next reply.
+Sub-agent fan-out names Claude Code's `Agent` tool;
 `FRAMEWORK.md § Sub-agent Dispatch` defines the available modes
 (sub-agent → sequential → degraded).
 A skill can run only when the harness supplies its required tools;

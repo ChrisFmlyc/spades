@@ -139,10 +139,13 @@ point in one question, and drafts composition for the human to confirm
 (`docs/FRAMEWORK.md § Asking the Human`).
 
 When a skill asks the human, ask through the harness's question tool
-and keep the turn open until the answer arrives: `AskUserQuestion` in
-Claude Code; in Codex, `request_user_input` when listed, otherwise
-`request_user_input_async` followed by `sleep` for up to a minute at a
-time. The final message comes after the answer.
+and keep the turn open until the answer arrives, so the final message
+comes after it: `AskUserQuestion` in Claude Code; in Codex,
+`request_user_input` when listed, otherwise `request_user_input_async`
+followed by `sleep` for up to a minute at a time; in any other harness,
+its own question tool. Where the harness has no question tool, put the
+question and its numbered options in the final message and end the
+turn; the human's next message is the answer.
 
 ### 1. Scope (Human-owned)
 - A human's request for a change starts its intake in the same turn:
