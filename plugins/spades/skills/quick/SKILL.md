@@ -23,9 +23,10 @@ missing config points at `/spades:setup`.
 Walk each criterion aloud before writing any code. For a criterion
 the request and the code leave open, ask the human for the fact that
 decides it, such as whether a changed function is part of the public
-API. Open criteria are asked together in one call. A criterion
-passes only when the code or the answer shows it holds; one still
-unresolved fails the gate.
+API. Open criteria are asked together, up to four questions a call,
+over as many calls as they need. A criterion passes only when the
+code or the answer shows it holds; one still unresolved fails the
+gate.
 
 1. **Single concern.** One bug, one tweak, one touch-up.
 2. **≤ 50 lines changed** (soft cap; hard stop around 100).
