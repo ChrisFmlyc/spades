@@ -1,7 +1,7 @@
 ---
 name: newproject
 description: Creates a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when a new initiative needs its own SPADES Project, when someone says "new SPADES project", "create a SPADES project" or "set up a SPADES project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.8.1
+version: 3.8.2
 ---
 
 # /spades:newproject
