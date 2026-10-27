@@ -2,7 +2,7 @@
 id: S-narrow-skill-triggers-and-disclose-newproject-actions
 title: "Narrow skill triggers and disclose newproject actions"
 project: spades-framework
-status: delivering
+status: shipping
 branch: fix/narrow-skill-triggers-newproject-disclosure
 base_commit: ff25ddd62892823e08a7926fc123d689a8df76fd
 type: bug

@@ -4,9 +4,9 @@ id_suffix: 8XWy
 scope: S-narrow-skill-triggers-and-disclose-newproject-actions
 title: "Narrow skill triggers and newproject disclosure"
 depends_on: []
-status: delivering
+status: shipping
 delivery: ai
-evaluation: undecided
+evaluation: ai
 deliverable_type: code
 created: 2026-10-27
 updated: 2026-10-27
@@ -117,3 +117,25 @@ plugin 6.8.1 with patch bumps for the five skills and a CHANGELOG entry.
 - 2026-10-27: Plan drafted by AI (/spades:loop); dependencies none; deliverable_type code. Written by worker-file-plan using subagent-dispatch; backend local, review format cli.
 - 2026-10-27: Approved by AI (/spades:loop) — routing: ai. Notes: 6/6 checks clean. Task 3 replaces the text of § Confirm the draft from "Then confirm the draft" to the end of that single paragraph; its first sentence stays.
 - 2026-10-27: Deliver phase started — routing: ai, branch: fix/narrow-skill-triggers-newproject-disclosure.
+- 2026-10-27: Deviation (Task 3): the HTML-mode sentence reports whether the Linear binding is done or pending rather than naming the bound project, because Step 3 allows a failed or deferred binding.
+- 2026-10-27: Task 4 verified with no change: Step 4's bootstrap branch continues through Step 6, whose block prints `✓ Active project: <slug>` before the return to Setup.
+- 2026-10-27: Deliver phase complete — routing: ai. Tasks completed: 5. Commits: bd5f1f8, 75e91fb, a1647f3, 1b3716e.
+- 2026-10-27: Plan ready for evaluation — routing: ai.
+- 2026-10-27: Evaluation started — routing: ai.
+- 2026-10-27: Verification plan agreed:
+    - C1: AI (approve description: Plan-specific triggers; no bare "approve this" / "review the plan") — PASS (line 3 carries "approve this plan" and "approve P-…"; neither retired phrase present)
+    - C2: AI (evaluate description: Plan / acceptance-criteria triggers; no bare "evaluate this" / "check if this is done" / "verify the output") — PASS ("evaluate this plan", "evaluate P-…", "check this against the acceptance criteria"; retired phrases absent)
+    - C3: AI (newproject description: "SPADES project" triggers; bare project phrases gone; /spades:setup trigger kept) — PASS ("new SPADES project", "create a SPADES project", "set up a SPADES project for X"; /spades:setup trigger kept)
+    - C4: AI (review description: every trigger tied to a Scope or Plan) — PASS (all five triggers name a Scope, Plan or P-…; no bare "review this" / "challenge this" / "outside view" / "second opinion")
+    - C5: AI (status description: no "any question about current state"; triggers name SPADES work) — PASS ("where are we on this Scope", "what's the SPADES status", "show Plan progress"; catch-all removed)
+    - C6: AI (read newproject § Confirm the draft against Steps 2–3 for CLI and HTML write order) — PASS (CLI: confirm precedes Step 2 bind/create and Step 3 writes; HTML: asked after Step 3, "bound or still pending" covers lines 192–194)
+    - C7: AI (trace newproject Step 4 bootstrap branch through Step 6's report) — PASS (Step 4 lines 202–204 continue through Step 6, whose block prints "✓ Active project: <slug>" before the Setup return)
+    - C8: AI (release gate values; emulate lint-skill-frontmatter and lint-local-frontmatter rules on changed files; CI result asserted at loop Stage 8) — PASS (four plugin values 6.8.1; five skill bumps; [6.8.1] entry; 23 skills and all scope/plan records pass emulated lint rules; CI asserted at Stage 8)
+    - Q1: AI (`git diff --stat ff25ddd..HEAD` touches only planned files) — PASS (12 planned files only; uncommitted changes are this run's audit lines)
+    - Q2: AI (README skill table matches the new review and status triggers) — PASS (review and status rows list the new phrases)
+- 2026-10-27: Verification plan APPROVED by AI (/spades:loop).
+- 2026-10-27: Evaluation — verdict: PASS. Notes: All ten AI rows pass. The five descriptions tie every trigger to a Scope, Plan or SPADES Project; newproject's draft confirmation states its writes accurately in CLI and HTML mode; the bootstrap path already reports the active project in Step 6. A skillspector re-scan of the five skills shows no remaining trigger or fan-out finding; it still flags newproject Step 4's bootstrap line (EA2) read alone, which Step 6's report answers. CI lints are asserted at loop Stage 8. Confirmed by AI (/spades:loop).
+- 2026-10-27: Leads handoff receipt (worker-leads, revision 1b3716e): captured L-lint-wrappers-need-node-type-stripping-xU3s (eval:8XWy:local-lint-node-ts; GitHub #118 verified) and L-skillspector-plugin-root-scan-saturates-qgwl (eval:8XWy:skillspector-plugin-root-noise; GitHub #119 verified); eval:8XWy:skillspector-newproject-ea2 on-scope (row C7); eval:8XWy:skillspector-review-template-sqp3 and eval:8XWy:skillspector-newproject-tp4 excluded for insufficient evidence. Lead files ship with this Scope's PR.
+- 2026-10-27: Leads checked — source: evaluate; result: L-lint-wrappers-need-node-type-stripping-xU3s, L-skillspector-plugin-root-scan-saturates-qgwl.
+- 2026-10-27: Loop — evaluate sign-off: AI (all 10 rows AI-verified).
+- 2026-10-27: Ship phase started — deliverable_type: code.
