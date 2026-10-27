@@ -76,8 +76,12 @@ message. Then confirm the draft, slug included, with one
 question: *Use `<slug>` as drafted* *(Recommended)* / *Change
 something*, the change arriving through *Other* or a short follow-up.
 CLI mode presents the draft in the CLI review pane on that question
-before the write. HTML mode asks it once Step 3 has opened the page; a
-change is then a targeted `.md` edit plus a re-render.
+before the write and says that confirming writes
+`.spades/projects/<slug>.md` and, with `backend: linear`, creates or
+binds its Linear Project. HTML mode asks it once Step 3 has opened the
+page and says that the record is written and, with `backend: linear`,
+whether its Linear Project is bound or still pending; a change is then
+a targeted `.md` edit plus a re-render.
 
 ## Step 2 — Collision check
 
