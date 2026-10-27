@@ -8,6 +8,15 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.8.2] — 2026-10-27
+
+- **Patch**: Record the verified shipment of the narrowed skill triggers:
+  mark P-narrow-skill-triggers-and-newproject-disclosure-8XWy shipped and
+  S-narrow-skill-triggers-and-disclose-newproject-actions done, retain the
+  loop's review and deploy audit, and add the trigger-phrase learning and
+  the Lead raised during bot review.
+- Skills bumped: none.
+
 ## [6.8.1] — 2026-10-27
 
 - **Patch**: Five skills load only for SPADES requests, and

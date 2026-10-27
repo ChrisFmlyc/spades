@@ -4,7 +4,7 @@ id_suffix: 8XWy
 scope: S-narrow-skill-triggers-and-disclose-newproject-actions
 title: "Narrow skill triggers and newproject disclosure"
 depends_on: []
-status: shipping
+status: shipped
 delivery: ai
 evaluation: ai
 deliverable_type: code
@@ -140,3 +140,8 @@ plugin 6.8.1 with patch bumps for the five skills and a CHANGELOG entry.
 - 2026-10-27: Loop — evaluate sign-off: AI (all 10 rows AI-verified).
 - 2026-10-27: Ship phase started — deliverable_type: code.
 - 2026-10-27: PR opened: https://github.com/ChrisFmlyc/spades/pull/120.
+- 2026-10-27: Loop — bot review clean on https://github.com/ChrisFmlyc/spades/pull/120 (2 rounds).
+- 2026-10-27: Loop — ship PR squash-merged: ed076f7e06f2122b45143ac445e07c5ebfecb457.
+- 2026-10-27: Loop — deploy: not configured.
+- 2026-10-27: Loop — learning captured: plugins/spades/.spades/learnings/2026-10-27-skill-triggers-name-a-spades-noun.md.
+- 2026-10-27: Shipped (github). PR: https://github.com/ChrisFmlyc/spades/pull/120. Merge: ed076f7e06f2122b45143ac445e07c5ebfecb457. Merged by: ChrisFmlyc.
