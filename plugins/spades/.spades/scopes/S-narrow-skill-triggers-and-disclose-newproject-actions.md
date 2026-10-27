@@ -2,7 +2,7 @@
 id: S-narrow-skill-triggers-and-disclose-newproject-actions
 title: "Narrow skill triggers and disclose newproject actions"
 project: spades-framework
-status: shipping
+status: done
 branch: fix/narrow-skill-triggers-newproject-disclosure
 base_commit: ff25ddd62892823e08a7926fc123d689a8df76fd
 type: bug
@@ -78,3 +78,4 @@ bumps and a CHANGELOG entry.
 - 2026-10-27: Plan drafted — P-narrow-skill-triggers-and-newproject-disclosure-8XWy.
 - 2026-10-27: Plan P-narrow-skill-triggers-and-newproject-disclosure-8XWy approved with notes by AI (/spades:loop) — routing: ai.
 - 2026-10-27: Scope worktree established. Branch: fix/narrow-skill-triggers-newproject-disclosure. Base: ff25ddd62892823e08a7926fc123d689a8df76fd.
+- 2026-10-27: All plans shipped. Scope done. Outcome: none.
