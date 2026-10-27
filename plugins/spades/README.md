@@ -264,7 +264,7 @@ SPADES ships 23 skills, grouped by *when you reach for them*:
 | Skill | Purpose |
 |-------|---------|
 | `/spades:list` | Active scopes, filterable by phase or project. Table view, grouped by SPADES phase. The "what scopes exist and where are they?" question. **Use when you say:** "show my scopes", "what's active", "what needs planning". |
-| `/spades:status` | Current SPADES phase, progress, and dependency graph for active work. Highlights what's *unblocked and ready to start*, what's blocked, and what the recommended next action is. The "what should I do right now?" question. **Use when you say:** "where are we on this Scope", "what's the SPADES status", "what should I work on next". |
+| `/spades:status` | Current SPADES phase, progress, and dependency graph for active work. Highlights what's *unblocked and ready to start*, what's blocked, and what the recommended next action is. The "what should I do right now?" question. **Use when you say:** "where are we on this Scope", "what's the SPADES status", "show Plan progress". |
 
 The two observability skills overlap a little but answer different
 questions. `list` is the inventory; `status` is the focus tool.
