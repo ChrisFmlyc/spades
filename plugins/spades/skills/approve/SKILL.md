@@ -1,6 +1,6 @@
 ---
 name: approve
-description: Presents a SPADES Plan for human review against the approval checklist, then records the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this", "review the plan", "approve P-…", or when a Plan is in status `draft`.
+description: Presents a SPADES Plan for human review against the approval checklist, then records the routing decision (AI / human / hybrid) on the Plan. Use when a Plan has been drafted and needs approval, when someone says "approve this plan" or "approve P-…", or when a Plan is in status `draft`.
 version: 3.4.1
 ---
 
