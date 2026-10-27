@@ -1,7 +1,7 @@
 ---
 name: newproject
-description: Creates a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when starting a brand-new initiative, when someone says "new project", "create a project", "set up a project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.8.1
+description: Creates a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when a new initiative needs its own SPADES Project, when someone says "new SPADES project", "create a SPADES project" or "set up a SPADES project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
+version: 3.8.2
 ---
 
 # /spades:newproject
@@ -76,8 +76,13 @@ message. Then confirm the draft, slug included, with one
 question: *Use `<slug>` as drafted* *(Recommended)* / *Change
 something*, the change arriving through *Other* or a short follow-up.
 CLI mode presents the draft in the CLI review pane on that question
-before the write. HTML mode asks it once Step 3 has opened the page; a
-change is then a targeted `.md` edit plus a re-render.
+before the write and says that confirming writes
+`.spades/projects/<slug>.md` and, with `backend: linear`, creates or
+binds its Linear Project. HTML mode asks it once Step 3 has opened the
+page and says that the record is written and, with `backend: linear`,
+whether its Linear Project is bound, still pending, or failed and
+awaiting Step 3's retry; a change is then a targeted `.md` edit plus a
+re-render.
 
 ## Step 2 — Collision check
 

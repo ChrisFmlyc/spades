@@ -249,7 +249,7 @@ SPADES ships 23 skills, grouped by *when you reach for them*:
 
 | Skill | Purpose |
 |-------|---------|
-| `/spades:review` | Multi-persona panel second opinion. Spawns four reviewer subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their findings, and presents a tiered report. Advisory only — never gates approval. **Use when you say:** "second opinion", "outside view", "challenge this", "review this". Also named in one line by `/spades:scope` and `/spades:approve`. |
+| `/spades:review` | Multi-persona panel second opinion. Spawns four reviewer subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their findings, and presents a tiered report. Advisory only — never gates approval. **Use when you say:** "review this Scope", "second opinion on this Plan", "challenge this Plan". Also named in one line by `/spades:scope` and `/spades:approve`. |
 | `/spades:research` | Outside fact-finding via an isolated read-only Opus subagent. Returns a structured findings report; optional comment on the active Scope with explicit consent. Distinct from `review` — research looks *outward* at libraries, frameworks, prior art; review looks *inward* at our own work. **Use when you say:** "look into X", "prior art on Y", "check the SOTA for Z", "properly research this", "what does the landscape look like for…". |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` so future Plans automatically surface it on related Scopes. `--refresh` archives stale entries and flags contradictions. **Use when you say:** "we should remember this", "we just learned X", "log this learning", "capture what we figured out". Also auto-offered by `/spades:ship` after a successful shipment. |
 | `/spades:intent` | Create or maintain `INTENT.md` — the project's durable statement (problem, users, what-it-does, success, non-goals, maturity). Different cadence from a Scope: a Scope describes one unit of work; INTENT describes the project's reason for existing. **Use when you say:** "what is this project for", "set up INTENT.md", "review our non-goals", "the intent doc is stale". Run it after `/spades:setup` scaffolds `INTENT.md`. |
@@ -264,7 +264,7 @@ SPADES ships 23 skills, grouped by *when you reach for them*:
 | Skill | Purpose |
 |-------|---------|
 | `/spades:list` | Active scopes, filterable by phase or project. Table view, grouped by SPADES phase. The "what scopes exist and where are they?" question. **Use when you say:** "show my scopes", "what's active", "what needs planning". |
-| `/spades:status` | Current SPADES phase, progress, and dependency graph for active work. Highlights what's *unblocked and ready to start*, what's blocked, and what the recommended next action is. The "what should I do right now?" question. **Use when you say:** "where are we", "what's the status", "what should I work on next". |
+| `/spades:status` | Current SPADES phase, progress, and dependency graph for active work. Highlights what's *unblocked and ready to start*, what's blocked, and what the recommended next action is. The "what should I do right now?" question. **Use when you say:** "where are we on this Scope", "what's the SPADES status", "show Plan progress". |
 
 The two observability skills overlap a little but answer different
 questions. `list` is the inventory; `status` is the focus tool.
