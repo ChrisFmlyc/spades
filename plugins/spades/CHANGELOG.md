@@ -24,7 +24,7 @@ or the consumer marker rules change). The consumer-repo marker block in `AGENTS.
     project record and, with `backend: linear`, creates or binds its
     Linear Project. In HTML mode, where the record is already written
     when it asks, it says so and reports whether the Linear binding is
-    done or pending.
+    done, pending, or failed and awaiting a retry.
 - Skills bumped: `approve` 3.4.1 → 3.4.2, `evaluate` 3.10.1 → 3.10.2,
   `newproject` 3.8.1 → 3.8.2, `review` 3.9.5 → 3.9.6, `status` 3.6.4 →
   3.6.5.

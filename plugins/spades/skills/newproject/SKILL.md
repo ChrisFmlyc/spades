@@ -80,8 +80,9 @@ before the write and says that confirming writes
 `.spades/projects/<slug>.md` and, with `backend: linear`, creates or
 binds its Linear Project. HTML mode asks it once Step 3 has opened the
 page and says that the record is written and, with `backend: linear`,
-whether its Linear Project is bound or still pending; a change is then
-a targeted `.md` edit plus a re-render.
+whether its Linear Project is bound, still pending, or failed and
+awaiting Step 3's retry; a change is then a targeted `.md` edit plus a
+re-render.
 
 ## Step 2 — Collision check
 
