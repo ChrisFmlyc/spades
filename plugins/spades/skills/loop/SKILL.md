@@ -1,7 +1,7 @@
 ---
 name: loop
-description: Drives one existing Scope from Plan to closed-out — plan, approve, deliver, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. Runs only on direct user invocation or delegation from a user-created goal or driver. See "Who may invoke this".
-version: 1.14.2
+description: Drives one existing Scope from Plan to closed-out — plan, approve, deliver, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. On GitHub or GitLab it commits and pushes the Scope's branch, then opens and squash-merges its pull or merge request and the bookkeeping one into the default branch without a separate confirmation. Runs only on direct user invocation or delegation from a user-created goal or driver. See "Who may invoke this".
+version: 1.15.0
 ---
 
 # /spades:loop
@@ -18,7 +18,7 @@ Artefacts, and § Audit Trail before running.
 ## Who may invoke this
 
 Invoking this skill authorises the full pipeline on one Scope:
-branch, commit, push, open PRs, resolve bot review threads,
+branch, commit, push, open PRs, resolve bot review threads on GitHub,
 squash-merge, and answer the child skills'
 questions on the human's behalf. The authorisation covers the resolved
 Scope's own Plans, branches, and PRs, within § Pauses and § Boundaries.
@@ -123,9 +123,12 @@ request to stop is Pause 14.
 Every failure is an abort with a pointer.
 
 1. `.spades/config` exists — else `/spades:setup`.
-2. `scm: github` — the loop drives the GitHub PR lifecycle.
+2. `scm: github` or `scm: gitlab` — the loop drives the PR lifecycle on
+   either host through the operations in `docs/FRAMEWORK.md § SCM
+   Drivers`.
 3. `project:` is set — else `/spades:setup`.
-4. The `repo` and `codereview` plugins are installed
+4. The `repo` plugin is installed, and with `scm: github` the
+   `codereview` plugin too
    (`$HOME/.claude/plugins/cache/ai-skills/{repo,codereview}`) — else:
 
    ```
@@ -134,8 +137,9 @@ Every failure is an abort with a pointer.
    /plugin install codereview@ai-skills
    ```
 
-5. `gh` installed and authenticated (`command -v gh`; `gh auth
-   status`) — every stage from 7 onward depends on it.
+5. The host's CLI installed and authenticated — `gh` for GitHub,
+   `glab` for GitLab (`command -v`, then `probe_auth`). Every stage from
+   7 onward depends on it.
 6. Use § Scope Worktrees to select the working context after resolving the
    target: documentation before delivery, delivery worktree afterwards.
 7. Resolve the target Scope per § Target Resolution (any
@@ -155,7 +159,11 @@ Every failure is an abort with a pointer.
    its returned working directory for subsequent stages and workers. Resume
    established delivery through `/repo:newbranch --resume <branch>`.
    Announce the Scope, current context, intended delivery branch, Plan count
-   and resumed stage.
+   and resumed stage. List the irreversible actions this invocation
+   authorises: pushing the Scope branch to the configured remote, and
+   opening and squash-merging its PR (an MR on GitLab) and the bookkeeping
+   PR into the default branch. A squash-merge is undone only by a new
+   revert commit.
 
 ## Loop state — derived, not stored
 
@@ -176,7 +184,7 @@ indistinguishable and a human can take over at any boundary:
 | `evaluating`, hand-off line (`Awaiting human report on …` / `awaiting human execution`), no verdict after it | 5A — human verification pause |
 | `evaluating`, verdict PASS, no `Loop — evaluate sign-off` | 5B — record the sign-off, then 6 |
 | `evaluating`, PASS, sign-off recorded | 6 — Ship |
-| `shipping`, `PR opened:`, no `Loop — bot review clean` | 7 — Bot review |
+| `shipping`, `PR opened:` or `MR opened:`, no `Loop — bot review clean` | 7 — Bot review |
 | `shipping`, review clean, PR not `MERGED` | 8 — Merge |
 | `shipping`, PR `MERGED`, no `Loop — learning` line | 9 — Deploy gate → 10 — Learning gate |
 | `shipping`, PR `MERGED`, `Loop — learning` recorded | 11 — Close |
@@ -320,50 +328,43 @@ Stages 7–13 apply once to the shared PR and its participating Plans. Every
 code Plan records that same PR URL. Resume from a sibling already in
 `shipping` follows the same PR rather than starting a duplicate shipment.
 
-Invoke **`/spades:ship P-<plan-id>`**. Its GitHub driver sweeps
+Invoke **`/spades:ship P-<plan-id>`**. Its SCM driver sweeps
 pending SPADES artefacts, pushes, opens the PR, records `PR opened:
-<url>`, and exits with the Plan at `shipping`. Capture the PR URL
-and number. The sweep is what carries every artefact written since
-Stage 1 into this PR (`docs/FRAMEWORK.md § Carry-Forward`).
+<url>` (`MR opened: <url>` on GitLab), and exits with the Plan at
+`shipping`. Capture the PR URL and its number (the IID on GitLab). The
+sweep is what carries every artefact written since Stage 1 into this PR
+(`docs/FRAMEWORK.md § Carry-Forward`).
 
 ## Stage 7 — Bot review
 
 Drive the ship PR to zero unresolved review threads. **Read
 [`reference/bot-review.md`](reference/bot-review.md) and follow it.**
-Invoke **`/codereview:loop <n>`** to handle bot findings, including
-`CHANGES_REQUESTED` reviews. Follow the reference file's pause conditions
-and § Boundaries for review text and human threads.
+With `scm: github`, invoke **`/codereview:loop <n>`** to handle bot
+findings, including `CHANGES_REQUESTED` reviews. `/codereview:loop`
+drives GitHub PRs only, so with `scm: gitlab` the loop sweeps the MR's
+discussions and pauses on any that are unresolved. Follow the reference
+file's pause conditions and § Boundaries for review text and human
+threads.
 
 ## Stage 8 — Squash-merge the ship PR
 
-Assert all of the following; any failure is a pause:
+Assert all of the following; any failure is a pause. **The probes for
+both hosts are in [`reference/finish-checks.md`](reference/finish-checks.md)
+§ Merge readiness.**
 
-```bash
-gh pr view <n> --json state,mergeable,mergeStateStatus,statusCheckRollup
-```
-
-- `state == "OPEN"`.
-- `mergeable == "MERGEABLE"` — re-poll `UNKNOWN`, pause on
-  `CONFLICTING`.
-- No required check `FAILURE` / `ERROR` / `TIMED_OUT` / `CANCELLED`,
-  none still `PENDING`.
-- No **human** reviewer's latest review is `CHANGES_REQUESTED`:
-
-  ```bash
-  gh pr view <n> --json reviews \
-    --jq '[.reviews[] | select(.author.login | endswith("[bot]") | not)]
-          | group_by(.author.login) | map(last)
-          | map(select(.state == "CHANGES_REQUESTED")) | length'
-  ```
-
-  The PR-level `reviewDecision` mixes bots and humans and lags the
-  thread sweep, so the per-reviewer query is the signal.
+- The PR is open.
+- It is mergeable — re-poll while the host is still computing it, pause
+  on conflicts.
+- No required check has failed, and none is still pending.
+- No reviewer the loop cannot answer is requesting changes: a human on
+  GitHub, any reviewer on GitLab.
 - Zero unresolved threads — re-run the sweep from
   `reference/bot-review.md`; a bot can post between sweep and merge.
 
-Then `gh pr merge <n> --squash`. If branch protection blocks the merge,
-pause and report the blocking rule. Capture
-the merge SHA and append the marker.
+Then squash-merge with `merge_review` (`docs/FRAMEWORK.md § SCM
+Drivers`) and confirm `review_state` reads `MERGED`. If branch protection
+or a GitLab merge check blocks the merge, pause and report the blocking
+rule. Capture the merge SHA and append the marker.
 
 ## Stage 9 — Deploy gate
 
@@ -441,14 +442,14 @@ Re-read every Plan under the Scope.
 
 ### The finished gate
 
-Assert all four against GitHub, never from memory of the run.
+Assert all four against the SCM host, never from memory of the run.
 **Probes are in [`reference/finish-checks.md`](reference/finish-checks.md)
 § FINISHED.**
 
 | # | Must be true |
 |---|---|
 | 1 | Ship PR squash-merged — `state: MERGED` with a merge SHA |
-| 2 | Nothing open in GitHub — zero unresolved threads on both PRs, every check green on the merge commit, every linked issue closed |
+| 2 | Nothing open on the host — zero unresolved threads on both PRs, every check green on the merge commit, every linked issue closed |
 | 3 | Deploy successful, or `not configured`, shown as such |
 | 4 | Close bookkeeping PR squash-merged — `state: MERGED` with a merge SHA |
 
@@ -471,8 +472,10 @@ hold → append `Loop — FINISHED.` and print:
 ════════════════════════════════════════════════════════
 ```
 
-Print the FINISHED block once per Scope after all four assertions are
-verified. Use a `⏸` block for pauses.
+On GitLab the block reads `Ship MR` and `Close MR` with `!<iid>`
+references, and `GitLab` in place of `GitHub`. Print the FINISHED block
+once per Scope after all four assertions are verified. Use a `⏸` block
+for pauses.
 
 ## Pauses
 
@@ -491,7 +494,7 @@ the derived stage.
 | 5 | Evaluate verdict FAIL | 5 |
 | 6 | Third PARTIAL on the same Plan | 5 |
 | 7 | `/codereview:loop` stops short | 7, 12 |
-| 8 | An unresolved review thread from a human | 7, 12 |
+| 8 | An unresolved review thread from a human, or on GitLab any unresolved MR discussion | 7, 12 |
 | 9 | A pre-merge assertion fails | 8, 13 |
 | 10 | Deploy `failure` / `error` | 9 |
 | 11 | A child skill aborts or refuses | any |
@@ -544,9 +547,10 @@ The authorisation in § Who may invoke this is bounded by these:
   § Carry-Forward → Commit contents. Unknown uncommitted changes always
   require the human's inclusion decision, even inside artefact paths.
 - PR branches move forward only: no force-push, amend, rebase, or
-  history rewrite; no `gh pr merge --admin`, `gh pr close`, `gh pr
-  reopen`, PR title or body edits after opening, or review
-  dismissals.
+  history rewrite; no admin or bypass merges (`gh pr merge --admin`),
+  no closing or reopening a PR or MR (`gh pr close`, `gh pr reopen`,
+  `glab mr close`, `glab mr reopen`), no PR or MR title or body edits
+  after opening, and no review dismissals or approval resets.
 - A thread is resolved only after it was fixed or rebutted, and a
   human's thread is never touched. `@coderabbitai` control commands
   (`pause`, `ignore`, `resolve`) are outside the target of a clean
@@ -563,7 +567,7 @@ The authorisation in § Who may invoke this is bounded by these:
 - **A Plan is `rejected`** → terminal; move to the next unblocked
   sibling. Stage 11 handles the rollup.
 - **Ship PR merged outside the loop** → Stage 7/8 sees `MERGED`;
-  record the SHA from `gh pr view` and continue at Stage 9.
+  record the merge SHA from `review_state` and continue at Stage 9.
 - **Ship PR closed without merging** → pause with a pointer to
   `/spades:close P-<id> --reject "reason"`; the loop never rejects a
   Plan itself.

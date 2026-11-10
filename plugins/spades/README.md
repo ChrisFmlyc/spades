@@ -3,7 +3,7 @@
 **A human-AI operating model for engineering teams.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-6.8.2-green.svg)](.claude-plugin/plugin.json)
+[![Version](https://img.shields.io/badge/version-6.9.0-green.svg)](.claude-plugin/plugin.json)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-blueviolet.svg)](https://claude.ai/code)
 
 SPADES assigns ownership to each phase and records the decisions,
@@ -37,8 +37,8 @@ Install the plugin, then configure your repo:
 /spades:setup
 ```
 
-The `setup` skill asks for a backend, SCM, review format, and active
-project. It creates a project when needed and offers empty templates
+The `setup` skill asks for a backend, SCM (local git, GitHub or
+GitLab), review format, and active project. It creates a project when needed and offers empty templates
 for incomplete project documents. Use the document skills to fill
 them in, then commit the generated files for your team.
 
@@ -70,6 +70,9 @@ before shipment.
 Optional:
 - **Linear MCP** — enables Claude Code to read/write issues, create sub-tasks,
   and update statuses. Local mode needs no external tracker.
+- **[`gh`](https://cli.github.com) or [`glab`](https://gitlab.com/gitlab-org/cli)**,
+  authenticated — for `scm: github` or `scm: gitlab`, where code ships through
+  pull or merge requests. `scm: local-git` needs neither.
 
 ---
 
@@ -172,7 +175,8 @@ The typical first run, end to end:
 7. `/spades:evaluate P-add-the-thing-…` — verify against the Scope's
    acceptance criteria (PASS / PARTIAL / FAIL).
 8. `/spades:ship P-add-the-thing-…` — open the Scope's delivery PR
-   for GitHub code work, or record the artefact / action evidence.
+   (a merge request on GitLab) for GitHub or GitLab code work, or
+   record the artefact / action evidence.
    After the PR merges, `/spades:close P-add-the-thing-…` records
    shipment through a bookkeeping PR.
 
@@ -231,13 +235,13 @@ SPADES ships 23 skills, grouped by *when you reach for them*:
 | `/spades:approve` | Human gate. Walks the 6-point approval checklist, then asks the routing question (AI / human / hybrid) and records it on the Plan. |
 | `/spades:deliver` | Execute the Plan, routed per the approval. AI runs autonomously; human is assigned and acknowledged; hybrid splits per task. |
 | `/spades:evaluate` | Check delivered output against the Scope's acceptance criteria. PASS → Ship. PARTIAL → back to Deliver. FAIL → back to Plan or Scope. |
-| `/spades:ship` | Release the deliverable. For `deliverable_type: code` it follows the selected SCM driver; GitHub opens the shared Scope PR and Close records the verified merge; for `artefact` it records a reference (URL / doc ID / file path); for `action` it records evidence of completion. |
+| `/spades:ship` | Release the deliverable. For `deliverable_type: code` it follows the selected SCM driver; GitHub and GitLab open the shared Scope PR or MR and Close records the verified merge; for `artefact` it records a reference (URL / doc ID / file path); for `action` it records evidence of completion. |
 
 #### Autopilot — run the core loop without driving it
 
 | Skill | Purpose |
 |-------|---------|
-| `/spades:loop` | Drive one Scope from Plan to closed-out. Chains `plan → approve → deliver → evaluate → ship → CodeRabbit/Greptile review → squash-merge → close → review → merge`, with human sign-off when evaluation requires it, Plans delivered in dependency order in one Scope worktree, then one shared delivery PR. Your invocation, or delegation from a goal or driver you established, supplies authorization to push, open PRs, resolve **bot** review threads, and squash-merge, bounded to this Scope's own branches and PRs. It never writes a Scope or resolves a human's review comment. See `skills/loop/SKILL.md` for invocation and verification rules. |
+| `/spades:loop` | Drive one Scope from Plan to closed-out. Chains `plan → approve → deliver → evaluate → ship → CodeRabbit/Greptile review → squash-merge → close → review → merge`, with human sign-off when evaluation requires it, Plans delivered in dependency order in one Scope worktree, then one shared delivery PR. Your invocation, or delegation from a goal or driver you established, supplies authorization to push, open PRs or MRs, resolve **bot** review threads on GitHub (on GitLab it pauses on them), and squash-merge, bounded to this Scope's own branches and PRs. It never writes a Scope or resolves a human's review comment. See `skills/loop/SKILL.md` for invocation and verification rules. |
 
 #### Side path — skip the full loop for trivial work
 
@@ -401,6 +405,7 @@ The skills provide the procedures and tool calls for each phase.
 |---------|--------------|-------|
 | **Linear** | Full | Automated via MCP (issue creation, status updates, labels) |
 | **GitHub Issues** | Leads | With `scm: github`, every Lead is filed as an issue labelled `spades:lead` and its type; Scopes and Plans stay manual |
+| **GitLab Issues** | Leads | With `scm: gitlab`, every Lead is filed as an issue labelled `spades:lead` and its type; Scopes and Plans stay manual |
 | **Jira** | Manual | Use the SPADES loop manually; tickets as Scopes |
 | **Any tracker** | Manual | The pattern holds regardless of tooling |
 

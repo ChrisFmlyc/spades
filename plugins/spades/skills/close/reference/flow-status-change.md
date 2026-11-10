@@ -41,9 +41,11 @@ today. Files edited: `.spades/plans/<id>.md`,
 already `<status>`."*
 
 **Plan reject** — applies to `draft`, `approved`, `delivering`,
-`evaluating`, `shipping`. With a `PR opened:` line and no `Shipped`, query the PR
-and inform: *"PR `<URL>` is currently `<state>`. Rejecting marks the
-Plan rejected; close the PR on GitHub if you haven't."* The
+`evaluating`, `shipping`. With a `PR opened:` or `MR opened:` line and no
+`Shipped`, query the PR with `review_state` (`docs/FRAMEWORK.md § SCM
+Drivers`) and inform: *"PR `<URL>` is currently `<state>`. Rejecting
+marks the Plan rejected; close the PR on <GitHub|GitLab> if you
+haven't."* The
 rejection proceeds either way.
 
 **Scope roll-up** — classify every child Plan:

@@ -1,7 +1,7 @@
 ---
 name: status
 description: Shows the current SPADES phase, progress, and dependency graph for active work. Use when someone asks where SPADES work stands — "where are we on this Scope", "what's the SPADES status", "show Plan progress". Renders the Plan dependency graph so the human can see which plans are unblocked vs waiting.
-version: 3.6.5
+version: 3.6.6
 ---
 
 # /spades:status
@@ -136,7 +136,7 @@ The one or two most useful next actions:
 - PARTIAL verdict → `/spades:deliver P-…` to apply the fixes
 - `evaluating` with PASS → deliver/evaluate remaining code siblings first;
   `/spades:ship P-…` when the shared Scope PR is ready
-- `shipping` with `PR opened:` → `/spades:close P-…`
+- `shipping` with `PR opened:` or `MR opened:` → `/spades:close P-…`
 - Scope with no Plans → `/spades:plan S-…`
 - `delivery: undecided` → re-run `/spades:approve P-…`
 - Quick item at `shipping` for 14+ days → `/spades:close Q-<id>`

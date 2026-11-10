@@ -23,7 +23,7 @@ when working in it. Invoke the main ones by their namespaced names:
 | `/spades:approve` | Present a Plan for review; record routing (AI / human / hybrid) |
 | `/spades:deliver` | Execute an approved Plan, routed per the approval decision |
 | `/spades:evaluate` | Check delivered output against acceptance criteria |
-| `/spades:ship` | Open the PR (code) or record the deliverable (artefact / action) |
+| `/spades:ship` | Open the PR or MR (code) or record the deliverable (artefact / action) |
 | `/spades:close` | Conversational close-out entry. Asks pass / reject / abandon based on target type. Pass = finalise (Plan → shipped, Scope → done, Project → archived, Objective → complete). Reject (Plans) and Abandon (Scopes, Projects, Objectives) require a reason. Objective completion is ungated and has no cascade. Opens a bookkeeping PR for any file change. |
 | `/spades:quick` | Fast-track for trivial work — quick-item marker file (`.spades/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
@@ -223,10 +223,14 @@ and the exemptions for closure and read-only views.
       same branch; after the squash-merge `/spades:close P-<id>`
       verifies the merge and records the `Shipped` marker on main
       via a bookkeeping PR (Phase 2).
+    - **`scm: gitlab`** — the same two-phase flow through a GitLab
+      merge request (MR) and the `glab` CLI, on gitlab.com or a
+      self-managed instance; the audit trail records `MR opened:` and
+      `Shipped (gitlab). MR: …`.
     - **`scm: local-git`** — single-phase: push to the configured
       remote (if any), record the commit SHA, mark shipped. No PR,
       no CodeRabbit.
-    - Other SCMs (GitLab, Bitbucket) follow the contract in
+    - Other SCMs (Bitbucket, Gitea, …) follow the contract in
       `docs/EXTENDING-SCM.md`.
   - **`artefact`** — record the artefact reference (URL, doc ID, file
     path) on the Plan.
@@ -352,7 +356,7 @@ SPADES does not own PR review triage either. The `codereview` plugin
 
 | When you need to… | Use |
 |-------------------|-----|
-| Drive a PR to zero outstanding review-bot findings | `/codereview:loop` — waits for each review, hands findings to `/codereview:fix`, pushes, re-checks. |
+| Drive a GitHub PR to zero outstanding review-bot findings | `/codereview:loop` — waits for each review, hands findings to `/codereview:fix`, pushes, re-checks. On GitLab, `/spades:loop` pauses on unresolved MR discussions instead. |
 | Fix a block of review findings, one or many | `/codereview:fix` — one subagent per finding; fixes in code or answers on GitHub. Never pushes. |
 
 `/spades:loop` Stage 7 invokes `/codereview:loop` rather than

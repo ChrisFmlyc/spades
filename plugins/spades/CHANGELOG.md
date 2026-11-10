@@ -8,6 +8,55 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.9.0] — 2026-11-10
+
+- **Minor**: GitLab is a supported SCM. `/spades:setup` offers
+  **GitLab** next to Local git and GitHub, and recommends the option
+  that matches the remote's host. With `scm: gitlab` it probes `glab
+  auth status` and walks through installing and authenticating `glab`,
+  including a self-managed instance. It writes a `gitlab:` block with
+  the remote.
+  - `docs/FRAMEWORK.md § SCM Drivers` is the single home for SCM
+    commands. Skills call operations by name (`probe_auth`,
+    `find_review`, `open_review`, `review_state`, `merge_review` and the
+    Lead issue operations). The section gives the `gh` and `glab` command
+    for each, and says how to read GitLab's merge SHA under each merge
+    method.
+  - `/spades:ship` has a `scm-gitlab.md` driver that pushes the Scope
+    branch and opens a merge request. `/spades:close`, `/spades:quick`
+    and `/spades:evaluate` verify, finalise and open bookkeeping MRs
+    through the same operations. GitLab audit trails record `MR opened:`
+    and `Shipped (gitlab). MR: …`, and every reader of the opened marker
+    accepts both forms.
+  - `/spades:leads` files Leads as GitLab issues under `scm: gitlab`,
+    through a `worker-gitlab-lead` mirror and a `gitlab_issue:` field.
+  - `/spades:loop` runs on GitLab. `/codereview:loop` drives GitHub PRs
+    only, so on GitLab the loop sweeps the MR's discussions and pauses on
+    any that are unresolved. Merge readiness, deploy and FINISHED probes
+    for both hosts live in `reference/finish-checks.md`. The GitLab
+    merge disables glab's default auto-merge, pins the head SHA, and
+    confirms the MR reads merged.
+  - The operating rules and the setup template list `scm: gitlab` under
+    Ship. `docs/EXTENDING-SCM.md` now lists every file a new driver
+    touches, with the GitLab driver as its reference.
+  - A skillspector scan of the changed skills flagged descriptions that
+    left out side effects, and triggers that match everyday speech.
+    Close's description says it commits, pushes and opens a bookkeeping
+    PR, and its triggers name a SPADES item instead of "close this" or
+    "we're not doing this". Setup's says it checks the `repo` plugin
+    and the SCM CLI, and can register the Linear MCP server. Loop's
+    says it pushes and squash-merges without a separate confirmation,
+    and its pre-flight announcement says the same. Quick's triggers
+    name the SPADES fast-track gate. The setup template's contents
+    list counts 23 skills.
+  - Leads' description no longer contains a `key: value` sequence, so
+    its frontmatter parses as strict YAML; on 6.8.2 a strict parser
+    rejected it.
+- Skills bumped: `close` 4.15.1 → 4.16.0, `evaluate` 3.10.2 → 3.10.3,
+  `leads` 3.4.1 → 3.5.0, `loop` 1.14.2 → 1.15.0, `quick` 2.5.1 → 2.6.0,
+  `setup` 4.13.0 → 4.14.0, `ship` 3.7.1 → 3.8.0, `status` 3.6.5 → 3.6.6.
+- `agents_version` 3.3.0 → 3.4.0.
+
 ## [6.8.2] — 2026-10-27
 
 - **Patch**: Record the verified shipment of the narrowed skill triggers:

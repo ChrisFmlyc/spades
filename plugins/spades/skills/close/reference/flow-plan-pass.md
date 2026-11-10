@@ -17,37 +17,37 @@ parent Scope up. Everything else is SKILL.md's shared machinery
 ## P1 — Pre-flight
 
 Run **B1**, then resolve the target: artefact type Plan; status
-filter `shipping` with a `PR opened:` line and no later `Shipped`
-line; zero candidates → suggest `/spades:ship P-…`. A single
+filter `shipping` with a `PR opened:` or `MR opened:` line and no
+later `Shipped` line; zero candidates → suggest `/spades:ship P-…`. A single
 candidate with no ID passed is picked and announced.
 
 Read the Plan and parent Scope. Capture `plan_id`, `plan_slug`,
 `scope_id`, `project_slug`, and the PR URL from the latest
-`PR opened:` line.
+`PR opened:` or `MR opened:` line.
 
 ## P2 — Verify the ship PR merged
 
-```bash
-gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy
-```
+Probe the PR with `review_state` and read its state, merge SHA, merged
+by and merged at as `docs/FRAMEWORK.md § SCM Drivers` normalises them.
 
-- **Probe failure** (`gh` error, unparseable JSON, `state` missing,
-  or `mergeCommit.oid` missing on `MERGED`) → abort cleanly:
-  *"Couldn't query PR `<URL>`. Check `gh auth status`, network, or
-  rate limits, then re-run `/spades:close <plan_id>`. The Plan is
-  untouched at `status: shipping`."*
-- **`MERGED`** → capture `mergeCommit.oid`, `mergedBy.login`,
-  `mergedAt`. Continue.
+- **Probe failure** (as § SCM Drivers defines it) → abort cleanly:
+  *"Couldn't query PR `<URL>`. Check `gh auth status` (GitHub) or
+  `glab auth status` (GitLab), network, or rate limits, then re-run
+  `/spades:close <plan_id>`. The Plan is untouched at `status:
+  shipping`."* Say MR for a GitLab URL.
+- **`MERGED`** → capture the merge SHA, merged by and merged at.
+  Continue.
 - **`OPEN`** → report it with any CI or review status shown.
   Ask: *Wait — re-run later* / *Abort*. Both exit
   without changes.
 - **`CLOSED`** unmerged → exit with the pointer: *"PR `<URL>` is
-  closed without merge. Re-open it on GitHub to retry, or re-run as
+  closed without merge. Re-open it on <GitHub|GitLab> to retry, or re-run as
   `/spades:close <plan_id> --reject "reason"`."* The human picks the
   flow.
 
 Identify every code Plan in this Scope participating in the same verified
-PR. Use the Scope's recorded PR branch and each Plan's `PR opened:` marker;
+PR. Use the Scope's recorded PR branch and each Plan's `PR opened:` or
+`MR opened:` marker;
 recover a missing post-push marker from the PR association and approved
 records, without claiming unrelated Plans shipped. Then **B2** with the
 Scope close-out description and preferred `chore/close-<scope-slug>` name.
@@ -63,7 +63,10 @@ and append:
 
 ```markdown
 - YYYY-MM-DD: Shipped (github). PR: <pr_url>. Merge: <merge-sha>. Merged by: <login>.
+- YYYY-MM-DD: Shipped (gitlab). MR: <mr_url>. Merge: <merge-sha>. Merged by: <username>.
 ```
+
+Write the line for the configured `scm:`.
 
 ### P3.2 — Scope rollup
 
@@ -128,7 +131,7 @@ and append to the Plan:
 ```
 chore(spades): close <plan_id>
 
-Records the Shipped marker for <plan_id> on main. Original PR:
+Records the Shipped marker for <plan_id> on main. Original <PR|MR>:
 <URL>. Squash-merge: <merge-sha> by @<login>.
 
 Scope <scope_id> rolled up to `done`.   # only when rolled up
@@ -143,14 +146,14 @@ merged-by, files touched), **B5**, **B6**, and **B7** with:
   of the exclusive `outcome` label group `/spades:objective` created)
   to the parent Issue and comment *"Closed against `O-<slug>`."* This
   close is the only write to the parent Issue after its creation.
-- Comment on each participating sub-issue: *"Shipped. PR: `<URL>` (squash-merge
+- Comment on each participating sub-issue: *"Shipped. <PR|MR>: `<URL>` (squash-merge
   `<merge-sha>` by `@<login>`). Bookkeeping audit:
   `<bookkeeping-pr-url>`."*
 
 ## P5 — Confirm
 
 ```
-✓ Ship PR merged:        <URL>  (merge <short-sha> by @<login>)
+✓ Ship PR merged:        <URL>  (merge <short-sha> by @<login>)   # "MR" on GitLab
 ✓ Bookkeeping PR merged: <bookkeeping-pr-url>
 ✓ Plans shipped:         <participating-plan-ids>
 ✓ Scope:                 <scope_id> (done — all plans shipped)   # when rolled up

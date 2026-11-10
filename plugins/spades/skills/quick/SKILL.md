@@ -1,7 +1,7 @@
 ---
 name: quick
-description: Delivers trivial work through the fast-track path — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when someone says "just fix this small thing", "quick tweak", "one-line change", "typo fix", "rename this variable", or when you would otherwise invoke /spades:scope for a change that clearly meets every gate criterion below. Work that touches architecture, auth, schemas, or public APIs, or needs more than one focused commit, takes the full loop via /spades:scope.
-version: 2.5.1
+description: Delivers trivial work through the SPADES fast-track path — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when a requested change passes every fast-track gate criterion below, when someone asks for "the SPADES quick path" or "a quick SPADES fix", or when you would otherwise invoke /spades:scope for such a change. Work that touches architecture, auth, schemas, or public APIs, or needs more than one focused commit, takes the full loop via /spades:scope. With GitHub or GitLab it commits the fix on its own branch, pushes it and opens a pull or merge request.
+version: 2.6.0
 ---
 
 # /spades:quick
@@ -102,12 +102,16 @@ environment, and what was checked is recorded.
 
 ### 4. Publish — by `scm:`
 
-**`scm: github`** — open the PR with the template below, write the
-marker at `status: shipping` with `pr_url`, and print one line:
+**`scm: github` or `scm: gitlab`** — push the branch to the configured
+remote and open the PR (a merge request on GitLab) with `open_review`
+from `docs/FRAMEWORK.md § SCM Drivers`, using the template below. Write
+the marker at `status: shipping` with `pr_url`, and print one line:
 *"PR opened. Run `/spades:close Q-<id>` after it merges to
-finalise."* `/spades:close` verifies the merge with `gh pr view`,
-flips the marker to `shipped`, and appends `- YYYY-MM-DD: Shipped
-(github). PR: <url>. Merge: <sha>. Merged by: <login>.`
+finalise."* ("MR" on GitLab). `/spades:close` verifies the merge with
+`review_state`, flips the marker to `shipped`, and appends the driver's
+`Shipped` line: `- YYYY-MM-DD: Shipped (github). PR: <url>. Merge:
+<sha>. Merged by: <login>.` or `- YYYY-MM-DD: Shipped (gitlab). MR:
+<url>. Merge: <sha>. Merged by: <username>.`
 
 **`scm: local-git`** — push the branch when a remote is configured
 (`local_git.remote:`, default `origin`), then write the marker at
@@ -115,7 +119,7 @@ flips the marker to `shipped`, and appends `- YYYY-MM-DD: Shipped
 <name>. Commit: <sha>.` as its last audit line. Single-phase; there
 is nothing to close.
 
-#### PR description (github)
+#### PR description (github, gitlab)
 
 ```markdown
 **Type:** <bug | tweak | chore | docs | refactor>
@@ -169,8 +173,8 @@ id_suffix: 4nKr
 project: <project-slug>
 title: "<one-line title>"
 type: bug | tweak | chore | docs | refactor
-status: shipping | shipped        # github opens at shipping; local-git writes shipped
-pr_url: <url>                     # github only
+status: shipping | shipped        # github/gitlab open at shipping; local-git writes shipped
+pr_url: <url>                     # the PR or MR URL; github and gitlab only
 branch: <branch returned by /repo:newbranch>
 linear_issue_id: <id>             # backend: linear only
 delivery: ai | human
@@ -207,10 +211,10 @@ updated: YYYY-MM-DD
 - YYYY-MM-DD: Quick-path opened. Type: <type>. Branch: <name>. Delivery: <ai|human>.[ PR: <url>.]
 ```
 
-`status: shipped` always means the change is on `main` (github) or
-recorded as the shipment commit (local-git). A quick item that is
-started and dropped has its marker deleted; git history keeps the
-trace, and there is no terminal status to set.
+`status: shipped` always means the change is on `main` (github,
+gitlab) or recorded as the shipment commit (local-git). A quick item
+that is started and dropped has its marker deleted; git history keeps
+the trace, and there is no terminal status to set.
 
 ### `backend: linear`
 

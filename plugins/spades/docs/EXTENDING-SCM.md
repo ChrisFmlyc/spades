@@ -1,14 +1,16 @@
 # Extending SPADES with a New SCM Driver
 
-SPADES v2.3 ships two SCM (source-code-management) drivers:
-**GitHub** (via the `gh` CLI) and **local-git** (no remote PR
-system). Any source code host with a CLI or API — GitLab,
+SPADES ships three SCM (source-code-management) drivers: **GitHub**
+(via the `gh` CLI), **GitLab** (via the `glab` CLI, on gitlab.com or a
+self-managed instance) and **local-git** (no remote review system).
+`docs/FRAMEWORK.md § SCM Drivers` lists them and the commands each
+operation runs. Any other source code host with a CLI or API —
 Bitbucket, Codeberg, Gitea, Azure Repos, AWS CodeCommit — can host
-SPADES code deliverables if a driver is written against the
-contract below.
+SPADES code deliverables if a driver is written against the contract
+below.
 
 This file is the contract. Adding an SCM means extending
-`docs/FRAMEWORK.md` and `/spades:setup` + `/spades:ship` with a new
+`docs/FRAMEWORK.md` and the skills that publish code with a new
 branch — not writing a binary or runtime plugin.
 
 ## What an SCM driver is
@@ -80,12 +82,14 @@ For SCMs with a review-and-merge layer (GitHub, GitLab, Bitbucket):
   `/spades:close P-<id>`, which lands the marker on `main` through
   a bookkeeping PR:
   1. `/spades:ship`, re-invoked on a `shipping` Plan with a
-     `PR opened:` marker, reports the PR state and points at
+     `PR opened:` or `MR opened:` marker, reports the PR state and points at
      `/spades:close`.
   2. Close queries the PR/MR state via the CLI (e.g. `glab mr view`,
      `gh pr view`).
-  3. On merged: capture the merge SHA, append `Shipped. PR/MR:
-     <URL>. Merge: <sha>` to each participating Plan's audit trail,
+  3. On merged: capture the merge SHA, append `Shipped (<scm-name>).
+     PR: <URL>. Merge: <sha>. Merged by: <login>.` (`MR:` where the
+     host calls it a merge request) to each participating Plan's
+     audit trail,
      mark those Plans `shipped`, apply the Scope roll-up checks,
      and commit via the bookkeeping PR.
   4. On still-open: report state, offer wait or abort.
@@ -108,8 +112,8 @@ The driver MUST use these markers so `/spades:ship`'s Step 0 can
 detect resume state:
 
 - Two-phase drivers: `PR opened: <URL>` (or `MR opened: <URL>`)
-  marks Phase 1 complete. `Shipped. … Merge: <sha>` marks Phase 2
-  complete.
+  marks Phase 1 complete. `Shipped (<scm-name>). … Merge: <sha>.`
+  marks Phase 2 complete.
 - Single-phase drivers: `Shipped (<scm-name>). Commit: <sha>` is
   enough.
 
@@ -117,59 +121,49 @@ The `Shipped` marker MUST be present whenever the Plan transitions
 to `status: shipped`. `/spades:status` and `/spades:list` rely on
 this for the shipped-vs-shipping distinction.
 
-## Adding a GitLab driver — worked example
+## Adding a driver — the touchpoints
 
-Sketch of what `scm: gitlab` would require:
+The GitLab driver is the reference two-phase implementation; read it
+alongside this list. A new two-phase driver (`scm: bitbucket`, say)
+touches:
 
-### 1. Extend `.spades/config`
+1. **`.spades/config`** — a `<scm>:` block with `remote:` (default
+   `origin`), documented in `docs/FRAMEWORK.md § .spades/config
+   schema`. The host comes from that remote's URL, not from config.
+2. **`docs/FRAMEWORK.md § SCM Drivers`** — a column in the
+   review-request and issue operation tables, the `review_state`
+   field mapping (state, merge SHA, merged by, merged at, head SHA),
+   and a row in § The `Shipped` marker.
+3. **`/spades:setup` Step 2** — an option, the probe, and the
+   install + auth guide below; Step 7 writes the config block.
+4. **`/spades:ship`** — a driver file `skills/ship/scm-<name>.md`
+   mirroring `scm-github.md` / `scm-gitlab.md`, and its route in
+   Step 3 A.
+5. **`/spades:close`** and **`/spades:quick`** — they call the
+   operations by name, so they need only the new `Shipped` line and
+   any host wording (where to merge or re-open).
+6. **`/spades:leads`** — an issue mirror row, its worker, and a
+   `<scm>_issue:` field, when the host has issues.
+7. **`/spades:loop`** — the host's thread sweep, merge readiness,
+   deploy and FINISHED probes in `skills/loop/reference/`, and how
+   review bots are handled when `/codereview:loop` doesn't support the
+   host.
+8. **`AGENTS.md`** and **`skills/setup/reference/agents-md-block.md`**
+   — the SCM list under Phase 6 (Ship).
+9. **Versions** — per `AGENTS.md` § Versioning, every changed skill
+   and the plugin bump (additive: minor), plus `agents_version`.
 
-Add a `gitlab:` block:
+The GitLab driver's probe, install guide and vocabulary, as a model:
 
-```yaml
-scm: gitlab
-gitlab:
-  remote: origin
-  host: gitlab.com    # or self-hosted GitLab URL
-```
-
-### 2. Document the probe
-
-The GitLab CLI is `glab`. Probe:
-
-```bash
-glab auth status
-```
-
-### 3. Document the install guide
-
-- macOS: `brew install glab`
-- Linux (apt): see <https://gitlab.com/gitlab-org/cli> for the apt
-  repo, then `sudo apt install glab`
-- Windows: `winget install --id GitLab.cli`
-
-Auth: `glab auth login` — browser flow preferred.
-
-Verify: `glab auth status`.
-
-### 4. Add the Ship branch
-
-`/spades:ship` gains a driver file `skills/ship/scm-gitlab.md`
-mirroring `scm-github.md`'s Phase 1 but using `glab mr create`, and
-`/spades:close` gains the matching `glab mr view` probe for Phase 2.
-Use `MR opened:` instead of `PR opened:` in the audit trail to be
-honest about the SCM's vocabulary; ship's resume step and close's
-picker detect both markers.
-
-### 5. Update AGENTS.md + the setup fragment
-
-Add `scm: gitlab` to the SCM list under Phase 6 (Ship) so consumer
-repos see GitLab is supported.
-
-### 6. Bump versions
-
-Per `AGENTS.md` § Versioning, bump every changed skill and the
-plugin. This example changes `ship`, `close`, and `setup` additively
-(minor), plus `agents_version` when the operating rules change.
+- **Probe:** `glab auth status` (non-zero exit → not ready).
+- **Install:** `brew install glab`; `winget install glab.glab`; the
+  Linux packages in glab's installation options.
+- **Auth:** `glab auth login` — browser flow preferred;
+  `--hostname <host>` for a self-managed instance. Verify with
+  `glab auth status`.
+- **Vocabulary:** `MR opened:` instead of `PR opened:`, and
+  `Shipped (gitlab). MR: …`; ship's resume step and close's picker
+  detect both markers.
 
 ## Preserve the SCM contract
 

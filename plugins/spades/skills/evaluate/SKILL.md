@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Checks delivered output against the Scope's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this plan", "evaluate P-…" or "check this against the acceptance criteria", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.10.2
+version: 3.10.3
 ---
 
 # /spades:evaluate
@@ -390,8 +390,10 @@ record; the check is against the PR.
 
 1. **Read the marker** `.spades/quick/<Q-id>.md`: `pr_url`, `type`,
    `branch`, `delivery`, and the Gate Check.
-2. **Find the PR** from `pr_url`; with `scm: local-git` the shipment
-   commit named in the marker's `Shipped` line stands in for it.
+2. **Find the PR** (a merge request on GitLab) from `pr_url` and read
+   its state with `review_state` (`docs/FRAMEWORK.md § SCM Drivers`);
+   with `scm: local-git` the shipment commit named in the marker's
+   `Shipped` line stands in for it.
 3. **Verify** — merged or open, CI green, description follows the
    `/spades:quick` template.
 4. **Re-walk the gate** against the actual diff.

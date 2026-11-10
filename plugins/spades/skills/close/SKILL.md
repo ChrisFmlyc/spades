@@ -1,7 +1,7 @@
 ---
 name: close
-description: Closes a Plan, Scope, Project, Objective, or Quick item through its matching lifecycle flow. Asks the human to finalise as shipped/done/archived/complete, reject a Plan, or abandon a Scope, Project, or Objective; Quick items follow their verified PR state. Flags `--reject "reason"` and `--abandon "reason"` skip the menu with the supplied reason. Use whenever someone says "close this", "close P-…", "close S-…", "close O-…", "complete this objective", "we're not doing this", "abandon this scope", "reject this plan", "this PR got closed without merging".
-version: 4.15.1
+description: Closes a Plan, Scope, Project, Objective, or Quick item through its matching lifecycle flow. Asks the human to finalise as shipped/done/archived/complete, reject a Plan, or abandon a Scope, Project, or Objective; Quick items follow their verified PR state. Flags `--reject "reason"` and `--abandon "reason"` skip the menu with the supplied reason. Records the result on the default branch through a bookkeeping pull request (a merge request on GitLab) that it commits, pushes and opens, using the `repo` plugin. Use whenever someone asks to close a SPADES item — "close this Plan", "close this Scope", "close P-…", "close S-…", "close O-…", "close Q-…", "complete this objective", "abandon this scope", "reject this plan" — or says a Quick item's PR or MR closed without merging.
+version: 4.16.0
 ---
 
 # /spades:close
@@ -74,7 +74,7 @@ so the already-presented page shows the terminal status.
 |---|---|
 | `draft` | *Leave in draft (no-op)* / *Reject* |
 | `approved`, `delivering`, `evaluating` | *Reject* |
-| `shipping` (has `PR opened:`, no `Shipped`) | *Pass — finalise as shipped* / *Reject* |
+| `shipping` (has `PR opened:` or `MR opened:`, no `Shipped`) | *Pass — finalise as shipped* / *Reject* |
 | `shipped`, `rejected` | abort: *"Plan `<id>` is already `<status>`."* |
 
 | Scope status | Menu |
@@ -121,7 +121,9 @@ Scope resolution; `flow-quick.md` selects which of B2–B7 apply.
 ### B1 — Preconditions
 
 1. **Setup and active project** from `.spades/config`.
-2. **`scm: github`.** Close finalises through a PR; with
+2. **A two-phase SCM.** With `scm: github` or `scm: gitlab`, Close
+   finalises through a PR, using the operations in `docs/FRAMEWORK.md
+   § SCM Drivers`; their CLI must pass `probe_auth`. With
    `scm: local-git` the artefact reached its terminal status inside
    `/spades:ship` and there is nothing to close — abort and say so.
 3. **`repo` plugin installed**:
@@ -167,11 +169,12 @@ proposed commit. Commit through `/repo:branch` with the flow's
 ### B4 — Open the bookkeeping PR
 
 Pass the draft title/body through `/repo:pr` and write its result to a
-body file. Use the configured remote and explicit head/base branches.
+body file. Push to the configured remote, then open the PR with
+`open_review(<bookkeeping-branch>, <default-branch>, <title>,
+<body-file>)`:
 
 ```bash
 git push -u <configured-remote> <bookkeeping-branch>
-gh pr create --head <bookkeeping-branch> --base <default-branch> --title "<title>" --body-file <body-file>
 ```
 
 Body: `## Summary`, `## Linked artefacts` (IDs, and the ship PR plus
@@ -179,18 +182,15 @@ merge SHA where relevant), `## Files touched`, and a plain statement
 that the PR contains audit-trail changes and any approved transferred records.
 
 ```
-○ Bookkeeping PR opened: <bookkeeping-pr-url>
-○ Merge it on GitHub — squash recommended — then return here.
+○ Bookkeeping PR opened: <bookkeeping-pr-url>        # "MR" on GitLab
+○ Merge it on <GitHub|GitLab> — squash recommended — then return here.
 ```
 
 ### B5 — Verify the bookkeeping PR merged
 
-`gh` is available (B1), so probe rather than ask:
-
-```bash
-gh pr view <bookkeeping-pr> --json state,mergeCommit \
-  --jq '"\(.state) \(.mergeCommit.oid // "-")"'
-```
+The SCM's CLI is available (B1), so probe with `review_state` rather
+than ask; read the state and merge SHA as `docs/FRAMEWORK.md § SCM
+Drivers` normalises them.
 
 - **`MERGED`** → capture the SHA; continue to B6.
 - **`OPEN`** → say so and exit cleanly. Once the human merges it,
@@ -199,7 +199,7 @@ gh pr view <bookkeeping-pr> --json state,mergeCommit \
   and can merge it merges it here instead of exiting.
 - **`CLOSED` unmerged** → surface it and stop; the edits are
   unlanded until the PR is re-opened or re-created.
-- **Probe failure** (`gh` error, malformed response) → ask the human
+- **Probe failure** (CLI error, malformed response) → ask the human
   whether the PR merged; that is the one case only they can answer.
 
 ### B6 — Retain the worktree

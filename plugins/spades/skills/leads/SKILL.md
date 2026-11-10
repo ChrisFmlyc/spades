@@ -1,7 +1,7 @@
 ---
 name: leads
-description: Captures out-of-scope discoveries as Leads immediately during any task, including recurring known issues, and returns to that task. Classifies findings, reuses existing Leads, and records one sighting per observation context. With `scm: github`, publishes every Lead as a GitHub issue labelled with its type. Also runs completion checks for Evaluate, Learn and Research; lists Leads across the requested worktrees; shows, closes or synchronises a Lead on request; and promotes one into a Scope or Quick item on the route the human chooses.
-version: 3.4.1
+description: Captures out-of-scope discoveries as Leads immediately during any task, including recurring known issues, and returns to that task. Classifies findings, reuses existing Leads, and records one sighting per observation context. With GitHub or GitLab as the configured SCM, publishes every Lead as an issue on that host labelled with its type. Also runs completion checks for Evaluate, Learn and Research; lists Leads across the requested worktrees; shows, closes or synchronises a Lead on request; and promotes one into a Scope or Quick item on the route the human chooses.
+version: 3.5.0
 argument-hint: '[--list [--all-worktrees] | --show L-<id> | --promote L-<id> [<work-id>] | --close L-<id> "<reason>" | --sync L-<id>]'
 ---
 
@@ -14,8 +14,9 @@ issue observed again is a candidate for another sighting.
 
 Read `docs/FRAMEWORK.md` § Lead ID, § Leads handoff, § Carry-Forward of
 SPADES-Owned Artefacts and § Output Format. Local Markdown is canonical.
-With `scm: github` every Lead is published as a GitHub issue, and with
-`backend: linear` Linear mirrors it; a repo configured for both gets both.
+With `scm: github` or `scm: gitlab` every Lead is published as an issue
+on that host, and with `backend: linear` Linear mirrors it; a repo
+configured for both gets both.
 
 ## Dispatch and context
 
@@ -33,7 +34,8 @@ Read `.spades/config`. Raising and completion checks return `unconfigured`
 when configuration or `project:` is missing, and `disabled` for `leads: off`.
 The default is `leads: on`. Management commands remain available when
 raising is off; missing configuration returns a `/spades:setup` pointer.
-Read `backend:`, `scm:`, `github.remote` and `review_format:`, and create
+Read `backend:`, `scm:`, `github.remote` or `gitlab.remote`, and
+`review_format:`, and create
 `.spades/leads/` when writing.
 
 ## Capture
@@ -117,7 +119,8 @@ discovered_while: P-rag-pipeline-lookup-3HyD
 sightings: 1
 promoted_to:
 closed_reason:
-github_issue:
+github_issue:                # scm: github
+gitlab_issue:                # scm: gitlab
 linear_issue_id:
 ---
 
@@ -154,15 +157,18 @@ Lead's mirrors, and every mirror operation in this skill applies to each:
 | Configuration | Mirror | Worker | Target |
 |---|---|---|---|
 | `scm: github` | GitHub issue | `worker-github-lead` | The repository behind `github.remote` (default `origin`), via `gh` |
+| `scm: gitlab` | GitLab issue | `worker-gitlab-lead` | The project behind `gitlab.remote` (default `origin`), via `glab` |
 | `backend: linear` | Linear issue | `worker-linear-lead` | The configured Linear team and project |
 
-`scm: github` authorises the GitHub issue writes. Dispatch the workers in
-one wave per § Sub-agent Dispatch. Supply each with the verified local
+`scm: github` or `scm: gitlab` authorises that host's issue writes, which
+use the issue operations in `docs/FRAMEWORK.md § SCM Drivers`. Dispatch
+the workers in one wave per § Sub-agent Dispatch. Supply each with the verified local
 record, its resolved target, the context key and external-write
 authorization. Group a Lead's pending changes into one operation per mirror
-and inspect the current issue before writing. A saved `github_issue:` or
-`linear_issue_id:` identifies the mirror; otherwise search the target for
-the full Lead ID (on GitHub, issue titles in every state) and inspect
+and inspect the current issue before writing. A saved `github_issue:`,
+`gitlab_issue:` or `linear_issue_id:` identifies the mirror; otherwise
+search the target for the full Lead ID (on GitHub and GitLab, issue
+titles in every state, through `find_issue`) and inspect
 plausible legacy title/body matches before creating an issue. Reuse a
 single verified identity match, including after a lost create response;
 ambiguous matches return a reconciliation conflict.
@@ -180,9 +186,9 @@ new sighting comment once, identified by its Lead ID and context key;
 retries first check whether it already exists.
 
 Read back each issue and its relevant comment, state and labels. Save the
-reference locally (`github_issue:` holds the issue URL, `linear_issue_id:`
-the Linear ID) and append a dated `## History` entry per mirror with the
-operation, its result and evidence. Report each mirror as `verified`,
+reference locally (`github_issue:` or `gitlab_issue:` holds the issue URL,
+`linear_issue_id:` the Linear ID) and append a dated `## History` entry
+per mirror with the operation, its result and evidence. Report each mirror as `verified`,
 `pending` with the failed step, or `not applicable` when its tracker is not
 configured. An unavailable read-back leaves verification pending. A later
 verified result supersedes the earlier failure for that operation while
@@ -206,7 +212,7 @@ views; they report reconciliation needs for a later management operation.
 |---|---|
 | `--show L-<id>` | Display the record, source worktree and current publication/mirror evidence. |
 | `--promote L-<id> [<work-id>]` | With a target, set `status: promoted`, record the supplied `S-…`, `Q-…` or document in `promoted_to:`, mirror the target in a comment and remove `spades:lead`, preserving other labels. With no target, follow § Promotion without a target: recommend a route, ask the human to choose, hand the Lead to the chosen skill, and finish the promotion with the ID that skill returns. |
-| `--close L-<id> "<reason>"` | Set `status: closed` and `closed_reason:` such as `done`, `not worth it`, or `duplicate of L-…`. Record supporting evidence when closed as done. Mirror the reason and close each mirror: the GitHub issue as completed for `done` and not planned otherwise, the Linear issue in the team's appropriate terminal state. |
+| `--close L-<id> "<reason>"` | Set `status: closed` and `closed_reason:` such as `done`, `not worth it`, or `duplicate of L-…`. Record supporting evidence when closed as done. Mirror the reason and close each mirror: the GitHub issue as completed for `done` and not planned otherwise, the GitLab issue closed after a comment giving the reason, the Linear issue in the team's appropriate terminal state. |
 | `--sync L-<id>` | Read the local record and each configured mirror, then complete pending mirror operations, creating a missing mirror, for the recorded decision. Verify the result and append reconciliation evidence. |
 
 Write related local fields together and read them back before mirroring.
@@ -359,9 +365,9 @@ Open <n> · Promoted <n> · Closed <n> · Total <n>
   `closed_reason:` cut at its first ` — `.
 - Omit an empty Promoted or Closed section rather than print an empty table.
 - Source, publication and mirror details follow the tables, and only for
-  records that are not on the default branch, lack the `github_issue:` or
-  `linear_issue_id:` a configured mirror needs, or have a pending mirror
-  or lifecycle conflict; when every record is published and mirrored, one
+  records that are not on the default branch, lack the `github_issue:`,
+  `gitlab_issue:` or `linear_issue_id:` a configured mirror needs, or
+  have a pending mirror or lifecycle conflict; when every record is published and mirrored, one
   line under the counts says so.
 - With `--all-worktrees`, add a **Source** column (branch, or `main`) after
   **Lead**, and a **Conflicts** section listing Lead IDs whose copies differ

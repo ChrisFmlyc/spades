@@ -245,9 +245,9 @@ from its filename), filesystem-safe, and stable.
   where it came from (`origin_plan`, `learning_ref`) without being owned
   by it — the originating work is usually shipped and closed long before
   the Lead is picked up.
-- Published, with `scm: github`, as a GitHub issue in the repository
-  behind `github.remote`, titled `L-<slug> — <title>` and labelled
-  `spades:lead` plus its type. With `backend: linear` it is also mirrored
+- Published, with `scm: github` or `scm: gitlab`, as an issue in the
+  repository behind `github.remote` or `gitlab.remote`, titled
+  `L-<slug> — <title>` and labelled `spades:lead` plus its type. With `backend: linear` it is also mirrored
   per § The two shipped drivers. The local file stays canonical;
   `skills/leads/SKILL.md` owns the procedure.
 
@@ -321,19 +321,21 @@ while retaining a readable filename.
 ```yaml
 backend: linear | local
 project: <project-slug>             # active project for this repo
-scm: github | local-git             # source-code-management tool (default: local-git)
+scm: github | gitlab | local-git    # source-code-management tool (default: local-git)
 leads: on | off                     # lead capture kill switch (default: on)
 linear:                             # only when backend: linear
   team_id: <uuid>
   project_id: <uuid>                # Linear's own Project ID for this project
 github:                             # only when scm: github
   remote: origin                    # which git remote to use (default: origin); its repository also receives Lead issues
+gitlab:                             # only when scm: gitlab
+  remote: origin                    # which git remote to use (default: origin); its project also receives Lead issues
 local_git:                          # only when scm: local-git AND a remote is configured
   remote: origin                    # which git remote to push to (optional)
 ```
 
-Other SCMs (GitLab, Bitbucket, etc.) become drivers per
-`docs/EXTENDING-SCM.md`.
+§ SCM Drivers describes the three drivers. Other SCMs (Bitbucket,
+Gitea, …) become drivers per `docs/EXTENDING-SCM.md`.
 
 There is **no auto-probe**. The `setup` skill writes this file
 explicitly when the human chooses a backend. Skills that read it
@@ -575,8 +577,8 @@ Setup and Loop have separate invocation paths:
                     ⋮
 /spades:loop             (delivery — drives phases, aborts on prerequisites)
    ├─► /spades:plan ──────► /spades:approve ──► /spades:deliver ──► /spades:evaluate
-   ├─► /spades:ship ──────► skills/ship/scm-github.md
-   ├─► /codereview:loop ──► /codereview:fix
+   ├─► /spades:ship ──────► skills/ship/scm-<github|gitlab>.md
+   ├─► /codereview:loop ──► /codereview:fix   (scm: github)
    ├─► /spades:close ─────► (bookkeeping PR)
    └─► /repo:newbranch     (delegated by Deliver and Close; documentation entry from main)
 ```
@@ -604,7 +606,7 @@ counted in the Plan's audit trail and both terminate:
 | Back-edge | Cap | Marker |
 |---|---|---|
 | Evaluate `PARTIAL` → `/spades:deliver` | 2 reworks per Plan | `Loop — rework <n>/2 after PARTIAL: …` |
-| Bot review cycle → push → re-review | Owned and capped entirely by `/codereview:loop`; `/spades:loop` runs no review cycle of its own | `Loop — bot review clean on <url>` |
+| Bot review cycle → push → re-review | Owned and capped entirely by `/codereview:loop` on GitHub; on GitLab an unresolved discussion pauses the loop instead. `/spades:loop` runs no review cycle of its own | `Loop — bot review clean on <url>` |
 
 Every other edge is forward-only.
 
@@ -612,7 +614,7 @@ Every other edge is forward-only.
 
 `/spades:loop` keeps no state file. It derives its stage from the
 Plan's `status:` and the markers other skills already write
-(`PR opened:`, `Shipped`, `Evaluation — verdict:`), and adds
+(`PR opened:` / `MR opened:`, `Shipped`, `Evaluation — verdict:`), and adds
 `Loop — …` audit-trail lines only for facts SPADES does not
 otherwise record (who signed the evaluation off, rework count,
 review-round count, merge SHA, pause reason).
@@ -677,7 +679,7 @@ their storage; skills don't need to know how.
 | `update_plan(id, fields)` | Update specified fields on a plan. |
 | `record_approval(plan_id, decision, routing, notes)` | Record the approve gate's decision and routing on the plan. |
 | `record_evaluation(plan_id, verdict, notes)` | Record an evaluate gate's verdict on the plan. |
-| `record_shipment(plan_id, artefact_ref)` | Record the ship phase's deliverable reference (PR URL, doc URL, evidence text). |
+| `record_shipment(plan_id, artefact_ref)` | Record the ship phase's deliverable reference (PR or MR URL, doc URL, evidence text). |
 | `create_learning(record)` | Append a learning. |
 | `list_learnings()` | List active learnings. |
 | `create_lead(record)` | Record a lead. Returns the lead ID. |
@@ -728,6 +730,99 @@ may return a documented stub error rather than silently succeeding.
 
 See `docs/EXTENDING-BACKENDS.md` for the contract drivers must satisfy
 and a worked example for adding (e.g.) a Notion MCP driver.
+
+---
+
+## SCM Drivers
+
+`scm:` in `.spades/config` selects how a `deliverable_type: code` Plan
+or a Quick item is published, and where Leads are filed as issues.
+Skills call the operations below by name; the driver supplies the
+command. `docs/EXTENDING-SCM.md` is the contract for adding a driver.
+
+| `scm:` | Ship shape | Review request | CLI | Lead issues |
+|---|---|---|---|---|
+| `github` | two-phase | pull request | `gh` | GitHub issues |
+| `gitlab` | two-phase | merge request | `glab` | GitLab issues |
+| `local-git` | single-phase | none | `git` | none |
+
+In SPADES text, *PR* names a two-phase SCM's review request: a GitHub
+pull request or a GitLab merge request (MR). Audit markers and terminal
+output use the host's own word and reference — `PR opened:` and `#<n>`
+on GitHub, `MR opened:` and `!<iid>` on GitLab — and an instruction
+that sends the human somewhere names the host ("merge it on GitLab").
+
+The configured remote (`github.remote` or `gitlab.remote`, default
+`origin`) names the repository that receives review requests and Lead
+issues. Run the CLI inside the worktree: `glab` resolves the GitLab
+host (gitlab.com or a self-managed instance) and the project from that
+remote, and `glab api` fills its `:id` placeholder from the same
+project. Credentials stay in the CLI's own store, never in
+`.spades/config`.
+
+### Review-request operations
+
+`<n>` is a PR number; `<iid>` is an MR's project-scoped number, the
+last segment of its URL.
+
+| Operation | `scm: github` | `scm: gitlab` |
+|---|---|---|
+| `probe_auth` | `gh auth status` | `glab auth status` |
+| `find_review(branch, base)` | `gh pr list --head <branch> --base <base> --state all --json number,url,state` | `glab mr list --source-branch <branch> --target-branch <base> --all --output json` |
+| `open_review(branch, base, title, body-file)` | `gh pr create --head <branch> --base <base> --title "<title>" --body-file <body-file>` | `glab mr create --source-branch <branch> --target-branch <base> --title "<title>" --description-file <body-file> --yes` |
+| `review_state(ref)` | `gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy,headRefOid` | `glab mr view <iid> --output json` |
+| `merge_review(ref)` | `gh pr merge <n> --squash` | `glab mr merge <iid> --squash --auto-merge=false --sha <head-sha> --yes` |
+
+`open_review` prints the new review request's URL. glab releases before
+1.115 lack `--description-file`; pass `--description "$(cat
+<body-file>)"` there instead.
+
+`review_state` reads the same fields on both hosts:
+
+| Field | GitHub | GitLab |
+|---|---|---|
+| state `OPEN` | `OPEN` | `opened`, `locked` |
+| state `MERGED` | `MERGED` | `merged` |
+| state `CLOSED` | `CLOSED` | `closed` |
+| merge SHA | `mergeCommit.oid` | the first non-empty of `merge_commit_sha`, `squash_commit_sha`, `sha` — the commit the merge left on the target branch under the project's merge method |
+| merged by | `mergedBy.login` | `merge_user.username` (`merged_by.username` on older instances) |
+| merged at | `mergedAt` | `merged_at` |
+| head SHA | `headRefOid` | `sha` |
+
+A probe failure is a CLI error, unparseable JSON, a missing state, or a
+`MERGED` state without a merge SHA. glab prints an absent SHA as an
+empty string.
+
+`merge_review` squash-merges immediately. `glab mr merge` would
+otherwise arm auto-merge while a pipeline runs and still exit 0, so the
+GitLab form disables it and pins the head SHA from `review_state`.
+Confirm the result with `review_state` reading `MERGED` before
+recording a merge.
+
+### Issue operations (Leads)
+
+| Operation | `scm: github` | `scm: gitlab` |
+|---|---|---|
+| `find_issue(lead-id)` | `gh issue list --state all --search "<lead-id> in:title" --json number,url,title,state,labels` | `glab issue list --all --search "<lead-id>" --in title --output json` |
+| `create_issue(title, body-file, labels)` | `gh issue create --title "<title>" --body-file <body-file> --label "<a>,<b>"` | `glab issue create --title "<title>" --description-file <body-file> --label "<a>,<b>" --yes` |
+| `comment_issue(ref, text)` | `gh issue comment <n> --body "<text>"` | `glab issue note <iid> --message "<text>"` |
+| `relabel_issue(ref, add, remove)` | `gh issue edit <n> --add-label <a> --remove-label <b>` | `glab issue update <iid> --label <a> --unlabel <b>` |
+| `close_issue(ref, reason)` | `gh issue close <n> --reason "completed"` (or `"not planned"`) | `comment_issue` with the reason, then `glab issue close <iid>` |
+| `create_label(name)` | `gh label create "<name>"` | `glab label create --name "<name>"` |
+
+GitLab issues carry no close reason, so the closing comment records it.
+`glab issue note` reads stdin when `--message` is absent, so the
+message is always passed. On `glab issue list`, `--output json` selects
+JSON; its `-F` is a different flag.
+
+### Single-phase driver
+
+`scm: local-git` has no review request and no issues: `/spades:ship`
+pushes when a remote is configured and records the commit
+(`skills/ship/scm-local-git.md`), and Close has nothing to finalise.
+
+`/spades:loop` adds review-thread, check, deployment and linked-issue
+probes for both two-phase hosts in `skills/loop/reference/`.
 
 ---
 
@@ -979,9 +1074,9 @@ The quick path is **two-phase**, matching the Plan ship → close shape:
 - `/spades:quick` opens the work → writes the marker at `status:
   shipping`, opens the PR, exits.
 - `/spades:close Q-<id>` finalises after PR merge → verifies merge
-  via `gh pr view`, flips to `status: shipped`, appends the
-  canonical `Shipped (github). PR: …. Merge: …. Merged by: ….`
-  audit-trail line, and lands that edit on `main` through a
+  with `review_state` (§ SCM Drivers), flips to `status: shipped`,
+  appends the driver's `Shipped` audit-trail line (§ The `Shipped`
+  marker), and lands that edit on `main` through a
   one-commit bookkeeping PR (the Quick branch is already merged, so
   a commit there would never reach `main`).
 
@@ -1148,11 +1243,14 @@ with `Shipped` as the most recent entry in its `## Audit Trail`
 section. The prefix is universal; SCM drivers vary the suffix to
 reflect what was shipped and where:
 
-| SCM driver | Marker shape |
-|------------|--------------|
-| `scm: github` (two-phase) | `Shipped. PR: <URL>. Merge: <sha>. Merged by: <login>.` |
-| `scm: local-git` (single-phase) | `Shipped (local-git). Branch: <branch>. Commit: <sha>.` |
-| Future drivers (GitLab, Bitbucket, etc.) | `Shipped (<scm-name>). …` or `Shipped. MR: <URL>. Merge: <sha>.` — see `docs/EXTENDING-SCM.md` § 4. |
+| SCM driver | Opened marker (Ship) | Marker shape |
+|------------|----------------------|--------------|
+| `scm: github` (two-phase) | `PR opened: <URL>.` | `Shipped (github). PR: <URL>. Merge: <sha>. Merged by: <login>.` |
+| `scm: gitlab` (two-phase) | `MR opened: <URL>.` | `Shipped (gitlab). MR: <URL>. Merge: <sha>. Merged by: <username>.` |
+| `scm: local-git` (single-phase) | — | `Shipped (local-git). Branch: <branch>. Commit: <sha>.` |
+
+Other drivers follow `docs/EXTENDING-SCM.md` § 4. A Quick item's
+marker file takes the same `Shipped` line.
 
 `/spades:ship` Step 0 and `/spades:close` Step 1 both grep for the
 `Shipped` prefix to detect resume state and finalisation state. New
@@ -1250,8 +1348,8 @@ their own worktree entry points.
 
 ### Plans share the Scope branch
 
-Once delivery starts, all Plans in a Scope use its delivery branch. Under
-`scm: github`, one delivery PR contains that Scope's work. A dependency is ready for further work on this
+Once delivery starts, all Plans in a Scope use its delivery branch. Under a
+two-phase SCM (§ SCM Drivers), one delivery PR contains that Scope's work. A dependency is ready for further work on this
 branch when it is `shipped`, or when it has completed Deliver and has a confirmed
 PASS after its latest delivery changes. The latter is readiness for local
 execution, not shipment: the Plan stays `evaluating`. Rejected dependencies
@@ -1856,7 +1954,8 @@ Pass one self-contained request with:
   same evidence passes through delivery, evaluation, learning or a retry.
 - Privacy classification, permitted storage and external-write authorization.
   Public records and mirrors receive public-safe summaries or references.
-  `scm: github` authorises the Lead's GitHub issue writes.
+  `scm: github` or `scm: gitlab` authorises the Lead's issue writes on
+  that host.
 
 The worker checks the supplied evidence, accounts for each candidate and
 runs classification and deduplication. An unresolved known finding remains
@@ -1881,7 +1980,7 @@ Await the worker and collect a receipt containing:
 | Candidates | Each finding's disposition and evidence or exclusion reason. |
 | Records | Lead IDs, absolute paths, source worktrees, and sighting/lifecycle changes verified by read-back. |
 | Publication | Current local/git state of changed records and their intended next commit or handoff. |
-| Mirrors | Per mirror (GitHub issue, Linear issue) and operation: `verified`, `pending` with reason, or `not applicable`, with issue/comment references when available. |
+| Mirrors | Per mirror (GitHub or GitLab issue, Linear issue) and operation: `verified`, `pending` with reason, or `not applicable`, with issue/comment references when available. |
 
 `none` means the supplied evidence contains no supported out-of-scope
 discovery. `disabled` requires `leads: off`; `unconfigured` identifies the

@@ -17,7 +17,7 @@ marker tells them when their copy went stale.
 ## Contents
 
 - Operating Principles — the four agile pillars and their skill map
-- SPADES Skills — the 22-skill table
+- SPADES Skills — the 23-skill table
 - The SPADES Loop — six phases, ownership, the fast-track exception
 - Phase Rules — per-phase contracts for Scope through Ship
 - Fast-Track Path — the 10-criterion gate
@@ -84,7 +84,7 @@ The SPADES plugin (`spades`) provides these 23 skills:
 | `/spades:approve` | Present a Plan for human review and record routing |
 | `/spades:deliver` | Execute an approved Plan (routed AI / human / hybrid) |
 | `/spades:evaluate` | Check delivered output against the Scope's acceptance criteria |
-| `/spades:ship` | Open the PR (code) or record the deliverable (artefact / action) |
+| `/spades:ship` | Open the PR or MR (code) or record the deliverable (artefact / action) |
 | `/spades:close` | Conversational close-out: pass / reject / abandon based on target. Pass finalises (Plan → shipped, Scope → done, Project → archived, Objective → complete); reject (Plans) and abandon (Scopes, Projects, Objectives) require a reason. Lands via a bookkeeping PR. |
 | `/spades:loop` | Drive an existing Scope through Plan, Approve, Deliver, Evaluate, Ship, review, merge and close-out. Runs on explicit invocation or delegation by a user-defined goal; pauses for checks that require the human. |
 | `/spades:quick` | Fast-track for trivial work — quick-item marker file (`.spades/quick/Q-<id>.md`) is the canonical audit record |
@@ -203,6 +203,10 @@ turn; the human's next message is the answer.
     squash-merge, `/spades:close P-<id>` verifies the merge, records
     the `Shipped` markers on main via a bookkeeping PR for the Scope,
     and retains the worktrees. New work starts through `/repo:newbranch`.
+  - **`scm: gitlab`** — the same two-phase flow through a GitLab merge
+    request (MR) and the `glab` CLI, on gitlab.com or a self-managed
+    instance; the audit trail records `MR opened:` and `Shipped
+    (gitlab). MR: …`.
   - **`scm: local-git`** — single-phase: push to the configured
     remote (if any), record the commit SHA, mark `shipped`.
 - For `deliverable_type: artefact` — record the artefact reference.
@@ -308,7 +312,7 @@ logic inside a SPADES skill.
 | Start new work on a branch and worktree | `/repo:newbranch` — owns naming, clean/current default-branch preparation and worktree creation. |
 | Explicitly request post-merge cleanup | `/repo:sync` — separate from starting or completing work. |
 | Refuse to commit on `main` / `master` | `/repo:branch` enforces this absolutely — no overrides. |
-| Drive a PR to zero review-bot findings | `/codereview:loop` — waits for each review, hands findings to `/codereview:fix`, pushes, re-checks. |
+| Drive a GitHub PR to zero review-bot findings | `/codereview:loop` — waits for each review, hands findings to `/codereview:fix`, pushes, re-checks. On GitLab, `/spades:loop` pauses on unresolved MR discussions instead. |
 | Fix a block of review findings, one or many | `/codereview:fix` — one subagent per finding. Never pushes. |
 
 Deliver, Quick and Close call `/repo:newbranch`; established delivery

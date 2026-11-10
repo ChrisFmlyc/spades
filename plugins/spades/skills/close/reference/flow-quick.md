@@ -26,8 +26,9 @@ repo where four merged Quick items still read `shipping` on `main`.
    `branch`, `linear_issue_id`, `status`. A marker already at
    `shipped` is terminal: *"Quick item `<Q-id>` is already
    `shipped`."*
-3. **`scm: github`.** With `scm: local-git` the marker was written
-   at `shipped` by `/spades:quick`; there is nothing to close.
+3. **A two-phase SCM** (`scm: github` or `scm: gitlab`). With
+   `scm: local-git` the marker was written at `shipped` by
+   `/spades:quick`; there is nothing to close.
 4. Read the marker from the current checkout; the Quick branch is not
    resumed. Leave the source marker unchanged until Q5: the Q3 edit is
    made in the bookkeeping worktree Q5 prepares, and the Q4 deletion
@@ -37,19 +38,17 @@ repo where four merged Quick items still read `shipping` on `main`.
 
 ## Q2 — Probe the PR
 
-```bash
-gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy
-```
+Probe `pr_url` with `review_state` and read it as `docs/FRAMEWORK.md
+§ SCM Drivers` normalises it. Dispatch on the verified PR state. Offer
+Drop only for a confirmed `CLOSED` PR because it deletes the canonical
+marker.
 
-Dispatch on the verified PR state. Offer Drop only for a confirmed
-`CLOSED` PR because it deletes the canonical marker.
+**Probe failure** (as § SCM Drivers defines it) → abort:
 
-**Probe failure** — `gh` error, unparseable JSON, `state` missing, or
-`mergeCommit.oid` missing on `MERGED` → abort:
-
-> *Couldn't query PR `<pr_url>`. Check `gh auth status`, network, or
-> rate limits, then re-run `/spades:close Q-<id>`. The marker is
-> untouched at `status: shipping`.*
+> *Couldn't query PR `<pr_url>`. Check `gh auth status` (GitHub) or
+> `glab auth status` (GitLab), network, or rate limits, then re-run
+> `/spades:close Q-<id>`. The marker is untouched at `status:
+> shipping`.*
 
 **Probe succeeded**:
 
@@ -65,10 +64,11 @@ Dispatch on the verified PR state. Offer Drop only for a confirmed
 The marker stays read-only until the replacement probe succeeds.
 
 1. Prompt free-form for the replacement URL.
-2. Validate: a GitHub PR URL under the same `owner/repo` as the
-   current `pr_url`, and different from it. Otherwise re-prompt or
-   *Cancel*.
-3. Probe the replacement with the same `gh pr view` call.
+2. Validate: a PR URL on the same host and repository as the current
+   `pr_url` (`<host>/<owner>/<repo>/pull/<n>` on GitHub,
+   `<host>/<group>/<project>/-/merge_requests/<iid>` on GitLab), and
+   different from it. Otherwise re-prompt or *Cancel*.
+3. Probe the replacement with the same `review_state` call.
    - **Failure** → *Try a different URL* / *Cancel*, marker untouched.
    - **Success** → carry the replacement as the new `pr_url` (Q3's
      edit writes it; the source marker stays untouched) and dispatch
@@ -83,10 +83,12 @@ replacement `pr_url` if Q2 supplied one, and append:
 
 ```markdown
 - YYYY-MM-DD: Shipped (github). PR: <pr_url>. Merge: <merge-sha>. Merged by: <login>.
+- YYYY-MM-DD: Shipped (gitlab). MR: <pr_url>. Merge: <merge-sha>. Merged by: <username>.
 ```
 
-The grammar matches the Plan `Shipped` line, so every `Shipped`
-entry parses the same way. Continue to Q5.
+Write the line for the configured `scm:`. The grammar matches the Plan
+`Shipped` line, so every `Shipped` entry parses the same way. Continue
+to Q5.
 
 ## Q4 — Drop
 
