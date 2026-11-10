@@ -18,7 +18,7 @@ Artefacts, and § Audit Trail before running.
 ## Who may invoke this
 
 Invoking this skill authorises the full pipeline on one Scope:
-branch, commit, push, open PRs, resolve bot review threads on GitHub,
+branch, commit, push, open PRs, resolve bot review threads,
 squash-merge, and answer the child skills'
 questions on the human's behalf. The authorisation covers the resolved
 Scope's own Plans, branches, and PRs, within § Pauses and § Boundaries.
@@ -127,15 +127,20 @@ Every failure is an abort with a pointer.
    either host through the operations in `docs/FRAMEWORK.md § SCM
    Drivers`.
 3. `project:` is set — else `/spades:setup`.
-4. The `repo` plugin is installed, and with `scm: github` the
-   `codereview` plugin too
-   (`$HOME/.claude/plugins/cache/ai-skills/{repo,codereview}`) — else:
+4. The `repo` and `codereview` plugins are installed
+   (`$HOME/.claude/plugins/cache/ai-skills/{repo,codereview}`). With
+   `scm: gitlab`, `codereview` must be 1.4.0 or later, the first release
+   that drives GitLab merge requests; its version is the directory name
+   under that path. Else:
 
    ```
    /plugin marketplace add ChrisFmlyc/ai-skills
    /plugin install repo@ai-skills
    /plugin install codereview@ai-skills
    ```
+
+   An older `codereview` updates with `/plugin marketplace update ai-skills`
+   and `/plugin update codereview@ai-skills`.
 
 5. The host's CLI installed and authenticated — `gh` for GitHub,
    `glab` for GitLab (`command -v`, then `probe_auth`). Every stage from
@@ -339,12 +344,10 @@ sweep is what carries every artefact written since Stage 1 into this PR
 
 Drive the ship PR to zero unresolved review threads. **Read
 [`reference/bot-review.md`](reference/bot-review.md) and follow it.**
-With `scm: github`, invoke **`/codereview:loop <n>`** to handle bot
-findings, including `CHANGES_REQUESTED` reviews. `/codereview:loop`
-drives GitHub PRs only, so with `scm: gitlab` the loop sweeps the MR's
-discussions and pauses on any that are unresolved. Follow the reference
-file's pause conditions and § Boundaries for review text and human
-threads.
+Invoke **`/codereview:loop`** with the PR number, or with the MR link on
+GitLab, to handle bot findings, including `CHANGES_REQUESTED` reviews.
+Follow the reference file's pause conditions and § Boundaries for review
+text and human threads.
 
 ## Stage 8 — Squash-merge the ship PR
 
@@ -494,7 +497,7 @@ the derived stage.
 | 5 | Evaluate verdict FAIL | 5 |
 | 6 | Third PARTIAL on the same Plan | 5 |
 | 7 | `/codereview:loop` stops short | 7, 12 |
-| 8 | An unresolved review thread from a human, or on GitLab any unresolved MR discussion | 7, 12 |
+| 8 | An unresolved review thread from a human | 7, 12 |
 | 9 | A pre-merge assertion fails | 8, 13 |
 | 10 | Deploy `failure` / `error` | 9 |
 | 11 | A child skill aborts or refuses | any |

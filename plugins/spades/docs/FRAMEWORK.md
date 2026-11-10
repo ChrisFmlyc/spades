@@ -578,7 +578,7 @@ Setup and Loop have separate invocation paths:
 /spades:loop             (delivery — drives phases, aborts on prerequisites)
    ├─► /spades:plan ──────► /spades:approve ──► /spades:deliver ──► /spades:evaluate
    ├─► /spades:ship ──────► skills/ship/scm-<github|gitlab>.md
-   ├─► /codereview:loop ──► /codereview:fix   (scm: github)
+   ├─► /codereview:loop ──► /codereview:fix
    ├─► /spades:close ─────► (bookkeeping PR)
    └─► /repo:newbranch     (delegated by Deliver and Close; documentation entry from main)
 ```
@@ -606,7 +606,7 @@ counted in the Plan's audit trail and both terminate:
 | Back-edge | Cap | Marker |
 |---|---|---|
 | Evaluate `PARTIAL` → `/spades:deliver` | 2 reworks per Plan | `Loop — rework <n>/2 after PARTIAL: …` |
-| Bot review cycle → push → re-review | Owned and capped entirely by `/codereview:loop` on GitHub; on GitLab an unresolved discussion pauses the loop instead. `/spades:loop` runs no review cycle of its own | `Loop — bot review clean on <url>` |
+| Bot review cycle → push → re-review | Owned and capped entirely by `/codereview:loop` (GitLab merge requests need `codereview` 1.4.0 or later); `/spades:loop` runs no review cycle of its own | `Loop — bot review clean on <url>` |
 
 Every other edge is forward-only.
 

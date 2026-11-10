@@ -356,8 +356,8 @@ SPADES does not own PR review triage either. The `codereview` plugin
 
 | When you need to… | Use |
 |-------------------|-----|
-| Drive a GitHub PR to zero outstanding review-bot findings | `/codereview:loop` — waits for each review, hands findings to `/codereview:fix`, pushes, re-checks. On GitLab, `/spades:loop` pauses on unresolved MR discussions instead. |
-| Fix a block of review findings, one or many | `/codereview:fix` — one subagent per finding; fixes in code or answers on GitHub. Never pushes. |
+| Drive a PR to zero outstanding review-bot findings | `/codereview:loop` — waits for each review, hands findings to `/codereview:fix`, pushes, re-checks. GitLab merge requests need `codereview` 1.4.0 or later. |
+| Fix a block of review findings, one or many | `/codereview:fix` — one subagent per finding; fixes in code or answers on GitHub or GitLab. Never pushes. |
 
 `/spades:loop` Stage 7 invokes `/codereview:loop` rather than
 re-implementing the fix-or-answer contract, and handles only what

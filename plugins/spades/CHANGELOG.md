@@ -30,12 +30,14 @@ or the consumer marker rules change). The consumer-repo marker block in `AGENTS.
     accepts both forms.
   - `/spades:leads` files Leads as GitLab issues under `scm: gitlab`,
     through a `worker-gitlab-lead` mirror and a `gitlab_issue:` field.
-  - `/spades:loop` runs on GitLab. `/codereview:loop` drives GitHub PRs
-    only, so on GitLab the loop sweeps the MR's discussions and pauses on
-    any that are unresolved. Merge readiness, deploy and FINISHED probes
-    for both hosts live in `reference/finish-checks.md`. The GitLab
-    merge disables glab's default auto-merge, pins the head SHA, and
-    confirms the MR reads merged.
+  - `/spades:loop` runs on GitLab. Stage 7 hands the MR link to
+    `/codereview:loop`, which drives GitLab merge requests from
+    `codereview` 1.4.0; under `scm: gitlab` the pre-flight requires that
+    version, and an older one stopping short is Pause 7. Merge
+    readiness, deploy and FINISHED probes for both hosts live in
+    `reference/finish-checks.md`. The GitLab merge disables glab's
+    default auto-merge, pins the head SHA, and confirms the MR reads
+    merged.
   - The operating rules and the setup template list `scm: gitlab` under
     Ship. `docs/EXTENDING-SCM.md` now lists every file a new driver
     touches, with the GitLab driver as its reference.

@@ -312,7 +312,7 @@ logic inside a SPADES skill.
 | Start new work on a branch and worktree | `/repo:newbranch` — owns naming, clean/current default-branch preparation and worktree creation. |
 | Explicitly request post-merge cleanup | `/repo:sync` — separate from starting or completing work. |
 | Refuse to commit on `main` / `master` | `/repo:branch` enforces this absolutely — no overrides. |
-| Drive a GitHub PR to zero review-bot findings | `/codereview:loop` — waits for each review, hands findings to `/codereview:fix`, pushes, re-checks. On GitLab, `/spades:loop` pauses on unresolved MR discussions instead. |
+| Drive a PR to zero review-bot findings | `/codereview:loop` — waits for each review, hands findings to `/codereview:fix`, pushes, re-checks. GitLab merge requests need `codereview` 1.4.0 or later. |
 | Fix a block of review findings, one or many | `/codereview:fix` — one subagent per finding. Never pushes. |
 
 Deliver, Quick and Close call `/repo:newbranch`; established delivery

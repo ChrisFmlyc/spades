@@ -52,11 +52,11 @@ glab api --paginate "projects/:id/merge_requests/<iid>/discussions" \
 ```
 
 A discussion is outstanding when any resolvable note in it is
-unresolved. Every outstanding discussion is a pause
-(`bot-review.md` § 1). Name the author in the pause: note authors carry
-no bot flag, but `glab api users/<author_id>` returns `bot: true` for a
-bot account, and access-token bots are named `project_<n>_bot_…` or
-`group_<n>_bot_…`.
+unresolved. Note authors carry no bot flag: `glab api users/<author_id>`
+returns `bot: true` for a bot account, and access-token bots are named
+`project_<n>_bot_…` or `group_<n>_bot_…`; a review agent's own account
+(`coderabbitai` and the like) is a bot too. A bot author goes to
+`/codereview:loop`; a human author is a pause.
 
 ---
 
