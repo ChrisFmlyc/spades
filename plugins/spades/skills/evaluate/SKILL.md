@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Checks delivered output against the Scope's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this plan", "evaluate P-…" or "check this against the acceptance criteria", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.10.3
+version: 3.11.1
 ---
 
 # /spades:evaluate
@@ -67,7 +67,8 @@ so older Plans resume the correct evaluation cycle.
    Parent-status precondition; hard abort on an `abandoned` Scope or
    an `abandoned` / `archived` Project. Quick items sit outside the
    hierarchy and skip this.
-6. **Read `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`.**
+6. **Read `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`, and
+   `REVIEW.md`** where each exists.
 7. **Note the Plan's `delivery:` routing.** It shapes Step 2's
    proposal: AI-delivered Plans skew to AI / Test / Lint verifiers,
    human-delivered to Human / Manual, hybrid follows the per-task
@@ -94,8 +95,8 @@ Same wording as `/spades:approve`'s routing question:
 
 1. **AI** — runs verification autonomously: executes test commands,
    inspects the diff, checks each criterion, proposes the verdict.
-2. **Human** — the AI builds the checklist and runs nothing; the
-   human verifies and reports back.
+2. **Human** — the AI builds the checklist and runs only the diff
+   review rows; the human verifies the rest and reports back.
 3. **Hybrid** — the AI takes the mechanical checks (suites, lints,
    automated criteria), the human takes manual or exploratory work.
 
@@ -117,7 +118,30 @@ docs). Each row names a **verifier** and a concrete **method**:
 | 3 | Zero dropped records on load  | AI       | `npm run test:load` |
 | 4 | UI feels responsive           | Human    | Local browser session |
 | Q | No regressions in core flow   | AI       | `npm test` |
+| QR| Fresh-context diff review     | AI       | `review-diff` on `<base_commit>..HEAD` |
 ```
+
+### Diff review rows
+
+A `deliverable_type: code` Plan always carries a **`QR`** row: the
+bundled `review-diff` agent reviews the delivered diff in a context
+that never saw the delivery. What the diff touches can add two more:
+
+- **`QS` — security review**, when the diff touches authentication,
+  authorisation, sessions, cryptography, secrets, permissions, or
+  trust-boundary validation (the fast-track gate's criterion 7).
+- **`QH` — human sign-off**, a Human row naming each changed path
+  that `REVIEW.md § Human Sign-off` reserves for a person.
+
+`QR` and `QS` are AI rows in every routing, because an independent
+reviewer is the check itself; `QH` is a Human row in every routing,
+and its presence makes an AI routing hybrid.
+
+The range under review ends at `HEAD` and starts where the latest
+`QR` evidence among the Scope's Plans ended, or at the Scope's
+`base_commit:` when there is none. A rework, or a later sibling Plan
+on the same branch, therefore reviews only the commits since the last
+review.
 
 Propose, then ask to confirm, per routing:
 
@@ -129,9 +153,9 @@ Propose, then ask to confirm, per routing:
   questions a call, over as many pages as the rows need; the rows
   ticked across all pages go to Human, the rest to AI. Show the new
   split and ask again until the human runs it.
-- **Human** — every verifier is Human; each method is written
-  clearly enough to execute without guessing. *Looks good* /
-  *Adjust*.
+- **Human** — every verifier apart from `QR` and `QS` is Human; each
+  method is written clearly enough to execute without guessing.
+  *Looks good* / *Adjust*.
 
 Append the agreed plan:
 
@@ -140,6 +164,7 @@ Append the agreed plan:
     - C1: AI (`npm run bench:embedding`) — pending
     - C2: Human (manual against staging) — pending
     - Q : AI (`npm test`) — pending
+    - QR: AI (`review-diff`, a21fef5..HEAD) — pending
 ```
 
 ## Step 3 — Present the locked plan
@@ -225,6 +250,46 @@ excerpt) for passes. Update the agreed-plan lines in place:
 ```markdown
     - C1: AI (`npm run bench:embedding`) — PASS (p99 = 187ms)
     - Q : AI (`npm test`) — PASS (143/143)
+```
+
+**Diff review rows.** Run `QR`, then `QS` when present, after the
+other AI rows so the review sees the final delivered state:
+
+1. **Write the diff.** `git -C <worktree> diff <from>..<to>` into
+   `.spades/.tmp/review-diff/<plan-id>-<to-short-sha>.diff`, with
+   `<to>` the current `HEAD` revision.
+2. **Dispatch the reviewer.** Spawn the bundled agent with the Agent
+   tool, `subagent_type: review-diff`, passing the working context
+   (absolute worktree path, branch, `<to>`), the diff path, the Plan's
+   tasks and the Scope's acceptance criteria inline (each record named
+   by its worktree path when it is a file there, or by its Linear issue
+   identifier when it lives in Linear), the project rule documents
+   (`AGENTS.md`, `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`,
+   `REVIEW.md`), the mode (`general` for `QR`,
+   `security` for `QS`), and on a re-review the earlier findings with
+   how each was answered. Try `subagent-dispatch`, then
+   `sequential-inproc`. A `degraded` run reviews in this context,
+   which saw the delivery, so its evidence says so.
+3. **Add the harness's own reviewers.** Where the harness offers diff
+   review commands, such as Claude Code's `/code-review` and
+   `/security-review`, run them on the same range and fold their
+   findings into the row. The bundled agent's contract decides the
+   row.
+4. **Map the result onto the row.**
+   - An `important` finding within the Plan's scope makes the row
+     PARTIAL, and the findings are its evidence. The PARTIAL verdict
+     returns the Plan to Deliver, whose rework is reviewed in turn.
+   - A finding that shows the approach itself cannot work makes the
+     row FAIL, as for any other row.
+   - `nit` findings are recorded; with no `important` finding the row
+     is PASS.
+   - `pre-existing` findings are recorded and handed to the Leads
+     worker as out-of-scope discoveries.
+5. **Record the evidence** with the dispatch mode and the reviewed
+   range; its end revision is where the next review starts:
+
+```markdown
+    - QR: AI (`review-diff`, subagent-dispatch, a21fef5..1b3716e) — PASS (0 important, 2 nit, 1 pre-existing)
 ```
 
 Then:
@@ -402,7 +467,8 @@ record; the check is against the PR.
 2. **Find the PR** from `pr_url`; with `scm: local-git` the shipment
    commit named in the marker's `Shipped` line stands in for it.
 3. **Verify** — merged or open, CI green, description follows the
-   `/spades:quick` template.
+   `/spades:quick` template, and the marker records its
+   fresh-context diff review with no open `important` finding.
 4. **Re-walk the gate** against the actual diff.
 5. **Verdict** — ask: **PASS** (merged, CI green,
    gate holds) / **PARTIAL** (a small fix is needed) / **FAIL** (the
@@ -421,9 +487,10 @@ record; the check is against the PR.
 
 After each completed PASS, PARTIAL or FAIL, run the dedicated Leads worker
 and verify its receipt per `docs/FRAMEWORK.md § Leads handoff`. Supply all
-evaluation evidence, including known warnings and earlier captures with
-their observation keys. Account for every candidate and read back the
-reported records before recording completion.
+evaluation evidence, including known warnings, the diff review's
+`pre-existing` findings, and earlier captures with their observation
+keys. Account for every candidate and read back the reported records
+before recording completion.
 
 Persist the receipt, append the `Leads checked — source: evaluate;` marker
 after the latest verdict, and read it back before the next-step brief or

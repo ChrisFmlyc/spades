@@ -6,12 +6,12 @@ type: bug
 area: ChrisFmlyc/ai-skills plugins/codereview/skills/loop/SKILL.md:19 vs :129-141 (external dependency, codereview 1.2.1 / loop 0.7.1; invoked by plugins/spades/skills/loop/SKILL.md:333, Stage 7 bot review)
 effort: trivial
 confidence: high
-status: open
+status: closed
 created: 2026-11-19
 discovered_while: research-2026-11-19-cr-article
 sightings: 1
 promoted_to:
-closed_reason:
+closed_reason: done — fixed upstream in ai-skills PR #29 (f8e43b4, codereview 1.3.1); the loop overview now says the open threads are the findings and the loop builds the block itself
 github_issue:
 linear_issue_id:
 ---
@@ -30,3 +30,4 @@ Fix upstream in ChrisFmlyc/ai-skills: reword the overview's step 4 to match § 4
 
 ## History
 - 2026-11-19 — GitHub mirror create pending at its first step (authentication for the search-before-create in ChrisFmlyc/spades): `gh auth token --user ChrisFmlyc` timed out after 30 s on both attempts (exit 124) while api.github.com answered HTTP 200; no issue was searched or created; local capture is complete; complete with `/spades:leads --sync L-codereview-loop-overview-contradicts-step-4-hgNb`. worker-leads, Research completion handoff (research-2026-11-19-cr-article), executed in-worker.
+- 2026-11-19 — Closed as done by ai-skills PR #29 (merge f8e43b4, codereview 1.3.1): the loop overview step 4 now matches section 4. Takes effect once the installed codereview plugin is updated. No GitHub issue exists yet (create pending), so the mirror needs a create then a close: `/spades:leads --sync L-codereview-loop-overview-contradicts-step-4-hgNb`. Coordinator of PR #124, executed in-session.

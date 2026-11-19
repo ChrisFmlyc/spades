@@ -1,7 +1,7 @@
 ---
 name: quick
 description: Delivers trivial work through the fast-track path — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when someone says "just fix this small thing", "quick tweak", "one-line change", "typo fix", "rename this variable", or when you would otherwise invoke /spades:scope for a change that clearly meets every gate criterion below. Work that touches architecture, auth, schemas, or public APIs, or needs more than one focused commit, takes the full loop via /spades:scope.
-version: 2.5.1
+version: 2.6.0
 ---
 
 # /spades:quick
@@ -100,6 +100,31 @@ existing test or adds one small assertion. A visible change (UI,
 output format, CLI help) is checked by hand in the relevant
 environment, and what was checked is recorded.
 
+Then review the diff in a fresh context before anything is published:
+
+1. Write `git -C <worktree> diff <base>..HEAD` into
+   `.spades/.tmp/review-diff/<Q-id>-<short-sha>.diff`, with `<base>` the
+   start commit `/repo:newbranch` returned.
+2. Spawn the bundled agent with the Agent tool, `subagent_type:
+   review-diff`, passing the working context, the diff path, the
+   quick item's What, Why and Change with the marker's path, and the
+   project rule documents (`AGENTS.md`, `ARCHITECTURE.md`,
+   `PATTERNS.md`, `ANTI-PATTERNS.md`, `REVIEW.md`). Where the harness
+   offers its own diff reviewer, such as Claude Code's `/code-review`,
+   run it on the same range too.
+3. Fold the fixes for every `important` finding, and for the `nit`
+   findings worth taking, into the item's single commit. When any fix
+   was made, review the amended diff once more with the earlier
+   findings supplied. An `important` finding that remains after that
+   second review is something a reviewer would want to discuss, so
+   the item takes the full loop: stop and invoke `/spades:scope` as
+   for a failed gate criterion.
+4. Hand `pre-existing` findings to the Leads worker per
+   `docs/FRAMEWORK.md § Leads handoff` as out-of-scope discoveries.
+
+Record the result in the PR description's Verification section and
+the marker's opening audit line.
+
 ### 4. Publish — by `scm:`
 
 **`scm: github`** — open the PR with the template below, write the
@@ -135,6 +160,7 @@ is nothing to close.
 ## Verification
 - [ ] Existing tests pass (`<command>`)
 - [ ] Manually verified: <what, or "N/A — non-behavioural">
+- [ ] Fresh-context diff review: <n> important, <n> nit, <n> pre-existing (`<base>..<sha>`)
 
 ## Gate check
 - [x] Single concern
@@ -204,7 +230,7 @@ updated: YYYY-MM-DD
 - [x] Existing tests cover the area
 
 ## Audit Trail
-- YYYY-MM-DD: Quick-path opened. Type: <type>. Branch: <name>. Delivery: <ai|human>.[ PR: <url>.]
+- YYYY-MM-DD: Quick-path opened. Type: <type>. Branch: <name>. Delivery: <ai|human>. Diff review: <n> important, <n> nit, <n> pre-existing (<base>..<sha>).[ PR: <url>.]
 ```
 
 `status: shipped` always means the change is on `main` (github) or
