@@ -395,12 +395,24 @@ also catches it in repos without that rule.
 
 Each participating Plan's latest `Evaluation — verdict: PASS` line
 records the revision its rows ran against. List the paths the PR
-branch changed after it. A merge of the base contributes only the
-paths where its committed result differs from git's own merge, which
-are its conflict resolutions; the base's own changes stay out:
+branch changed after it, one first-parent commit at a time. A merge
+of the base, a two-parent merge whose second parent is reachable from
+`<remote>/<base>`, contributes only the paths where its committed
+result differs from git's own merge, which are its conflict
+resolutions; the base's own changes stay out. Every other commit,
+including a merge of any other branch, contributes every path it
+changes against its first parent:
 
 ```bash
-git log --first-parent --remerge-diff --format= --name-only <evaluated-sha>..<headRefOid> | sort -u
+git log --first-parent --format='%H %P' <evaluated-sha>..<headRefOid> |
+while read -r commit first second others; do
+  if [ -n "$second" ] && [ -z "$others" ] &&
+     git merge-base --is-ancestor "$second" <remote>/<base>; then
+    git show --remerge-diff --format= --name-only "$commit"
+  else
+    git diff --name-only "$first" "$commit"
+  fi
+done | sort -u
 ```
 
 Set aside paths under the SPADES root's `.spades/`; those are the
