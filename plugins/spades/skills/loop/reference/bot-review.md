@@ -49,16 +49,17 @@ gh api graphql -f query='
       pullRequest(number: $pr) {
         reviewThreads(first: 100) {
           nodes { id isResolved path
-            comments(first: 10) { nodes { databaseId author { login } body url } } } } } }
+            comments(first: 10) { nodes { databaseId author { __typename login } body url } } } } } }
   }' -F owner=<owner> -F repo=<repo> -F pr=<n>
 ```
 
 Classify each `isResolved == false` thread by its first comment's
-author:
+`author.__typename`. GraphQL returns a bot's login without the
+`[bot]` suffix the REST API shows, so the account type is the signal:
 
-- **A bot** → run `/codereview:loop` again; it either hasn't
+- **`Bot`** → run `/codereview:loop` again; it either hasn't
   finished or stopped and told you why.
-- **A human** → § 2; pause.
+- **Any other type, or no author** → a human; § 2; pause.
 
 Zero unresolved threads from any author → append the `Loop — bot
 review clean` marker and return to the calling stage.

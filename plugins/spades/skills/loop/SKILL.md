@@ -1,15 +1,16 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, deliver, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. Runs only on direct user invocation or delegation from a user-created goal or driver. See "Who may invoke this".
-version: 1.15.0
+version: 1.15.1
 ---
 
 # /spades:loop
 
 The human has confirmed a Scope. Everything from Plan to closed-out
 bookkeeping is yours, including the questions the child skills would
-otherwise put to a human. One gate stays theirs: signing off an
-evaluation that needed a human to verify part of it.
+otherwise put to a human. Two decisions stay theirs: accepting a Plan
+that changes the project's architecture, and signing off an evaluation
+that needed a human to verify part of it.
 
 Read `docs/FRAMEWORK.md` § Orchestration Order (`/spades:loop`),
 § Target Resolution, § Freshness, § Carry-Forward of SPADES-Owned
@@ -87,7 +88,7 @@ one-line reason beside each `human` row.
 | `/spades:plan` — the draft (Scope summary, title, breakdown) | You are the reviewer: correct a misread Scope or a wrong task, then confirm. |
 | `/spades:plan` — dependencies, when asked | From what this Plan needs of its siblings; `none` when alone. |
 | `/spades:plan` — `deliverable_type` | `code` unless the Scope's outcome plainly isn't code. |
-| `/spades:approve` — the decision | Stage 2. |
+| `/spades:approve` — the decision | Stage 2; the human's when the Plan changes the architecture. |
 | `/spades:approve`, `/spades:evaluate` — routing | § Routing. |
 | `/spades:deliver` — a dependency is not ready per § Scope Worktrees | *Wait*; deliver and evaluate the dependency first. |
 | `/spades:deliver` — first delivery | Create the Scope’s recorded delivery branch through `/repo:newbranch`; retain the documentation branch. |
@@ -190,7 +191,11 @@ record, appended to the Plan's `## Audit Trail`:
 - YYYY-MM-DD: Loop — evaluate sign-off: AI (all <n> rows AI-verified).
 - YYYY-MM-DD: Loop — evaluate sign-off: human (<n> human-verified row(s)).
 - YYYY-MM-DD: Loop — rework <n>/2 after PARTIAL: <one-line gap>.
+- YYYY-MM-DD: Loop — rework <n>/2 after post-evaluation re-check: <row id> — <one-line gap>.
 - YYYY-MM-DD: Loop — bot review clean on <pr-url> (<n> rounds).
+- YYYY-MM-DD: Loop — base merged into PR: <remote>/<base> at <short-sha>.
+- YYYY-MM-DD: Loop — post-evaluation re-check at <short-head>: <k> commit(s) since <short-evaluated>; <rows re-run and their results | no code changes>.
+- YYYY-MM-DD: Loop — human re-check <row id> at <short-head>: pass | fail — <note>.
 - YYYY-MM-DD: Loop — ship PR squash-merged: <merge-sha>.
 - YYYY-MM-DD: Loop — deploy: success (<url>). | not configured.
 - YYYY-MM-DD: Loop — learning captured: <path>.
@@ -214,14 +219,29 @@ Pin it. No Plan produced → pause.
 Invoke **`/spades:approve P-<plan-id>`** and walk its six checks as
 a reviewer would, reading the Plan as if someone else wrote it.
 
+First read check 1's findings for an architecture change: the Plan adds
+a runtime dependency or framework, introduces a pattern `PATTERNS.md`
+doesn't list, has a task that edits `ARCHITECTURE.md`, `PATTERNS.md` or
+`ANTI-PATTERNS.md`, or conflicts with any of the three.
+
+- **An architecture change** → Pause 16 once checks 2–6 pass; while
+  one of them fails, take the *A check fails* route first, so the
+  human decides on a Plan that is otherwise ready. The pause block
+  lists each change with the Plan section that introduces it and the
+  document it affects. When the human accepts, answer *Approve* and
+  record the approval as theirs, `Approved by human — routing: <routing>. Notes:
+  architecture change accepted: <change>.`, with routing per § Routing.
+  When they ask for a different approach, apply it as a revision and
+  re-run the checks. A human who runs `/spades:approve P-<plan-id>`
+  themselves has decided it too; the Plan resumes at Stage 3.
 - **Six clean** → *Approve*, route per § Routing, continue.
 - **Clean with a concern worth carrying** → *Approve with notes*.
 - **A check fails** — the Plan doesn't solve the Scope, the approach
-  can't work, the breakdown is wrong, or it conflicts with the
-  architecture docs → *Revise*, fix the Plan, re-run the checks.
-  Two revisions is the cap; a third failure is Pause 2.
+  can't work, or the breakdown is wrong → *Revise*, fix the Plan,
+  re-run the checks. Two revisions is the cap; a third failure is
+  Pause 2.
 
-The approval line names `AI (/spades:loop)`. Sensitive areas are
+Every other approval line names `AI (/spades:loop)`. Sensitive areas are
 approved on the same six checks; `deliverable_type: action` approves
 normally and routes `human`, and Stage 3 stands down there.
 
@@ -301,8 +321,9 @@ the rows and let the skill re-derive.
 ### Verdicts other than PASS
 
 - **PARTIAL** → the skill rolls the Plan back to `delivering`.
-  Append `Loop — rework <n>/2 …` and return to Stage 3. A third
-  PARTIAL is Pause 6.
+  Append `Loop — rework <n>/2 …` and return to Stage 3. PARTIAL
+  reworks and Stage 8's re-check reworks share one count; a third
+  rework on the same Plan is Pause 6.
 - **FAIL** → end the run per the skill's After-verdict brief; pause.
 
 ## Stage 6 — Scope readiness and Ship
@@ -341,34 +362,153 @@ and § Boundaries for review text and human threads.
 
 ## Stage 8 — Squash-merge the ship PR
 
-Assert all of the following; any failure is a pause:
+The merge lands the exact head that was checked, and that head
+contains the default branch as fetched seconds before the merge
+(step 4). Branch protection that requires an up-to-date branch also
+covers those seconds; without it, GitHub squashes onto any base
+commit that lands in that gap, a combination no check ran on. Run the
+four steps in order from the PR's worktree. A command that exits
+non-zero is a failed step, and a failed step is Pause 9 unless the
+step names another outcome.
 
 ```bash
-gh pr view <n> --json state,mergeable,mergeStateStatus,statusCheckRollup
+gh pr view <n> --json state,baseRefName,headRefOid,mergeable,mergeStateStatus,statusCheckRollup
 ```
+
+### 1. Current with the base
+
+```bash
+git fetch <remote> <base> &&
+git rev-list --count <headRefOid>..<remote>/<base>
+```
+
+It prints how many base commits the PR head lacks. `0` means the PR
+head contains the current base; go to step 2. A higher count means the
+base has commits the PR's checks never ran with. Confirm the
+worktree's `HEAD` is `headRefOid`, forward-merge the base through
+`/repo:branch` with `git merge --no-edit <remote>/<base>`, push the
+branch, and append `Loop — base merged into PR: …`. Then wait for the
+checks, run Stage 7's sweep for reviews of the new head, and restart
+Stage 8. A merge that stops on conflicts is aborted with `git merge
+--abort`, and the pause names the conflicting paths for the human to
+resolve. The third forward merge on one PR pauses before it runs, and
+so does each one after it: a base that keeps moving needs the human's
+timing.
+
+A `mergeStateStatus` of `BEHIND` (reported where branch protection
+requires an up-to-date branch) is the same condition; the git check
+also catches it in repos without that rule.
+
+### 2. Post-evaluation re-check (ship PR)
+
+Each participating Plan's latest `Evaluation — verdict: PASS` line
+records the revision its rows ran against. List the paths the PR
+branch changed after it, one first-parent commit at a time. A merge
+of the base, a two-parent merge whose second parent is reachable from
+`<remote>/<base>`, contributes only the paths where its committed
+result differs from git's own merge, which are its conflict
+resolutions; the base's own changes stay out. Every other commit,
+including a merge of any other branch, contributes every path it
+changes against its first parent:
+
+```bash
+set -o pipefail
+paths=$(git merge-base --is-ancestor <evaluated-sha> <headRefOid> &&
+git log --first-parent --format='%H %P' <evaluated-sha>..<headRefOid> |
+while read -r commit first second others; do
+  if [ -n "$second" ] && [ -z "$others" ] &&
+     git merge-base --is-ancestor "$second" <remote>/<base>; then
+    git show --remerge-diff --no-renames --format= --name-only "$commit"
+  else
+    git diff --no-renames --name-only "$first" "$commit"
+  fi || exit
+done | sort -u) && printf '%s\n' "$paths"
+```
+
+The command exits non-zero, printing no list, when the evaluated
+revision is missing from the checkout, when it is not an ancestor of
+`headRefOid` (a force-push replaced it), or when any git command in it
+fails.
+
+Set aside paths under the SPADES root's `.spades/`; those are the
+run's records. The rest are code changes made after evaluation,
+usually `/codereview:fix` commits and conflict resolutions. Re-run,
+against `headRefOid`, every AI verification row whose method covers
+one of those paths: a test, lint or build command over code that
+contains it, or an inspection that names it. Append the `Loop —
+post-evaluation re-check` line with the rows and results, or `no code
+changes`.
+
+- **Every re-run row passes** → step 3.
+- **A row fails** → a rework on the open PR. Hand the row, its
+  method, its output and the commits that touched its paths to
+  `/codereview:fix` as one finding, append `Loop — rework <n>/2 after
+  post-evaluation re-check: …`, push, and return to Stage 7. These
+  reworks share the PARTIAL count, so the third is Pause 6.
+- **A Human row covers a changed path** → the human re-runs it, and
+  the loop appends `Loop — human re-check …` with their result. A
+  result recorded at `headRefOid` is that row's re-run: a pass counts
+  with the passing rows and a fail is a rework as above. Without one,
+  pause before step 3, naming the row and the commits.
+
+Without a complete list — a verdict line that records no revision, or
+a command that exits non-zero — step 2 counts every path the PR
+changed as changed after evaluation: re-run every AI row against
+`headRefOid`, and treat every Human row as covering a changed path,
+its pause naming the PR's commits
+(`git log --first-parent --no-merges --oneline
+<remote>/<base>..<headRefOid>`). The
+bookkeeping PR (Stage 13) carries no evaluation and goes from step 1
+to step 3.
+
+### 3. Merge assertions
 
 - `state == "OPEN"`.
 - `mergeable == "MERGEABLE"` — re-poll `UNKNOWN`, pause on
   `CONFLICTING`.
-- No required check `FAILURE` / `ERROR` / `TIMED_OUT` / `CANCELLED`,
-  none still `PENDING`.
-- No **human** reviewer's latest review is `CHANGES_REQUESTED`:
+- No required check `FAILURE` / `ERROR` / `TIMED_OUT` / `CANCELLED`;
+  wait while any is `PENDING`.
+- `mergeStateStatus` is `CLEAN`, `HAS_HOOKS` or `UNSTABLE` (only
+  non-required checks failing). `BEHIND` returns to step 1; `UNKNOWN`
+  re-polls; `BLOCKED` pauses naming the unmet branch-protection
+  requirement; `DIRTY` pauses with the conflicts; `DRAFT` pauses for
+  the human to mark the PR ready.
+- No **human** reviewer's latest review requests changes. Reviewers
+  are told apart by account type, since bot logins carry no fixed
+  suffix in every API:
 
   ```bash
-  gh pr view <n> --json reviews \
-    --jq '[.reviews[] | select(.author.login | endswith("[bot]") | not)]
-          | group_by(.author.login) | map(last)
-          | map(select(.state == "CHANGES_REQUESTED")) | length'
+  reviews=$(gh api --paginate "repos/{owner}/{repo}/pulls/<n>/reviews?per_page=100" \
+    --jq '.[] | select(.user.type != "Bot")
+          | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED"
+                   or .state == "DISMISSED")
+          | "\(.user.login) \(.state)"') &&
+  awk '{ last[$1] = $2 }
+       END { for (u in last) n += last[u] == "CHANGES_REQUESTED"; print n + 0 }' <<<"$reviews"
   ```
 
+  `--paginate` reads every page of reviews and `--jq` runs once per
+  page, so `reviews` holds one line per review in submission order.
+  `awk` keeps each reviewer's last state across all pages and prints
+  the count only once every page has been read.
   The PR-level `reviewDecision` mixes bots and humans and lags the
   thread sweep, so the per-reviewer query is the signal.
 - Zero unresolved threads — re-run the sweep from
   `reference/bot-review.md`; a bot can post between sweep and merge.
 
-Then `gh pr merge <n> --squash`. If branch protection blocks the merge,
-pause and report the blocking rule. Capture
-the merge SHA and append the marker.
+### 4. Merge
+
+Re-run step 1's command, and merge as soon as it prints `0`:
+
+```bash
+gh pr merge <n> --squash --match-head-commit <headRefOid>
+```
+
+A higher count means the base moved after step 1 ran; return to
+step 1. GitHub refuses the merge when the head moved after these
+checks; restart Stage 8 then. If branch protection blocks the merge,
+pause and report the blocking rule. Capture the merge SHA and append the
+marker.
 
 ## Stage 9 — Deploy gate
 
@@ -419,7 +559,7 @@ These run inside close's B5. The bookkeeping PR is a real PR and the
 bots review it like any other:
 
 - **12** — Stage 7 against the bookkeeping PR number.
-- **13** — Stage 8's assertions and squash-merge.
+- **13** — Stage 8's steps 1, 3 and 4 against the bookkeeping PR.
 
 At B5's `OPEN` branch, run Stages 12–13 inside close, then let B5 probe
 again. A verified `MERGED` result advances through B6–B7, placing the Linear
@@ -494,7 +634,7 @@ the derived stage.
 | 3 | `delivery: human`, or a `hybrid` Plan reaching its first human task | 3 |
 | 4 | `/spades:deliver` finds the Plan is wrong mid-flight | 3 |
 | 5 | Evaluate verdict FAIL | 5 |
-| 6 | Third PARTIAL on the same Plan | 5 |
+| 6 | Third rework on the same Plan (PARTIAL or post-evaluation re-check) | 5, 8 |
 | 7 | `/codereview:loop` stops short | 7, 12 |
 | 8 | An unresolved review thread from a human | 7, 12 |
 | 9 | A pre-merge assertion fails | 8, 13 |
@@ -504,6 +644,7 @@ the derived stage.
 | 13 | A child asks something the Scope, Plan, config, and repo docs don't answer | any |
 | 14 | The human says stop | any |
 | 15 | Claude Code's permission check refuses a command the remaining work needs | any |
+| 16 | The Plan changes the architecture: a new runtime dependency or pattern, an edit to `ARCHITECTURE.md` / `PATTERNS.md` / `ANTI-PATTERNS.md`, or a conflict with them | 2 |
 
 Apply the six Approve checks, verification rows, CI and bot review to
 auth, secrets, migrations and data deletion under § Routing. Carry forward

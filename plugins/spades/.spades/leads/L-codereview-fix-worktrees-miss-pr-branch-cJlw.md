@@ -6,12 +6,12 @@ type: bug
 area: ChrisFmlyc/ai-skills plugins/codereview/skills/fix/SKILL.md:104,141 (external dependency; invoked by plugins/spades/skills/loop/SKILL.md:333, Stage 7 bot review)
 effort: small
 confidence: medium
-status: open
+status: closed
 created: 2026-10-27
 discovered_while: P-narrow-skill-triggers-and-newproject-disclosure-8XWy
 sightings: 1
 promoted_to:
-closed_reason:
+closed_reason: "done — fixed upstream in ChrisFmlyc/ai-skills PR #23 (d284430, codereview 1.3.0); fix/SKILL.md lines 305-307 drop worktree isolation, so subagents work in the ordinary checkout and the supervisor commits"
 github_issue: https://github.com/ChrisFmlyc/spades/issues/121
 linear_issue_id:
 ---
@@ -30,3 +30,4 @@ Fix upstream in ChrisFmlyc/ai-skills: cut each finding's worktree from the PR br
 
 ## History
 - 2026-10-27 — GitHub mirror created: issue #121 (https://github.com/ChrisFmlyc/spades/issues/121), labels spades:lead + bug (both already in the repo); result verified by read-back of title, OPEN state, labels and body (Lead ID and context key present); worker-leads, Learn completion handoff, executed in-worker (caller asked for no further delegation).
+- 2026-11-19 — Closed as done: ChrisFmlyc/ai-skills PR #23 (merge d284430, codereview 1.3.0) removed per-finding worktree isolation; plugins/codereview/skills/fix/SKILL.md:305-307 on origin/main now runs subagents in the ordinary checkout with the supervisor doing all commits, so the PR branch's content is what each subagent reads. Verified by reading origin/main d284430. The installed Claude Code copy was still codereview 1.2.1 on 2026-11-19, so the fix takes effect only after the plugin is updated. GitHub issue #121 close as completed is pending: `gh auth token --user ChrisFmlyc` timed out on 2026-11-19; complete with `/spades:leads --sync L-codereview-fix-worktrees-miss-pr-branch-cJlw`. Executed in-worker on branch fix/loop-merge-gate-checks.

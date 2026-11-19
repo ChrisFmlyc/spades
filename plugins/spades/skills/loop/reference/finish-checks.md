@@ -25,12 +25,15 @@ gh api graphql -f query='
       pullRequest(number: $pr) {
         reviewThreads(first: 100) {
           nodes { id isResolved path
-            comments(first: 10) { nodes { databaseId author { login } body url } } } } } }
+            comments(first: 10) { nodes { databaseId author { __typename login } body url } } } } } }
   }' -F owner=<owner> -F repo=<repo> -F pr=<n>
 ```
 
-A thread is outstanding when `isResolved == false`. A `[bot]` author
-goes to `/codereview:loop`; a human author is a pause.
+A thread is outstanding when `isResolved == false`. Its first
+comment's `author.__typename` decides who owns it: `Bot` goes to
+`/codereview:loop`; any other type, or no author, is a human and a
+pause. GraphQL bot logins carry no `[bot]` suffix, so match on the
+type rather than the login.
 
 ---
 

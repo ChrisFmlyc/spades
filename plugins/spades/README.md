@@ -3,7 +3,7 @@
 **A human-AI operating model for engineering teams.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-6.9.0-green.svg)](.claude-plugin/plugin.json)
+[![Version](https://img.shields.io/badge/version-6.9.1-green.svg)](.claude-plugin/plugin.json)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-blueviolet.svg)](https://claude.ai/code)
 
 SPADES assigns ownership to each phase and records the decisions,
@@ -190,12 +190,14 @@ it for you:
 ```
 
 The loop handles approval and verification when the AI can complete
-them. Evaluation pauses for your confirmation when it includes checks
+them. Approval pauses for you when a Plan changes the architecture.
+Evaluation pauses for your confirmation when it includes checks
 only a human can perform. You can discuss the evidence or ask for a
 check to be rerun before confirming.
 
-It then proceeds through shipment, bot review, squash-merge,
-`/spades:close`, and the bookkeeping PR's review and merge. Branches
+It then proceeds through shipment, bot review, a squash-merge of
+the head it re-checked against the current base, `/spades:close`, and
+the bookkeeping PR's review and merge. Branches
 and worktrees remain available after completion. Other blockers and
 human decisions follow `skills/loop/SKILL.md § Pauses`.
 
@@ -237,7 +239,7 @@ SPADES ships 24 skills, grouped by *when you reach for them*:
 
 | Skill | Purpose |
 |-------|---------|
-| `/spades:loop` | Drive one Scope from Plan to closed-out. Chains `plan → approve → deliver → evaluate → ship → CodeRabbit/Greptile review → squash-merge → close → review → merge`, with human sign-off when evaluation requires it, Plans delivered in dependency order in one Scope worktree, then one shared delivery PR. Your invocation, or delegation from a goal or driver you established, supplies authorization to push, open PRs, resolve **bot** review threads, and squash-merge, bounded to this Scope's own branches and PRs. It never writes a Scope or resolves a human's review comment. See `skills/loop/SKILL.md` for invocation and verification rules. |
+| `/spades:loop` | Drive one Scope from Plan to closed-out. Chains `plan → approve → deliver → evaluate → ship → CodeRabbit/Greptile review → squash-merge → close → review → merge`, with your acceptance of any architecture change and your sign-off when evaluation requires it, Plans delivered in dependency order in one Scope worktree, then one shared delivery PR. Your invocation, or delegation from a goal or driver you established, supplies authorization to push, open PRs, resolve **bot** review threads, and squash-merge, bounded to this Scope's own branches and PRs. It never writes a Scope or resolves a human's review comment. See `skills/loop/SKILL.md` for invocation and verification rules. |
 
 #### Side path — skip the full loop for trivial work
 

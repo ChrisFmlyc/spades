@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Checks delivered output against the Scope's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this plan", "evaluate P-…" or "check this against the acceptance criteria", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.11.0
+version: 3.11.1
 ---
 
 # /spades:evaluate
@@ -233,8 +233,17 @@ Required markers: `verification-rows`, `audit-events`. Then print:
 
 ## Step 5 — Execute the rows
 
-**AI rows (fresh run).** Run each method or perform the inspection,
-capture PASS / FAIL / PARTIAL, and note one line of evidence — a
+**AI rows (fresh run).** The rows test the delivery worktree's
+committed `HEAD`, the revision Step 8 records. Before the first row,
+check that `git status --porcelain` in that worktree lists nothing
+outside the SPADES root's `.spades/`, which holds this run's records.
+Any other staged, unstaged or untracked change is uncommitted work:
+list it, ask the human per `docs/FRAMEWORK.md § Carry-Forward →
+Existing uncommitted work` to commit it to the delivery branch or move
+it out of the worktree, and run the rows once none remains.
+
+Run each method or perform the inspection, capture PASS / FAIL /
+PARTIAL, and note one line of evidence — a
 cause for failures, a pointer (`tests/perf.ts:42`, an output
 excerpt) for passes. Update the agreed-plan lines in place:
 
@@ -398,7 +407,7 @@ One wave per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`,
 
 | Sub-agent | Resource owned | Returns |
 |---|---|---|
-| `worker-file-plan-evaluate` | `.spades/plans/P-<…>.md` — PASS keeps `status: evaluating`; PARTIAL rolls back to `delivering` so `/spades:deliver` resumes; FAIL sets `rejected`. Appends `- YYYY-MM-DD: Evaluation — verdict: <PASS\|PARTIAL\|FAIL>. Notes: <rationale>.` | `{ status: ok }` |
+| `worker-file-plan-evaluate` | `.spades/plans/P-<…>.md` — PASS keeps `status: evaluating`; PARTIAL rolls back to `delivering` so `/spades:deliver` resumes; FAIL sets `rejected`. Appends `- YYYY-MM-DD: Evaluation — verdict: <PASS\|PARTIAL\|FAIL>. Evaluated revision: <sha>. Notes: <rationale>.`, where `<sha>` is the full commit of the delivery worktree's `HEAD` that Step 5 ran the rows against. | `{ status: ok }` |
 | `worker-file-scope-evaluate` *(Scope rollup only)* | `.spades/scopes/S-<…>.md` — `status: evaluating` on the first PASS per `docs/FRAMEWORK.md § Scope status rollup`, plus an audit line. | `{ status: ok }` |
 | `worker-linear-evaluate` *(`backend: linear`)* | Linear — `record_evaluation(plan_id, verdict, notes)`: the report as a sub-issue comment and the matching workflow state. Carries the resolved worktree context per § Freshness. | `{ status: ok }` |
 
