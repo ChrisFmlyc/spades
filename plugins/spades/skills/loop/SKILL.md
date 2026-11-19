@@ -1,7 +1,7 @@
 ---
 name: loop
 description: Drives one existing Scope from Plan to closed-out — plan, approve, deliver, evaluate, ship, bot review, squash-merge, deploy, close — answering for the human at every step the AI can answer. Runs only on direct user invocation or delegation from a user-created goal or driver. See "Who may invoke this".
-version: 1.14.2
+version: 1.15.0
 ---
 
 # /spades:loop
@@ -239,9 +239,14 @@ Invoke **`/spades:evaluate P-<plan-id>`**. Answer the routing per
 § Routing. Build the verification table to cover the Scope's acceptance
 criteria, filling any gaps before approving it at the skill's gate. Every
 check you can run is an `ai` row; a `Human` row carries its one-line reason.
+A code Plan's table includes the skill's diff review rows: `QR` always,
+and `QS` or `QH` when the diff touches what they cover.
 
 Execute each AI row's method, capture the output, and record
-PASS / FAIL / PARTIAL with evidence.
+PASS / FAIL / PARTIAL with evidence. The `QR` and `QS` rows run in a
+fresh context through the bundled `review-diff` agent, and an
+`important` finding they return makes the row PARTIAL, which takes the
+rework edge under § Verdicts other than PASS.
 
 - **No Human rows** → the skill runs through to its verdict
   confirmation; answer it at Stage 5B.
