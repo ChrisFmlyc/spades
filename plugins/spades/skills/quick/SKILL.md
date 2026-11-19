@@ -107,10 +107,11 @@ Then review the diff in a fresh context before anything is published:
    start commit `/repo:newbranch` returned.
 2. Spawn the bundled agent with the Agent tool, `subagent_type:
    review-diff`, passing the working context, the diff path, the
-   quick item's What, Why and Change, and the project rule documents
-   (`AGENTS.md`, `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`,
-   `REVIEW.md`). Where the harness offers its own diff reviewer, such
-   as Claude Code's `/code-review`, run it on the same range too.
+   quick item's What, Why and Change with the marker's path, and the
+   project rule documents (`AGENTS.md`, `ARCHITECTURE.md`,
+   `PATTERNS.md`, `ANTI-PATTERNS.md`, `REVIEW.md`). Where the harness
+   offers its own diff reviewer, such as Claude Code's `/code-review`,
+   run it on the same range too.
 3. Fold the fixes for every `important` finding, and for the `nit`
    findings worth taking, into the item's single commit. When any fix
    was made, review the amended diff once more with the earlier

@@ -252,9 +252,10 @@ other AI rows so the review sees the final delivered state:
 2. **Dispatch the reviewer.** Spawn the bundled agent with the Agent
    tool, `subagent_type: review-diff`, passing the working context
    (absolute worktree path, branch, `<to>`), the diff path, the Plan's
-   tasks and the Scope's acceptance criteria, the project rule
-   documents (`AGENTS.md`, `ARCHITECTURE.md`, `PATTERNS.md`,
-   `ANTI-PATTERNS.md`, `REVIEW.md`), the mode (`general` for `QR`,
+   tasks and the Scope's acceptance criteria with the worktree paths
+   of the Plan and Scope records, the project rule documents
+   (`AGENTS.md`, `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`,
+   `REVIEW.md`), the mode (`general` for `QR`,
    `security` for `QS`), and on a re-review the earlier findings with
    how each was answered. Try `subagent-dispatch`, then
    `sequential-inproc`. A `degraded` run reviews in this context,

@@ -92,7 +92,7 @@ review, by review bots, and by people.
 
 ## Writing Findings
 
-- **Cite file and line.** Every finding names the file and line it concerns; a finding that cannot be placed on a line is left out.
+- **Cite file and line.** Every finding names the file and line of its evidence: a line of code, a line the diff removes, or, for a deliverable the change never creates, the line of the Plan or work item that names it. An earlier finding with no current line keeps the place it was first reported. A finding with nothing to place is speculative and left out.
 - **Summary first.** A review opens with its count by severity, or states "No issues found."
 - **Name the class.** Each finding names its bug class and lists every instance, so one fix covers them all.
 - **Label pre-existing.** A defect that exists without the change is labelled pre-existing and never blocks the change. A defect the change causes is introduced, including one that surfaces in unchanged code such as a caller.

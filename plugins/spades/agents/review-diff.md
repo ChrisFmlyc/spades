@@ -27,7 +27,8 @@ The coordinator's prompt carries:
   the range under review. The changed hunks are the change; every
   other line is existing code.
 - **Intent** — the Plan's tasks and the Scope's acceptance criteria,
-  or the Quick item's What, Why and Change.
+  or the Quick item's What, Why and Change, with the worktree path of
+  each record they come from.
 - **Project rules** — `AGENTS.md`, `ARCHITECTURE.md`, `PATTERNS.md`,
   `ANTI-PATTERNS.md`, and `REVIEW.md`, each when present.
 - **Mode** — `general` (the default) or `security`.
@@ -85,8 +86,9 @@ since the last review. Review the new commits, and check each earlier
 Important finding against the worktree. An earlier finding that has
 been fixed, or answered and resolved, is not reported again. An
 earlier Important finding the new commits leave unfixed stays in the
-result as `important`, cited at its current line, until a review
-verifies its fix.
+result as `important`, cited at its current line, or where it was
+first reported when it has no current line, until a review verifies
+its fix.
 
 ## Output contract
 
@@ -129,9 +131,18 @@ its intent says.
 }
 ```
 
-Every finding cites a `file` and `line` you read in the worktree,
-or, for a line the diff removes, the file and its old line number
-from the diff. A finding you cannot place on a line stays out. When
-`intent.matches` is `false`, the gap is also an `important` finding
-with class `intent`. An empty `findings` array goes with the
-`No issues found.` line.
+Every finding cites a `file` and `line` at its evidence:
+
+- **Code in the worktree** — the file and a line you read there.
+- **A line the diff removes** — the file and its old line number from
+  the diff.
+- **An intent gap with no code to cite**, such as a deliverable the
+  diff never creates — the Plan, Scope or Quick item record and the
+  line in it that names the missing deliverable.
+- **A retained earlier finding with no current line** — the `file`
+  and `line` it was first reported at.
+
+A finding you cannot place in one of these ways is speculative and
+stays out. When `intent.matches` is `false`, the gap is also an
+`important` finding with class `intent`. An empty `findings` array
+goes with the `No issues found.` line.
