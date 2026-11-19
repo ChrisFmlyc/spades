@@ -223,10 +223,12 @@ a runtime dependency or framework, introduces a pattern `PATTERNS.md`
 doesn't list, has a task that edits `ARCHITECTURE.md`, `PATTERNS.md` or
 `ANTI-PATTERNS.md`, or conflicts with any of the three.
 
-- **An architecture change** → Pause 16. The pause block lists each
-  change with the Plan section that introduces it and the document it
-  affects. When the human accepts, answer *Approve* and record the
-  approval as theirs, `Approved by human — routing: <routing>. Notes:
+- **An architecture change** → Pause 16 once checks 2–6 pass; while
+  one of them fails, take the *A check fails* route first, so the
+  human decides on a Plan that is otherwise ready. The pause block
+  lists each change with the Plan section that introduces it and the
+  document it affects. When the human accepts, answer *Approve* and
+  record the approval as theirs, `Approved by human — routing: <routing>. Notes:
   architecture change accepted: <change>.`, with routing per § Routing.
   When they ask for a different approach, apply it as a revision and
   re-run the checks. A human who runs `/spades:approve P-<plan-id>`
@@ -354,9 +356,13 @@ and § Boundaries for review text and human threads.
 
 ## Stage 8 — Squash-merge the ship PR
 
-The merge lands the exact head that was checked against the current
-default branch. Run the four steps in order from the PR's worktree;
-a failed step is Pause 9 unless it names another outcome.
+The merge lands the exact head that was checked, and that head
+contains the default branch as fetched seconds before the merge
+(step 4). Branch protection that requires an up-to-date branch also
+covers those seconds; without it, GitHub squashes onto any base
+commit that lands in that gap, a combination no check ran on. Run the
+four steps in order from the PR's worktree; a failed step is Pause 9
+unless it names another outcome.
 
 ```bash
 gh pr view <n> --json state,baseRefName,headRefOid,mergeable,mergeStateStatus,statusCheckRollup
@@ -389,19 +395,22 @@ also catches it in repos without that rule.
 
 Each participating Plan's latest `Evaluation — verdict: PASS` line
 records the revision its rows ran against. List the paths the PR
-branch changed after it, leaving out forward merges of the base:
+branch changed after it. A merge of the base contributes only the
+paths where its committed result differs from git's own merge, which
+are its conflict resolutions; the base's own changes stay out:
 
 ```bash
-git log --first-parent --no-merges --format= --name-only <evaluated-sha>..<headRefOid> | sort -u
+git log --first-parent --remerge-diff --format= --name-only <evaluated-sha>..<headRefOid> | sort -u
 ```
 
 Set aside paths under the SPADES root's `.spades/`; those are the
 run's records. The rest are code changes made after evaluation,
-usually `/codereview:fix` commits. Re-run, against `headRefOid`, every
-AI verification row whose method covers one of those paths: a test,
-lint or build command over code that contains it, or an inspection
-that names it. Append the `Loop — post-evaluation re-check` line with
-the rows and results, or `no code changes`.
+usually `/codereview:fix` commits and conflict resolutions. Re-run,
+against `headRefOid`, every AI verification row whose method covers
+one of those paths: a test, lint or build command over code that
+contains it, or an inspection that names it. Append the `Loop —
+post-evaluation re-check` line with the rows and results, or `no code
+changes`.
 
 - **Every re-run row passes** → step 3.
 - **A row fails** → a rework on the open PR. Hand the row, its
@@ -412,9 +421,13 @@ the rows and results, or `no code changes`.
 - **A Human row covers a changed path** → pause, naming the row and
   the commits, so the human re-checks it.
 
-A verdict line without a revision re-runs every AI row against
-`headRefOid`. The bookkeeping PR (Stage 13) carries no evaluation and
-goes from step 1 to step 3.
+A verdict line without a revision counts every path the PR changed as
+changed after evaluation: re-run every AI row against `headRefOid`,
+and pause for every Human row, naming the row and the PR's commits
+(`git log --first-parent --no-merges --oneline
+<remote>/<base>..<headRefOid>`), so the human re-checks it. The
+bookkeeping PR (Stage 13) carries no evaluation and goes from step 1
+to step 3.
 
 ### 3. Merge assertions
 
@@ -433,14 +446,18 @@ goes from step 1 to step 3.
   suffix in every API:
 
   ```bash
-  gh api "repos/{owner}/{repo}/pulls/<n>/reviews?per_page=100" \
-    --jq '[.[] | select(.user.type != "Bot")
-           | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED"
-                    or .state == "DISMISSED")]
-          | group_by(.user.login) | map(last)
-          | map(select(.state == "CHANGES_REQUESTED")) | length'
+  gh api --paginate "repos/{owner}/{repo}/pulls/<n>/reviews?per_page=100" \
+    --jq '.[] | select(.user.type != "Bot")
+          | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED"
+                   or .state == "DISMISSED")
+          | "\(.user.login) \(.state)"' \
+    | awk '{ last[$1] = $2 }
+           END { for (u in last) n += last[u] == "CHANGES_REQUESTED"; print n + 0 }'
   ```
 
+  `--paginate` reads every page of reviews and `--jq` runs once per
+  page, so it prints one line per review in submission order and `awk`
+  keeps each reviewer's last state across all pages before counting.
   The PR-level `reviewDecision` mixes bots and humans and lags the
   thread sweep, so the per-reviewer query is the signal.
 - Zero unresolved threads — re-run the sweep from
@@ -448,13 +465,17 @@ goes from step 1 to step 3.
 
 ### 4. Merge
 
+Re-run step 1's fetch and ancestry check, and merge as soon as it
+exits 0:
+
 ```bash
 gh pr merge <n> --squash --match-head-commit <headRefOid>
 ```
 
-GitHub refuses the merge when the head moved after these checks;
-restart Stage 8 then. If branch protection blocks the merge, pause
-and report the blocking rule. Capture the merge SHA and append the
+A non-zero exit means the base moved after step 1 ran; return to
+step 1. GitHub refuses the merge when the head moved after these
+checks; restart Stage 8 then. If branch protection blocks the merge,
+pause and report the blocking rule. Capture the merge SHA and append the
 marker.
 
 ## Stage 9 — Deploy gate

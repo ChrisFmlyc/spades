@@ -208,8 +208,17 @@ Required markers: `verification-rows`, `audit-events`. Then print:
 
 ## Step 5 — Execute the rows
 
-**AI rows (fresh run).** Run each method or perform the inspection,
-capture PASS / FAIL / PARTIAL, and note one line of evidence — a
+**AI rows (fresh run).** The rows test the delivery worktree's
+committed `HEAD`, the revision Step 8 records. Before the first row,
+check that `git status --porcelain` in that worktree lists nothing
+outside the SPADES root's `.spades/`, which holds this run's records.
+Any other staged, unstaged or untracked change is uncommitted work:
+list it, ask the human per `docs/FRAMEWORK.md § Carry-Forward →
+Existing uncommitted work` to commit it to the delivery branch or move
+it out of the worktree, and run the rows once none remains.
+
+Run each method or perform the inspection, capture PASS / FAIL /
+PARTIAL, and note one line of evidence — a
 cause for failures, a pointer (`tests/perf.ts:42`, an output
 excerpt) for passes. Update the agreed-plan lines in place:
 

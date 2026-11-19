@@ -10,9 +10,9 @@ or the consumer marker rules change). The consumer-repo marker block in `AGENTS.
 
 ## [6.8.3] — 2026-11-19
 
-- **Patch**: `/spades:loop` merges only a head it checked against the
-  current default branch, and keeps architecture decisions with the
-  human. Research into how the Claude Code team reviews agent-written
+- **Patch**: `/spades:loop` merges only a head whose checks ran with
+  the default branch as fetched just before the merge, and keeps
+  architecture decisions with the human. Research into how the Claude Code team reviews agent-written
   code found three gaps in Stage 8 and Stage 2.
   - **Current base.** Stage 8 fetched `mergeStateStatus` but never read
     it, so a PR behind its base could merge on checks that ran against
@@ -20,14 +20,18 @@ or the consumer marker rules change). The consumer-repo marker block in `AGENTS.
     current base, forward-merges it when it does not (merge, never
     rebase), waits for CI and the review sweep, and restarts. Two
     forward merges run automatically; each further one waits for the
-    human. Step 3 asserts every `mergeStateStatus` value, and the merge
-    pins the head with `--match-head-commit`.
+    human. Step 3 asserts every `mergeStateStatus` value. Step 4 repeats
+    the base check just before the merge and pins the head with
+    `--match-head-commit`.
   - **One revision.** `/spades:evaluate` records `Evaluated revision:
     <sha>` on the verdict line. Before merging, the loop re-runs the AI
     rows that cover code changed after that revision, usually
     review-bot fixes. A failing row is a rework through
     `/codereview:fix` that shares the PARTIAL rework count; a Human row
-    whose paths changed pauses for the human.
+    whose paths changed pauses for the human. Evaluate runs its AI rows
+    only on a clean worktree, so the recorded revision holds what they
+    tested, and conflict resolutions in a base merge count as changes
+    after evaluation.
   - **Architecture.** A Plan that adds a runtime dependency or pattern,
     edits `ARCHITECTURE.md` / `PATTERNS.md` / `ANTI-PATTERNS.md`, or
     conflicts with them is Pause 16 at Stage 2. The loop records the
@@ -36,7 +40,8 @@ or the consumer marker rules change). The consumer-repo marker block in `AGENTS.
     both designed pauses and the new back-edges.
   - **Review bots.** GraphQL returns bot logins without `[bot]`, so the
     thread sweeps classify authors by `author.__typename` and Stage 8
-    classifies reviewers by REST `user.type`. CodeRabbit reviews and
+    classifies reviewers by REST `user.type`, reading every page of
+    reviews. CodeRabbit reviews and
     threads no longer pause the loop as if a human wrote them.
   - Leads: adds the seven Leads from the code-review research and
     closes `L-loop-merge-gate-skips-merge-state-rbuV`,
