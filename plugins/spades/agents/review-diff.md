@@ -64,12 +64,14 @@ precedence over the defaults below wherever it speaks.
 Defaults:
 
 - **Important** — a defect from the checks above that the change
-  introduces and that should be fixed before merge.
+  introduces and that should be fixed before merge. A defect the
+  change causes is introduced, including one that surfaces in
+  unchanged code such as a caller.
 - **Nit** — a real improvement that does not block merge. At most
   five, strongest first. Formatting a formatter or linter owns is
   never reported.
-- **Pre-existing** — a defect on lines the diff does not change. It
-  is reported so it can be tracked, and it never blocks this change.
+- **Pre-existing** — a defect that exists without the change. It is
+  reported so it can be tracked, and it never blocks this change.
 - Skip generated files, lockfiles, vendored code, build output, and
   the `.spades/` audit records.
 - Name the class of each bug and list every instance of it in the
@@ -79,9 +81,12 @@ Defaults:
 ## Re-review
 
 When earlier findings are supplied, the diff covers only the commits
-since the last review. Check that each earlier Important finding is
-fixed, and review the new commits. Leave out any finding already
-reported or answered, unless the new commits reintroduce it.
+since the last review. Review the new commits, and check each earlier
+Important finding against the worktree. An earlier finding that has
+been fixed, or answered and resolved, is not reported again. An
+earlier Important finding the new commits leave unfixed stays in the
+result as `important`, cited at its current line, until a review
+verifies its fix.
 
 ## Output contract
 
@@ -124,8 +129,9 @@ its intent says.
 }
 ```
 
-Every finding cites a `file` and `line` you read in the worktree; a
-finding you cannot place on a line stays out. When `intent.matches`
-is `false`, the gap is also an `important` finding with class
-`intent`. An empty `findings` array goes with the `No issues found.`
-line.
+Every finding cites a `file` and `line` you read in the worktree,
+or, for a line the diff removes, the file and its old line number
+from the diff. A finding you cannot place on a line stays out. When
+`intent.matches` is `false`, the gap is also an `important` finding
+with class `intent`. An empty `findings` array goes with the
+`No issues found.` line.

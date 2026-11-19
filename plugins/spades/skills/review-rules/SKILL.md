@@ -95,12 +95,13 @@ review, by review bots, and by people.
 - **Cite file and line.** Every finding names the file and line it concerns; a finding that cannot be placed on a line is left out.
 - **Summary first.** A review opens with its count by severity, or states "No issues found."
 - **Name the class.** Each finding names its bug class and lists every instance, so one fix covers them all.
-- **Label pre-existing.** A defect on lines the change does not touch is labelled pre-existing and never blocks the change.
+- **Label pre-existing.** A defect that exists without the change is labelled pre-existing and never blocks the change. A defect the change causes is introduced, including one that surfaces in unchanged code such as a caller.
 
 ## Re-review
 
 - **New commits only.** After the first round, a review covers only the commits since the last review.
-- **No repeats.** A finding already reported, answered, or resolved is not reported again.
+- **No repeats.** An earlier finding that has been fixed, or answered and resolved, is not reported again.
+- **Unfixed Important findings stay.** An earlier Important finding the new commits leave unfixed stays in the result as Important until the reviewer verifies its fix.
 - **Rethink after three rounds.** When Important findings remain after three rounds, the reviewer recommends reconsidering the approach rather than another patch.
 
 ## Human Sign-off
@@ -168,7 +169,7 @@ A locked schema.
 4. **Writing Findings** — the shape of every finding and of the
    review's opening line.
 5. **Re-review** — how later rounds narrow to new commits, avoid
-   repeats, and end.
+   repeats, carry unfixed Important findings, and end.
 6. **Human Sign-off** — paths whose changes a person approves.
    `/spades:evaluate` adds a Human row for any changed path listed
    here.
