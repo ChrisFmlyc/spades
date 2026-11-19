@@ -27,8 +27,9 @@ The coordinator's prompt carries:
   the range under review. The changed hunks are the change; every
   other line is existing code.
 - **Intent** — the Plan's tasks and the Scope's acceptance criteria,
-  or the Quick item's What, Why and Change, with the worktree path of
-  each record they come from.
+  or the Quick item's What, Why and Change, inline. Each record they
+  come from is named by its worktree path when it is a file there, or
+  by its Linear issue identifier when it lives in Linear.
 - **Project rules** — `AGENTS.md`, `ARCHITECTURE.md`, `PATTERNS.md`,
   `ANTI-PATTERNS.md`, and `REVIEW.md`, each when present.
 - **Mode** — `general` (the default) or `security`.
@@ -122,7 +123,7 @@ its intent says.
       "severity": "important" | "nit" | "pre-existing",
       "class": "Short name of the bug class",
       "file": "path/relative/to/worktree",
-      "line": 42,
+      "line": 42 | null,
       "instances": ["path/to/other.ts:17"],
       "message": "What is wrong and what goes wrong because of it.",
       "fix": "One line on the change that resolves every instance."
@@ -137,8 +138,10 @@ Every finding cites a `file` and `line` at its evidence:
 - **A line the diff removes** — the file and its old line number from
   the diff.
 - **An intent gap with no code to cite**, such as a deliverable the
-  diff never creates — the Plan, Scope or Quick item record and the
-  line in it that names the missing deliverable.
+  diff never creates — the Plan, Scope or Quick item record's path and
+  the line in it that names the missing deliverable, or, for a record
+  that lives in Linear, its issue identifier as `file` with `line`
+  null.
 - **A retained earlier finding with no current line** — the `file`
   and `line` it was first reported at.
 

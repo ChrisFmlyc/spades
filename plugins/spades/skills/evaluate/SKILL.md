@@ -252,8 +252,9 @@ other AI rows so the review sees the final delivered state:
 2. **Dispatch the reviewer.** Spawn the bundled agent with the Agent
    tool, `subagent_type: review-diff`, passing the working context
    (absolute worktree path, branch, `<to>`), the diff path, the Plan's
-   tasks and the Scope's acceptance criteria with the worktree paths
-   of the Plan and Scope records, the project rule documents
+   tasks and the Scope's acceptance criteria inline (each record named
+   by its worktree path when it is a file there, or by its Linear issue
+   identifier when it lives in Linear), the project rule documents
    (`AGENTS.md`, `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`,
    `REVIEW.md`), the mode (`general` for `QR`,
    `security` for `QS`), and on a re-review the earlier findings with
