@@ -405,7 +405,7 @@ changes against its first parent:
 
 ```bash
 set -o pipefail
-git cat-file -e <evaluated-sha>^{commit} &&
+git merge-base --is-ancestor <evaluated-sha> <headRefOid> &&
 git log --first-parent --format='%H %P' <evaluated-sha>..<headRefOid> |
 while read -r commit first second others; do
   if [ -n "$second" ] && [ -z "$others" ] &&
@@ -418,7 +418,8 @@ done | sort -u
 ```
 
 The command exits non-zero when the evaluated revision is missing from
-the checkout or any git command in it fails; its output is then
+the checkout, when it is not an ancestor of `headRefOid` (a force-push
+replaced it), or when any git command in it fails; its output is then
 incomplete and goes unused.
 
 Set aside paths under the SPADES root's `.spades/`; those are the
