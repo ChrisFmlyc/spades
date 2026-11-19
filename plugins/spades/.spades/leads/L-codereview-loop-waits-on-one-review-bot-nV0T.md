@@ -11,7 +11,7 @@ created: 2026-11-19
 discovered_while: research-2026-11-19-cr-article
 sightings: 1
 promoted_to:
-closed_reason: done — fixed upstream in ai-skills PR #29 (f8e43b4, codereview 1.3.1); step 1 waits for every bot that has reviewed the PR, matched by user.type and commit_id, with one 30-minute deadline per commit
+closed_reason: "done — fixed upstream in ai-skills PR #29 (f8e43b4, codereview 1.3.1); step 1 waits for every bot that has reviewed the PR, matched by user.type and commit_id, with one 30-minute deadline per commit"
 github_issue:
 linear_issue_id:
 ---

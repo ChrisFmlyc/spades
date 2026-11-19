@@ -11,7 +11,7 @@ created: 2026-10-27
 discovered_while: P-narrow-skill-triggers-and-newproject-disclosure-8XWy
 sightings: 1
 promoted_to:
-closed_reason: done — fixed upstream in ChrisFmlyc/ai-skills PR #23 (d284430, codereview 1.3.0); fix/SKILL.md lines 305-307 drop worktree isolation, so subagents work in the ordinary checkout and the supervisor commits
+closed_reason: "done — fixed upstream in ChrisFmlyc/ai-skills PR #23 (d284430, codereview 1.3.0); fix/SKILL.md lines 305-307 drop worktree isolation, so subagents work in the ordinary checkout and the supervisor commits"
 github_issue: https://github.com/ChrisFmlyc/spades/issues/121
 linear_issue_id:
 ---

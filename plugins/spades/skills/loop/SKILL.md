@@ -195,6 +195,7 @@ record, appended to the Plan's `## Audit Trail`:
 - YYYY-MM-DD: Loop — bot review clean on <pr-url> (<n> rounds).
 - YYYY-MM-DD: Loop — base merged into PR: <remote>/<base> at <short-sha>.
 - YYYY-MM-DD: Loop — post-evaluation re-check at <short-head>: <k> commit(s) since <short-evaluated>; <rows re-run and their results | no code changes>.
+- YYYY-MM-DD: Loop — human re-check <row id> at <short-head>: pass | fail — <note>.
 - YYYY-MM-DD: Loop — ship PR squash-merged: <merge-sha>.
 - YYYY-MM-DD: Loop — deploy: success (<url>). | not configured.
 - YYYY-MM-DD: Loop — learning captured: <path>.
@@ -366,8 +367,9 @@ contains the default branch as fetched seconds before the merge
 (step 4). Branch protection that requires an up-to-date branch also
 covers those seconds; without it, GitHub squashes onto any base
 commit that lands in that gap, a combination no check ran on. Run the
-four steps in order from the PR's worktree; a failed step is Pause 9
-unless it names another outcome.
+four steps in order from the PR's worktree. A command that exits
+non-zero is a failed step, and a failed step is Pause 9 unless the
+step names another outcome.
 
 ```bash
 gh pr view <n> --json state,baseRefName,headRefOid,mergeable,mergeStateStatus,statusCheckRollup
@@ -376,12 +378,13 @@ gh pr view <n> --json state,baseRefName,headRefOid,mergeable,mergeStateStatus,st
 ### 1. Current with the base
 
 ```bash
-git fetch <remote> <base>
-git merge-base --is-ancestor <remote>/<base> <headRefOid>
+git fetch <remote> <base> &&
+git rev-list --count <headRefOid>..<remote>/<base>
 ```
 
-Exit 0 means the PR head contains the current base; go to step 2.
-Otherwise the base has commits the PR's checks never ran with. Confirm the
+It prints how many base commits the PR head lacks. `0` means the PR
+head contains the current base; go to step 2. A higher count means the
+base has commits the PR's checks never ran with. Confirm the
 worktree's `HEAD` is `headRefOid`, forward-merge the base through
 `/repo:branch` with `git merge --no-edit <remote>/<base>`, push the
 branch, and append `Loop — base merged into PR: …`. Then wait for the
@@ -410,7 +413,7 @@ changes against its first parent:
 
 ```bash
 set -o pipefail
-git merge-base --is-ancestor <evaluated-sha> <headRefOid> &&
+paths=$(git merge-base --is-ancestor <evaluated-sha> <headRefOid> &&
 git log --first-parent --format='%H %P' <evaluated-sha>..<headRefOid> |
 while read -r commit first second others; do
   if [ -n "$second" ] && [ -z "$others" ] &&
@@ -419,13 +422,13 @@ while read -r commit first second others; do
   else
     git diff --no-renames --name-only "$first" "$commit"
   fi || exit
-done | sort -u
+done | sort -u) && printf '%s\n' "$paths"
 ```
 
-The command exits non-zero when the evaluated revision is missing from
-the checkout, when it is not an ancestor of `headRefOid` (a force-push
-replaced it), or when any git command in it fails; its output is then
-incomplete and goes unused.
+The command exits non-zero, printing no list, when the evaluated
+revision is missing from the checkout, when it is not an ancestor of
+`headRefOid` (a force-push replaced it), or when any git command in it
+fails.
 
 Set aside paths under the SPADES root's `.spades/`; those are the
 run's records. The rest are code changes made after evaluation,
@@ -442,16 +445,19 @@ changes`.
   `/codereview:fix` as one finding, append `Loop — rework <n>/2 after
   post-evaluation re-check: …`, push, and return to Stage 7. These
   reworks share the PARTIAL count, so the third is Pause 6.
-- **A Human row covers a changed path** → pause, naming the row and
-  the commits, so the human re-checks it.
+- **A Human row covers a changed path** → the human re-runs it, and
+  the loop appends `Loop — human re-check …` with their result. A
+  result recorded at `headRefOid` is that row's re-run: a pass counts
+  with the passing rows and a fail is a rework as above. Without one,
+  pause before step 3, naming the row and the commits.
 
 Without a complete list — a verdict line that records no revision, or
 a command that exits non-zero — step 2 counts every path the PR
 changed as changed after evaluation: re-run every AI row against
-`headRefOid`, and pause for every Human row, naming the row and the
-PR's commits
+`headRefOid`, and treat every Human row as covering a changed path,
+its pause naming the PR's commits
 (`git log --first-parent --no-merges --oneline
-<remote>/<base>..<headRefOid>`), so the human re-checks it. The
+<remote>/<base>..<headRefOid>`). The
 bookkeeping PR (Stage 13) carries no evaluation and goes from step 1
 to step 3.
 
@@ -472,18 +478,19 @@ to step 3.
   suffix in every API:
 
   ```bash
-  gh api --paginate "repos/{owner}/{repo}/pulls/<n>/reviews?per_page=100" \
+  reviews=$(gh api --paginate "repos/{owner}/{repo}/pulls/<n>/reviews?per_page=100" \
     --jq '.[] | select(.user.type != "Bot")
           | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED"
                    or .state == "DISMISSED")
-          | "\(.user.login) \(.state)"' \
-    | awk '{ last[$1] = $2 }
-           END { for (u in last) n += last[u] == "CHANGES_REQUESTED"; print n + 0 }'
+          | "\(.user.login) \(.state)"') &&
+  awk '{ last[$1] = $2 }
+       END { for (u in last) n += last[u] == "CHANGES_REQUESTED"; print n + 0 }' <<<"$reviews"
   ```
 
   `--paginate` reads every page of reviews and `--jq` runs once per
-  page, so it prints one line per review in submission order and `awk`
-  keeps each reviewer's last state across all pages before counting.
+  page, so `reviews` holds one line per review in submission order.
+  `awk` keeps each reviewer's last state across all pages and prints
+  the count only once every page has been read.
   The PR-level `reviewDecision` mixes bots and humans and lags the
   thread sweep, so the per-reviewer query is the signal.
 - Zero unresolved threads — re-run the sweep from
@@ -491,14 +498,13 @@ to step 3.
 
 ### 4. Merge
 
-Re-run step 1's fetch and ancestry check, and merge as soon as it
-exits 0:
+Re-run step 1's command, and merge as soon as it prints `0`:
 
 ```bash
 gh pr merge <n> --squash --match-head-commit <headRefOid>
 ```
 
-A non-zero exit means the base moved after step 1 ran; return to
+A higher count means the base moved after step 1 ran; return to
 step 1. GitHub refuses the merge when the head moved after these
 checks; restart Stage 8 then. If branch protection blocks the merge,
 pause and report the blocking rule. Capture the merge SHA and append the
