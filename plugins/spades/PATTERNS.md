@@ -67,10 +67,10 @@ spades/                                       # repo root (this repo)
         ├── .claude-plugin/
         │   └── plugin.json                   # plugin manifest
         ├── skills/<name>/
-        │   ├── SKILL.md                      # one directory per skill (23 skills)
+        │   ├── SKILL.md                      # one directory per skill (24 skills)
         │   ├── template.html                 # HTML-mode render target (producing skills)
         │   └── reference/<name>.md           # read on demand; keeps SKILL.md under 500 lines
-        ├── agents/<name>.md                  # subagent definitions (4 reviewers + researcher)
+        ├── agents/<name>.md                  # subagent definitions (4 panel reviewers, diff reviewer, researcher)
         ├── docs/
         │   ├── FRAMEWORK.md                  # canonical framework reference
         │   └── EXTENDING-BACKENDS.md         # contract for adding a backend driver

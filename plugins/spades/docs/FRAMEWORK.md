@@ -1321,7 +1321,7 @@ rather than assigning ownership to whole paths.
 ### Commit contents
 
 The usual artefact paths are `.spades/`, `AGENTS.md`, `INTENT.md`,
-`ARCHITECTURE.md`, `PATTERNS.md`, and `ANTI-PATTERNS.md`. These locate
+`ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`, and `REVIEW.md`. These locate
 records; path membership does not authorise every change within them.
 
 Before each commit, inspect the full index and working-tree diff. Assemble
@@ -1384,8 +1384,9 @@ opens follow the same ownership rule; helper skills inherit it.
   records remain quiet. Plan presents its Plan and refreshes its Scope quietly.
 - Approve, Deliver and Ship select the target Plan; Close selects its resolved
   target. Related records and subsequent audit refreshes remain quiet.
-- Intent, Architecture, Patterns and Anti-Patterns select only their transient
-  `.spades/.tmp/<name>.html` review copy when that document is the active task.
+- Intent, Architecture, Patterns, Anti-Patterns and Review Rules select only
+  their transient `.spades/.tmp/<name>.html` review copy when that document is
+  the active task.
   The persistent `.spades/<name>.html` companion is rendered quietly.
 - Evaluate selects its verification page at the verification step and its
   report at the results step, one page per step. Plan and Scope refreshes
@@ -1428,7 +1429,7 @@ Short status messages remain in the terminal in both modes.
 Producing skills are `/spades:newproject`, `/spades:scope`,
 `/spades:plan`, `/spades:learn`, `/spades:review`,
 `/spades:intent`, `/spades:architecture`, `/spades:patterns`,
-`/spades:anti-patterns`. Each writes an artefact at the end of
+`/spades:anti-patterns`, `/spades:review-rules`. Each writes an artefact at the end of
 its flow.
 
 - **`review_format: cli`** — present the draft for approval in the
@@ -1599,7 +1600,8 @@ declared `SPADES-BLOCK` sections each skill fills.
 
 The skills that ship a bundled template: `scope`, `plan`,
 `newproject`, `learn`, `review`, `status`, `list`, `intent`,
-`evaluate`, `architecture`, `patterns`, `anti-patterns`.
+`evaluate`, `architecture`, `patterns`, `anti-patterns`,
+`review-rules`.
 
 ### Consumer skills — `cli` vs `html` presentation
 
@@ -1780,7 +1782,10 @@ concurrent invocations.
 Use `subagent_type: general-purpose` (or `claude` as catch-all)
 with inline prompts. The work is parametric — file path + content,
 or Linear payload — so it does not need bundled persona files
-under `agents/`.
+under `agents/`. The bundled agents serve independent judgement: the
+`/spades:review` panel personas, the `/spades:research` researcher,
+and `review-diff`, the fresh-context diff reviewer `/spades:evaluate`
+and `/spades:quick` dispatch before a pull request opens.
 
 Each sub-agent's prompt should be self-contained and include:
 
@@ -2029,7 +2034,7 @@ workers update the existing Plan and Scope records per its skill; related
 HTML refreshes use `open_path: null`.
 
 **Skills that produce persistent + transient HTML** (`intent`,
-`architecture`, `patterns`, `anti-patterns`): two `.html` files
+`architecture`, `patterns`, `anti-patterns`, `review-rules`): two `.html` files
 (persistent under `.spades/<name>.html`, transient under
 `.spades/.tmp/<name>.html`). Same content, two output paths —
 dispatch as two parallel `worker-html-<skill>` sub-agents, both inheriting
@@ -2060,8 +2065,8 @@ How a skill fills it:
   When it resolves, pass `[{ id, title }]` (title read from the
   objective file); otherwise pass `[]`.
 - **Project-level views/docs** (`status`, `list`, `intent`,
-  `architecture`, `patterns`, `anti-patterns`, `newproject`,
-  `learn`) — pass the project's sole `open` Objective `{ id, title }`
+  `architecture`, `patterns`, `anti-patterns`, `review-rules`,
+  `newproject`, `learn`) — pass the project's sole `open` Objective `{ id, title }`
   when EXACTLY ONE exists in `.spades/objectives/`, else `[]`.
 - **`objective`** — no banner (the page IS the objective).
 

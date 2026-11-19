@@ -1,7 +1,7 @@
 ---
 name: anti-patterns
 description: Creates or maintains ANTI-PATTERNS.md, the project's durable list of things the codebase DELIBERATELY AVOIDS — runtime dependencies, hidden state, premature abstraction, and any other "we won't do X" rules. Use when someone says "set up ANTI-PATTERNS.md", "document what we don't do", "we should ban X", "we deliberately avoid Y", "what's forbidden here", "add an anti-pattern", "update the anti-patterns doc", "what shouldn't we do", or when ANTI-PATTERNS.md is missing, still an unfilled template, or flagged stale by /spades:plan, /spades:approve, or /spades:review. Also use proactively after a Plan rejection that traces to an unwritten prohibition. Helps the human express the prohibitions and requires their confirmation before recording each rule. SKIP when the human's intent is per-Plan risk capture (use the Plan's Risks & Assumptions section instead) or when documenting an APPROVED pattern (use /spades:patterns).
-version: 1.5.5
+version: 1.5.6
 ---
 
 # /spades:anti-patterns
@@ -172,7 +172,7 @@ requested but failed, link that selected page for manual opening. With
 ```
 ✓ ANTI-PATTERNS.md written (last reviewed YYYY-MM-DD)
 ○ .spades/.tmp/anti-patterns.html opened in browser
-Next: /spades:scope <title>
+Next: /spades:review-rules · /spades:scope <title>
 ```
 
 **CLI mode:** the write confirmation and the same `Next:` line; every

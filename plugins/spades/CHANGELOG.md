@@ -8,6 +8,38 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.9.0] — 2026-11-19
+
+- **Minor**: A code Plan's diff is reviewed in a fresh context before
+  its pull request opens, and a new `/spades:review-rules` skill keeps
+  the rules every review follows in `REVIEW.md`.
+  - New bundled agent `agents/review-diff.md`. It reads the diff, the
+    Plan or Quick item, the project rule documents and `REVIEW.md`,
+    never the delivering conversation, and returns findings marked
+    `important`, `nit` or `pre-existing`. Each finding cites its file
+    and line and names its bug class with every instance.
+  - `/spades:evaluate` adds a `QR` diff review row to every code Plan.
+    It adds a `QS` security review row when the diff touches criterion-7
+    areas, and a `QH` Human row for paths `REVIEW.md § Human Sign-off`
+    reserves for a person. An `important` finding makes the row PARTIAL,
+    so the work returns to Deliver under the existing rework cap.
+    `pre-existing` findings go to the Leads handoff. A rework reviews
+    only the commits since the last review.
+  - `/spades:loop` Stage 4 runs those rows through the bundled agent.
+  - `/spades:quick` reviews its diff before publishing. Important
+    findings are fixed in the item's commit; one still open after a
+    second review moves the item to the full loop.
+  - `/spades:review-rules` writes `REVIEW.md` from working defaults the
+    human tunes section by section: Important, Nits, Skip, Writing
+    Findings, Re-review, Human Sign-off, Project Checks. It offers to
+    add `REVIEW.md` to CodeRabbit's code guidelines in `.coderabbit.yaml`.
+    `/spades:setup` scaffolds it with the other four project documents,
+    and the `AGENTS.md` block points agents at it.
+- Skills bumped: `evaluate` 3.10.2 → 3.11.0, `loop` 1.14.2 → 1.15.0,
+  `quick` 2.5.1 → 2.6.0, `setup` 4.13.0 → 4.14.0, `anti-patterns`
+  1.5.5 → 1.5.6, `review-rules` new at 1.0.0.
+- `agents_version` 3.3.0 → 3.4.0.
+
 ## [6.8.2] — 2026-10-27
 
 - **Patch**: Record the verified shipment of the narrowed skill triggers:
