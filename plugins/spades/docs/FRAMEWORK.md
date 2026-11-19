@@ -598,15 +598,26 @@ Setup and Loop have separate invocation paths:
 
 ### Bounded back-edges
 
-Two edges in the delivery pipeline point backwards. Both are
-counted in the Plan's audit trail and both terminate:
+These edges in the delivery pipeline point backwards. Each is
+counted in the Plan's audit trail, and each terminates:
 
 | Back-edge | Cap | Marker |
 |---|---|---|
-| Evaluate `PARTIAL` → `/spades:deliver` | 2 reworks per Plan | `Loop — rework <n>/2 after PARTIAL: …` |
+| Evaluate `PARTIAL` → `/spades:deliver` | 2 reworks per Plan, shared with the next row | `Loop — rework <n>/2 after PARTIAL: …` |
+| Failed post-evaluation re-check at merge → `/codereview:fix` → bot review | Shares the 2-rework count above | `Loop — rework <n>/2 after post-evaluation re-check: …` |
+| Base moved before merge → forward merge → checks and bot review | 2 per PR; each further forward merge waits for the human | `Loop — base merged into PR: …` |
 | Bot review cycle → push → re-review | Owned and capped entirely by `/codereview:loop`; `/spades:loop` runs no review cycle of its own | `Loop — bot review clean on <url>` |
 
 Every other edge is forward-only.
+
+### One revision is merged
+
+The loop merges the head it checked. Before the squash-merge it brings
+the PR current with its base (§ Freshness), re-runs the AI verification
+rows that cover any code changed after the evaluated revision recorded on
+the verdict, and merges with the head commit pinned. Commits made after
+evaluation, such as review-bot fixes, are therefore checked before they
+reach the default branch.
 
 ### Loop state is derived, never duplicated
 
@@ -615,7 +626,8 @@ Plan's `status:` and the markers other skills already write
 (`PR opened:`, `Shipped`, `Evaluation — verdict:`), and adds
 `Loop — …` audit-trail lines only for facts SPADES does not
 otherwise record (who signed the evaluation off, rework count,
-review-round count, merge SHA, pause reason).
+review-round count, forward merges, post-evaluation re-checks, merge
+SHA, pause reason).
 
 `/spades:status`, `/spades:list`, `/spades:close` and the backend drivers
 read these same artefacts in manual and loop-driven runs. The human can
@@ -623,10 +635,13 @@ take over or return control at any stage boundary.
 
 ### The human gate
 
-The loop's one designed pause is the **Evaluate sign-off — and it
-fires only when the evaluation needed a human.** Approve is executed
-by the AI (the six checks are walked; a clean sweep self-approves).
-Evaluate's verdict is derived from the rows. If every row was
+The loop has two designed pauses. **Approve pauses when the Plan
+changes the architecture**: a new runtime dependency or pattern, an
+edit to `ARCHITECTURE.md`, `PATTERNS.md` or `ANTI-PATTERNS.md`, or a
+conflict with them. Otherwise the AI executes Approve (the six checks
+are walked; a clean sweep self-approves). The **Evaluate sign-off
+fires only when the evaluation needed a human.** Evaluate's verdict
+is derived from the rows. If every row was
 AI-verified, the loop confirms the verdict itself and carries on; if
 one or more rows could only be run by a human, the human runs them
 and confirms the verdict.
