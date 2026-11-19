@@ -404,16 +404,22 @@ including a merge of any other branch, contributes every path it
 changes against its first parent:
 
 ```bash
+set -o pipefail
+git cat-file -e <evaluated-sha>^{commit} &&
 git log --first-parent --format='%H %P' <evaluated-sha>..<headRefOid> |
 while read -r commit first second others; do
   if [ -n "$second" ] && [ -z "$others" ] &&
      git merge-base --is-ancestor "$second" <remote>/<base>; then
-    git show --remerge-diff --format= --name-only "$commit"
+    git show --remerge-diff --no-renames --format= --name-only "$commit"
   else
-    git diff --name-only "$first" "$commit"
-  fi
+    git diff --no-renames --name-only "$first" "$commit"
+  fi || exit
 done | sort -u
 ```
+
+The command exits non-zero when the evaluated revision is missing from
+the checkout or any git command in it fails; its output is then
+incomplete and goes unused.
 
 Set aside paths under the SPADES root's `.spades/`; those are the
 run's records. The rest are code changes made after evaluation,
@@ -433,9 +439,11 @@ changes`.
 - **A Human row covers a changed path** → pause, naming the row and
   the commits, so the human re-checks it.
 
-A verdict line without a revision counts every path the PR changed as
-changed after evaluation: re-run every AI row against `headRefOid`,
-and pause for every Human row, naming the row and the PR's commits
+Without a complete list — a verdict line that records no revision, or
+a command that exits non-zero — step 2 counts every path the PR
+changed as changed after evaluation: re-run every AI row against
+`headRefOid`, and pause for every Human row, naming the row and the
+PR's commits
 (`git log --first-parent --no-merges --oneline
 <remote>/<base>..<headRefOid>`), so the human re-checks it. The
 bookkeeping PR (Stage 13) carries no evaluation and goes from step 1
