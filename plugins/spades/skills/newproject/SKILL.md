@@ -34,19 +34,21 @@ running.
    ```
 
    `present` → read `backend:` and `review_format:`. This is also
-   the state when `/spades:setup` invokes this skill inline during
-   bootstrap: setup writes the config before the call, with
-   `project:` unset for Step 4 to fill.
+   the state when `/spades:setup` invokes this skill inline: setup
+   writes the config before the call.
 
    `missing` → abort: *"Run `/spades:setup` first — it configures the
    backend and, on the same pass, creates your first project."*
 
-2. **Take a passed Linear Project.** `/spades:setup` passes the Linear
-   Project its Step 1 chose, when there is one. With `backend: linear`
-   that Project is this record's binding: Step 2 skips its Linear name
-   check, Step 3's wave runs without `worker-linear-project` and injects
-   the passed ID as `linear_project_id`, and Step 4 writes it as
-   `linear.project_id`.
+2. **Take setup's passed values.** `/spades:setup` invokes this skill
+   with its decision to make the new project active and, with
+   `backend: linear`, its Step 1 team and the Linear Project its Step 1
+   chose, when there is one. A setup call sets the new project active
+   at Step 4 without asking. The passed team stands in for
+   `linear.team_id` throughout the run. The passed Linear Project is
+   this record's binding: Step 2 skips its Linear name check, and
+   Step 3's wave runs without `worker-linear-project` and injects the
+   passed ID as `linear_project_id`.
 
 ## Step 1 — Draft the record
 
@@ -196,14 +198,15 @@ Project was created.
 
 ## Step 4 — Active project
 
-When `/spades:setup` invokes this skill during bootstrap (`project:`
-unset), set this Project active. Otherwise ask: **Set as active project**
+Without setup's decision (Pre-Flight 2), ask: **Set as active project**
 (recommended) / **Leave the active project unchanged**.
 
 Setting active: replace or insert `project: <slug>` in `.spades/config`.
-With `backend: linear`, set `linear.project_id` to the new binding, or
-remove it while the binding is pending or failed, so config never
-associates this Project with another Linear Project.
+With `backend: linear`, set `linear.team_id` to the team this run used
+and `linear.project_id` to the new binding, removing `linear.project_id`
+while the binding is pending or failed, so config never associates this
+Project with another Linear Project or its Linear Project with another
+team.
 
 ## Step 5 — Optional project lead
 
@@ -245,7 +248,7 @@ Next:
   /spades:scope <title>   — define your first Scope under this project
 ```
 
-For a Setup bootstrap invocation, return to Setup now, after the optional
+For a setup call, return to Setup now, after the optional
 lead flow completes, is skipped or is cancelled. For standalone use, show
 the next Scope command. Include the Linear success line only for a confirmed
 binding. For a partial or failed assignment, replace the lead success line
