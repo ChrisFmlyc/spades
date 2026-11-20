@@ -86,6 +86,7 @@ one-line reason beside each `human` row.
 | Existing commits on the Scope branch | Already part of its PR; proceed. |
 | Unknown uncommitted changes in the active worktree | Pause 21. |
 | `/spades:ship` — artefact reference | The path or URL you produced; Pause 24 when a human produced it. |
+| `/spades:ship` — action evidence | The evidence you produced; Pause 24 when a human performed the action. |
 | `/spades:close` — acceptance criteria left uncovered | *Leave the Scope open*; Stage 15 picks up the remaining Plans. |
 | `/spades:learn` — approve the draft | Approve. |
 | `/spades:learn` — public-safe or private | The skill's own rule; in doubt, `private/`. |
@@ -177,7 +178,7 @@ indistinguishable and a human can take over at any boundary:
 | `shipping`, review clean, PR not `MERGED` | 8 — Merge |
 | `shipping`, PR `MERGED`, no `Loop — learning` line | 9 — Deploy gate → 10 — Learning gate |
 | `shipping`, PR `MERGED`, `Loop — learning` recorded | 11 — Close |
-| `shipped` artefact Plan, no `Loop — learning` line | 10 — Learning gate |
+| `shipped` artefact or action Plan, no `Loop — learning` line | 10 — Learning gate |
 | `shipped` code Plan that the default branch does not yet hold at `shipped` | 14 — Verify completion |
 | Any other `shipped` Plan — complete per Stage 14 | 15 — Next Plan, or FINISHED |
 
@@ -645,8 +646,10 @@ Re-read every Plan under the Scope.
 
 Assert all four against the SCM host, never from memory of the run.
 **Probes are in [`reference/finish-checks.md`](reference/finish-checks.md)
-§ FINISHED.** A Scope whose shipped Plans are all artefacts has no PR
-and no deploy, and all four read `n/a (artefact)`.
+§ FINISHED.** A Scope whose shipped Plans are all artefact or action
+Plans has no PR and no deploy, and all four read `n/a` with the
+deliverable types it shipped: `n/a (artefact)`, `n/a (action)` or
+`n/a (artefact, action)`.
 
 | # | Must be true |
 |---|---|
@@ -710,7 +713,7 @@ resuming re-enters at the derived stage.
 | 21 | Unknown uncommitted changes in the active worktree need the human's inclusion decision | any |
 | 22 | A rejected prerequisite needs replanning | 6 |
 | 23 | A Human row covers a changed path and has no result recorded at `headRefOid`; the pause comes before step 3 and names the row and the commits | 8 |
-| 24 | A human produced the artefact reference | 6 |
+| 24 | A human produced the artefact reference or performed the action | 6 |
 | 25 | Ship PR closed without merging; the pause points to `/spades:close P-<id> --reject "reason"`, because the loop never rejects a Plan itself | 7, 8 |
 | 26 | Bookkeeping branch already exists; the pause surfaces close's message | 11 |
 | 27 | A FINISHED assertion is unmet; the pause names it and its evidence | 15 |
@@ -781,6 +784,7 @@ The authorisation in § Who may invoke this is bounded by these:
   record the merge SHA from `review_state` and continue at Stage 9.
 - **Ship PR closed without merging** → Pause 25.
 - **Bookkeeping branch already exists** → Pause 26.
-- **`deliverable_type: artefact`** → no PR lifecycle and no deploy:
-  Stages 1–6, where Ship records the reference and writes `shipped` in
-  the Scope's delivery worktree, then Stages 10, 14 and 15.
+- **`deliverable_type: artefact` or `action`** → no PR lifecycle and
+  no deploy: Stages 1–6, where Ship records the artefact reference or
+  the action's evidence and writes `shipped` in the Scope's delivery
+  worktree, then Stages 10, 14 and 15.
