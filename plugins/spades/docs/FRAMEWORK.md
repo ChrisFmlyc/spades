@@ -867,21 +867,24 @@ last segment of its URL.
 | Operation | `scm: github` | `scm: gitlab` |
 |---|---|---|
 | `probe_auth` | `gh auth status` | `glab auth status --hostname <gitlab.host>` |
-| `find_review(branch, base)` | `gh pr list --head <branch> --base <base> --state all --json number,url,state` | `glab mr list -R <repo-url> --source-branch <branch> --target-branch <base> --all --output json`, filtered as below |
+| `find_review(branch, base)` | `gh pr list --head <branch> --base <base> --state all --json number,url,state` | `glab api --paginate --hostname <host> "projects/<project>/merge_requests?source_branch=<branch>&target_branch=<base>&state=all"`, filtered as below |
 | `open_review(branch, base, title, body-file)` | `gh pr create --head <branch> --base <base> --title "<title>" --body-file <body-file>` | `glab mr create -R <repo-url> --source-branch <branch> --target-branch <base> --title "<title>" --description-file <body-file> --squash-before-merge --yes` |
 | `review_state(ref)` | `gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy,headRefOid` | `glab mr view <iid> -R <repo-url> --output json` |
 | `merge_review(ref)` | `gh pr merge <n> --squash` | `glab mr merge <iid> -R <repo-url> --squash --auto-merge=false --sha <head-sha> --yes`; with a merge train, `--auto-merge` in place of `--auto-merge=false` |
 
 `gh pr create` prints the new PR's URL. `glab mr create` prints a
 human-readable summary, so read the MR's `iid` and `web_url` back with
-`find_review`. On GitLab it keeps only MRs from the project itself, since
-an MR from a fork can share the branch name:
+`find_review`. On GitLab it reads every page of the matching MRs —
+`jq -s` takes `glab`'s output as one array or one per page, and an empty
+response is an error rather than no MR — and keeps only MRs from the
+project itself, since an MR from a fork can share the branch name:
 
 <!-- scm-test: find-review-gitlab -->
 ```bash
 set -o pipefail
-glab mr list -R <repo-url> --source-branch <branch> --target-branch <base> --all --output json \
-  | jq -c '[.[] | select(.source_project_id == .target_project_id) | {iid, web_url, state}]'
+glab api --paginate --hostname <host> "projects/<project>/merge_requests?source_branch=<branch>&target_branch=<base>&state=all" \
+  | jq -sc '(if length == 0 then error("no response from glab") else add end)
+      | [.[] | select(.source_project_id == .target_project_id) | {iid, web_url, state}]'
 ```
  glab releases
 before 1.115 lack `--description-file` (on `mr create` and `issue

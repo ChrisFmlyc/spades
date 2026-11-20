@@ -1,1 +1,1 @@
-^glab mr list -R https://gitlab\.example\.com/acme/app --source-branch feat/x --target-branch main --all --output json$	mrs.json
+^glab api (--paginate )?--hostname gitlab\.example\.com projects/acme%2Fapp/merge_requests\?source_branch=feat/x&target_branch=main&state=all$	mrs.json
