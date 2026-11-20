@@ -42,11 +42,17 @@ A non-zero exit means not ready. The GitLab probes in `/spades:loop` and
 `/spades:close` pipe `glab api` output to `jq`, so both tools are required.
 Give the human the steps for what is missing, then re-run `/spades:setup`:
 
-1. **Install `glab`** — `brew install glab`; `winget install glab.glab`; the
-   Linux packages at
+1. **Install `glab`** — macOS: `brew install glab`. Windows:
+   `winget install glab.glab`. Linux, as root: `dnf install glab` on Fedora;
+   `apt install glab` on Debian and Ubuntu releases that package it. Where
+   `apt` or `dnf` finds no `glab` package, the `.deb` or `.rpm` from
+   <https://gitlab.com/gitlab-org/cli/-/releases> installs instead, and
+   `brew install glab` works on any distribution. Other package managers are
+   listed at
    <https://gitlab.com/gitlab-org/cli/-/blob/main/docs/installation_options.md>.
-   **Install `jq`** — `brew install jq`; `winget install jqlang.jq`; the
-   distribution's `jq` package.
+   **Install `jq`** — macOS: `brew install jq`. Windows:
+   `winget install jqlang.jq`. Linux, as root: `apt install jq` on Debian and
+   Ubuntu; `dnf install jq` on Fedora and RHEL.
 2. **Sign in**, as the human, with whichever method they use:
    `! glab auth login --hostname <host>` offers a browser (OAuth) login or a
    token. A token needs the `api` and `write_repository` scopes. On a
