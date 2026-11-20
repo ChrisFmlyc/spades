@@ -601,14 +601,14 @@ Setup and Loop have separate invocation paths:
 
 ### Bounded back-edges
 
-These edges in the delivery pipeline point backwards. Each is
-counted in the Plan's audit trail, and each terminates:
+These edges in the delivery pipeline point backwards. Each has a cap
+and an audit-trail marker, and each terminates:
 
 | Back-edge | Cap | Marker |
 |---|---|---|
 | Evaluate `PARTIAL` → `/spades:deliver` | 2 reworks per Plan, shared with the next row | `Loop — rework <n>/2 after PARTIAL: …` |
 | Failed post-evaluation re-check at merge → `/codereview:fix` → bot review | Shares the 2-rework count above | `Loop — rework <n>/2 after post-evaluation re-check: …` |
-| Base moved before merge → forward merge → checks and bot review | 2 per PR; each further forward merge waits for the human | `Loop — base merged into PR: …` |
+| Base moved before merge → forward merge → checks and bot review | 2 per PR, counted from the PR branch's history (`/spades:loop` Stage 8 step 1); each further forward merge waits for the human | `Loop — base merged into PR: …` |
 | Bot review cycle → push → re-review | Owned and capped entirely by `/codereview:loop` (GitLab merge requests need `codereview` 1.4.0 or later); `/spades:loop` runs no review cycle of its own | `Loop — bot review clean on <url>` |
 
 Every other edge is forward-only.
@@ -1413,10 +1413,12 @@ whatever state they were in (`draft`, `approved`) — but they are
 
 ### The `Shipped` marker (contract)
 
-Every Plan that reaches `status: shipped` MUST have a line beginning
-with `Shipped` as the most recent entry in its `## Audit Trail`
-section. The prefix is universal; SCM drivers vary the suffix to
-reflect what was shipped and where:
+Every Plan that reaches `status: shipped` MUST have exactly one line
+beginning with `Shipped` in its `## Audit Trail` section, written when
+the Plan reaches `shipped`. Readers find it by that prefix, wherever it
+sits in the trail; `/spades:ship` and `/spades:close` detect resume and
+finalisation state from it. The prefix is universal; SCM drivers vary
+the suffix to reflect what was shipped and where:
 
 | SCM driver | Opened marker (Ship) | Marker shape |
 |------------|----------------------|--------------|
@@ -1426,9 +1428,6 @@ reflect what was shipped and where:
 
 Other drivers follow `docs/EXTENDING-SCM.md` § 4. A Quick item's
 marker file takes the same `Shipped` line.
-
-`/spades:ship` and `/spades:close` both grep for the `Shipped` prefix
-to detect resume state and finalisation state.
 
 ## Scope Worktrees
 

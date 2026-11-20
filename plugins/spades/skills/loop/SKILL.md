@@ -382,11 +382,27 @@ head contains the current base; go to step 2. A higher count means the
 base has commits the PR's checks never ran with, and the PR takes a
 forward merge.
 
-The loop runs the first two forward merges on one PR on its own. Each
-further one runs only once the human has approved that merge: a `Loop —
-forward merge approved by human.` line after the PR's latest `Loop —
-base merged into PR:` line. Without that line it is Pause 19; when the
-human approves, append the line and run the merge.
+A merge of the base is a two-parent merge whose second parent is
+reachable from `<remote>/<base>`. The PR's forward merges so far are
+the merges of the base on its branch's first-parent line since it left
+the base. Count them from git, which gives the same count in any
+checkout of the PR:
+
+```bash
+set -o pipefail
+n=$(git rev-list --first-parent --merges --parents <remote>/<base>..<headRefOid> |
+while read -r commit first second others; do
+  [ -z "$others" ] || continue
+  git merge-base --is-ancestor "$second" <remote>/<base>
+  case $? in 0) echo "$commit" ;; 1) ;; *) exit 1 ;; esac
+done | wc -l) && echo $n
+```
+
+Below two, the loop runs the forward merge on its own. At two or more,
+it runs the merge once the human approves it, which is Pause 19; on
+approval, append `Loop — forward merge approved by human.` and run the
+merge. An approval covers one merge, in the session it was given in; a
+run resumed in a new session asks again.
 
 To forward-merge, confirm the worktree's `HEAD` is `headRefOid`, merge
 the base through `/repo:branch` with `git merge --no-edit
@@ -409,8 +425,7 @@ Drivers → Pushing`: pause with the remote's message.
 Each participating Plan's latest `Evaluation — verdict: PASS` line
 records the revision its rows ran against. List the paths the PR
 branch changed after it, one first-parent commit at a time. A merge
-of the base, a two-parent merge whose second parent is reachable from
-`<remote>/<base>`, contributes only the paths where its committed
+of the base (step 1) contributes only the paths where its committed
 result differs from git's own merge, which are its conflict
 resolutions; the base's own changes stay out. Every other commit,
 including a merge of any other branch, contributes every path it
@@ -595,7 +610,7 @@ re-invoke `/spades:close P-<plan-id>` to resume at B5.
 
 ## Stage 14 — Verify completion
 
-A Plan is complete when its final record, `status: shipped` with its
+A Plan is complete when its shipped record, `status: shipped` with its
 `Shipped` line, is in place. The state table reads completion from
 that record each time it derives the stage:
 
