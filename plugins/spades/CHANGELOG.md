@@ -23,6 +23,15 @@ Contradictions between files were settled in favour of the contract:
 - FRAMEWORK documents `undecided` for Plan `delivery:`/`evaluation:`, `plan_ref` for learnings, and `review_format:` in the config schema.
 - The Gemini install section is gone: the repo has no Gemini extension manifest.
 
+Review of this release also fixed:
+
+- `/spades:ship` resumes a Plan at `shipping`: an open PR or MR hands off to close, a `Shipped` line finalises, and anything else repeats the publish step.
+- A Plan's ID is its filename stem, and changes with it while `/spades:plan` drafts the Plan; the frontmatter lint accepts dependency suffixes.
+- Review pages convert body Markdown with raw HTML escaped and allow only `http:`, `https:`, `mailto:`, fragment and relative links.
+- `/spades:setup` keeps the Linear Project from Step 1 separate from the local project from Step 4, and `/spades:newproject` binds the Linear Project setup passes instead of creating another.
+- `/spades:loop` lets an approved third forward merge run, and completes an artefact Plan in its delivery worktree.
+- The parent Issue goes to Done when the Scope rolls up to `done`, rejected Plans included.
+
 Versions: plugin 6.10.0 → 6.11.0; agents_version 3.5.0 → 3.6.0; approve 3.4.3, close 4.17.0, deliver 4.2.0, evaluate 3.12.0, leads 3.5.1, learn 5.0.8, list 3.6.5, loop 1.17.0, newproject 3.8.3, objective 1.4.2, plan 3.8.2, projectlead 1.0.1, quick 2.8.0, research 2.3.5, review 3.9.7, review-rules 1.0.1, scope 4.2.3, setup 4.16.0, ship 3.8.1, status 3.6.7.
 
 ## [6.10.0] — 2026-11-20

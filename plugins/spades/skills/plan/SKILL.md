@@ -10,7 +10,7 @@ You are drafting a Plan for a Scope. A Plan is a first-class
 artefact: written to `.spades/plans/`, mirrored to the backend, and
 gated at `/spades:approve` before any Deliver-phase work starts. Plans
 can depend on earlier Plans in the same Scope; the dependency chain
-is encoded in the filename and held authoritatively in `depends_on:`.
+is encoded in the Plan ID and held authoritatively in `depends_on:`.
 
 Read `docs/FRAMEWORK.md` § ID Format, § .spades/ Local Layout,
 § Target Resolution, § Execution Posture, and § Output Format before
@@ -84,7 +84,9 @@ that unclear, Step 4's confirmation asks it: **No dependencies** /
 follows). `depends_on:` holds the prior Plans' `id_suffix` values, most
 recent first.
 
-**Filename.** `P-<plan-slug>-<own-suffix>[-<dep-suffix>…].md`:
+**ID and filename.** The Plan ID is
+`P-<plan-slug>-<own-suffix>[-<dep-suffix>…]` and the filename is
+`<plan-id>.md`:
 
 - `P-create-initial-mastra-bot-28sD.md` — standalone
 - `P-rag-pipeline-lookup-3HyD-28sD.md` — depends on `28sD`
@@ -138,8 +140,8 @@ it:
 **CLI mode.** Present the draft in the CLI review pane on that call,
 one question per top-level section when the Plan exceeds about sixty
 lines. A change re-presents the revised sections and asks the Plan
-question again; a changed dependency re-derives the filename. Then write
-in Step 5.
+question again; a changed dependency re-derives the ID and filename.
+Then write in Step 5.
 
 **HTML mode.** State the shape in one line (task count, headline
 approach) and go straight to Step 5. The call comes once the page is
@@ -151,7 +153,7 @@ open (Step 6).
 
 ```yaml
 ---
-id: P-<plan-slug>-<own-suffix>
+id: P-<plan-slug>-<own-suffix>[-<dep-suffix>…]  # the filename stem
 id_suffix: <own-suffix>
 scope: S-<scope-slug>
 title: "<title>"
@@ -223,7 +225,7 @@ Dispatched in Step 7's wave per `docs/FRAMEWORK.md § worker-html-*`:
   presentation; `null` for refreshes or background use, per
   `docs/FRAMEWORK.md § Review-page ownership`.
 - `template_path`: `${CLAUDE_PLUGIN_ROOT}/skills/plan/template.html`
-- `output_path`: `.spades/plans/<filename>.html`
+- `output_path`: `.spades/plans/<plan-id>.html`
 - `frontmatter`: `{ id, title, status, scope, deliverable_type,
   delivery, depends_on, created, updated }`, also embedded verbatim
   in `<script id="spades-frontmatter">`
@@ -257,13 +259,15 @@ the Plan question again:
 
 - **Same filename** — re-dispatch with `open_path: null` to refresh the
   already-presented page.
-- **Changed dependency** — re-derive the filename (Step 3), rename the
-  `.md` and `.html` to it, and re-dispatch with `open_path` set to the
-  renamed `.html` to present the Plan at its new path. Tell the human
-  the review page has moved to that file: it opened in the browser when
-  the worker returns `opened: true`; otherwise give its `file://` link.
-  The Plan ID keeps its name, so the Scope's audit entry stays as
-  written.
+- **Changed dependency** — re-derive the ID and filename (Step 3). Set
+  the `.md`'s `id:` to the new ID, rename the `.md` and `.html` to it,
+  and change the `Plan drafted` entry Step 7 appended to the Scope to
+  name the new ID, re-rendering the Scope's `.html` with
+  `worker-html-scope` and `open_path: null`. Re-dispatch with
+  `open_path` set to the renamed `.html` to present the Plan at its new
+  path. Tell the human the review page has moved to that file: it
+  opened in the browser when the worker returns `opened: true`;
+  otherwise give its `file://` link.
 
 ## Step 7 — Write and mirror (fan-out)
 
@@ -275,7 +279,7 @@ general-purpose`:
 |---|---|---|
 | `worker-file-plan` | `.spades/plans/P-<…>.md`, written without `linear_issue_id:` | `{ status: ok }` |
 | `worker-html-plan` *(HTML mode)* | `.spades/plans/P-<…>.html` per Step 5 | `{ status: ok, path, opened }` |
-| `worker-file-scope-audit` | `.spades/scopes/S-<scope-slug>.md` — `status: planning` when it was `scoped`, `updated: <today>`, and `- YYYY-MM-DD: Plan drafted — P-<slug>-<suffix>.` appended. In HTML mode the Scope's `.html` is re-rendered afterwards by `worker-html-scope` with `open_path: null`. | `{ status: ok }` |
+| `worker-file-scope-audit` | `.spades/scopes/S-<scope-slug>.md` — `status: planning` when it was `scoped`, `updated: <today>`, and `- YYYY-MM-DD: Plan drafted — <plan-id>.` appended. In HTML mode the Scope's `.html` is re-rendered afterwards by `worker-html-scope` with `open_path: null`. | `{ status: ok }` |
 | `worker-linear-plan` *(`backend: linear`)* | Linear — a sub-issue under the Scope's parent Issue with the Plan's title and body, labels `ai-planned` and `deliverable_type:<value>`. Carries the resolved worktree context per § Freshness. | `{ status: ok, linear_issue_id }` |
 
 After the wave:
@@ -295,7 +299,7 @@ After the wave:
 ## Step 8 — Confirm and hand off
 
 ```
-✓ Plan drafted: P-rag-pipeline-lookup-3HyD
+✓ Plan drafted: P-rag-pipeline-lookup-3HyD-28sD
 ✓ Scope:        S-add-ai-helper-bot
 ✓ Depends on:   [28sD]
 ✓ Tasks:        4
@@ -303,7 +307,7 @@ After the wave:
 ✓ Status:       draft
 
 Next:
-  /spades:approve P-rag-pipeline-lookup-3HyD    — review and approve
+  /spades:approve P-rag-pipeline-lookup-3HyD-28sD  — review and approve
 ```
 
 The Plan stays `draft` until `/spades:approve` runs; Deliver-phase work

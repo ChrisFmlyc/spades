@@ -251,13 +251,16 @@ from its filename), filesystem-safe, and stable.
   `skills/leads/SKILL.md` owns the procedure.
 
 ### Plan ID
-- Form: `P-<description-slug>-<own-suffix>[-<dep-suffix>...]`.
+- Form: `P-<description-slug>-<own-suffix>[-<dep-suffix>...]`. The ID
+  is the frontmatter `id:` and the filename stem.
 - `own-suffix` — 4-character base62 (`[A-Za-z0-9]{4}`), randomly minted
   at creation, never reused.
 - `dep-suffix` — each prior plan this one depends on appends its
-  `own-suffix` to the filename in dependency order (most recent
-  dependency first).
-- Stored at: `.spades/plans/<filename>.md`.
+  `own-suffix` in dependency order (most recent dependency first).
+- Stored at: `.spades/plans/<plan-id>.md`.
+- A dependency changed while `/spades:plan` drafts the Plan re-derives
+  the ID, and the filename with it; the ID is fixed once the human
+  confirms the draft.
 
 ### Quick-item ID
 - Form: `Q-<description-slug>-<own-suffix>`.
@@ -280,10 +283,10 @@ P-rag-pipeline-lookup-3HyD-28sD.md        # depends on 28sD
 P-deploy-bot-9XaZ-3HyD-28sD.md            # depends on 3HyD and 28sD
 ```
 
-The dependency chain is encoded in the filename so a human (or `ls`)
-can read the graph at a glance. The authoritative graph still lives in
-the `depends_on:` frontmatter field; the filename is a convenience
-mirror.
+The dependency chain is encoded in the ID, and so the filename, so a
+human (or `ls`) can read the graph at a glance. The authoritative graph
+still lives in the `depends_on:` frontmatter field; the ID is a
+convenience mirror.
 
 ### Why slugs and not random IDs everywhere
 
@@ -485,7 +488,7 @@ Delivery Preference.
 
 ```yaml
 ---
-id: P-rag-pipeline-lookup-3HyD
+id: P-rag-pipeline-lookup-3HyD-28sD # the filename stem
 id_suffix: 3HyD                     # 4-char base62, randomly minted
 scope: S-add-ai-helper-bot
 title: "RAG Pipeline Lookup"

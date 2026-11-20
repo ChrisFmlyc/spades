@@ -121,8 +121,9 @@ Project (up to three existing ones plus **Create new Linear Project**;
 a typed name is matched against the team's Projects as in step 4, so
 the human confirms one Project before its ID is recorded).
 Record `team_id`, and the chosen Project's ID as `project_id` or, for
-*Create new*, set `create_linear_project`; Step 8 creates that Linear
-Project. Step 4 pairs it with the active project.
+*Create new*, set `create_linear_project`: Step 6's migration creates
+that Linear Project when it binds an existing active project, and
+Step 8 creates it otherwise. Step 4 pairs it with the active project.
 
 ## Step 2 — SCM
 
@@ -191,8 +192,8 @@ the config's `linear.project_id` are the same Linear Project. A new
 project gets Step 1's Linear Project at Step 8. For an existing
 record, its `linear_project_id` decides:
 
-- **Step 1's Project, or none** → Step 1's answer stands; Step 8
-  writes it to a record without one.
+- **Step 1's Project, or none** → Step 1's answer stands; Step 6's
+  migration or Step 8 writes it to a record without one.
 - **Another Project** (any, when Step 1 chose *Create new*) → ask:
   **Use `<its Linear Project>`** *(Recommended)* — the Project its
   Scopes mirror to; record its ID as `project_id` and clear
@@ -233,8 +234,8 @@ List only fields present in either config. With
 `create_new_project`, the project line reads `<current_project> →
 (new project, created after config is written)`, and with
 `create_linear_project` the Linear project line reads
-`<current_linear_project> → (new Linear Project, created after config
-is written)`.
+`<current_linear_project> → (new Linear Project, created once the
+changes are applied)`.
 Ask: **Apply changes** (→ Step 6 when the backend
 changed, else Step 7) / **Cancel — exit without writes**.
 
@@ -270,8 +271,8 @@ gitlab:                    # scm: gitlab
 
 `project:` and `linear.project_id` are written as a pair: the active
 project and its Linear Project. For an existing project, write its
-slug and the `project_id` Steps 1 and 4 recorded, with no `project_id`
-while `create_linear_project` waits for Step 8. With
+slug and the recorded `project_id`, with no `project_id` while
+`create_linear_project` is still set. With
 `create_new_project`, Step 8 writes both: a **fresh install** writes
 `project:` unset (and `team_id` without `project_id` for Linear), and
 a **re-run** keeps the existing `project:` and `linear.project_id`

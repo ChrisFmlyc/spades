@@ -16,7 +16,8 @@ set -euo pipefail
 #                            type/priority/origin enums hard-checked)
 #   .spades/plans/P-*.md   — Plan schema (id, id_suffix, scope, title,
 #                            status, deliverable_type, created, updated
-#                            required; id must match P-<slug>-<4char>;
+#                            required; id must match
+#                            P-<slug>-<4char>[-<dep-4char>...];
 #                            id_suffix must be 4 chars [A-Za-z0-9])
 #
 # Learning files (.spades/learnings/*.md) are covered by lint-learnings.sh.
@@ -128,6 +129,7 @@ self_test scope good-scope.md pass
 self_test plan  bad-plan.md   fail
 self_test plan  good-plan.md  pass
 self_test plan  good-shipping-plan.md pass
+self_test plan  good-dependent-plan.md pass
 
 echo
 if [ "$fail" -eq 0 ]; then

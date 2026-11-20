@@ -238,7 +238,7 @@ const PLAN_KNOWN_FIELDS = new Set<string>([
   ...Object.keys(PLAN_ENUMS),
   "depends_on", "linear_issue_id",
 ]);
-const PLAN_ID_RE = /^P-[a-z0-9](?:[a-z0-9-]{0,63})-[A-Za-z0-9]{4}$/;
+const PLAN_ID_RE = /^P-[a-z0-9](?:[a-z0-9-]{0,63})-[A-Za-z0-9]{4}(?:-[A-Za-z0-9]{4})*$/;
 const PLAN_SUFFIX_RE = /^[A-Za-z0-9]{4}$/;
 
 // --- Learning schema --------------------------------------------------------
@@ -364,7 +364,7 @@ function validatePlan(fields: Fields, rel: string): Verdict {
   const pid = fields.get("id");
   if (pid && !PLAN_ID_RE.test(pid)) {
     fails.push(
-      `${rel}: invalid plan id ${repr(pid)} — must match P-<slug>-<4char-suffix>`,
+      `${rel}: invalid plan id ${repr(pid)} — must match P-<slug>-<4char-suffix>[-<dep-suffix>...]`,
     );
   }
   const suf = fields.get("id_suffix");
