@@ -537,16 +537,32 @@ threads, as below.
 
 Re-run step 1's command, and merge as soon as it prints `0`:
 
+<!-- scm-test: github-merge -->
 ```bash
-gh pr merge <n> --squash --match-head-commit <headRefOid>
-glab mr merge <iid> -R <repo-url> --squash --auto-merge=false --sha <headRefOid> --yes   # GitLab: merge_review
+gh pr merge <n> --squash --match-head-commit <headRefOid> || {
+  rc=$?
+  now=$(gh pr view <n> --json headRefOid --jq .headRefOid) &&
+    [ "$now" != <headRefOid> ] && echo "head moved: $now"
+  exit "$rc"
+}
+```
+
+<!-- scm-test: gitlab-merge -->
+```bash
+glab mr merge <iid> -R <repo-url> --squash --auto-merge=false --sha <headRefOid> --yes || {
+  rc=$?
+  now=$(glab mr view <iid> -R <repo-url> --output json | jq -er .sha) &&
+    [ "$now" != <headRefOid> ] && echo "head moved: $now"
+  exit "$rc"
+}
 ```
 
 A higher count means the base moved after step 1 ran; return to
-step 1. The host refuses the merge when the head moved after these
-checks (GitLab answers 409); restart Stage 8 then. On GitLab,
-`merge_review` in `docs/FRAMEWORK.md § SCM Drivers` covers a merge
-train and the other refusals. If branch protection or a GitLab merge
+step 1. A refused merge exits non-zero. When it prints
+`head moved: <sha>`, the head moved after these checks (GitLab
+answers 409); restart Stage 8. On GitLab, `merge_review` in
+`docs/FRAMEWORK.md § SCM Drivers` covers a merge train and the other
+refusals. If branch protection or a GitLab merge
 check blocks the merge, pause and report the blocking rule. Confirm
 `review_state` reads `MERGED` and that the merge SHA is on the default
 branch, then capture it and append the marker.
