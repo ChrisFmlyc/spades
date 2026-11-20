@@ -275,17 +275,25 @@ gh api --hostname <gh-host> "repos/<owner>/<repo>/deployments?sha=<merge-sha>" -
 gh api --hostname <gh-host> "repos/<owner>/<repo>/deployments/<id>/statuses" --jq '.[0] | {state, environment_url}'
 ```
 
-**GitLab** — the deployments API has no SHA filter, so read the most
-recent deployments and match the merge SHA. A merge can deploy to more
-than one environment; each one's latest deployment counts:
+**GitLab** — the deployments API has no SHA filter, so read every
+deployment updated since the merge and match the merge SHA. A merge's
+deployments all start after it, so the bound drops none of them and
+keeps the read short. `<merged-at>` is the `merged_at` that
+`review_state` returned; `@uri` encodes it, since a `+hh:mm` offset
+would otherwise reach GitLab as a space, and `updated_after` needs
+`order_by=updated_at`. A merge can deploy to more than one
+environment; each one's newest deployment counts — the highest `id`,
+as a retried deploy job makes a new one:
 
 <!-- scm-test: gitlab-deploy-status -->
 ```bash
-set -o pipefail
-glab api --hostname <host> "projects/<project>/deployments?order_by=updated_at&sort=desc&per_page=50" \
-  | jq -c --arg sha "<merge-sha>" '[.[] | select(.sha == $sha)] | group_by(.environment.name)
-        | map(max_by(.updated_at) | {environment: .environment.name, status,
-                                     environment_url: .environment.external_url})'
+set -eo pipefail
+since=$(jq -rn --arg t '<merged-at>' '$t | @uri')
+glab api --paginate --hostname <host> "projects/<project>/deployments?updated_after=$since&order_by=updated_at&per_page=100" \
+  | jq -sc --arg sha '<merge-sha>' '(if length == 0 then error("no response from glab") else add end)
+      | [.[] | select(.sha == $sha)] | group_by(.environment.name)
+      | map(max_by(.id) | {environment: .environment.name, status,
+                           environment_url: .environment.external_url})'
 ```
 
 Every environment `success` → success; any failed one → pause; any

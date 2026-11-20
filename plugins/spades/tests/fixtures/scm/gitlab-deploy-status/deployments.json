@@ -1,38 +1,9 @@
 [
-  {
-    "sha": "other",
-    "status": "success",
-    "updated_at": "2026-11-20T12:07:00Z",
-    "environment": {
-      "name": "production",
-      "external_url": "https://app.example.com"
-    }
-  },
-  {
-    "sha": "mmm111",
-    "status": "running",
-    "updated_at": "2026-11-20T12:06:00Z",
-    "environment": {
-      "name": "staging",
-      "external_url": "https://staging.example.com"
-    }
-  },
-  {
-    "sha": "mmm111",
-    "status": "success",
-    "updated_at": "2026-11-20T12:05:00Z",
-    "environment": {
-      "name": "production",
-      "external_url": "https://app.example.com"
-    }
-  },
-  {
-    "sha": "mmm111",
-    "status": "failed",
-    "updated_at": "2026-11-20T12:01:00Z",
-    "environment": {
-      "name": "production",
-      "external_url": "https://app.example.com"
-    }
-  }
+  {"id": 101, "sha": "mmm111", "status": "failed", "updated_at": "2026-11-20T13:01:00.000+01:00", "environment": {"name": "production", "external_url": "https://app.example.com"}},
+  {"id": 102, "sha": "other", "status": "success", "updated_at": "2026-11-20T13:02:00.000+01:00", "environment": {"name": "production", "external_url": "https://app.example.com"}},
+  {"id": 104, "sha": "mmm111", "status": "success", "updated_at": "2026-11-20T13:05:00.000+01:00", "environment": {"name": "production", "external_url": "https://app.example.com"}}
+]
+[
+  {"id": 103, "sha": "mmm111", "status": "failed", "updated_at": "2026-11-20T13:06:00.000+01:00", "environment": {"name": "canary", "external_url": "https://canary.example.com"}},
+  {"id": 105, "sha": "mmm111", "status": "running", "updated_at": "2026-11-20T13:07:00.000+01:00", "environment": {"name": "staging", "external_url": "https://staging.example.com"}}
 ]
