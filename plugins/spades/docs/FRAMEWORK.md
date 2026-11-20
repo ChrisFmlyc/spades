@@ -1179,7 +1179,7 @@ walk the human through finding the right one — not abort.
 | `/spades:approve` | Plan | `draft` |
 | `/spades:deliver` | Plan | `approved`, `delivering` (so resume works) |
 | `/spades:evaluate` | Plan (or Scope for whole-scope eval) | Plans: `delivering`, `evaluating`. Scopes: `evaluating` |
-| `/spades:ship` | Plan | `evaluating` with a PASS verdict recorded in the audit trail |
+| `/spades:ship` | Plan | `evaluating` with a PASS verdict recorded in the audit trail; `shipping` (so resume works) |
 
 ### Zero-candidate suggestion table
 
@@ -1191,7 +1191,7 @@ When the filter returns nothing, suggest the upstream skill:
 | `/spades:approve` (no draft Plans) | `/spades:plan S-…` to draft one |
 | `/spades:deliver` (no approved Plans) | `/spades:approve P-…` on a draft plan |
 | `/spades:evaluate` (no delivering / evaluating Plans) | `/spades:deliver P-…` on an approved plan |
-| `/spades:ship` (no evaluating + PASS Plans) | `/spades:evaluate P-…` to verify a delivered plan |
+| `/spades:ship` (no evaluating + PASS or shipping Plans) | `/spades:evaluate P-…` to verify a delivered plan |
 | `/spades:review` (no active artefacts) | `/spades:scope <title>` to create one |
 
 ### When the human DID name a target
@@ -2379,10 +2379,13 @@ that's drift.
 
 #### What "drift" surfaces look like
 
-`/list` and `/status` print a one-line warning per drifted artefact:
+`/list` and `/status` print a warning per drifted artefact:
 
 ```
-⚠ Linear drift: S-add-newsletter — local `delivering`, Linear `completed` (Done). Re-run /spades:close S-… (Pass) to roll up locally, or edit Linear if the local file is wrong.
+⚠ S-add-newsletter — local `delivering`, Linear `completed` (Done).
+    If the work is done, run /spades:close S-add-newsletter (Pass)
+    to roll up locally; if it is still delivering, set Linear to
+    match the local file.
 ```
 
 The warning includes:
@@ -2390,9 +2393,9 @@ The warning includes:
 - Local status value
 - Linear's actual workflow state type (and team-specific name, if
   available)
-- A pointer to the most likely remediation skill — usually
-  re-running the originating writer skill to push local state to
-  Linear
+- The remediation: the human decides which status is right, and the
+  wrong record is repaired — the local file through its owning skill
+  or a roll-up, Linear by re-mirroring it from the local file
 
 The probe is informational, not blocking. `/list` and `/status` still
 render their main view; the drift warnings appear in their own

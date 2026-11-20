@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Ships the deliverable produced by an approved Plan after evaluation. Branches on `deliverable_type:` — code gets a GitHub PR or GitLab MR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
+description: Ships the deliverable produced by an approved Plan after evaluation. Branches on `deliverable_type:` — code gets a GitHub PR or GitLab MR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict or in status `shipping`.
 version: 3.8.1
 ---
 
@@ -32,16 +32,17 @@ while the Plan remains the active review page.
    `.spades/config`.
 3. **Resolve the target Plan** per `docs/FRAMEWORK.md § Target
    Resolution` — artefact type Plan; status filter `evaluating` with
-   a PASS verdict in the audit trail; zero candidates → suggest
-   `/spades:evaluate P-…`.
+   a PASS verdict in the audit trail, or `shipping`; zero candidates →
+   suggest `/spades:evaluate P-…`.
 4. **Read the Plan and its parent Scope** in the resolved Scope worktree
    per § Scope Worktrees. Reuse that context for all drivers.
 5. **Verify ancestors active** per § Target Resolution →
    Parent-status precondition; hard abort on an `abandoned` Scope or
    an `abandoned` / `archived` Project.
-6. **Verify the verdict.** `evaluating` + PASS → ship. PARTIAL →
-   stop and direct the caller to `/spades:deliver P-…` for the remaining
-   gaps. Any other status or verdict → abort with a clear message.
+6. **Verify the status and verdict.** `evaluating` + PASS, or
+   `shipping` → continue to Step 1. PARTIAL → stop and direct the
+   caller to `/spades:deliver P-…` for the remaining gaps. Any other
+   status or verdict → abort with a clear message.
 7. **Scope PR readiness (`code`, two-phase SCM).** With `scm: github` or
    `scm: gitlab`, before marking any Plan `shipping`, check the Scope is
    ready for its PR per `docs/FRAMEWORK.md § Scope Worktrees → Plans share
@@ -52,21 +53,25 @@ while the Plan remains the active review page.
    publication`, before publishing.
 9. **Open the review surface** per § Output format.
 
-## Step 1 — Fresh run or resume (`deliverable_type: code`)
+## Step 1 — Fresh run or resume
 
-Read the audit trail:
+An `evaluating` Plan is a fresh run; continue to Step 2. A `shipping`
+Plan resumes from its audit trail:
 
-- **No `PR opened:` / `MR opened:` line** → fresh run; continue.
-- **`PR opened:` or `MR opened:` present, no later `Shipped` line** →
+- **`PR opened:` or `MR opened:` line, no later `Shipped` line** →
   the PR is published and finalisation belongs to `/spades:close`.
   Probe its state with `review_state` (`docs/FRAMEWORK.md § SCM
   Drivers`), report it, and print `Run /spades:close P-<id>` for a
   merged PR or `Merge the PR, then run /spades:close P-<id>` for an
   open one, naming it MR on GitLab. Stop.
-- **`Shipped` line present** → already shipped; say so and stop.
-
-`artefact` and `action` deliverables are always single-phase;
-continue.
+- **`Shipped` line** → the single-phase shipment is recorded; continue
+  at Step 4 to finalise it.
+- **Neither** → the earlier run stopped before recording a shipment: a
+  rejected push, a PR or MR that failed to open, or an artefact or
+  action not yet recorded. Continue at Step 3, which repeats it. With
+  `scm: local-git` there is no PR line, so a `shipping` code Plan
+  resumes here, or at Step 4 once its `Shipped (local-git)` line is
+  written.
 
 ## Step 2 — Mark shipping
 
@@ -149,7 +154,8 @@ Continue to Step 4.
 
 ## Step 4 — Finalise (single-phase paths)
 
-Reached from the local-git driver and from Branches B and C. Set the
+Reached from the local-git driver, from Branches B and C, and from a
+Step 1 resume whose shipment is already recorded. Set the
 Plan to `status: shipped`, `updated: <today>`, then apply the Scope
 rollup per `docs/FRAMEWORK.md § Scope status rollup`:
 
@@ -166,7 +172,7 @@ rollup per `docs/FRAMEWORK.md § Scope status rollup`:
 - **A sibling still in flight** → no rollup.
 
 With `backend: linear`, move the sub-issue to Done, and the parent
-Issue to Done when every sub-issue is Done.
+Issue to Done when the Scope rolls up to `done`.
 
 ## Step 5 — Confirm
 

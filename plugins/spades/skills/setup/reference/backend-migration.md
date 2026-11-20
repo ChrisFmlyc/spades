@@ -21,19 +21,25 @@ Offer these as a question in either direction:
 
 ## Direction A — `local → linear`
 
-For each artefact, search Linear under the bound Project; a match
-links via frontmatter ID, no match creates. Each Scope and Plan takes
-the workflow state that `docs/FRAMEWORK.md § Drift detection →
-Status-type mapping (canonical)` gives its status.
+The walk covers the active project chosen at Step 4 and its Scopes and
+Plans; other local projects and their artefacts stay as they are. For
+each Scope and Plan, search Linear under the active project's Linear
+Project; a match links via frontmatter ID, no match creates. Each Scope
+and Plan takes the workflow state that `docs/FRAMEWORK.md § Drift
+detection → Status-type mapping (canonical)` gives its status.
 
-1. **Projects** — `.spades/projects/<slug>.md` → Linear Project
-   (`mcp__linear-server__list_projects` filtered by team, then
-   `mcp__linear-server__save_project` if no match). Write
-   `linear_project_id` back.
+1. **Active project** — bind `.spades/projects/<slug>.md` to the
+   `project_id` Steps 1 and 4 recorded. With `create_linear_project`,
+   first create the Linear Project on `team_id` with the record's title
+   and description (`mcp__linear-server__save_project`), record its ID
+   as `project_id` and clear `create_linear_project`. Write
+   `linear_project_id` back. With `create_new_project` there is no
+   record yet: Step 8 creates and binds it, and the walk has nothing to
+   migrate.
 
-2. **Scopes** — `.spades/scopes/S-<slug>.md` → Linear Issue under
-   the bound Project. Body = the Scope's markdown. Write
-   `linear_issue_id` back.
+2. **Scopes** — each of the active project's
+   `.spades/scopes/S-<slug>.md` → Linear Issue under its Linear
+   Project. Body = the Scope's markdown. Write `linear_issue_id` back.
 
 3. **Plans** — `.spades/plans/P-<…>.md` → sub-Issue under the
    Scope's parent Issue. Body = the Plan's markdown. Write
@@ -52,9 +58,10 @@ Status-type mapping (canonical)` gives its status.
 
    ```
    ✓ Migration complete. local → linear:
-       Projects:  1 (1 created, 0 linked to existing)
+       Project:   closed-door-security-website (bound to an existing Linear Project)
        Scopes:    3 (2 created, 1 linked to existing)
        Plans:    11 (8 created, 3 linked to existing)
+       Other projects: 2 kept local.
        Learnings: skipped (4 files stay local).
    ```
 

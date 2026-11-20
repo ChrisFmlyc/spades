@@ -1,6 +1,6 @@
 ---
 name: newproject
-description: Creates a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when a new initiative needs its own SPADES Project, when someone says "new SPADES project", "create a SPADES project" or "set up a SPADES project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
+description: Creates a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when a new initiative needs its own SPADES Project, when someone says "new SPADES project", "create a SPADES project" or "set up a SPADES project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates or binds the corresponding Linear Project.
 version: 3.8.3
 ---
 
@@ -40,6 +40,13 @@ running.
 
    `missing` → abort: *"Run `/spades:setup` first — it configures the
    backend and, on the same pass, creates your first project."*
+
+2. **Take a passed Linear Project.** `/spades:setup` passes the Linear
+   Project its Step 1 chose, when there is one. With `backend: linear`
+   that Project is this record's binding: Step 2 skips its Linear name
+   check, Step 3's wave runs without `worker-linear-project` and injects
+   the passed ID as `linear_project_id`, and Step 4 writes it as
+   `linear.project_id`.
 
 ## Step 1 — Draft the record
 
@@ -137,6 +144,9 @@ linear_project_id: <uuid>        # backend: linear, injected after the wave
 
 ### `worker-html-project` (HTML mode)
 
+The worker escapes these values per `docs/FRAMEWORK.md § HTML
+rendering: template validation and substitution`, step 3.
+
 - `open_path`: the absolute `output_path` for this skill’s initial review
   presentation; `null` for refreshes or background use, per
   `docs/FRAMEWORK.md § Review-page ownership`.
@@ -144,18 +154,11 @@ linear_project_id: <uuid>        # backend: linear, injected after the wave
 - `output_path`: `.spades/projects/<slug>.html`
 - `frontmatter`: `{ id, title, description, status, created,
   updated, repos, owners }`, plus optional `linear_project_id`, `lead`,
-  `linear_lead_id` when present in the canonical record. Replace the entire
-  `<script id="spades-frontmatter">` contents with that record's YAML;
-  omit absent optional fields. Serialize strings as YAML scalars, preserving
-  their values when parsed. Inside the script's raw-text context use YAML
-  double-quoted escapes for `<`, `>`, `&` and literal placeholder braces
-  (for example `\u003c`, `\u007b`), rather than HTML entities, so identity
-  text cannot close the script or become a template token.
+  `linear_lead_id` when present in the canonical record; absent optional
+  fields are omitted.
 - `scalars`: the parsed Project fields and existing computed template
   values; optional `lead` is the canonical `lead` string. With no `lead`,
   the visible property uses the template's **Unassigned** fallback.
-  HTML-escape visible user strings, including `lead`; encode literal token
-  braces per § Placeholder substitution and output validation.
 - `blocks`:
   - `objective-banner` — the project's sole `open` Objective
     `{ id, title }` when exactly one exists, else `[]`
