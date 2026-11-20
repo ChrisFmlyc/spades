@@ -67,6 +67,8 @@ runs the Scope rollup.
 - **No remote, but the human expected a push** — suggest
   `git remote add origin <url>` or `local_git.remote:` in
   `.spades/config`, then re-run.
-- **Push fails** (auth, network, protected branch) — show the exact
-  error; the Plan stays at `shipping` and the run is repeated once
-  the cause is fixed.
+- **Push fails** (auth, network, protected branch, a server hook) —
+  show the exact error and its cause per `docs/FRAMEWORK.md § SCM
+  Drivers → Pushing`; the Plan stays at `shipping` and the run is
+  repeated once the cause is fixed. The branch is never rewritten to
+  get past it.

@@ -1,0 +1,4 @@
+{"state": "opened", "draft": false, "detailed_merge_status": "mergeable", "sha": "head111", "source_branch": "feat/x"}
+[]
+{"id": null, "status": null, "ref": null}
+{"squash_option": "default_off", "merge_method": "merge", "merge_trains_enabled": false}

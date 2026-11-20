@@ -1,0 +1,2 @@
+^glab api (--paginate )?--hostname gitlab\.example\.com projects/acme%2Fapp/pipelines/20$	pipeline.json
+^glab api (--paginate )?--hostname gitlab\.example\.com projects/acme%2Fapp/pipelines/20/jobs\?scope	jobs.json

@@ -1,0 +1,20 @@
+[
+  {
+    "id": 41,
+    "head_commit_sha": "head111",
+    "base_commit_sha": "base000",
+    "start_commit_sha": "base000",
+    "created_at": "2026-11-02T10:00:00.000Z",
+    "merge_request_id": 700,
+    "state": "collected"
+  },
+  {
+    "id": 40,
+    "head_commit_sha": "old000",
+    "base_commit_sha": "base000",
+    "start_commit_sha": "base000",
+    "created_at": "2026-11-01T10:00:00.000Z",
+    "merge_request_id": 700,
+    "state": "collected"
+  }
+]

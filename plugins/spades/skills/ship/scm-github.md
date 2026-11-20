@@ -9,7 +9,8 @@ GitHub is a two-phase SCM. This file is Phase 1: publish the branch
 as a PR and exit with the Plan at `status: shipping`. Phase 2 —
 verifying the squash-merge, writing the `Shipped` marker to `main`
 through a bookkeeping PR, and mirroring to Linear — is
-`/spades:close P-<id>`, run after the PR merges.
+`/spades:close P-<id>`, run after the PR merges. Commands come from
+`docs/FRAMEWORK.md § SCM Drivers`.
 
 ## 1. Verify the Scope worktree
 
@@ -34,22 +35,32 @@ If approved records remain, commit them through `/repo:branch` with
 git push -u <configured-remote> <branch>
 ```
 
+`<configured-remote>` is `github.remote` (default `origin`).
+
+A rejected push stops here with the Plan at its current status: show
+the remote's message and its cause per `docs/FRAMEWORK.md § SCM Drivers
+→ Pushing`. The branch is never amended, rebased or force-pushed to get
+past it.
+
 ## 4. Open or reuse the Scope PR
 
-Look up the PR by the Scope branch and explicit configured base branch.
+Look up the PR with `find_review(<scope-branch>, <default-branch>)`.
 Reuse an existing open PR on resume; if it is merged or closed, surface
 that state rather than creating another delivery PR from the old branch.
 For a new PR, invoke `/repo:pr` with a title and body covering the Scope's
 result, all participating Plan IDs, approval/evaluation evidence and relevant
 validation.
 
-Write the `/repo:pr` result to a body file, then create:
+Write the `/repo:pr` result to a body file, then create the PR with
+`open_review`:
 
 ```bash
-gh pr create --head <scope-branch> --base <default-branch> --title "<title>" --body-file <body-file>
+gh pr create -R <gh-repo> --head <scope-branch> --base <default-branch> --title "<title>" --body-file <body-file>
 ```
 
-Capture the PR URL from the output.
+`<gh-repo>` is the repository behind `<configured-remote>`, read from its
+URL as `docs/FRAMEWORK.md § SCM Drivers` sets out. Capture the PR URL
+from the output.
 
 ## 5. Record and exit
 
@@ -80,7 +91,7 @@ Once the PR is squash-merged:
   unauthenticated. Surface the exact error with the remediation; the
   Plan stays at `shipping`.
 - **`gh` missing or unauthenticated** — show the human the exact
-  `git push -u <configured-remote> <branch>` and `gh pr create` invocation to run
+  `git push -u <configured-remote> <branch>` and `gh pr create -R <gh-repo>` invocation to run
   by hand, then capture the resulting URL and record it as in § 5.
 - **Merge conflicts** — resolved as fix commits on the branch;
   re-run `/spades:ship` once the branch is clean.

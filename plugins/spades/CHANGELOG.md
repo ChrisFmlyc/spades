@@ -8,6 +8,121 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.10.0] — 2026-11-20
+
+- **Minor**: GitLab is a supported SCM. `/spades:setup` offers
+  **GitLab** next to Local git and GitHub, and recommends the option
+  that matches the remote's host. With `scm: gitlab` it follows
+  `skills/setup/reference/gitlab.md`: it reads the host and project
+  path from the remote (nested groups included), checks `glab` and `jq`,
+  walks the `glab` login (browser or token; git over SSH or HTTPS),
+  confirms the project is visible, checks git can reach the remote, and
+  asks which review bots post on the project's merge requests. It writes a
+  `gitlab:` block with `remote`, `host`, `project` and `review_bots`.
+  - `glab` chooses a project by its own rules rather than from the
+    configured remote, so every GitLab command names the configured
+    project: `-R https://<host>/<project>` on `glab mr`, `glab issue`
+    and `glab label`, and `--hostname` with `projects/<project>` on
+    `glab api`. A skill checks the remote still names that project
+    before its first GitLab write.
+  - GitHub commands name their repository too. `gh` also chooses one by
+    its own rules — a `gh repo set-default` choice, else a remote named
+    `upstream` ahead of `origin` — so in a clone with both remotes,
+    PRs, merges and Lead issues went to the upstream repository rather
+    than `github.remote`'s. Every `gh pr`, `gh issue` and `gh label`
+    command now takes `-R <host>/<owner>/<repo>`, read from
+    `github.remote`'s URL, and `gh api` takes `--hostname` with
+    `repos/<owner>/<repo>`. GitHub's `find_review` reads up to 1000 PRs
+    rather than `gh`'s default 30, and skips a fork's PR that shares
+    the branch name.
+  - GitLab marks no account as a review bot, so only the accounts in
+    `gitlab.review_bots` count as bots; every other thread author is a
+    person, and their threads pause the loop. On both hosts a bot's
+    thread that a person has replied in is the person's, so the loop
+    no longer resolves a thread holding a human comment.
+  - Stage 8's forward merge, post-evaluation re-check and pinned-head
+    merge from 6.9.1 run on GitLab too: `need_rebase` is GitLab's
+    `BEHIND`, the merge assertions are `finish-checks.md § Merge
+    readiness`, and the merge is `merge_review` with `--sha`.
+  - `docs/FRAMEWORK.md § SCM Drivers → Pushing` covers a rejected push
+    on every driver. The skill stops with the remote's message, its
+    credentials redacted, and names the cause: a GitLab push rule, a
+    lapsed SAML SSO session (git is enforced when the API isn't), a
+    protected branch, GitHub push protection or SAML authorisation, a
+    server hook, or a missing project. GitLab's 404 is reported as "not
+    found, or not visible to this account". The branch is never
+    rewritten to get past a rule. Ship, Quick, Close and
+    `/codereview:loop` all follow it.
+  - Merging on GitLab reads the project's settings first: a project
+    that forbids squashing pauses, a merge train is joined with
+    auto-merge and polled, and a 405, 409 or 422 pauses with its
+    meaning. On both hosts the recorded merge SHA must be on the default
+    branch, which catches GitLab's rebase-while-merging case.
+  - Merge readiness on GitLab ignores the `external` pipeline a review
+    bot's commit status creates, reports a pipeline that failed with no
+    jobs or with `yaml_errors` using the CI lint API, separates a listed
+    bot's `requested_changes` from a person's, and requires a ready (not
+    draft) MR. It reads the MR's merged-results pipelines, which run on
+    a temporary merge commit, as well as the head commit's. Ship opens
+    MRs ready for review and marked for squashing. List probes paginate,
+    run under `pipefail` and treat an empty response as an error. The deploy gate
+    checks every environment a merge deployed to, and FINISHED names
+    the project's auto-close setting when linked issues stay open.
+  - `docs/FRAMEWORK.md § SCM Drivers` is the single home for SCM
+    commands. Skills call operations by name (`probe_auth`,
+    `find_review`, `open_review`, `review_state`, `merge_review` and the
+    Lead issue operations). The section gives the `gh` and `glab` command
+    for each, and says how to read GitLab's merge SHA under each merge
+    method.
+  - `/spades:ship` has a `scm-gitlab.md` driver that pushes the Scope
+    branch and opens a merge request. `/spades:close`, `/spades:quick`
+    and `/spades:evaluate` verify, finalise and open bookkeeping MRs
+    through the same operations. GitLab audit trails record `MR opened:`
+    and `Shipped (gitlab). MR: …`, and every reader of the opened marker
+    accepts both forms.
+  - `/spades:leads` files Leads as GitLab issues under `scm: gitlab`,
+    through a `worker-gitlab-lead` mirror and a `gitlab_issue:` field.
+  - `/spades:loop` runs on GitLab. Stage 7 hands the MR link to
+    `/codereview:loop`, which drives GitLab merge requests from
+    `codereview` 1.4.0; under `scm: gitlab` the pre-flight requires that
+    version, and an older one stopping short is Pause 7. Merge
+    readiness, deploy and FINISHED probes for both hosts live in
+    `reference/finish-checks.md`. The GitLab merge disables glab's
+    default auto-merge, pins the head SHA, and confirms the MR reads
+    merged.
+  - The operating rules and the setup template list `scm: gitlab` under
+    Ship. `docs/EXTENDING-SCM.md` now lists every file a new driver
+    touches, with the GitLab driver as its reference.
+  - A skillspector scan of the changed skills flagged descriptions that
+    left out side effects, and triggers that match everyday speech.
+    Close's description says it commits, pushes and opens a bookkeeping
+    PR, and its triggers name a SPADES item instead of "close this" or
+    "we're not doing this". Setup's says it checks the `repo` plugin
+    and the SCM CLI, and can register the Linear MCP server. Loop's
+    says it pushes and squash-merges without a separate confirmation,
+    and its pre-flight announcement says the same. Quick's triggers
+    name the SPADES fast-track gate.
+  - Leads' description no longer contains a `key: value` sequence, so
+    its frontmatter parses as strict YAML; on 6.8.2 a strict parser
+    rejected it.
+  - `scripts/test/scm-snippets.sh` runs every command snippet the docs
+    tag `<!-- scm-test: … -->` against recorded `gh`, `glab` and `git`
+    output, offline, in CI: 40 cases across GitHub and GitLab review
+    state, thread sweeps, merge readiness, failed pipelines and CI lint,
+    FINISHED checks, deploy status, `find_review`, both hosts' merge
+    commands, and push rejections. A rejected push now exits with git's
+    status. A missing expected file, a failed replay, or a query that
+    drops `--paginate` fails the case.
+  - The maintainer rules (`AGENTS.md` at the repo root, § SCM drivers
+    move together) require a change to one SCM driver's flow to be
+    weighed for the others in the same PR, and
+    `docs/EXTENDING-SCM.md § Changing a flow` maps each flow to its
+    files.
+- Skills bumped: `close` 4.15.1 → 4.16.0, `evaluate` 3.11.1 → 3.11.2,
+  `leads` 3.4.1 → 3.5.0, `loop` 1.15.1 → 1.16.0, `quick` 2.6.0 → 2.7.0,
+  `setup` 4.14.0 → 4.15.0, `ship` 3.7.1 → 3.8.0, `status` 3.6.5 → 3.6.6.
+- `agents_version` 3.4.0 → 3.5.0.
+
 ## [6.9.1] — 2026-11-19
 
 - **Patch**: `/spades:loop` merges only a head whose checks ran with

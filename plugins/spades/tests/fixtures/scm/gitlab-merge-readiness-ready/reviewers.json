@@ -1,0 +1,16 @@
+[
+  {
+    "user": {
+      "id": 303,
+      "username": "GitLabDuo"
+    },
+    "state": "approved"
+  },
+  {
+    "user": {
+      "id": 5,
+      "username": "alice"
+    },
+    "state": "reviewed"
+  }
+]

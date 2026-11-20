@@ -1,0 +1,5 @@
+remote: error: GH013: Repository rule violations found for refs/heads/feat/x.
+remote: - GITHUB PUSH PROTECTION
+To https://github.com/acme/app.git
+ ! [remote rejected] feat/x -> feat/x (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/acme/app.git'

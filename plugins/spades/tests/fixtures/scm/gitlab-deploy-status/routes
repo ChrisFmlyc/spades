@@ -1,0 +1,1 @@
+^glab api (--paginate )?--hostname gitlab\.example\.com projects/acme%2Fapp/deployments\?updated_after=2026-11-20T13%3A00%3A00\.000%2B01%3A00&order_by=updated_at&per_page=100$	deployments.json

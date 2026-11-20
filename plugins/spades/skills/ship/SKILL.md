@@ -1,7 +1,7 @@
 ---
 name: ship
-description: Ships the deliverable produced by an approved Plan after evaluation. Branches on `deliverable_type:` — code gets PR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.7.1
+description: Ships the deliverable produced by an approved Plan after evaluation. Branches on `deliverable_type:` — code gets a GitHub PR or GitLab MR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
+version: 3.8.0
 ---
 
 # /spades:ship
@@ -42,7 +42,8 @@ while the Plan remains the active review page.
 6. **Verify the verdict.** `evaluating` + PASS → ship. PARTIAL →
    stop and direct the caller to `/spades:deliver P-…` for the remaining
    gaps. Any other status or verdict → abort with a clear message.
-7. **Scope PR readiness (`code`, `scm: github`).** Before marking any Plan
+7. **Scope PR readiness (`code`, two-phase SCM).** With `scm: github` or
+   `scm: gitlab` (`docs/FRAMEWORK.md § SCM Drivers`), before marking any Plan
    shipping, check every non-rejected code Plan in the Scope has completed
    delivery and a current confirmed PASS. If siblings are pending, keep
    this Plan `evaluating` and continue their delivery/evaluation first.
@@ -65,11 +66,12 @@ while the Plan remains the active review page.
 Read the audit trail:
 
 - **No `PR opened:` / `MR opened:` line** → fresh run; continue.
-- **`PR opened:` present, no later `Shipped` line** → the PR is
-  published and finalisation belongs to `/spades:close`. Probe the
-  PR state (`gh pr view <n> --json state`), report it, and print
-  `Run /spades:close P-<id>` for a merged PR or `Merge the PR, then
-  run /spades:close P-<id>` for an open one. Stop.
+- **`PR opened:` or `MR opened:` present, no later `Shipped` line** →
+  the PR is published and finalisation belongs to `/spades:close`.
+  Probe its state with `review_state` (`docs/FRAMEWORK.md § SCM
+  Drivers`), report it, and print `Run /spades:close P-<id>` for a
+  merged PR or `Merge the PR, then run /spades:close P-<id>` for an
+  open one, naming it MR on GitLab. Stop.
 - **`Shipped` line present** → already shipped; say so and stop.
 
 `artefact` and `action` deliverables are always single-phase;
@@ -87,8 +89,9 @@ Set the Plan to `status: shipping`, `updated: <today>`, and append:
 ```
 
 With `backend: linear`, move the sub-issue to its `shipping`
-workflow state. For a GitHub Scope delivery PR, apply this transition to
-every participating code Plan; one PR publishes their shared branch.
+workflow state. For a Scope delivery PR on a two-phase SCM, apply this
+transition to every participating code Plan; one PR publishes their
+shared branch.
 
 ## Step 3 — Ship by deliverable type
 
@@ -104,6 +107,10 @@ markers.
   and follow it.** Two-phase: this run pushes and opens the PR, then
   exits with the Plan at `shipping`; `/spades:close P-<id>` records
   the `Shipped` marker after the merge.
+- `scm: gitlab` → **read `${CLAUDE_PLUGIN_ROOT}/skills/ship/scm-gitlab.md`
+  and follow it.** Two-phase, as GitHub: this run pushes and opens the
+  merge request (MR), then exits with the Plan at `shipping`;
+  `/spades:close P-<id>` records the `Shipped` marker after the merge.
 - `scm: local-git` → **read `${CLAUDE_PLUGIN_ROOT}/skills/ship/scm-local-git.md`
   and follow it.** Single-phase: push when a remote is configured,
   record the commit, return here for Step 4.

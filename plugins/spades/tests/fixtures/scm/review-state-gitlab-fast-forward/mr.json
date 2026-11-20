@@ -1,0 +1,12 @@
+{
+  "iid": 7,
+  "state": "merged",
+  "merge_commit_sha": "",
+  "squash_commit_sha": "",
+  "sha": "head222",
+  "merge_user": {
+    "username": "bob"
+  },
+  "merged_at": "2026-11-20T11:00:00.000Z",
+  "draft": false
+}

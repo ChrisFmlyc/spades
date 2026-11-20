@@ -1,0 +1,6 @@
+{
+  "squash_option": "default_off",
+  "merge_method": "merge",
+  "merge_trains_enabled": false,
+  "autoclose_referenced_issues": true
+}

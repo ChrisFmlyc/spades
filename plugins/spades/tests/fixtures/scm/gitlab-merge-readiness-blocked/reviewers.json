@@ -1,0 +1,23 @@
+[
+  {
+    "user": {
+      "id": 303,
+      "username": "GitLabDuo"
+    },
+    "state": "requested_changes"
+  },
+  {
+    "user": {
+      "id": 9,
+      "username": "carol"
+    },
+    "state": "requested_changes"
+  },
+  {
+    "user": {
+      "id": 5,
+      "username": "alice"
+    },
+    "state": "approved"
+  }
+]

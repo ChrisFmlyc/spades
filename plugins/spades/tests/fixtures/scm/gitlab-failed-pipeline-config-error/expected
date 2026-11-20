@@ -1,0 +1,2 @@
+{"status": "failed", "yaml_errors": "jobs:test config should implement a script: or a trigger: keyword"}
+[]

@@ -1,0 +1,1 @@
+[{"environment": "canary", "status": "failed", "environment_url": "https://canary.example.com"}, {"environment": "production", "status": "success", "environment_url": "https://app.example.com"}, {"environment": "staging", "status": "running", "environment_url": "https://staging.example.com"}]

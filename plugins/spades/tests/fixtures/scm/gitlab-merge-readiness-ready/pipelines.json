@@ -1,0 +1,26 @@
+[
+  {
+    "id": 11,
+    "status": "success",
+    "source": "merge_request_event",
+    "ref": "refs/merge-requests/7/head",
+    "sha": "head111",
+    "created_at": "2026-11-02T10:00:05.000Z"
+  },
+  {
+    "id": 10,
+    "status": "failed",
+    "source": "merge_request_event",
+    "ref": "refs/merge-requests/7/head",
+    "sha": "old000",
+    "created_at": "2026-11-01T10:00:05.000Z"
+  },
+  {
+    "id": 12,
+    "status": "success",
+    "source": "external",
+    "ref": "feat/x",
+    "sha": "head111",
+    "created_at": "2026-11-02T10:01:00.000Z"
+  }
+]

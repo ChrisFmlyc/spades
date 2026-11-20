@@ -1,7 +1,7 @@
 ---
 name: setup
-description: Configures SPADES in a repository by choosing the backend, SCM, review format and active project, writing .spades/config, and scaffolding agent rules and project documents. Use for initial setup, reconfiguration or a scaffolding refresh, including "set up SPADES", "configure SPADES", "initialise SPADES", or "I want to use SPADES in this repo". Preserves existing content on re-runs.
-version: 4.14.0
+description: Configures SPADES in a repository by choosing the backend, SCM (local git, GitHub or GitLab), review format and active project, writing .spades/config, and scaffolding agent rules and project documents. Checks that the `repo` plugin and the chosen SCM's CLI (`gh` or `glab`) are installed and authenticated, and with the Linear backend can register the Linear MCP server. Use for initial setup, reconfiguration or a scaffolding refresh, including "set up SPADES", "configure SPADES", "initialise SPADES", or "I want to use SPADES in this repo". Preserves existing content on re-runs.
+version: 4.15.0
 ---
 
 # /spades:setup
@@ -96,7 +96,9 @@ repo plugin was skipped, install it before continuing with file writes.
 `missing` → fresh install; Steps 5 and 6 are skipped. `present` →
 capture `current_backend`, `current_scm`, `current_project`,
 `current_linear_team` / `current_linear_project`,
-`current_github_remote`, `current_review_format` (default `cli` on
+`current_github_remote` / `current_gitlab_remote`, the `gitlab:` block's
+`host`, `project` and `review_bots`,
+`current_review_format` (default `cli` on
 older configs), and `current_leads` (default `on`).
 
 ## Step 1 — Backend
@@ -136,15 +138,23 @@ fan-out. Otherwise record `team_id` and `project_id`.
 
 ## Step 2 — SCM
 
-Same "currently configured" preamble on re-run. Ask:
+Same "currently configured" preamble on re-run. The remote's URL
+(`origin`, or the sole remote) marks one option *(Recommended)*: a
+`github.com` host recommends GitHub, a host containing `gitlab`
+recommends GitLab, and no remote recommends Local git; any other host
+marks none. Ask:
 
 - **Local git** — commits to local git; with a remote,
   `/spades:ship` pushes and records the commit. Single-phase ship.
-- **GitHub** — work flows through PRs; `/spades:ship` opens the PR
-  and `/spades:close` finalises after the merge. Requires `gh`
-  installed and authenticated.
+- **GitHub** — work flows through pull requests; `/spades:ship` opens
+  the PR, `/spades:close` finalises after the merge, and Leads are filed
+  as GitHub issues. Requires `gh` installed and authenticated.
+- **GitLab** — the same flow through merge requests on gitlab.com or a
+  self-managed instance, with Leads filed as GitLab issues. Requires
+  `glab` installed and authenticated.
 
-Other SCMs follow `docs/EXTENDING-SCM.md`.
+Other SCMs follow `docs/EXTENDING-SCM.md`. GitHub and GitLab record
+that remote as `github.remote` or `gitlab.remote` (default `origin`).
 
 **GitHub chosen** → probe `gh auth status`. Unauthenticated →
 install (`brew install gh`; `winget install --id GitHub.cli`; the
@@ -152,6 +162,14 @@ apt/dnf steps at <https://cli.github.com/manual/installation>), then
 `gh auth login` (browser flow recommended; HTTPS or SSH to match the
 remote), verify `gh auth status` shows the `repo` scope, and re-run
 `/spades:setup`.
+
+**GitLab chosen** → **read
+[`reference/gitlab.md`](reference/gitlab.md) and follow it.** It reads
+the host and project from the remote, probes `glab` and git access to
+the remote (a lapsed SAML SSO session blocks git but not `glab`), walks
+the install and sign-in, and asks which review bots post on the
+project's merge requests. It returns `gitlab.host`, `gitlab.project`
+and `gitlab.review_bots` for Step 7.
 
 ## Step 3 — Review format
 
@@ -204,6 +222,9 @@ before any writes happen:
   Linear team:    (unset)            →  <new_linear_team>      # backend: linear
   Linear project: (unset)            →  <new_linear_project>   # backend: linear
   GitHub remote:  origin             (unchanged)               # scm: github
+  GitLab remote:  origin             (unchanged)               # scm: gitlab
+  GitLab project: gitlab.com/acme/app  (unchanged)             # scm: gitlab
+  Review bots:    (none)             →  acme-coderabbit (coderabbit), GitLabDuo (duo)   # scm: gitlab
 
 .spades/config and the AGENTS.md marker block will be updated.
 Existing scopes, plans, and learnings on disk are never deleted
@@ -229,14 +250,21 @@ returns to Step 1.
 ```yaml
 backend: linear            # or: local
 project: <project-slug>    # unset when create_new_project; Step 8 fills it
-scm: github                # or: local-git
+scm: github                # or: gitlab, local-git
 review_format: html        # or: cli
-leads: on                  # or: off — a kill switch; Leads mirror to Linear per backend: and to GitHub issues per scm:
+leads: on                  # or: off — a kill switch; Leads mirror to Linear per backend: and to GitHub or GitLab issues per scm:
 linear:                    # backend: linear
   team_id: <uuid>
   project_id: <uuid>       # unset when create_new_project
 github:                    # scm: github
   remote: origin
+gitlab:                    # scm: gitlab
+  remote: origin
+  host: gitlab.com          # the remote's host
+  project: acme/app         # the project path on that host
+  review_bots:              # empty list when the project has none
+    - username: acme-coderabbit
+      kind: coderabbit      # or: greptile, duo, generic
 ```
 
 With `create_new_project` on a **fresh install**, write `project:`

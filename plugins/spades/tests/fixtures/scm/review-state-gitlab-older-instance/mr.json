@@ -1,0 +1,12 @@
+{
+  "iid": 7,
+  "state": "merged",
+  "merge_commit_sha": "mc222",
+  "squash_commit_sha": null,
+  "sha": "head111",
+  "merged_at": "2021-05-01T09:00:00.000Z",
+  "draft": false,
+  "merged_by": {
+    "username": "carol"
+  }
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "user": {
+      "login": "coderabbitai[bot]",
+      "type": "Bot"
+    },
+    "state": "CHANGES_REQUESTED"
+  },
+  {
+    "user": {
+      "login": "alice",
+      "type": "User"
+    },
+    "state": "CHANGES_REQUESTED"
+  },
+  {
+    "user": {
+      "login": "bob",
+      "type": "User"
+    },
+    "state": "CHANGES_REQUESTED"
+  },
+  {
+    "user": {
+      "login": "carol",
+      "type": "User"
+    },
+    "state": "COMMENTED"
+  },
+  {
+    "user": {
+      "login": "alice",
+      "type": "User"
+    },
+    "state": "APPROVED"
+  }
+]

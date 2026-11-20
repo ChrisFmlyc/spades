@@ -1,0 +1,5 @@
+{
+  "squash_option": "never",
+  "merge_method": "ff",
+  "merge_trains_enabled": true
+}

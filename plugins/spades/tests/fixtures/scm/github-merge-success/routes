@@ -1,0 +1,1 @@
+^gh pr merge 42 -R github\.com/acme/app --squash --match-head-commit head111$	merge.txt

@@ -1,0 +1,6 @@
+host=gitlab.example.com
+project=acme%2Fapp
+repo-url=https://gitlab.example.com/acme/app
+iid=7
+merge-sha=mmm111
+merged-at=2026-11-20T13:00:00.000+01:00

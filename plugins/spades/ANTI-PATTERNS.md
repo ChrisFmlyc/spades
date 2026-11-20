@@ -39,9 +39,10 @@ proposed.
   to "auto-detect Linear" is rejected — explicit is a feature.
 - **Do not add a second external integration speculatively.** Linear
   is the only external backend shipped in-tree; local is filesystem-only.
-  The GitHub SCM driver publishes PRs and Lead issues; Scopes, Plans and
-  Objectives stay in the configured backend. Another external backend
-  (Notion, Confluence, GitHub Issues as a tracker, …) is a scope decision
+  The GitHub and GitLab SCM drivers publish PRs (merge requests on
+  GitLab) and Lead issues; Scopes, Plans and Objectives stay in the
+  configured backend. Another external backend (Notion, Confluence,
+  GitHub or GitLab Issues as a tracker, …) is a scope decision
   and follows the contract in `docs/EXTENDING-BACKENDS.md`.
 - **Do not centralise state outside the repo.** All per-project state
   lives in `.spades/`. Do not propose a remote config service or

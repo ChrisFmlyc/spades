@@ -1,0 +1,5 @@
+^glab mr view 7 -R https://gitlab\.example\.com/acme/app --output json$	mr.json
+^glab api (--paginate )?--hostname gitlab\.example\.com projects/acme%2Fapp/merge_requests/7/reviewers$	reviewers.json
+^glab api (--paginate )?--hostname gitlab\.example\.com projects/acme%2Fapp/merge_requests/7/versions$	versions.json
+^glab api (--paginate )?--hostname gitlab\.example\.com projects/acme%2Fapp/merge_requests/7/pipelines$	pipelines.json
+^glab api (--paginate )?--hostname gitlab\.example\.com projects/acme%2Fapp$	project.json	0

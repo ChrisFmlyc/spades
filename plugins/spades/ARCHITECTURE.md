@@ -57,11 +57,12 @@ auto-probe. Two drivers ship today:
   `.spades/`; audit records append to an `## Audit Trail` heading on
   the relevant record.
 
-With `scm: github`, Leads are also published as GitHub issues labelled
-`spades:lead` and their type, whichever backend is active. GitHub holds
-only Lead issues and PRs; it is not a backend for Scopes or Plans.
+With `scm: github` or `scm: gitlab`, Leads are also published as issues
+on that host labelled `spades:lead` and their type, whichever backend is
+active. The SCM host holds only Lead issues and PRs (merge requests on
+GitLab); it is not a backend for Scopes or Plans.
 
-Adding a backend (Notion, Confluence, GitHub Issues as a tracker, …)
+Adding a backend (Notion, Confluence, GitHub or GitLab Issues as a tracker, …)
 means writing a driver against the contract in `docs/FRAMEWORK.md`
 § Backend Interface plus per-skill branches. See
 `docs/EXTENDING-BACKENDS.md` for the worked example.
@@ -106,7 +107,8 @@ no helper binary on PATH owned by this framework.
 6. `/spades:deliver` executes per the routing.
 7. `/spades:evaluate` checks delivered output against the Scope's
    acceptance criteria.
-8. `/spades:ship` opens the shared Scope PR for GitHub code work;
+8. `/spades:ship` opens the shared Scope PR for GitHub code work, or
+   the merge request for GitLab code work;
    `/spades:close` records shipment after verified merge. Local-git
    shipment records the commit directly. Artefact / action
    deliverables use their own recorded evidence.

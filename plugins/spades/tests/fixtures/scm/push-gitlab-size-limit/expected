@@ -1,0 +1,3 @@
+remote: GitLab: Your push to this repository would cause it to exceed the size limit of 10 GiB.
+error: failed to push some refs to 'gitlab.example.com:acme/app.git'
+cause: size-limit

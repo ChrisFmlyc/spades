@@ -1,0 +1,2 @@
+[{"id": 301, "name": "unit", "stage": "test", "status": "failed", "failure_reason": "script_failure", "allow_failure": false, "web_url": "https://gitlab.example.com/acme/app/-/jobs/301"}]
+[{"id": 302, "name": "e2e", "stage": "test", "status": "canceled", "failure_reason": null, "allow_failure": false, "web_url": "https://gitlab.example.com/acme/app/-/jobs/302"}]

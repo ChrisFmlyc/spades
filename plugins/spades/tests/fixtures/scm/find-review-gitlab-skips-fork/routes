@@ -1,0 +1,1 @@
+^glab api (--paginate )?--hostname gitlab\.example\.com projects/acme%2Fapp/merge_requests\?source_branch=feat/x&target_branch=main&state=all$	mrs.json

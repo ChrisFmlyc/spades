@@ -1,0 +1,2 @@
+{"status": "failed", "yaml_errors": null}
+[{"name": "unit", "stage": "test", "status": "failed", "failure_reason": "script_failure", "web_url": "https://gitlab.example.com/acme/app/-/jobs/301"}, {"name": "e2e", "stage": "test", "status": "canceled", "failure_reason": null, "web_url": "https://gitlab.example.com/acme/app/-/jobs/302"}]

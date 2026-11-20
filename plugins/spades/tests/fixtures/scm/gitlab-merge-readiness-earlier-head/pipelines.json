@@ -1,0 +1,18 @@
+[
+  {
+    "id": 30,
+    "status": "success",
+    "source": "merge_request_event",
+    "ref": "refs/merge-requests/7/merge",
+    "sha": "tmpmerge0",
+    "created_at": "2026-11-01T10:00:05.000Z"
+  },
+  {
+    "id": 29,
+    "status": "success",
+    "source": "push",
+    "ref": "feat/x",
+    "sha": "old000",
+    "created_at": "2026-11-01T10:00:01.000Z"
+  }
+]

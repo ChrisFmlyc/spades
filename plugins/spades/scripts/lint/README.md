@@ -16,6 +16,7 @@ run them locally before pushing with:
 | `lint-examples.sh`              | `examples/example-scope.md` and `examples/example-plan.md` conform to the v2 Scope and Plan schemas; `examples/example-intent.md` has the six locked INTENT sections + `last_reviewed:`; the local-mode fixture's scopes/plans conform. |
 | `lint-learnings.sh`             | `.spades/learnings/*.md` carry the required learning frontmatter (`title`, `area`, `tags`, `created`, `status`, `public_safe`); `area` is one of `scope|plan|approve|deliver|evaluate|ship|other`; `created` is `YYYY-MM-DD`. Warns on active entries older than 180 days. |
 | `lint-local-frontmatter.sh`     | `.spades/projects/*.md`, `.spades/scopes/S-*.md`, and `.spades/plans/P-*.md` are schema-valid — hard-fails on invalid IDs, invalid enum values, or missing required fields. Validates optional Project lead strings and the paired Linear user UUID. Self-tests cover legacy/local/Linear Projects, invalid lead fields, good/bad scopes and plans, and a shipping plan. |
+| `../test/scm-snippets.sh`       | Every shell snippet the docs tag `<!-- scm-test: <name> -->` (in `docs/FRAMEWORK.md`, `skills/loop/SKILL.md` and `skills/loop/reference/finish-checks.md`) runs against recorded `gh`, `glab` and `git` output from `tests/fixtures/scm/`, offline, and must print the case's `expected` output. Covers GitHub and GitLab review state, thread sweeps with listed and unlisted bots, merge readiness, failed and misconfigured pipelines, FINISHED checks, deploy status, and push rejections (push rules, SAML SSO, protected branches, push protection). Every tag needs a case. Needs `jq`. |
 
 ## Dependencies
 
@@ -23,6 +24,7 @@ run them locally before pushing with:
 - `node` (**22.18+**, or 23.6+; only used by `frontmatter.ts`, built-ins
   only — no `package.json`, no `node_modules`, by design)
 - `awk`, `grep`, `diff` (POSIX; any modern shell has these)
+- `jq` (only for `scm-snippets.sh`; preinstalled on GitHub's Ubuntu runners)
 
 `frontmatter.ts` runs **directly**, with no build step:
 
