@@ -299,10 +299,14 @@ fan-out, and sets `project:` (and `linear.team_id` with
 `linear.project_id`) in `.spades/config`. Setup resumes with
 `project:` populated.
 
-If creation fails or the human cancels, report the retained state and
-finish the remaining scaffolding. A fresh install has no active project;
-a re-run keeps the prior project and its Linear pair per Step 7. Point
-to `/spades:setup` or `/spades:newproject` to retry creation.
+If creation fails, the human cancels, or the new project's Linear
+binding is pending or failed (`/spades:newproject` then leaves it
+created but not active, per its Step 4), report the retained state and
+finish the remaining scaffolding. A fresh install has no active
+project; a re-run keeps the prior project and its Linear pair per
+Step 7. Point to
+`/spades:setup` to retry, choosing the new project when its record was
+written, or to `/spades:newproject` when it was not.
 
 **An existing record without `linear_project_id`** → with
 `create_linear_project`, create the Linear Project on `team_id` with

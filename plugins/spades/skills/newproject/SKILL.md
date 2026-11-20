@@ -43,8 +43,8 @@ running.
 2. **Take setup's passed values.** `/spades:setup` invokes this skill
    with its decision to make the new project active and, with
    `backend: linear`, its Step 1 team and the Linear Project its Step 1
-   chose, when there is one. A setup call sets the new project active
-   at Step 4 without asking. The passed team stands in for
+   chose, when there is one. Setup's decision answers Step 4's
+   question. The passed team stands in for
    `linear.team_id` throughout the run. The passed Linear Project is
    this record's binding: Step 2 skips its Linear name check, and
    Step 3's wave runs without `worker-linear-project` and injects the
@@ -198,15 +198,21 @@ Project was created.
 
 ## Step 4 — Active project
 
-Without setup's decision (Pre-Flight 2), ask: **Set as active project**
-(recommended) / **Leave the active project unchanged**.
+With `backend: linear`, the project can become active once its Linear
+binding is in place. When it can, and setup passed no decision
+(Pre-Flight 2), ask: **Set as active project** (recommended) / **Leave
+the active project unchanged**.
 
-Setting active: replace or insert `project: <slug>` in `.spades/config`.
-With `backend: linear`, set `linear.team_id` to the team this run used
-and `linear.project_id` to the new binding, removing `linear.project_id`
-while the binding is pending or failed, so config never associates this
-Project with another Linear Project or its Linear Project with another
-team.
+Setting active replaces or inserts `project: <slug>` in
+`.spades/config`. With `backend: linear`, the same write sets
+`linear.team_id` to the team this run used and `linear.project_id` to
+the new binding, so the active project and its team/Project pair
+change together.
+
+While the binding is pending or failed, `project:`, `linear.team_id`
+and `linear.project_id` stay as they were, and the project is created
+but not active. `/spades:setup`, choosing `<slug>` as the active
+project, binds its Linear Project and makes it active.
 
 ## Step 5 — Optional project lead
 
@@ -251,10 +257,12 @@ Next:
 For a setup call, return to Setup now, after the optional
 lead flow completes, is skipped or is cancelled. For standalone use, show
 the next Scope command. Include the Linear success line only for a confirmed
-binding. For a partial or failed assignment, replace the lead success line
-with the helper's outcome, distinguish the persisted local lead from any
-confirmed remote change, and give the explicit-target retry command. Report
-pending binding accurately.
+binding. A pending or failed binding replaces it with a line naming that
+state; the active-project line then reads `unchanged — created but not
+active`, and Next gives Step 4's `/spades:setup` retry. For a partial or
+failed assignment, replace the lead success line with the helper's outcome,
+distinguish the persisted local lead from any confirmed remote change, and
+give the explicit-target retry command.
 
 ## Edge cases
 
