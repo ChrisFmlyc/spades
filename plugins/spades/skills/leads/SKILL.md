@@ -161,8 +161,10 @@ Lead's mirrors, and every mirror operation in this skill applies to each:
 | `backend: linear` | Linear issue | `worker-linear-lead` | The configured Linear team and project |
 
 `scm: github` or `scm: gitlab` authorises that host's issue writes, which
-use the issue operations in `docs/FRAMEWORK.md § SCM Drivers`. Dispatch
-the workers in one wave per § Sub-agent Dispatch. Supply each with the verified local
+use the issue operations in `docs/FRAMEWORK.md § SCM Drivers`. On GitLab,
+`create_issue` passes the body with `--description-file`, or, on a glab
+release that lacks that flag, with the `--description` form that section
+gives. Dispatch the workers in one wave per § Sub-agent Dispatch. Supply each with the verified local
 record, its resolved target, the context key and external-write
 authorization. Group a Lead's pending changes into one operation per mirror
 and inspect the current issue before writing. A saved `github_issue:`,
