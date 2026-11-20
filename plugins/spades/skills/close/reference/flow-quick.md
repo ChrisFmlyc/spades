@@ -46,7 +46,7 @@ marker.
 **Probe failure** (as § SCM Drivers defines it) → abort:
 
 > *Couldn't query PR `<pr_url>`. Check `gh auth status` (GitHub) or
-> `glab auth status` (GitLab), network, or rate limits, then re-run
+> `glab auth status --hostname <gitlab.host>` (GitLab), network, or rate limits, then re-run
 > `/spades:close Q-<id>`. The marker is untouched at `status:
 > shipping`.*
 
@@ -66,8 +66,9 @@ The marker stays read-only until the replacement probe succeeds.
 1. Prompt free-form for the replacement URL.
 2. Validate: a PR URL on the same host and repository as the current
    `pr_url` (`<host>/<owner>/<repo>/pull/<n>` on GitHub,
-   `<host>/<group>/<project>/-/merge_requests/<iid>` on GitLab), and
-   different from it. Otherwise re-prompt or *Cancel*.
+   `https://<gitlab.host>/<gitlab.project>/-/merge_requests/<iid>` on
+   GitLab, where the project path can hold subgroups), and different
+   from it. Otherwise re-prompt or *Cancel*.
 3. Probe the replacement with the same `review_state` call.
    - **Failure** → *Try a different URL* / *Cancel*, marker untouched.
    - **Success** → carry the replacement as the new `pr_url` (Q3's

@@ -64,3 +64,11 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
       - run: ./plugins/spades/scripts/lint/lint-local-frontmatter.sh
+
+  scm-snippets:
+    name: SCM command snippets (GitHub, GitLab, git)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # jq ships on ubuntu-latest; the stubs replay recorded gh/glab/git output.
+      - run: ./plugins/spades/scripts/test/scm-snippets.sh

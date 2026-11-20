@@ -1,0 +1,5 @@
+remote: GitLab: Commit message does not follow the pattern '^(feat|fix|chore)(\(.+\))?: '
+To gitlab.example.com:acme/app.git
+ ! [remote rejected] feat/x -> feat/x (pre-receive hook declined)
+error: failed to push some refs to 'gitlab.example.com:acme/app.git'
+cause: gitlab-push-rule

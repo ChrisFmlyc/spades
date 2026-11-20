@@ -1,0 +1,14 @@
+[
+  {
+    "id": 12,
+    "status": "success",
+    "source": "external",
+    "ref": "feat/x"
+  },
+  {
+    "id": 11,
+    "status": "success",
+    "source": "merge_request_event",
+    "ref": "refs/merge-requests/7/head"
+  }
+]

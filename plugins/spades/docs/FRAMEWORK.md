@@ -330,6 +330,11 @@ github:                             # only when scm: github
   remote: origin                    # which git remote to use (default: origin); its repository also receives Lead issues
 gitlab:                             # only when scm: gitlab
   remote: origin                    # which git remote to use (default: origin); its project also receives Lead issues
+  host: gitlab.com                  # the GitLab host: gitlab.com or a self-managed instance
+  project: group/subgroup/project   # the project path on that host, as GitLab spells it
+  review_bots:                      # accounts whose MR threads /codereview:loop answers; [] when none
+    - username: <gitlab-username>
+      kind: coderabbit              # coderabbit | greptile | duo | generic
 local_git:                          # only when scm: local-git AND a remote is configured
   remote: origin                    # which git remote to push to (optional)
 ```
@@ -754,11 +759,90 @@ that sends the human somewhere names the host ("merge it on GitLab").
 
 The configured remote (`github.remote` or `gitlab.remote`, default
 `origin`) names the repository that receives review requests and Lead
-issues. Run the CLI inside the worktree: `glab` resolves the GitLab
-host (gitlab.com or a self-managed instance) and the project from that
-remote, and `glab api` fills its `:id` placeholder from the same
-project. Credentials stay in the CLI's own store, never in
-`.spades/config`.
+issues. SPADES works with however the CLI and git are signed in — a
+browser (OAuth) login, a personal access token, SSH keys or an HTTPS
+credential helper. Credentials stay in the CLI's and git's own stores,
+never in `.spades/config`.
+
+- **GitHub** — run `gh` inside the worktree; it resolves the repository
+  from the remote.
+- **GitLab** — `glab` chooses a project by its own rules (`GITLAB_HOST`,
+  a resolved-base setting in git config) rather than from
+  `gitlab.remote`, so every GitLab command names the project recorded by
+  `/spades:setup` (`skills/setup/reference/gitlab.md`):
+  - `<host>` is `gitlab.host`; `<repo-url>` is
+    `https://<gitlab.host>/<gitlab.project>`, passed to `glab mr`,
+    `glab issue` and `glab label` as `-R <repo-url>`.
+  - `glab api` takes `--hostname <host>` and addresses
+    `projects/<project>`, where `<project>` is `gitlab.project` with each
+    `/` written as `%2F`.
+  - Before a skill's first GitLab write — a push, an MR, a merge, an
+    issue — it checks that `gitlab.remote`'s URL names `gitlab.host` and
+    `gitlab.project` (ignoring case, without `.git`) and pauses on a
+    mismatch, naming both. It reads the URL exactly as
+    `skills/setup/reference/gitlab.md § 1` does, resolving an SSH host
+    alias and keeping an HTTPS port.
+  - GitLab answers 404 both for something that doesn't exist and for
+    something the signed-in account cannot see, so a skill reports a 404
+    as *"not found, or not visible to this account"*.
+  - Run `glab api … | jq` pipelines under `set -o pipefail`: `glab`
+    exits non-zero on an HTTP error, and without `pipefail` `jq` would
+    read the error body as data.
+
+### Pushing
+
+Every driver publishes with a plain `git push -u <remote> <branch>`,
+and a branch only moves forward: no force-push, amend, rebase or other
+history rewrite, on any host. When the remote rejects a push, the skill
+stops where it is — a Plan stays at its status — and shows the remote's
+`remote:` lines and git's `error:` line as they are, with any
+`user:password@` in a URL replaced by `***@`, plus the cause they show:
+
+| The remote says | Host | Cause and the human's fix |
+|---|---|---|
+| `remote: GitLab: <message>` and `(pre-receive hook declined)` | GitLab | A push rule — commit message pattern, author or committer email, DCO sign-off, signed commits, a file name or size — or another GitLab check, which the message names. A push rule checks every commit new to the project, so on a branch's first push the commit it names can predate this change; fixing a commit-level rule rewrites history, which is the human's call. |
+| `not allowed to push code to this project`, `Permission to <repo> denied` | any | The account can't push to this project. |
+| `archived`, `read-only` | any | The project or repository accepts no pushes. |
+| `exceed the size limit` | GitLab | The push would take the repository past its size limit. |
+| `Cannot find valid SSO session. Please login via your group's SSO at <url>`, then a 403 | GitLab | The group enforces SAML SSO on git and the human's last SSO sign-in is over a day old. The API is not enforced, so `glab` keeps working. They sign in at `<url>` in a browser and re-run. Over HTTPS, when git offers a stored credential other than the refreshed one, `git -c credential.helper= -c 'credential.helper=!glab auth git-credential' push …` retries with `glab`'s login. |
+| `The '<org>' organization has enabled or enforced SAML SSO` | GitHub | The credential git used is not authorised for the organisation's SSO. The human authorises it, or signs in again with `gh auth login`. |
+| `GH013` (repository rule violations) or `GH009` (secrets detected) | GitHub | A ruleset or push protection, usually a secret in a commit. |
+| `protected branch` (GitLab), `GH006: Protected branch update failed` (GitHub) | any | Branch protection: this account may not push to that branch. |
+| `pre-receive hook declined`, with none of the above | any | A server-side hook. |
+| `could not be found or you don't have permission`, `Repository not found`, `404` | any | The remote is wrong, or the account cannot see it. |
+
+Capture the push's output with credentials redacted, and read the cause
+from it. The order matters: GitLab prefixes both push rules and
+protected-branch refusals with `remote: GitLab:`, and both print
+`pre-receive hook declined`:
+
+<!-- scm-test: push-cause -->
+```bash
+redact() { sed -E 's#([A-Za-z][A-Za-z0-9+.-]*://)[^/@[:space:]]*@#\1***@#g'; }
+push_cause() {
+  case "$1" in
+    *"Cannot find valid SSO session"*)                 echo gitlab-sso ;;
+    *"protected branch"*|*"Protected branch"*|*GH006*) echo protected-branch ;;
+    *"not allowed to push code to this project"*|*"Permission to "*" denied"*) echo no-permission ;;
+    *"is archived"*|*"archived project"*|*"read-only"*) echo read-only ;;
+    *"exceed the size limit"*)                         echo size-limit ;;
+    *"remote: GitLab:"*)                               echo gitlab-push-rule ;;
+    *"enabled or enforced SAML SSO"*)                  echo github-sso ;;
+    *GH013*|*GH009*)                                   echo github-push-protection ;;
+    *"pre-receive hook declined"*)                     echo server-hook ;;
+    *"could not be found"*|*"Repository not found"*|*" 404"*) echo not-found ;;
+    *)                                                 echo other ;;
+  esac
+}
+OUT=$(git push -u <remote> <branch> 2>&1); RC=$?
+OUT=$(printf '%s\n' "$OUT" | redact)
+if [ "$RC" -ne 0 ]; then printf '%s\n' "$OUT"; echo "cause: $(push_cause "$OUT")"; exit "$RC"; fi
+```
+
+It exits with git's status, so a rejected push stops the step.
+
+The same handling covers every push SPADES or its helpers make: Ship,
+Quick, Close's bookkeeping branch, and `/codereview:loop`.
 
 ### Review-request operations
 
@@ -767,21 +851,37 @@ last segment of its URL.
 
 | Operation | `scm: github` | `scm: gitlab` |
 |---|---|---|
-| `probe_auth` | `gh auth status` | `glab auth status` |
-| `find_review(branch, base)` | `gh pr list --head <branch> --base <base> --state all --json number,url,state` | `glab mr list --source-branch <branch> --target-branch <base> --all --output json` |
-| `open_review(branch, base, title, body-file)` | `gh pr create --head <branch> --base <base> --title "<title>" --body-file <body-file>` | `glab mr create --source-branch <branch> --target-branch <base> --title "<title>" --description-file <body-file> --yes` |
-| `review_state(ref)` | `gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy,headRefOid` | `glab mr view <iid> --output json` |
-| `merge_review(ref)` | `gh pr merge <n> --squash` | `glab mr merge <iid> --squash --auto-merge=false --sha <head-sha> --yes` |
+| `probe_auth` | `gh auth status` | `glab auth status --hostname <gitlab.host>` |
+| `find_review(branch, base)` | `gh pr list --head <branch> --base <base> --state all --json number,url,state` | `glab mr list -R <repo-url> --source-branch <branch> --target-branch <base> --all --output json`, filtered as below |
+| `open_review(branch, base, title, body-file)` | `gh pr create --head <branch> --base <base> --title "<title>" --body-file <body-file>` | `glab mr create -R <repo-url> --source-branch <branch> --target-branch <base> --title "<title>" --description-file <body-file> --squash-before-merge --yes` |
+| `review_state(ref)` | `gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy,headRefOid` | `glab mr view <iid> -R <repo-url> --output json` |
+| `merge_review(ref)` | `gh pr merge <n> --squash` | `glab mr merge <iid> -R <repo-url> --squash --auto-merge=false --sha <head-sha> --yes`; with a merge train, `--auto-merge` in place of `--auto-merge=false` |
 
-`open_review` prints the new review request's URL. glab releases before
-1.115 lack `--description-file`; pass `--description "$(cat
-<body-file>)"` there instead.
+`gh pr create` prints the new PR's URL. `glab mr create` prints a
+human-readable summary, so read the MR's `iid` and `web_url` back with
+`find_review`. On GitLab it keeps only MRs from the project itself, since
+an MR from a fork can share the branch name:
+
+<!-- scm-test: find-review-gitlab -->
+```bash
+set -o pipefail
+glab mr list -R <repo-url> --source-branch <branch> --target-branch <base> --all --output json \
+  | jq -c '[.[] | select(.source_project_id == .target_project_id) | {iid, web_url, state}]'
+```
+ glab releases
+before 1.115 lack `--description-file` (on `mr create` and `issue
+create`); pass `--description "$(cat <body-file>)"` there instead.
+`--squash-before-merge` marks the MR for squashing, so a merge made in
+the GitLab UI squashes too. Without `glab`, a push can open the MR:
+`git push -u <remote> <branch> -o merge_request.create -o
+merge_request.target=<base> -o merge_request.title="<title>"`, and
+GitLab prints the MR's link in its `remote:` lines.
 
 `review_state` reads the same fields on both hosts:
 
 | Field | GitHub | GitLab |
 |---|---|---|
-| state `OPEN` | `OPEN` | `opened`, `locked` |
+| state `OPEN` | `OPEN` | `opened`, `locked` (`locked` is a merge in progress, or one that stuck after failing) |
 | state `MERGED` | `MERGED` | `merged` |
 | state `CLOSED` | `CLOSED` | `closed` |
 | merge SHA | `mergeCommit.oid` | the first non-empty of `merge_commit_sha`, `squash_commit_sha`, `sha` — the commit the merge left on the target branch under the project's merge method |
@@ -789,28 +889,83 @@ last segment of its URL.
 | merged at | `mergedAt` | `merged_at` |
 | head SHA | `headRefOid` | `sha` |
 
-A probe failure is a CLI error, unparseable JSON, a missing state, or a
+Both read into one shape:
+
+<!-- scm-test: review-state-github -->
+```bash
+gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy,headRefOid \
+  --jq '{state, merge_sha: (.mergeCommit.oid // ""), merged_by: (.mergedBy.login // ""),
+         merged_at: (.mergedAt // ""), head_sha: .headRefOid}'
+```
+
+<!-- scm-test: review-state-gitlab -->
+```bash
+set -o pipefail
+glab mr view <iid> -R <repo-url> --output json \
+  | jq '{state: ({opened: "OPEN", locked: "OPEN", merged: "MERGED", closed: "CLOSED"}[.state] // ""),
+         merge_sha: ([.merge_commit_sha, .squash_commit_sha, .sha] | map(select(. != null and . != "")) | first // ""),
+         merged_by: (.merge_user.username // .merged_by.username // ""),
+         merged_at: (.merged_at // ""), head_sha: .sha}'
+```
+
+On GitLab, `merge_sha` means something only when `state` is `MERGED`.
+A probe failure is a CLI error, unparseable JSON, an empty state, or a
 `MERGED` state without a merge SHA. glab prints an absent SHA as an
-empty string.
+empty string. A `locked` MR reads `OPEN`; when it stays `locked` across
+a few probes a minute apart, it is stuck — pause and say so.
+
+**Before recording a merge SHA**, on either host, confirm it is on the
+default branch:
+
+```bash
+git fetch <remote> <default-branch>
+git merge-base --is-ancestor <merge-sha> FETCH_HEAD
+```
+
+A non-zero exit is a probe failure. On GitLab it catches the one case
+the `sha` fallback gets wrong: a fast-forward merge without squashing
+in a project that rebases while merging, where the commit that landed
+is a rebased copy of `sha`.
 
 `merge_review` squash-merges immediately. `glab mr merge` would
-otherwise arm auto-merge while a pipeline runs and still exit 0, so the
-GitLab form disables it and pins the head SHA from `review_state`.
-Confirm the result with `review_state` reading `MERGED` before
-recording a merge.
+otherwise arm auto-merge whenever a pipeline exists — even a finished
+one — and exit 0 without merging, so the GitLab form disables it and
+pins the head SHA from `review_state`. Read the project's merge
+settings first (`skills/loop/reference/finish-checks.md § Merge
+readiness`):
+
+- `squash_option: never` — GitLab won't squash. Pause and name the
+  setting rather than merging unsquashed.
+- `merge_trains_enabled: true` — a merge outside the train is refused
+  (405). `--auto-merge` adds the MR to the train, which merges it once
+  the train's pipeline passes; poll `review_state` every 60–90 seconds.
+  A failed train pipeline drops the MR and cancels its auto-merge while
+  its own pipeline still reads green, so the MR has left the train when
+  it reads `OPEN` with `merge_when_pipeline_succeeds: false` in `glab mr
+  view`. Pause then, with the train pipeline's failure, and pause after
+  an hour on the train without a merge.
+- An HTTP error from the merge names its cause: 405 (a merge check or a
+  merge train blocks it), 409 (the head moved past `--sha` — re-run the
+  readiness checks), 422 (GitLab could not merge). Pause with it.
+
+Confirm the result with `review_state` reading `MERGED`, and on GitLab
+that `squash_commit_sha` is set, before recording a merge.
 
 ### Issue operations (Leads)
 
 | Operation | `scm: github` | `scm: gitlab` |
 |---|---|---|
-| `find_issue(lead-id)` | `gh issue list --state all --search "<lead-id> in:title" --json number,url,title,state,labels` | `glab issue list --all --search "<lead-id>" --in title --output json` |
-| `create_issue(title, body-file, labels)` | `gh issue create --title "<title>" --body-file <body-file> --label "<a>,<b>"` | `glab issue create --title "<title>" --description-file <body-file> --label "<a>,<b>" --yes` |
-| `comment_issue(ref, text)` | `gh issue comment <n> --body "<text>"` | `glab issue note <iid> --message "<text>"` |
-| `relabel_issue(ref, add, remove)` | `gh issue edit <n> --add-label <a> --remove-label <b>` | `glab issue update <iid> --label <a> --unlabel <b>` |
-| `close_issue(ref, reason)` | `gh issue close <n> --reason "completed"` (or `"not planned"`) | `comment_issue` with the reason, then `glab issue close <iid>` |
-| `create_label(name)` | `gh label create "<name>"` | `glab label create --name "<name>"` |
+| `find_issue(lead-id)` | `gh issue list --state all --search "<lead-id> in:title" --json number,url,title,state,labels` | `glab issue list -R <repo-url> --all --search "<lead-id>" --in title --output json` |
+| `create_issue(title, body-file, labels)` | `gh issue create --title "<title>" --body-file <body-file> --label "<a>,<b>"` | `glab issue create -R <repo-url> --title "<title>" --description-file <body-file> --label "<a>,<b>" --yes` |
+| `comment_issue(ref, text)` | `gh issue comment <n> --body "<text>"` | `glab issue note <iid> -R <repo-url> --message "<text>"` |
+| `relabel_issue(ref, add, remove)` | `gh issue edit <n> --add-label <a> --remove-label <b>` | `glab issue update <iid> -R <repo-url> --label <a> --unlabel <b>` |
+| `close_issue(ref, reason)` | `gh issue close <n> --reason "completed"` (or `"not planned"`) | `comment_issue` with the reason, then `glab issue close <iid> -R <repo-url>` |
+| `create_label(name)` | `gh label create "<name>"` | `glab label create -R <repo-url> --name "<name>"` |
 
 GitLab issues carry no close reason, so the closing comment records it.
+GitLab creates a missing label when an issue uses it, and `create_label`
+on an existing label fails; on either host, a label that already exists
+counts as created.
 `glab issue note` reads stdin when `--message` is absent, so the
 message is always passed. On `glab issue list`, `--output json` selects
 JSON; its `-F` is a different flag.

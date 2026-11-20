@@ -20,8 +20,17 @@ merge.
 ## 1. Review bots → `/codereview:loop`
 
 Invoke **`/codereview:loop <n>`** with the PR number on GitHub. On GitLab
-pass the MR link (`/codereview:loop <mr-url>`), which tells it the host
-and project; `codereview` 1.4.0 or later drives GitLab MRs.
+pass the MR link and the configured review bots, which tells it the host,
+the project and whose threads it may answer:
+
+```
+/codereview:loop <mr-url> --bots <username>:<kind>,<username>:<kind>
+```
+
+The entries come from `gitlab.review_bots`, in order. `codereview` 1.4.0
+or later drives GitLab MRs. With `review_bots: []` the project has no
+review bots, so there is nothing for `/codereview:loop` to do: go to
+§ 3.
 
 It returns when the bots are clean. It owns the whole contract:
 waiting for each review, pulling the open threads, handing them to
@@ -46,7 +55,9 @@ A bot can post between `/codereview:loop` returning and the merge, so
 sweep once more before Stage 8 with the § Thread sweep query in
 [`finish-checks.md`](finish-checks.md) for the configured host.
 
-Classify each unresolved thread by its first comment's author:
+Classify each unresolved thread by its first comment's author — on
+GitHub a `[bot]` account is a bot; on GitLab only an account in
+`gitlab.review_bots` is:
 
 - **A bot** → run `/codereview:loop` again; it either hasn't
   finished or stopped and told you why.

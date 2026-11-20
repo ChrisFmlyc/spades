@@ -31,11 +31,19 @@ If approved records remain, commit them through `/repo:branch` with
 
 ## 3. Push
 
+`<configured-remote>` is `gitlab.remote` (default `origin`). First check
+that its URL still names `gitlab.host` and `gitlab.project`
+(`docs/FRAMEWORK.md § SCM Drivers`); a mismatch is a stop that names
+both. Then:
+
 ```bash
 git push -u <configured-remote> <branch>
 ```
 
-`<configured-remote>` is `gitlab.remote` (default `origin`).
+A rejected push stops here with the Plan at its current status: show
+the remote's message and its cause per `docs/FRAMEWORK.md § SCM Drivers
+→ Pushing`. The branch is never amended, rebased or force-pushed to get
+past it.
 
 ## 4. Open or reuse the Scope MR
 
@@ -50,11 +58,18 @@ Write the `/repo:pr` result to a body file, then create the MR with
 `open_review`:
 
 ```bash
-glab mr create --source-branch <scope-branch> --target-branch <default-branch> \
-  --title "<title>" --description-file <body-file> --yes
+glab mr create -R <repo-url> --source-branch <scope-branch> --target-branch <default-branch> \
+  --title "<title>" --description-file <body-file> --squash-before-merge --yes
 ```
 
-Capture the MR URL from the output.
+`<repo-url>` is `https://<gitlab.host>/<gitlab.project>`. `glab mr create`
+prints a summary rather than a URL, so read the MR's `iid` and `web_url`
+back with `find_review(<scope-branch>, <default-branch>)`.
+
+The MR opens ready for review, never as a draft: review bots skip draft
+MRs, and GitLab opens one as a draft when its title starts with `Draft:`
+or `[Draft]`, so the title never does. Confirm with `glab mr view <iid> -R
+<repo-url> --output json | jq .draft` reading `false`.
 
 ## 5. Record and exit
 
@@ -84,11 +99,17 @@ Once the MR is squash-merged:
 - **The MR fails to open** — branch not pushed, no remote, `glab`
   unauthenticated, or the remote's host isn't the one `glab` is logged
   in to. Surface the exact error with the remediation (`glab auth
-  status`, `glab auth login --hostname <host>` for a self-managed
-  instance); the Plan stays at `shipping`.
-- **`glab` missing or unauthenticated** — show the human the exact
-  `git push -u <configured-remote> <branch>` and `glab mr create`
-  invocation to run by hand, then capture the resulting URL and record
-  it as in § 5.
+  status --hostname <gitlab.host>`, `glab auth login --hostname
+  <gitlab.host>`); the Plan stays at `shipping`. A 404 means the
+  project is missing or this account cannot see it.
+- **The push is rejected** — a push rule, a lapsed SAML SSO session, or
+  branch protection; § 3 and `docs/FRAMEWORK.md § SCM Drivers →
+  Pushing`.
+- **`glab` missing or unauthenticated** — the push itself can open the
+  MR: show the human
+  `git push -u <configured-remote> <branch> -o merge_request.create -o merge_request.target=<default-branch> -o merge_request.title="<title>"`
+  (the description goes in afterwards on GitLab: push options carry no
+  line breaks), then take the MR link from the push's `remote:` lines
+  and record it as in § 5.
 - **Merge conflicts** — resolved as fix commits on the branch;
   re-run `/spades:ship` once the branch is clean.

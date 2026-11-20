@@ -17,6 +17,7 @@ scripts=(
     "lint-examples.sh"
     "lint-learnings.sh"
     "lint-local-frontmatter.sh"
+    "../test/scm-snippets.sh"
 )
 
 overall=0

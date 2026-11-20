@@ -1,0 +1,4 @@
+{"state": "opened", "draft": false, "detailed_merge_status": "requested_changes", "sha": "head111", "source_branch": "feat/x"}
+[{"username": "GitLabDuo", "by": "bot"}, {"username": "carol", "by": "human"}]
+{"id": 22, "status": "failed", "ref": "refs/merge-requests/7/merge"}
+{"squash_option": "never", "merge_method": "ff", "merge_trains_enabled": true}

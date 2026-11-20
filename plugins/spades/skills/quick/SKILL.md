@@ -103,7 +103,10 @@ environment, and what was checked is recorded.
 ### 4. Publish — by `scm:`
 
 **`scm: github` or `scm: gitlab`** — push the branch to the configured
-remote and open the PR (a merge request on GitLab) with `open_review`
+remote (a rejected push stops here, per `docs/FRAMEWORK.md § SCM Drivers
+→ Pushing`; on GitLab the remote is first checked against `gitlab.host`
+and `gitlab.project`) and open the PR (a merge request on GitLab, never
+a draft) with `open_review`
 from `docs/FRAMEWORK.md § SCM Drivers`, using the template below. Write
 the marker at `status: shipping` with `pr_url`, and print one line:
 *"PR opened. Run `/spades:close Q-<id>` after it merges to
@@ -114,7 +117,8 @@ finalise."* ("MR" on GitLab). `/spades:close` verifies the merge with
 <url>. Merge: <sha>. Merged by: <username>.`
 
 **`scm: local-git`** — push the branch when a remote is configured
-(`local_git.remote:`, default `origin`), then write the marker at
+(`local_git.remote:`, default `origin`; a rejected push stops here, per
+`docs/FRAMEWORK.md § SCM Drivers → Pushing`), then write the marker at
 `status: shipped` with `- YYYY-MM-DD: Shipped (local-git). Branch:
 <name>. Commit: <sha>.` as its last audit line. Single-phase; there
 is nothing to close.

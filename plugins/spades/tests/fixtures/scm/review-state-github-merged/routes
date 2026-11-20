@@ -1,0 +1,1 @@
+^gh pr view 12 --json state,mergeCommit,mergedAt,mergedBy,headRefOid	pr.json

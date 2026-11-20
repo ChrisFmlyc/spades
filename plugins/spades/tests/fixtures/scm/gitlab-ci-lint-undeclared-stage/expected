@@ -1,0 +1,1 @@
+{"valid": false, "errors": ["test job: chosen stage tests does not exist; available stages are .pre, build, test, deploy, .post"], "warnings": [], "jobs": []}

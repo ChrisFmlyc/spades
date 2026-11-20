@@ -96,7 +96,8 @@ repo plugin was skipped, install it before continuing with file writes.
 `missing` → fresh install; Steps 5 and 6 are skipped. `present` →
 capture `current_backend`, `current_scm`, `current_project`,
 `current_linear_team` / `current_linear_project`,
-`current_github_remote` / `current_gitlab_remote`,
+`current_github_remote` / `current_gitlab_remote`, the `gitlab:` block's
+`host`, `project` and `review_bots`,
 `current_review_format` (default `cli` on
 older configs), and `current_leads` (default `on`).
 
@@ -162,15 +163,13 @@ apt/dnf steps at <https://cli.github.com/manual/installation>), then
 remote), verify `gh auth status` shows the `repo` scope, and re-run
 `/spades:setup`.
 
-**GitLab chosen** → probe `glab auth status`, which checks the host
-behind the remote (`glab auth status --hostname <host>` names a
-self-managed one); a non-zero exit means not ready. Install `glab`
-(`brew install glab`; `winget install glab.glab`; the Linux packages at
-<https://gitlab.com/gitlab-org/cli/-/blob/main/docs/installation_options.md>),
-then `glab auth login` (add `--hostname <host>` for a self-managed
-instance; browser flow recommended, and a token login needs the `api`
-and `write_repository` scopes), verify `glab auth status`, and re-run
-`/spades:setup`.
+**GitLab chosen** → **read
+[`reference/gitlab.md`](reference/gitlab.md) and follow it.** It reads
+the host and project from the remote, probes `glab` and git access to
+the remote (a lapsed SAML SSO session blocks git but not `glab`), walks
+the install and sign-in, and asks which review bots post on the
+project's merge requests. It returns `gitlab.host`, `gitlab.project`
+and `gitlab.review_bots` for Step 7.
 
 ## Step 3 — Review format
 
@@ -224,6 +223,8 @@ before any writes happen:
   Linear project: (unset)            →  <new_linear_project>   # backend: linear
   GitHub remote:  origin             (unchanged)               # scm: github
   GitLab remote:  origin             (unchanged)               # scm: gitlab
+  GitLab project: gitlab.com/acme/app  (unchanged)             # scm: gitlab
+  Review bots:    (none)             →  acme-coderabbit (coderabbit), GitLabDuo (duo)   # scm: gitlab
 
 .spades/config and the AGENTS.md marker block will be updated.
 Existing scopes, plans, and learnings on disk are never deleted
@@ -259,6 +260,11 @@ github:                    # scm: github
   remote: origin
 gitlab:                    # scm: gitlab
   remote: origin
+  host: gitlab.com          # the remote's host
+  project: acme/app         # the project path on that host
+  review_bots:              # empty list when the project has none
+    - username: acme-coderabbit
+      kind: coderabbit      # or: greptile, duo, generic
 ```
 
 With `create_new_project` on a **fresh install**, write `project:`

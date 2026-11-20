@@ -1,0 +1,10 @@
+{
+  "iid": 7,
+  "state": "locked",
+  "merge_commit_sha": null,
+  "squash_commit_sha": null,
+  "sha": "head111",
+  "merge_user": null,
+  "merged_at": null,
+  "draft": false
+}

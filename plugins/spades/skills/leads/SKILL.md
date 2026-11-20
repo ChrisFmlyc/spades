@@ -157,7 +157,7 @@ Lead's mirrors, and every mirror operation in this skill applies to each:
 | Configuration | Mirror | Worker | Target |
 |---|---|---|---|
 | `scm: github` | GitHub issue | `worker-github-lead` | The repository behind `github.remote` (default `origin`), via `gh` |
-| `scm: gitlab` | GitLab issue | `worker-gitlab-lead` | The project behind `gitlab.remote` (default `origin`), via `glab` |
+| `scm: gitlab` | GitLab issue | `worker-gitlab-lead` | The project in `gitlab.host` and `gitlab.project`, via `glab -R` |
 | `backend: linear` | Linear issue | `worker-linear-lead` | The configured Linear team and project |
 
 `scm: github` or `scm: gitlab` authorises that host's issue writes, which

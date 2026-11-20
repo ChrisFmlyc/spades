@@ -34,6 +34,27 @@ and the plugin's own dogfooded `.spades/` state.
 match `plugins/spades/.claude-plugin/plugin.json` and
 `plugins/spades/.spades/version`. The release gate checks all four.
 
+## SCM drivers move together
+
+SPADES ships three SCM drivers: `local-git`, `github` and `gitlab`.
+Each consumer repo runs one of them, so a flow improved for one host
+leaves teams on the others with the old behaviour. A change to how any
+driver sets up, ships, closes, merges, sweeps review threads, checks
+a deploy or mirrors Leads is weighed for every driver in the same PR:
+
+- Where another driver has the same step, change it to match.
+- Where it has no equivalent (local-git has no review threads; GitLab
+  issues take no close reason), the PR description names that driver
+  and says why it stays as it is.
+
+`plugins/spades/docs/EXTENDING-SCM.md § Changing a flow` maps each flow
+to its files. Command snippets tagged `<!-- scm-test: … -->` run against
+recorded output in CI (`plugins/spades/scripts/test/scm-snippets.sh`);
+a changed flow updates or adds its cases for each driver it touches.
+The `repo` and `codereview` plugins that SPADES hands branch, PR and
+review work to keep GitHub and GitLab paths side by side under the same
+rule, in their own repo.
+
 ## Writing skills
 
 A skill is written green-field: the correct behaviour, stated once,

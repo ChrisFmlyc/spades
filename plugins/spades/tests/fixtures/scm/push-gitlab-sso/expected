@@ -1,0 +1,3 @@
+remote: Cannot find valid SSO session. Please login via your group's SSO at https://gitlab.com/groups/acme/-/saml/sso?token=AbCd
+fatal: unable to access 'https://***@gitlab.com/acme/app.git/': The requested URL returned error: 403
+cause: gitlab-sso

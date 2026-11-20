@@ -177,6 +177,11 @@ body file. Push to the configured remote, then open the PR with
 git push -u <configured-remote> <bookkeeping-branch>
 ```
 
+A rejected push stops Close with the records committed on the
+bookkeeping branch: show the remote's message and its cause per
+`docs/FRAMEWORK.md § SCM Drivers → Pushing`. With `scm: gitlab`, check
+the remote against `gitlab.host` and `gitlab.project` before pushing.
+
 Body: `## Summary`, `## Linked artefacts` (IDs, and the ship PR plus
 merge SHA where relevant), `## Files touched`, and a plain statement
 that the PR contains audit-trail changes and any approved transferred records.

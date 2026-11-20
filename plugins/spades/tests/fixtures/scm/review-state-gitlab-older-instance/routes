@@ -1,0 +1,1 @@
+^glab mr view 7 -R https://gitlab\.example\.com/acme/app --output json$	mr.json

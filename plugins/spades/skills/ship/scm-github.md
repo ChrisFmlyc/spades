@@ -37,6 +37,11 @@ git push -u <configured-remote> <branch>
 
 `<configured-remote>` is `github.remote` (default `origin`).
 
+A rejected push stops here with the Plan at its current status: show
+the remote's message and its cause per `docs/FRAMEWORK.md § SCM Drivers
+→ Pushing`. The branch is never amended, rebased or force-pushed to get
+past it.
+
 ## 4. Open or reuse the Scope PR
 
 Look up the PR with `find_review(<scope-branch>, <default-branch>)`.

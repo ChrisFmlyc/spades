@@ -1,0 +1,28 @@
+{
+  "reviews": [
+    {
+      "author": {
+        "login": "coderabbitai[bot]"
+      },
+      "state": "CHANGES_REQUESTED"
+    },
+    {
+      "author": {
+        "login": "alice"
+      },
+      "state": "CHANGES_REQUESTED"
+    },
+    {
+      "author": {
+        "login": "bob"
+      },
+      "state": "CHANGES_REQUESTED"
+    },
+    {
+      "author": {
+        "login": "alice"
+      },
+      "state": "APPROVED"
+    }
+  ]
+}

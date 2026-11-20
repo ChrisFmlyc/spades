@@ -32,7 +32,7 @@ by and merged at as `docs/FRAMEWORK.md § SCM Drivers` normalises them.
 
 - **Probe failure** (as § SCM Drivers defines it) → abort cleanly:
   *"Couldn't query PR `<URL>`. Check `gh auth status` (GitHub) or
-  `glab auth status` (GitLab), network, or rate limits, then re-run
+  `glab auth status --hostname <gitlab.host>` (GitLab), network, or rate limits, then re-run
   `/spades:close <plan_id>`. The Plan is untouched at `status:
   shipping`."* Say MR for a GitLab URL.
 - **`MERGED`** → capture the merge SHA, merged by and merged at.

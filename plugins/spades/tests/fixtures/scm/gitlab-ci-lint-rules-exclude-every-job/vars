@@ -1,0 +1,6 @@
+host=gitlab.example.com
+project=acme%2Fapp
+repo-url=https://gitlab.example.com/acme/app
+iid=7
+sha=head111
+source_branch=feat/x

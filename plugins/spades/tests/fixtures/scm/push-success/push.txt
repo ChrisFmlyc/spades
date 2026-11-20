@@ -1,0 +1,2 @@
+To gitlab.example.com:acme/app.git
+ * [new branch]      feat/x -> feat/x

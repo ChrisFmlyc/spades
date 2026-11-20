@@ -1,0 +1,2 @@
+[{"name": "deploy-prod", "status": "failed", "allow_failure": false}, {"name": "lint", "status": "failed", "allow_failure": true}]
+[{"name": "CodeRabbit", "status": "success", "allow_failure": false}, {"name": "vercel", "status": "running", "allow_failure": false}]

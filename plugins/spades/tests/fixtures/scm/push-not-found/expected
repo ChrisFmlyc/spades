@@ -1,0 +1,3 @@
+remote: The project you were looking for could not be found or you don't have permission to view it.
+fatal: repository 'https://gitlab.example.com/acme/app.git/' not found
+cause: not-found

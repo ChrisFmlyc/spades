@@ -20,7 +20,7 @@ A driver is a section of prose telling Claude:
 1. How to **probe** that the SCM tool is installed and authenticated
    (the equivalent of `gh auth status` for GitHub).
 2. How to **install + authenticate** if the probe fails — packaged
-   install commands per OS, OAuth/PAT flow, verification step.
+   install commands per OS, the CLI's login, verification step.
 3. How to **publish work** for a `deliverable_type: code` Plan —
    the per-driver Ship flow.
 4. How to **record the shipment** in the Plan's audit trail.
@@ -51,8 +51,10 @@ plus an auth step. Cover at minimum:
 - macOS (Homebrew or equivalent native package manager)
 - Linux (apt and dnf/yum at minimum; flatpak/snap if applicable)
 - Windows (winget or choco)
-- An auth step (OAuth via browser is strongly preferred over token
-  paste — fewer credentials in shell history)
+- An auth step covering the ways the host's CLI and git can sign in —
+  a browser (OAuth) login, a personal access token, SSH keys — with the
+  human choosing. A token is entered at the CLI's prompt or on stdin,
+  not on the command line, so it stays out of shell history.
 - A verification step the human runs after install + auth
 
 The install guide format should mirror the existing Linear-MCP
@@ -129,7 +131,10 @@ touches:
 
 1. **`.spades/config`** — a `<scm>:` block with `remote:` (default
    `origin`), documented in `docs/FRAMEWORK.md § .spades/config
-   schema`. The host comes from that remote's URL, not from config.
+   schema`, plus whatever the CLI needs to address the repository
+   exactly. `gh` follows the remote; `glab` doesn't, so the GitLab
+   block also records `host` and `project`, and lists `review_bots`
+   because GitLab marks no account as a bot.
 2. **`docs/FRAMEWORK.md § SCM Drivers`** — a column in the
    review-request and issue operation tables, the `review_state`
    field mapping (state, merge SHA, merged by, merged at, head SHA),
@@ -150,20 +155,76 @@ touches:
    host.
 8. **`AGENTS.md`** and **`skills/setup/reference/agents-md-block.md`**
    — the SCM list under Phase 6 (Ship).
-9. **Versions** — per `AGENTS.md` § Versioning, every changed skill
+9. **Tests** — tag every command snippet with
+   `<!-- scm-test: <name> -->` and add recorded-output cases under
+   `tests/fixtures/scm/` for `scripts/test/scm-snippets.sh`, including
+   the host's failure cases.
+10. **Versions** — per `AGENTS.md` § Versioning, every changed skill
    and the plugin bump (additive: minor), plus `agents_version`.
 
 The GitLab driver's probe, install guide and vocabulary, as a model:
 
-- **Probe:** `glab auth status` (non-zero exit → not ready).
+- **Probe:** `glab auth status --hostname <host>` (non-zero exit → not
+  ready), then `git ls-remote` on the remote, because SAML SSO can block
+  git while the API works.
 - **Install:** `brew install glab`; `winget install glab.glab`; the
-  Linux packages in glab's installation options.
-- **Auth:** `glab auth login` — browser flow preferred;
-  `--hostname <host>` for a self-managed instance. Verify with
-  `glab auth status`.
+  Linux packages in glab's installation options; and `jq`.
+- **Auth:** `glab auth login --hostname <host>` — a browser login (on a
+  self-managed instance, after `glab config set client_id <id> --host
+  <host>` for its OAuth application) or a token with the `api` and
+  `write_repository` scopes. Git uses SSH or HTTPS as the remote does;
+  `--setup-git-credential-helper` lets an HTTPS remote use `glab`'s
+  login. Verify with `glab auth status --hostname <host>`.
 - **Vocabulary:** `MR opened:` instead of `PR opened:`, and
   `Shipped (gitlab). MR: …`; ship's resume step and close's picker
   detect both markers.
+
+## GitLab compared with GitHub
+
+The GitLab driver does everything the GitHub one does. Where GitLab
+works differently, the driver does this:
+
+| Area | GitHub | GitLab, and what the driver does |
+|---|---|---|
+| Choosing the repository | `gh` follows the remote | `glab` picks its own; commands name `gitlab.host` and `gitlab.project` |
+| Review bots | `[bot]` accounts | No bot flag on notes; only `gitlab.review_bots` count, matched by user ID, with an adapter per bot kind for "review finished" |
+| A finished review | A review object | Notes only; CodeRabbit's commit status, Greptile's summary naming the head commit, or the newest discussion settling |
+| Changes requested | A review state | A reviewer state; on Premium and above it blocks merging until approved, removed or bypassed |
+| Merge SHA | `mergeCommit.oid` | `merge_commit_sha`, `squash_commit_sha` or `sha` by merge method; checked to be on the default branch |
+| Merging | `gh pr merge --squash` | `--auto-merge=false --sha`; a project that forbids squashing pauses; a merge train is joined with auto-merge and polled |
+| CI | Check runs | Pipelines and commit statuses; a bot's `external` pipeline doesn't count; a zero-job failure is linted for its errors |
+| Draft | Bots skip drafts by default; `gh pr create` opens a ready PR | Bots skip draft MRs, and a `Draft:` title makes one; Ship never opens one |
+| Push rejections | Rulesets, push protection (`GH013`, `GH009`) | Push rules (`remote: GitLab: …`), which can name commits older than the change |
+| SAML SSO | The credential is authorised per organisation | Enforced on git and not the API: `glab` works while pushes fail, until the human signs in through SSO |
+| Missing or hidden | 404 | 404 for both, reported as "not found, or not visible" |
+| Issue close reason | `--reason` | None; a comment records it |
+| Deployments | Filter by SHA | No SHA filter; recent deployments are matched, per environment |
+| Closing issues | On merge | On merge into the default branch, while the project's auto-close setting is on |
+
+A GitLab instance served under a path prefix (`https://host/gitlab/…`)
+is not supported.
+
+## Changing a flow
+
+Every driver runs the same flows, so a change to one driver's flow is
+checked against the others in the same PR (the repo-root `AGENTS.md`,
+§ SCM drivers move together). Where each flow lives:
+
+| Flow | Files | Per-driver part |
+|---|---|---|
+| Setup | `skills/setup/SKILL.md` Steps 2 and 7 | the option, probe, install guide and config block |
+| Operation commands | `docs/FRAMEWORK.md § SCM Drivers` | a column per review host; local-git has none |
+| Ship | `skills/ship/SKILL.md` Step 3 A | `scm-local-git.md`, `scm-github.md`, `scm-gitlab.md` |
+| Quick | `skills/quick/SKILL.md` | a publish paragraph per driver |
+| Close | `skills/close/SKILL.md`, `skills/close/reference/flow-*.md` | the `Shipped` line and the PR/MR URL check |
+| Evaluate | `skills/evaluate/SKILL.md` | the shipped-state check |
+| Loop | `skills/loop/SKILL.md`, `skills/loop/reference/*.md` | a section per review host; local-git doesn't run the loop |
+| Leads | `skills/leads/SKILL.md` | an issue mirror per host with issues |
+| Branch, PR, review bots | the `repo` and `codereview` plugins | a GitHub and a GitLab path in each skill |
+
+Read the row for the flow you changed and open each driver's part.
+Make the matching change where the step exists; where it doesn't, say
+so in the PR description.
 
 ## Preserve the SCM contract
 

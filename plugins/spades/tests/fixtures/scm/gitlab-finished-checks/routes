@@ -1,0 +1,2 @@
+^glab api (--paginate )?--hostname gitlab\.example\.com projects/acme%2Fapp/pipelines\?sha=mmm111&ref=main$	pipelines.json
+^glab api (--paginate )?--hostname gitlab\.example\.com projects/acme%2Fapp/repository/commits/mmm111/statuses$	statuses.json

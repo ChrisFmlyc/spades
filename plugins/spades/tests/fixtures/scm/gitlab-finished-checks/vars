@@ -1,0 +1,6 @@
+host=gitlab.example.com
+project=acme%2Fapp
+repo-url=https://gitlab.example.com/acme/app
+iid=7
+merge-sha=mmm111
+default-branch=main

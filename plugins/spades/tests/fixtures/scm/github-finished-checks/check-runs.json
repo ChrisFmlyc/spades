@@ -1,0 +1,30 @@
+{
+  "total_count": 5,
+  "check_runs": [
+    {
+      "name": "a",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "b",
+      "status": "completed",
+      "conclusion": "neutral"
+    },
+    {
+      "name": "c",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "d",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "name": "e",
+      "status": "in_progress",
+      "conclusion": null
+    }
+  ]
+}
