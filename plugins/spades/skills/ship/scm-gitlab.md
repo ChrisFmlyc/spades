@@ -20,14 +20,10 @@ after verifying that it matches the recorded branch.
 
 ## 2. Commit approved pending records
 
-Follow `docs/FRAMEWORK.md § Carry-Forward → Commit contents`. Inspect the
-complete index, include authorised pending records, and preserve excluded
-staged/unstaged changes. Existing committed work is already part of this
-branch's MR and needs no additional inclusion question. Unknown uncommitted
-work needs the human's decision before adding it.
-
-If approved records remain, commit them through `/repo:branch` with
-`chore(spades): record audit artefacts for <scope_id>`.
+If approved pending records remain, commit them through `/repo:branch`
+with `chore(spades): record audit artefacts for <scope_id>`, following
+`docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts` (§ Existing
+uncommitted work, § Commit contents).
 
 ## 3. Push
 
@@ -62,11 +58,9 @@ glab mr create -R <repo-url> --head <repo-url> --source-branch <scope-branch> --
   --title "<title>" --description-file <body-file> --squash-before-merge --yes
 ```
 
-`<repo-url>` is `https://<gitlab.host>/<gitlab.project>`. `-R` names it
-as the MR's target project and `--head` as its source project, the one
-§ 3 pushed the branch to. `glab mr create` prints a summary rather than
-a URL, so read the MR's `iid` and `web_url` back with
-`find_review(<scope-branch>, <default-branch>)`.
+`<repo-url>` is `https://<gitlab.host>/<gitlab.project>`. `glab mr
+create` prints a summary rather than a URL, so read the MR's `iid` and
+`web_url` back with `find_review(<scope-branch>, <default-branch>)`.
 
 The MR opens ready for review, never as a draft: review bots skip draft
 MRs, and GitLab opens one as a draft when its title starts with `Draft:`
@@ -98,28 +92,18 @@ Once the MR is squash-merged:
 
 ## Edge cases
 
-- **The MR fails to open** — branch not pushed, no remote, `glab`
-  unauthenticated, or the remote's host isn't the one `glab` is logged
-  in to. Surface the exact error with the remediation (`glab auth
-  status --hostname <gitlab.host>`, `glab auth login --hostname
-  <gitlab.host>`); the Plan stays at `shipping`. A 404 means the
-  project is missing or this account cannot see it.
-- **The push is rejected** — a push rule, a lapsed SAML SSO session, or
-  branch protection; § 3 and `docs/FRAMEWORK.md § SCM Drivers →
-  Pushing`.
-- **`glab` missing or unauthenticated** — open the MR without `glab`.
-  GitLab acts on push options only when the push updates the branch.
-  If the branch has commits `<configured-remote>` does not have yet,
-  show the human
-  `git push -u <configured-remote> <branch> -o merge_request.create -o merge_request.target=<default-branch> -o merge_request.title="<title>"`;
-  GitLab prints the MR's link in the push's `remote:` lines, and the
-  description goes in afterwards on GitLab, since push options carry no
-  line breaks. Once the remote has the whole branch, as it does after
-  § 3, give the human GitLab's new-MR page instead,
+- **The MR fails to open** — branch not pushed, no remote, or the
+  remote's host isn't the one `glab` is logged in to. Surface the exact
+  error with the remediation (`glab auth status --hostname
+  <gitlab.host>`, `glab auth login --hostname <gitlab.host>`); the Plan
+  stays at `shipping`. A 404 means the project is missing or this
+  account cannot see it.
+- **`glab` missing or unauthenticated** — give the human GitLab's
+  new-MR page,
   `https://<gitlab.host>/<gitlab.project>/-/merge_requests/new?merge_request%5Bsource_branch%5D=<branch>&merge_request%5Btarget_branch%5D=<default-branch>`,
   to create the MR there with the `/repo:pr` title and body, and ask
-  them for its link. On either route the human ticks the MR's "Squash
-  commits when merge request is accepted" option, so a merge in the
-  GitLab UI squashes; record the link as in § 5.
+  them for its link. The human ticks the MR's "Squash commits when
+  merge request is accepted" option, so a merge in the GitLab UI
+  squashes; record the link as in § 5.
 - **Merge conflicts** — resolved as fix commits on the branch;
   re-run `/spades:ship` once the branch is clean.

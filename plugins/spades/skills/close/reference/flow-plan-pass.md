@@ -8,7 +8,7 @@ parent Scope up. Everything else is SKILL.md's shared machinery
 
 ## Contents
 
-- P1 — Pre-flight and target resolution
+- P1 — Pre-flight
 - P2 — Verify the ship PR merged
 - P3 — Close-out edits (Plan, Scope rollup)
 - P4 — Commit, PR, merge, retention, mirror
@@ -16,12 +16,7 @@ parent Scope up. Everything else is SKILL.md's shared machinery
 
 ## P1 — Pre-flight
 
-Run **B1**, then resolve the target: artefact type Plan; status
-filter `shipping` with a `PR opened:` or `MR opened:` line and no
-later `Shipped` line; zero candidates → suggest `/spades:ship P-…`. A single
-candidate with no ID passed is picked and announced.
-
-Read the Plan and parent Scope. Capture `plan_id`, `plan_slug`,
+Run **B1**, then read the Plan and parent Scope. Capture `plan_id`, `plan_slug`,
 `scope_id`, `project_slug`, and the PR URL from the latest
 `PR opened:` or `MR opened:` line.
 
@@ -37,9 +32,8 @@ by and merged at as `docs/FRAMEWORK.md § SCM Drivers` normalises them.
   shipping`."* Say MR for a GitLab URL.
 - **`MERGED`** → capture the merge SHA, merged by and merged at.
   Continue.
-- **`OPEN`** → report it with any CI or review status shown.
-  Ask: *Wait — re-run later* / *Abort*. Both exit
-  without changes.
+- **`OPEN`** → report it with any CI or review status shown and exit
+  without changes; re-run after it merges.
 - **`CLOSED`** unmerged → exit with the pointer: *"PR `<URL>` is
   closed without merge. Re-open it on <GitHub|GitLab> to retry, or re-run as
   `/spades:close <plan_id> --reject "reason"`."* The human picks the
@@ -79,7 +73,6 @@ classify each as `shipped`, `rejected`, or in flight.
 | Every sibling `shipped`, acceptance criteria covered | Ask the outcome (P3.3), then Scope `status: done`, `updated:` today, append `- YYYY-MM-DD: All plans shipped. Scope done. Outcome: <O-slug \| none>.` |
 | Every sibling `shipped`, criteria left uncovered | Ask first (below). |
 | All terminal, mix of `shipped` and `rejected`, ≥1 `shipped` | Ask, listing the rejected siblings. |
-| Every sibling `rejected` | No rollup; the Scope shipped nothing. Say so; the Plan's own close-out proceeds. |
 | A sibling in flight | No rollup. |
 
 Check the shipped Plans cover the Scope's acceptance criteria, including
@@ -99,10 +92,17 @@ to the Scope:
   (acknowledged: P-<id-1>, P-<id-2>). Scope done. Outcome: <O-slug | none>.
 ```
 
+A declined mixed-terminal rollup leaves the Scope unchanged and
+appends to the Plan:
+
+```markdown
+- YYYY-MM-DD: Scope rollup deferred (mixed-terminal; human declined).
+```
+
 ### P3.3 — Outcome
 
-A Scope names the Objective it delivered against exactly once, here,
-as it closes. Resolve the project's `open` Objectives via
+A Scope names the Objective it delivered against exactly once, as it
+closes. Resolve the project's `open` Objectives via
 `list_objectives(status: open)` and ask:
 
 - One open Objective → **O-<slug> — <title>** *(Recommended)* /
@@ -114,15 +114,7 @@ as it closes. Resolve the project's `open` Objectives via
 An Objective chosen writes `strategy_link: O-<slug>` into the Scope
 frontmatter alongside `status: done`. **No outcome** leaves
 `strategy_link:` absent; the audit line records `Outcome: none.` A
-Scope outside a strategy is a valid Scope. This question is asked on
-roll-up only; the abandon route never asks it.
-
-If the human declines a mixed-terminal rollup, leave the Scope unchanged
-and append to the Plan:
-
-```markdown
-- YYYY-MM-DD: Scope rollup deferred (mixed-terminal; human declined).
-```
+Scope outside a strategy is a valid Scope.
 
 ## P4 — Commit, PR, merge, retention, mirror
 
@@ -141,11 +133,10 @@ Then **B4** (body lists the Plan, Scope, ship PR, merge SHA,
 merged-by, files touched), **B5**, **B6**, and **B7** with:
 
 - Each participating Plan sub-issue → Done.
-- Parent Issue → Done, only when every sub-issue is Done. With an
+- Parent Issue → Done when P3.2 rolls the Scope up to `done`. With an
   outcome chosen at P3.3, add the label `outcome/O-<slug>` (the child
   of the exclusive `outcome` label group `/spades:objective` created)
-  to the parent Issue and comment *"Closed against `O-<slug>`."* This
-  close is the only write to the parent Issue after its creation.
+  to the parent Issue and comment *"Closed against `O-<slug>`."*
 - Comment on each participating sub-issue: *"Shipped. <PR|MR>: `<URL>` (squash-merge
   `<merge-sha>` by `@<login>`). Bookkeeping audit:
   `<bookkeeping-pr-url>`."*
@@ -158,7 +149,7 @@ merged-by, files touched), **B5**, **B6**, and **B7** with:
 ✓ Plans shipped:         <participating-plan-ids>
 ✓ Scope:                 <scope_id> (done — all plans shipped)   # when rolled up
 ✓ Outcome:               O-<slug> — <title>  (or: none)          # when rolled up
-✓ Linear mirror:         sub-issue Done, parent Issue Done[, labelled outcome/O-<slug>]   # backend: linear
+✓ Linear mirror:         sub-issue Done[, parent Issue Done[, labelled outcome/O-<slug>]]   # backend: linear; parent when rolled up
 ✓ Working tree:          retained at <worktree-path>
 ✓ Status:                shipped
 

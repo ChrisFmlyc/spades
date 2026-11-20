@@ -1,17 +1,12 @@
 # Backend-switch migration
 
-Read this when `/spades:setup` Step 6 fires — i.e. when
-`current_backend != new_backend`. An SCM, project, or Linear
-team/project change alone does **not** reach here; it goes straight
-to Step 7.
-
-Return to SKILL.md Step 7 when the walk completes or is skipped.
-Cancelling the backend switch returns to Step 1.
+`/spades:setup` Step 6 reads this file when
+`current_backend != new_backend`.
 
 ## Contents
 
 - The three options offered in both directions
-- Direction A — `local → linear` (the artefact walk, status maps)
+- Direction A — `local → linear` (the artefact walk)
 - Direction B — `linear → local`
 - Error handling for both directions
 
@@ -26,42 +21,29 @@ Offer these as a question in either direction:
 
 ## Direction A — `local → linear`
 
-For each artefact, search Linear under the bound Project; a match
-links via frontmatter ID, no match creates.
+The walk covers the active project chosen at Step 4 and its Scopes and
+Plans; other local projects and their artefacts stay as they are. For
+each Scope and Plan, search Linear under the active project's Linear
+Project; a match links via frontmatter ID, no match creates. Each Scope
+and Plan takes the workflow state that `docs/FRAMEWORK.md § Drift
+detection → Status-type mapping (canonical)` gives its status.
 
-1. **Projects** — `.spades/projects/<slug>.md` → Linear Project
-   (`mcp__linear-server__list_projects` filtered by team, then
-   `mcp__linear-server__save_project` if no match). Write
-   `linear_project_id` back. Disambiguate a multi-match with the
-   picker of `docs/FRAMEWORK.md § Target Resolution` step 3.
+1. **Active project** — bind `.spades/projects/<slug>.md` to the
+   `project_id` Steps 1 and 4 recorded. With `create_linear_project`,
+   first create the Linear Project on `team_id` with the record's title
+   and description (`mcp__linear-server__save_project`), record its ID
+   as `project_id` and clear `create_linear_project`. Write
+   `linear_project_id` back. With `create_new_project` there is no
+   record yet: Step 8 creates and binds it, and the walk has nothing to
+   migrate.
 
-2. **Scopes** — `.spades/scopes/S-<slug>.md` → Linear Issue under
-   the bound Project. Body = the Scope's markdown (Statement of
-   Intent, Acceptance Criteria, Architectural Constraints, Out of
-   Scope, Risk / Unknowns, Delivery Preference, Audit Trail). Write
-   `linear_issue_id` back. Active Scopes retain their open creation state
-   per `docs/FRAMEWORK.md § Scope status rollup`; Plans carry the phases.
-
-   | Scope status | Linear |
-   |---|---|
-   | `scoped`, `planning`, `delivering`, `evaluating`, `shipping` | Creation state with workflow type `backlog` or `unstarted` |
-   | `done` | Done |
-   | `abandoned` | Cancelled |
+2. **Scopes** — each of the active project's
+   `.spades/scopes/S-<slug>.md` → Linear Issue under its Linear
+   Project. Body = the Scope's markdown. Write `linear_issue_id` back.
 
 3. **Plans** — `.spades/plans/P-<…>.md` → sub-Issue under the
-   Scope's parent Issue. Body = Plan markdown (Technical Approach,
-   Tasks, Risks & Assumptions, Testing & Verification, Delivery
-   Sequence, Audit Trail). Write `linear_issue_id` back.
-
-   | Plan status | Linear |
-   |---|---|
-   | `draft` | Backlog / default |
-   | `approved` | Approval |
-   | `delivering` | Delivering / In Progress |
-   | `evaluating` | Evaluating |
-   | `shipping` | Shipping |
-   | `shipped` | Done |
-   | `rejected` | Cancelled |
+   Scope's parent Issue. Body = the Plan's markdown. Write
+   `linear_issue_id` back.
 
 4. **Audit-trail entry** on every migrated artefact:
 
@@ -76,9 +58,10 @@ links via frontmatter ID, no match creates.
 
    ```
    ✓ Migration complete. local → linear:
-       Projects:  1 (1 created, 0 linked to existing)
+       Project:   closed-door-security-website (bound to an existing Linear Project)
        Scopes:    3 (2 created, 1 linked to existing)
        Plans:    11 (8 created, 3 linked to existing)
+       Other projects: 2 kept local.
        Learnings: skipped (4 files stay local).
    ```
 

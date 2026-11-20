@@ -29,7 +29,7 @@ existing router. Wire it into the deployment pipeline's smoke test.
 ## Tasks
 
 ### Task 1: Add the route handler
-- **Posture:** test-first
+- **Posture:** specify-first
 - **Effort:** brief
 - **Depends on:** none
 - **Description:** Create `src/routes/health.ts` exporting the handler.

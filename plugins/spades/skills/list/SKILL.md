@@ -1,7 +1,7 @@
 ---
 name: list
 description: Lists active SPADES Scopes (and Objectives), optionally filtered by phase or project. Use when someone says "show my scopes", "list scopes", "list objectives", "what's active", "what needs planning", or wants to see what work is in progress across the SPADES pipeline. Accepts a `--project <slug>` filter; defaults to the active project from `.spades/config`.
-version: 3.6.4
+version: 3.6.5
 ---
 
 # /spades:list
@@ -169,8 +169,11 @@ When the probe found mismatches, a subsection after the tables:
 ### Linear drift (N)
 
 ⚠ S-add-newsletter — local `delivering`, Linear `completed` (Done).
-    Re-run /spades:close S-add-newsletter (Pass) to push local → Linear,
-    or edit the local Scope if Linear is correct.
+    When every Plan under it is `shipped` or `rejected`, with at
+    least one `shipped`, run /spades:close S-add-newsletter (Pass)
+    to roll up locally; while a Plan is still in flight, set Linear
+    to match the local file and take that Plan through its own
+    phases.
 ```
 
 Omitted when empty; replaced by *"⚠ Drift probe skipped — Linear

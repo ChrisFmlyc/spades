@@ -4,9 +4,8 @@
  *
  * Node built-ins only: no npm, no package.json, no node_modules, no YAML
  * library. SPADES frontmatter is intentionally shallow (flat key: value pairs,
- * optionally with list values like `[a, b, c]` or dash-prefixed items). If we
- * ever need nested structures we'll either take a YAML dependency or simplify
- * the schema.
+ * optionally with list values like `[a, b, c]` or dash-prefixed items). If a
+ * check ever needs nested structures, simplify the schema.
  *
  * Runs under Node's native TypeScript type-stripping — `node frontmatter.ts`,
  * no build step, no transpiler, no flags. Requires **Node >= 22.18** (or >=
@@ -239,7 +238,7 @@ const PLAN_KNOWN_FIELDS = new Set<string>([
   ...Object.keys(PLAN_ENUMS),
   "depends_on", "linear_issue_id",
 ]);
-const PLAN_ID_RE = /^P-[a-z0-9](?:[a-z0-9-]{0,63})-[A-Za-z0-9]{4}$/;
+const PLAN_ID_RE = /^P-[a-z0-9](?:[a-z0-9-]{0,63})-[A-Za-z0-9]{4}(?:-[A-Za-z0-9]{4})*$/;
 const PLAN_SUFFIX_RE = /^[A-Za-z0-9]{4}$/;
 
 // --- Learning schema --------------------------------------------------------
@@ -365,7 +364,7 @@ function validatePlan(fields: Fields, rel: string): Verdict {
   const pid = fields.get("id");
   if (pid && !PLAN_ID_RE.test(pid)) {
     fails.push(
-      `${rel}: invalid plan id ${repr(pid)} — must match P-<slug>-<4char-suffix>`,
+      `${rel}: invalid plan id ${repr(pid)} — must match P-<slug>-<4char-suffix>[-<dep-suffix>...]`,
     );
   }
   const suf = fields.get("id_suffix");

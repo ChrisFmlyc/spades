@@ -60,22 +60,7 @@ it has no `Agent` tool, so sub-agent fan-out drops to
 `sequential-inproc` or `degraded` mode per
 [`FRAMEWORK.md § Sub-agent Dispatch`](./plugins/spades/docs/FRAMEWORK.md).
 
-### Google Gemini CLI *(Extensions)*
-
-[Gemini CLI Extensions](https://geminicli.com/extensions/) can be
-installed from a GitHub URL:
-
-```bash
-gemini extensions install https://github.com/ChrisFmlyc/spades
-```
-
-If the extension manifest needs additional metadata not yet
-present in this repo, fall back to the clone-and-paste approach
-below: clone the repo, copy
-[`plugins/spades/AGENTS.md`](./plugins/spades/AGENTS.md) into each
-project, and Gemini CLI honours the operating rules at task time.
-
-### Other coding harnesses *(Cursor, Aider, Cline, Copilot Workspace, etc.)*
+### Other coding harnesses *(Gemini CLI, Cursor, Aider, Cline, Copilot Workspace, etc.)*
 
 No native plugin install. Manual fallback:
 
@@ -83,10 +68,11 @@ No native plugin install. Manual fallback:
 git clone https://github.com/ChrisFmlyc/spades.git
 ```
 
-Paste [`plugins/spades/AGENTS.md`](./plugins/spades/AGENTS.md)'s
-content into your harness's instructions surface (`.cursorrules`
-for Cursor, `.aiderrc` for Aider, `Rules` for Cline, etc.). The
-framework's contracts live in
+Paste the operating rules `/spades:setup` installs, the fenced block in
+[`plugins/spades/skills/setup/reference/agents-md-block.md`](./plugins/spades/skills/setup/reference/agents-md-block.md),
+into your harness's instructions surface (`GEMINI.md` for Gemini CLI,
+`.cursorrules` for Cursor, `.aiderrc` for Aider, `Rules` for Cline,
+etc.). The framework's contracts live in
 [`plugins/spades/docs/FRAMEWORK.md`](./plugins/spades/docs/FRAMEWORK.md)
 and each skill at
 `plugins/spades/skills/<name>/SKILL.md` — load whichever you need
@@ -100,7 +86,6 @@ into the harness's context.
 |---------|---------|
 | Claude Code | `/plugin marketplace update spades-framework` then `/plugin update spades@spades-framework` |
 | Codex CLI | `cd ~/.spades-source && git pull` |
-| Gemini CLI | `gemini extensions update spades` (or `git pull` in the clone) |
 
 ## Uninstall
 
@@ -108,22 +93,20 @@ into the harness's context.
 |---------|------------------|
 | Claude Code | `/plugin uninstall spades@spades-framework` then `/plugin marketplace remove spades-framework` |
 | Codex CLI | `rm ~/.agents/skills/spades-*` and `rm -rf ~/.spades-source` |
-| Gemini CLI | `gemini extensions uninstall spades` |
 
 ---
 
 ## Harness compatibility
 
 Only **Claude Code** has a native one-command install. Codex CLI
-and Gemini CLI accept the plugin's content through their own
-primitives (Skills, Extensions). Skills say *ask* where they need
-the human, and `FRAMEWORK.md § Asking the Human` maps that to the
+accepts the plugin's content through its own primitive (Skills).
+Skills say *ask* where they need the human, and `FRAMEWORK.md § Asking the Human` maps that to the
 harness's question tool where it has one (Claude Code, Codex and
 others) and, where it has none, to a question with numbered options in
 the final message that the human answers in their next reply.
 Sub-agent fan-out names Claude Code's `Agent` tool;
 `FRAMEWORK.md § Sub-agent Dispatch` defines the available modes
-(sub-agent → sequential → degraded).
+(`subagent-dispatch` → `sequential-inproc` → `degraded`).
 A skill can run only when the harness supplies its required tools;
 its contract defines what happens when a capability is missing.
 
@@ -157,9 +140,8 @@ spades/
 ```
 
 `AGENTS.md` is the cross-vendor convention honoured by Claude
-Code, Codex CLI, Cursor, Aider, Cline, and others. SPADES
-deliberately does not ship a `CLAUDE.md` or any other per-vendor
-variant.
+Code, Codex CLI, Cursor, Aider, Cline, and others, and the only
+agent-rules file SPADES ships.
 
 The repo-root `AGENTS.md` is a **maintainer** file and is not
 installed in consumer repos. `plugins/spades/AGENTS.md` is the

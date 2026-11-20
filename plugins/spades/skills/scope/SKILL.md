@@ -1,7 +1,7 @@
 ---
 name: scope
 description: Creates or edits a SPADES Scope in the current documentation session and records its intended delivery branch for later execution. Use when a human asks for a change too large for /spades:quick ("add X", "we need a Y"), when starting new work, when someone says "scope X", "create a scope", "edit a scope", or when work needs a written outcome and acceptance criteria. Fuzzy-matches existing scopes by slug or title to avoid duplicates; argument is the scope description.
-version: 4.2.2
+version: 4.2.3
 ---
 
 # /spades:scope
@@ -66,20 +66,17 @@ with this skill when any criterion fails or the human asked for a Scope.
 
 ## Step 2 — Mode
 
-- **Create** (default) — a new Scope.
-- **Edit** — refining an existing Scope.
-
-When the input names an `S-<slug>` ID, a slug, or a title that
-fuzzy-matches an existing Scope, default to Edit.
+- **Create** — a new Scope.
+- **Edit** — refining an existing Scope; the default when the input
+  names an `S-<slug>` ID, a slug, or a title that fuzzy-matches an
+  existing Scope.
 
 ### Fuzzy match
 
-Include active Scopes in registered worktrees when using the local backend;
-a new Scope may not yet exist in the primary checkout. Report the matching
-branch and use that worktree when editing.
-
 1. List the active project's Scopes via the backend interface
-   (`list_scopes(filter)`).
+   (`list_scopes(filter)`). With the local backend, include active Scopes
+   in registered worktrees, since a new Scope may not yet exist in the
+   primary checkout, and report the matching branch.
 2. Score each against the input: slug substring, title token
    overlap, exact ID prefix.
 3. Ask with up to three candidates above a soft threshold —
@@ -181,13 +178,6 @@ Asked in Step 6's confirmation, the inferred value first and marked
 *(Recommended)*: **feature** / **bug** / **chore** / **docs** /
 **refactor** / **investigation**.
 
-### 11. Outcome — not asked here
-A Scope does not name an outcome at creation. It records the
-Objective it delivered against once, at `/spades:close` (Scope
-roll-up), which writes `strategy_link: O-<slug>` and mirrors it to
-Linear. Leave `strategy_link:` absent; `origin:` already carries the
-rationale for reactive or ad-hoc work.
-
 ## Step 5 — Quality check
 
 With every field drafted, check the draft:
@@ -205,12 +195,11 @@ when nothing supports a fix.
 
 ## Step 6 — Confirm and write the Scope
 
-This step always writes the `.md`. Present the whole draft once and
-confirm it with one question. In CLI mode, present the
-draft in the CLI review pane on that call (paged per section when long)
-and write once the human approves it. In HTML mode, write the draft once
-Step 5 is complete and ask the call once Step 7 has opened the rendered
-page, which carries the review.
+Present the whole draft once and confirm it with one call. In CLI mode,
+present the draft in the CLI review pane on that call (paged per section
+when long) and write once the human approves it. In HTML mode, write the
+draft once Step 5 is complete and ask the call once Step 7 has opened the
+rendered page, which carries the review.
 
 The call holds four questions:
 
@@ -384,12 +373,11 @@ Next:
   /spades:review S-add-ai-helper-bot   — optional second opinion before planning
 ```
 
-`/spades:review` stays a separate, optional next step, named in the
-`Next:` lines. When the human chose the loop in Step 6, start
-`/spades:loop S-<slug>` now. A Scope written for a Lead promotion instead
-returns its ID to `/spades:leads`, with the loop choice when Step 6
-offered the loop; `/spades:leads` records the promotion and then starts
-the loop when the human chose it.
+A Scope written for a Lead promotion returns its ID to `/spades:leads`,
+with the loop choice when Step 6 offered the loop; `/spades:leads`
+records the promotion and then starts the loop when the human chose it.
+Any other Scope starts `/spades:loop S-<slug>` now when the human chose
+the loop in Step 6.
 
 ## Edit mode
 

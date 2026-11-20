@@ -20,7 +20,7 @@ run them locally before pushing with:
 
 ## Dependencies
 
-- `bash` (CI-only; not in the plugin runtime)
+- `bash`
 - `node` (**22.18+**, or 23.6+; only used by `frontmatter.ts`, built-ins
   only — no `package.json`, no `node_modules`, by design)
 - `awk`, `grep`, `diff` (POSIX; any modern shell has these)
@@ -43,8 +43,7 @@ interfaces, type aliases, generics, and `as` casts are fine; `enum`,
 `namespace`, and parameter properties are not.
 
 No npm install, no external YAML libraries. If a future check needs
-more than flat-key frontmatter, simplify the schema or take a YAML
-dependency — but update `ANTI-PATTERNS.md` first.
+more than flat-key frontmatter, simplify the schema.
 
 ## Running a single check
 

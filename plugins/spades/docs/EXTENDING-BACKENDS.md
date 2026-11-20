@@ -1,6 +1,6 @@
 # Extending SPADES with a New Backend
 
-SPADES v2.0 ships with two backend drivers: **Linear** (via the Linear
+SPADES ships two backend drivers: **Linear** (via the Linear
 MCP) and **local** (filesystem). Any system that has an MCP — Notion,
 Confluence, ClickUp, GitHub Projects, Jira — can host SPADES artefacts
 if a driver is written against the contract in `docs/FRAMEWORK.md`
@@ -63,9 +63,6 @@ than silently succeeding.
 
 4. **Project lead identity.** Implement `lookup_project_lead` and
    `assign_project_lead` per FRAMEWORK.md § Project lead assignment.
-   Resolve backend users, confirm the selected person before assignment,
-   verify the resulting Project lead, and preserve local canonical metadata.
-   Unsupported identity or assignment operations return an explicit error.
 
 5. **No silent retries.** A failed write surfaces to the human with the
    exact state — what landed, what didn't. Do not auto-retry
@@ -96,8 +93,7 @@ Sketch of what adding `backend: notion` would entail:
      plans_db_id: <uuid>
    ```
 
-3. **Document the operation mapping** in FRAMEWORK.md or, preferably,
-   a `docs/backends/notion.md` file:
+3. **Document the operation mapping** in FRAMEWORK.md:
 
    | Operation          | Notion MCP call                    |
    |--------------------|-------------------------------------|

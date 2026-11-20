@@ -1,7 +1,7 @@
 ---
 name: quick
-description: Delivers trivial work through the SPADES fast-track path — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when a requested change passes every fast-track gate criterion below, when someone asks for "the SPADES quick path" or "a quick SPADES fix", or when you would otherwise invoke /spades:scope for such a change. Work that touches architecture, auth, schemas, or public APIs, or needs more than one focused commit, takes the full loop via /spades:scope. With GitHub or GitLab it commits the fix on its own branch, pushes it and opens a pull or merge request.
-version: 2.7.0
+description: Delivers trivial work through the SPADES fast-track path — tiny bug fixes, one-line tweaks, config nudges, docs typos, and other changes too small for the full SPADES loop. Use when a requested change passes every fast-track gate criterion below, when someone asks for "the SPADES quick path" or "a quick SPADES fix", or when you would otherwise invoke /spades:scope for such a change. Work that touches architecture, auth or schemas, makes public API or interface breaking changes, or needs more than one focused commit, takes the full loop via /spades:scope. With GitHub or GitLab it commits the fix on its own branch, pushes it and opens a pull or merge request.
+version: 2.8.0
 ---
 
 # /spades:quick
@@ -29,7 +29,7 @@ code or the answer shows it holds; one still unresolved fails the
 gate.
 
 1. **Single concern.** One bug, one tweak, one touch-up.
-2. **≤ 50 lines changed** (soft cap; hard stop around 100).
+2. **≤ 50 lines changed.**
 3. **One file, or a tight cluster in one module.**
 4. **No new dependencies** — package manifests untouched.
 5. **No schema, migration, or data-layer changes.**
@@ -37,19 +37,18 @@ gate.
    layers, or top-level directories.
 7. **No security-sensitive code** — auth, crypto, secrets, sessions,
    permissions, trust-boundary validation.
-8. **No public API or interface changes.**
+8. **No public API or interface breaking changes.**
 9. **Revertible as one commit.**
 10. **Existing tests cover the area** — a trivial extension is fine;
     new scaffolding is not.
 
-When a criterion fails:
+Recheck the gate as the fix develops. When any criterion fails, stop
+with the work uncommitted and tell the human:
 
 > This doesn't fit the fast-track gate because <criterion>. Running
 > `/spades:scope` for the full loop is the right call here.
 
-Recheck the gate as the fix develops. If any criterion fails, stop
-immediately with the work uncommitted, tell the human which criterion
-failed, and invoke `/spades:scope`. Record the Quick worktree path and the
+Then invoke `/spades:scope`. Record the Quick worktree path and the
 implementation changes proposed for inclusion in the Scope's context.
 After Plan approval, when `/spades:deliver` establishes the Scope's delivery
 worktree, apply only the approved implementation changes to its fresh base
@@ -86,9 +85,7 @@ On resume, use the marker's recorded branch through `--resume` and resolve
 pre-existing uncommitted work before inclusion.
 
 Make the approved fix and marker in a single commit, following
-`docs/FRAMEWORK.md § Carry-Forward → Commit contents`. Existing commits on
-this branch need no inclusion question; inspect the complete proposed
-commit and preserve excluded staged/unstaged changes.
+`docs/FRAMEWORK.md § Carry-Forward → Commit contents`.
 
 Nearby code stays as it is; tidying "while you're there" is a
 second concern.
@@ -135,11 +132,7 @@ a draft) with `open_review`
 from `docs/FRAMEWORK.md § SCM Drivers`, using the template below. Write
 the marker at `status: shipping` with `pr_url`, and print one line:
 *"PR opened. Run `/spades:close Q-<id>` after it merges to
-finalise."* ("MR" on GitLab). `/spades:close` verifies the merge with
-`review_state`, flips the marker to `shipped`, and appends the driver's
-`Shipped` line: `- YYYY-MM-DD: Shipped (github). PR: <url>. Merge:
-<sha>. Merged by: <login>.` or `- YYYY-MM-DD: Shipped (gitlab). MR:
-<url>. Merge: <sha>. Merged by: <username>.`
+finalise."* ("MR" on GitLab).
 
 **`scm: local-git`** — push the branch when a remote is configured
 (`local_git.remote:`, default `origin`; a rejected push stops here, per
@@ -178,7 +171,7 @@ is nothing to close.
 - [x] No schema or migration changes
 - [x] No architectural changes
 - [x] No security-sensitive code
-- [x] No public API changes
+- [x] No public API or interface breaking changes
 - [x] Revertible as one commit
 - [x] Existing tests cover the area
 
@@ -233,7 +226,7 @@ updated: YYYY-MM-DD
 - [x] No schema or migration changes
 - [x] No architectural changes
 - [x] No security-sensitive code
-- [x] No public API changes
+- [x] No public API or interface breaking changes
 - [x] Revertible as one commit
 - [x] Existing tests cover the area
 

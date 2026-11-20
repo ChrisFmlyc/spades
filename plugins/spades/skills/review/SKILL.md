@@ -1,7 +1,7 @@
 ---
 name: review
 description: Provides an independent second opinion on a SPADES Scope, Plan, or both. Spawns a PANEL of four persona subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their structured findings, and presents a single tiered report. Use when someone wants a Scope or Plan reviewed or challenged — "review this Scope", "review P-…", "second opinion on this Plan", "outside view on this Scope", "challenge this Plan" — or when offered during /spades:approve. Non-blocking — informs the human but never gates shipping.
-version: 3.9.6
+version: 3.9.7
 ---
 
 # /spades:review
@@ -19,14 +19,14 @@ you reach § Presenting the report.
 
 ### Output format
 
-- **Both modes** — `.spades/reviews/<target>-<date>.md`, the
+- **Both modes** — `.spades/reviews/<slug>-<date>.md`, the
   complete record.
 - **CLI mode** — the tiered digest is presented in the CLI review pane
   (`docs/FRAMEWORK.md § CLI review pane`) on the human-decision
-  question, paged per tier when it exceeds about sixty lines. Unlike
-  a draft, the report is a record: it is written first, then
-  presented, then the human decides what to do with it.
-- **HTML mode** — additionally `.spades/reviews/<target>-<date>.html`
+  question, paged per tier when it exceeds about sixty lines. The
+  report is a record: it is written first, then presented, then the
+  human decides what to do with it.
+- **HTML mode** — additionally `.spades/reviews/<slug>-<date>.html`
   from `${CLAUDE_PLUGIN_ROOT}/skills/review/template.html` via
   `worker-html-review`; the coordinator selects that report's absolute
   path as `open_path` for initial presentation, and `null` for refreshes
@@ -35,30 +35,25 @@ you reach § Presenting the report.
 
 ## Pre-Flight
 
-1. **Working context.** Follow `docs/FRAMEWORK.md § Freshness` and
-   § Scope Worktrees. Resolve a scoped target to its worktree; for standalone
-   research/review name the checkout and revision inspected. Pass that
-   absolute path and intended revision to the researcher/review workers.
-   Default-branch preparation is owned by `/repo:newbranch` when new work
-   is created, not by this read-only check.
-2. **Config.** Read `.spades/config` for `project:`, `backend:`, and
+1. **Config.** Read `.spades/config` for `project:`, `backend:`, and
    `review_format:`; missing → `/spades:setup`.
-3. **Resolve the mode and target.**
+2. **Resolve the mode and target.**
    - Both named (`/spades:review scope S-…`, `/spades:review plan
      P-…`) → honour directly.
    - A Scope or Plan already in session context → offer it as the
      default via one confirm (*Use <ID> — <title>?*).
-   - Bare invocation → `docs/FRAMEWORK.md § Target Resolution`:
-     ask the artefact type (*Scope review* / *Plan
-     review* / *Full review*); candidates per the status filter
-     (Scopes in any active phase; Plans in `draft`, `approved`,
-     `delivering`, `evaluating`, most recently updated first); a
-     picker of up to three plus *Describe a different one*; echo the
-     resolved target. Zero candidates → suggest `/spades:scope
-     <title>`.
+   - Bare invocation → `docs/FRAMEWORK.md § Target Resolution` —
+     artefact type asked (*Scope review* / *Plan review* / *Full
+     review*); status filter: Scopes in any active phase, Plans in
+     `draft`, `approved`, `delivering`, `evaluating`; zero candidates
+     → suggest `/spades:scope <title>`.
 
    Full review takes the Plan as target and reads its parent Scope
    from `scope:`.
+3. **Working context.** Follow `docs/FRAMEWORK.md § Freshness` and
+   § Scope Worktrees. Resolve the selected target to its worktree and
+   name the checkout and revision inspected. Pass that absolute path
+   and intended revision to the persona workers.
 
 ## Modes
 
@@ -83,9 +78,9 @@ summary and no conversation history.
   `PATTERNS.md`, `ANTI-PATTERNS.md`.
 - **Full review** — all of the above.
 
-Over 30KB combined, truncate the Plan (keeping task titles and
-approach summaries) rather than dropping Scope fields; personas need
-the whole Scope for traceability.
+Over 30KB combined, truncate the Plan to its task titles and approach
+summaries and keep every Scope field; personas need the whole Scope
+for traceability.
 
 ## The panel
 
@@ -205,8 +200,7 @@ persona with finding 1 but not a concern. `findings_total: 4`.
 ## Presenting the report
 
 **Read [`reference/report-format.md`](reference/report-format.md) and
-follow it.** A run produces the tiered digest and the full persisted
-report; the report file is written before the digest prints.
+follow it.**
 
 ## Cross-model synthesis
 
@@ -246,8 +240,8 @@ Plan only on their instruction.
 **HTML mode:**
 
 ```
-✓ Review report: .spades/reviews/<target>-<date>.md
-○ .spades/reviews/<target>-<date>.html opened in browser
+✓ Review report: .spades/reviews/<slug>-<date>.md
+○ .spades/reviews/<slug>-<date>.html opened in browser
 Next: /spades:approve P-<id>   — apply or override findings
 ```
 

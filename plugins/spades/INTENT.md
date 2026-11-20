@@ -55,8 +55,7 @@ and captured learnings inform later Plans.
   matters to the business* is human-owned; SPADES consumes the output of
   strategic thinking as Scopes, it does not generate it.
 - AI never decides what to build. Shipment requires verification under
-  the recorded evaluation routing; checks that require a human wait
-  for that person.
+  the recorded evaluation routing.
 - SPADES does **not** bind to a single agent vendor (no `CLAUDE.md`,
   no `CURSOR.md`) and does **not** auto-probe for a backend — backend
   selection is explicit.
@@ -65,10 +64,6 @@ and captured learnings inform later Plans.
 ## Maturity
 
 SPADES governs its own development through the same loop it provides.
-It has been in production since v2.0, which introduced a substantial
-restructure (Project layer above Scopes, six-phase loop with Deliver and
-Ship as first-class phases, pluggable backends behind a documented
-contract, every template embedded in its producing skill). The core
-loop is stable; future evolution is expected to be additive (more
+It has been in production since v2.0. The core loop is stable; future evolution is expected to be additive (more
 backend drivers, sharper review heuristics, richer learning recall)
 rather than structural.

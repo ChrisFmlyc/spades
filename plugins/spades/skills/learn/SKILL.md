@@ -1,7 +1,7 @@
 ---
 name: learn
 description: Captures a learning from completed work and stores it under .spades/learnings/ so future Plans can reference it. Use when someone says "capture a learning", "record what we learned", "log this learning", "we should remember this", or after an Evaluate phase reveals something worth carrying forward. Also use with `--refresh` to archive stale or contradictory learnings.
-version: 5.0.7
+version: 5.0.8
 ---
 
 # /spades:learn
@@ -78,10 +78,8 @@ for. Link code, docs, or prior issues where helpful.
 1. **Read the context.** A Scope or Plan ID in the request becomes
    `scope_ref` / `plan_ref`; a file path or area pre-fills `area`.
 2. **Draft the whole learning** from the conversation so far.
-   CLI mode: present it in the CLI review pane on the correction
-   question. In both
-   modes, continue to classification before writing; HTML mode presents
-   the draft on the page at Step 4.
+   CLI mode presents it in the CLI review pane on the correction
+   question; HTML mode presents it on the page written at Step 4.
 3. **Classify** — ask:
    - **Public-safe — commit to `.spades/learnings/`** — fine in a
      public fork.
@@ -122,8 +120,8 @@ for. Link code, docs, or prior issues where helpful.
    ```
 
    CLI mode: the write confirmation and the same `Next:` line; the
-   learning body was already reviewed in the pane. A private learning's brief names the private
-   path.
+   learning body was already reviewed in the pane. A private learning's
+   brief names the private path.
 
 ## Refresh flow (`--refresh`)
 

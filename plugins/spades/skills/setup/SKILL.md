@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configures SPADES in a repository by choosing the backend, SCM (local git, GitHub or GitLab), review format and active project, writing .spades/config, and scaffolding agent rules and project documents. Checks that the `repo` plugin and the chosen SCM's CLI (`gh` or `glab`) are installed and authenticated, and with the Linear backend can register the Linear MCP server. Use for initial setup, reconfiguration or a scaffolding refresh, including "set up SPADES", "configure SPADES", "initialise SPADES", or "I want to use SPADES in this repo". Preserves existing content on re-runs.
-version: 4.15.0
+version: 4.16.0
 ---
 
 # /spades:setup
@@ -27,12 +27,11 @@ Read `docs/FRAMEWORK.md` § Hierarchy, § .spades/ Local Layout,
 
 ## Self-init guard
 
-When this directory is the SPADES framework repo itself
-(`.claude-plugin/plugin.json` has `name: spades`, or
-`plugins/spades/` exists at the root), abort: *"This is the SPADES
-framework's own repository. Setup is for consumer repos that use
-SPADES."* The framework dogfoods itself only when told explicitly
-*"set up the dogfood project"*.
+In the SPADES framework repo itself (`.claude-plugin/plugin.json` has
+`name: spades`, or `plugins/spades/` exists at the root), setup runs
+only on an explicit request to *"set up the dogfood project"*. Any
+other request there aborts: *"This is the SPADES framework's own
+repository. Setup is for consumer repos that use SPADES."*
 
 ## Pre-Flight
 
@@ -45,18 +44,13 @@ SPADES defers git operations to `/repo:init`, `/repo:branch`, and
 [ -d "$HOME/.claude/plugins/cache/ai-skills/repo" ] && echo found || echo missing
 ```
 
-`missing` → show the install block and ask:
-**I've installed it — re-probe** / **Skip for now** (`/spades:close`,
-`/spades:deliver`, and `/spades:ship` refuse until it is installed).
+`missing` → show the install block and re-probe once the human has
+installed it:
 
 ```
 /plugin marketplace add ChrisFmlyc/ai-skills
 /plugin install repo@ai-skills
 ```
-
-Skip is available only when the directory is already a git repo;
-Pre-Flight 2 needs `/repo:init` otherwise. Record `found` or
-`skipped`.
 
 ### 2. Git repo
 
@@ -64,15 +58,10 @@ Pre-Flight 2 needs `/repo:init` otherwise. Record `found` or
 git rev-parse --git-dir >/dev/null 2>&1 && echo found || echo missing
 ```
 
-`found` → continue. `missing` → initialise the repo before scaffolding:
-
-- With the repo plugin `found`, announce *"No git repo here — I'll
-  initialise one via `/repo:init`, then continue setup."* and run
-  `/repo:init` inline. It initialises git, writes a placeholder
-  README, wires `origin`, pushes `main`, and asks its own questions.
-- With the repo plugin `skipped`, re-drive the Pre-Flight 1 install
-  and then run `/repo:init` inline; git is initialised only through
-  the repo plugin.
+`found` → continue. `missing` → announce *"No git repo here — I'll
+initialise one via `/repo:init`, then continue setup."* and run
+`/repo:init` inline. It initialises git, writes a placeholder README,
+wires `origin`, pushes `main`, and asks its own questions.
 
 Re-probe after `/repo:init` returns. Still `missing` (cancelled or
 failed) → abort: *"No git repo was initialised, so there's nothing to
@@ -84,8 +73,7 @@ initialise one via `/repo:init`."*
 Before writing configuration or scaffolds, invoke `/repo:newbranch` for
 setup work (or resume the already-established worktree for this same run).
 Use its returned directory for every following step and delegated writer.
-Default-branch cleanliness and remote updates belong to that skill. If the
-repo plugin was skipped, install it before continuing with file writes.
+Default-branch cleanliness and remote updates belong to that skill.
 
 ### 3. Existing config
 
@@ -98,8 +86,8 @@ capture `current_backend`, `current_scm`, `current_project`,
 `current_linear_team` / `current_linear_project`,
 `current_github_remote` / `current_gitlab_remote`, the `gitlab:` block's
 `host`, `project` and `review_bots`,
-`current_review_format` (default `cli` on
-older configs), and `current_leads` (default `on`).
+`current_review_format` (default `cli`), and `current_leads` (default
+`on`).
 
 ## Step 1 — Backend
 
@@ -115,7 +103,7 @@ Both keep the local files canonical; Linear adds a mirror.
 
 **Linear chosen** → probe the Linear MCP (list teams). A failed
 probe (no MCP tool, 401/403, connection refused) walks the human
-through the install rather than aborting:
+through the install:
 
 ```bash
 claude mcp add --transport http linear https://mcp.linear.app/mcp
@@ -132,17 +120,20 @@ With teams listed: ask for the team with the picker of
 Project (up to three existing ones plus **Create new Linear Project**;
 a typed name is matched against the team's Projects as in step 4, so
 the human confirms one Project before its ID is recorded).
-*Create new* records `team_id` and sets `create_new_project`; the
-Linear Project is created at Step 8 by `/spades:newproject`'s
-fan-out. Otherwise record `team_id` and `project_id`.
+Record `team_id`, and the chosen Project's ID as `project_id` or, for
+*Create new*, set `create_linear_project`: Step 6's migration creates
+that Linear Project when it binds Step 4's existing project, and
+Step 8 creates it otherwise. Step 4 pairs it with the active project.
 
 ## Step 2 — SCM
 
-Same "currently configured" preamble on re-run. The remote's URL
-(`origin`, or the sole remote) marks one option *(Recommended)*: a
-`github.com` host recommends GitHub, a host containing `gitlab`
-recommends GitLab, and no remote recommends Local git; any other host
-marks none. Ask:
+Same "currently configured" preamble on re-run. An SCM's remote is
+the one configured for it (`github.remote` for GitHub, `gitlab.remote`
+for GitLab), else `origin`, else the sole remote. The current SCM's
+remote (on a fresh install, `origin` or the sole remote) marks one
+option *(Recommended)* by its URL: a `github.com` host recommends
+GitHub, a host containing `gitlab` recommends GitLab, and no remote
+recommends Local git; any other host marks none. Ask:
 
 - **Local git** — commits to local git; with a remote,
   `/spades:ship` pushes and records the commit. Single-phase ship.
@@ -153,23 +144,19 @@ marks none. Ask:
   self-managed instance, with Leads filed as GitLab issues. Requires
   `glab` installed and authenticated.
 
-Other SCMs follow `docs/EXTENDING-SCM.md`. GitHub and GitLab record
-that remote as `github.remote` or `gitlab.remote` (default `origin`).
+Other SCMs follow `docs/EXTENDING-SCM.md`. GitHub records its remote
+as `github.remote`, GitLab as `gitlab.remote`.
 
 **GitHub chosen** → probe `gh auth status`. Unauthenticated →
 install (`brew install gh`; `winget install --id GitHub.cli`; the
 apt/dnf steps at <https://cli.github.com/manual/installation>), then
-`gh auth login` (browser flow recommended; HTTPS or SSH to match the
-remote), verify `gh auth status` shows the `repo` scope, and re-run
-`/spades:setup`.
+`gh auth login` (HTTPS or SSH to match the remote), verify
+`gh auth status` shows the `repo` scope, and re-run `/spades:setup`.
 
 **GitLab chosen** → **read
-[`reference/gitlab.md`](reference/gitlab.md) and follow it.** It reads
-the host and project from the remote, probes `glab` and git access to
-the remote (a lapsed SAML SSO session blocks git but not `glab`), walks
-the install and sign-in, and asks which review bots post on the
-project's merge requests. It returns `gitlab.host`, `gitlab.project`
-and `gitlab.review_bots` for Step 7.
+[`reference/gitlab.md`](reference/gitlab.md) and follow it.** It
+returns `gitlab.host`, `gitlab.project` and `gitlab.review_bots` for
+Step 7.
 
 ## Step 3 — Review format
 
@@ -178,10 +165,9 @@ artefacts?*
 
 - **HTML** *(Recommended)* — every producing skill writes its `.md`
   and additionally an `.html` companion rendered from the bundled
-  template and auto-opened in the browser; review happens on the
-  rendered page.
-- **CLI** — the `.md` only; review-form output prints to the
-  terminal.
+  template; review happens on the rendered page in the browser.
+- **CLI** — the `.md` only; review happens in the CLI review pane
+  (`docs/FRAMEWORK.md § CLI review pane`).
 
 Recorded as `review_format:`. The choice changes the presentation
 surface only; every flow, prompt, and decision is the same.
@@ -196,10 +182,25 @@ nothing yet:
 
 - **Existing project** → `new_project: <slug>`; clear
   `create_new_project`.
-- **Create a new project** (or `create_new_project` already set) →
-  keep `new_project` unset. The project is created at Step 8, after
+- **Create a new project** → set `create_new_project` and keep
+  `new_project` unset. The project is created at Step 8, after
   the config is written, so `/spades:newproject`'s precondition
   holds.
+
+With `backend: linear`, the active project's `linear_project_id` and
+the config's `linear.project_id` are the same Linear Project. A new
+project gets Step 1's Linear Project at Step 8. For an existing
+record, its `linear_project_id` decides:
+
+- **Step 1's Project, or none** → Step 1's answer stands; Step 6's
+  migration or Step 8 writes it to a record without one.
+- **Another Project** (any, when Step 1 chose *Create new*) → ask:
+  **Use `<its Linear Project>`** *(Recommended)* — the Project its
+  Scopes mirror to; record its ID as `project_id`, keep Step 1's team
+  when the Project is on it and otherwise record the Project's team as
+  `team_id` (with Step 1's team picker when it is on several), and
+  clear `create_linear_project` / **Choose another project** — ask
+  this step again.
 
 ## Step 5 — Diff and confirm
 
@@ -233,7 +234,10 @@ by this skill.
 
 List only fields present in either config. With
 `create_new_project`, the project line reads `<current_project> →
-(new project, created after config is written)`.
+(new project, created after config is written)`, and with
+`create_linear_project` the Linear project line reads
+`<current_linear_project> → (new Linear Project, created once the
+changes are applied)`.
 Ask: **Apply changes** (→ Step 6 when the backend
 changed, else Step 7) / **Cancel — exit without writes**.
 
@@ -249,13 +253,13 @@ returns to Step 1.
 
 ```yaml
 backend: linear            # or: local
-project: <project-slug>    # unset when create_new_project; Step 8 fills it
+project: <project-slug>
 scm: github                # or: gitlab, local-git
 review_format: html        # or: cli
 leads: on                  # or: off — a kill switch; Leads mirror to Linear per backend: and to GitHub or GitLab issues per scm:
 linear:                    # backend: linear
   team_id: <uuid>
-  project_id: <uuid>       # unset when create_new_project
+  project_id: <uuid>
 github:                    # scm: github
   remote: origin
 gitlab:                    # scm: gitlab
@@ -267,24 +271,58 @@ gitlab:                    # scm: gitlab
       kind: coderabbit      # or: greptile, duo, generic
 ```
 
-With `create_new_project` on a **fresh install**, write `project:`
-unset (and `team_id` without `project_id` for Linear). On a
-**re-run**, keep the existing `project:` and `linear.project_id`
-until Step 8 overwrites them, so a cancelled newproject leaves the
-prior active project intact.
+With `backend: linear`, `project:`, `linear.team_id` and
+`linear.project_id` are written together, once the project's Linear
+binding is in place: the active project, its Linear Project, and a
+team that Linear Project is on. `team_id` stands alone only in a
+config with no `project_id`.
 
-## Step 8 — Create the project (when `create_new_project`)
+An existing project is written here when it is ready: with `backend:
+local`, its slug; with `backend: linear`, a record with a
+`linear_project_id`, as its slug, the recorded `team_id` and the
+recorded `project_id`. Step 8 writes a new project
+(`create_new_project`) once it exists and, with `backend: linear`, an
+existing record without `linear_project_id` once it is bound. Until
+then a **fresh install** and a **switch to `backend: linear`** write
+`project:` unset (and, for Linear, Step 1's `team_id` alone), and any
+other **re-run** keeps the existing `project:`, `linear.team_id` and
+`linear.project_id`, writing Step 1's `team_id` only when there is no
+`project_id` to keep.
 
-Invoke `/spades:newproject` inline as a sub-routine. It gathers
-title, description, repos, and owners, writes
-`.spades/projects/<slug>.md` (and the Linear Project via its
-fan-out), and sets `project:` (and `linear.project_id`) in
-`.spades/config`. Setup resumes with `project:` populated.
+## Step 8 — Create or bind the project
 
-If creation fails or the human cancels, report the retained state and
-finish the remaining scaffolding. A fresh install has no active project;
-a re-run keeps the prior project per Step 7. Point to `/spades:setup` or
-`/spades:newproject` to retry creation.
+Runs with `create_new_project`, or with `backend: linear` when Step
+4's existing record has no `linear_project_id`.
+
+**A new project** → invoke `/spades:newproject` inline as a
+sub-routine, passing Step 4's decision to make it the active project
+and, with `backend: linear`, Step 1's `team_id` and, when recorded,
+its `project_id` as the Linear Project to bind. It gathers title,
+description, repos, and owners, writes `.spades/projects/<slug>.md`,
+binds that Linear Project or creates one on that team through its
+fan-out, and sets `project:` (and `linear.team_id` with
+`linear.project_id`) in `.spades/config`. Setup resumes with
+`project:` populated.
+
+**An existing record without `linear_project_id`** → bind it to Step
+1's Linear Project: with `create_linear_project`, first create that
+Project on `team_id` with the record's title and description through
+the Linear MCP and record its ID as `project_id`. Write `project_id`
+to the record as `linear_project_id`, set its `updated:` to today,
+append `- YYYY-MM-DD: Bound to Linear Project <project_id>.` to its
+Audit Trail, and then write `project: <slug>`, `linear.team_id` and
+`linear.project_id` to `.spades/config`.
+
+If creation fails, the human cancels, or the project's Linear binding
+is pending or failed (`/spades:newproject` then leaves a new project
+created but not active, per its Step 4), the config keeps what Step 7
+wrote: no active project after a fresh install or a switch to
+`backend: linear`, and the prior project with its Linear pair after
+any other re-run. Report that state, with the chosen project not
+active, and finish the remaining scaffolding. Point to `/spades:setup`
+to retry, choosing that project again at Step 4: for a new project,
+the record `/spades:newproject` wrote, or **Create a new project** when
+it wrote none.
 
 ## Step 9 — Write `.spades/version`
 
@@ -336,9 +374,7 @@ marker reads stale only when the rules themselves changed:
 Markers present (any version) → replace in place; absent → append.
 Content outside the markers is untouched. **Read
 [`reference/agents-md-block.md`](reference/agents-md-block.md) and
-write its fenced content verbatim** between the markers; that file
-is versioned by `agents_version`, so any edit to it bumps that
-version.
+write its fenced content verbatim** between the markers.
 
 ## Step 13 — Project documentation
 
@@ -400,6 +436,12 @@ Next steps:
 
 A skipped migration reads `○ Migration: skipped — local artefacts
 stay on disk; new Linear-side work starts empty.`
+
+When Step 8 leaves the chosen project inactive, its line names the
+project the config keeps (`none`, or the prior one marked
+`(unchanged)`) and, in brackets, the chosen project's state and Step
+8's retry: `✗ Active project: none   (<slug> created, Linear binding
+failed — re-run /spades:setup and choose <slug>)`.
 
 ## Why `AGENTS.md`
 

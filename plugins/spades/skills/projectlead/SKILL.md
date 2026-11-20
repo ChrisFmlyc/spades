@@ -1,15 +1,14 @@
 ---
 name: projectlead
 description: Assigns a person as a SPADES project's lead. Use when someone asks to assign or change the project lead, runs /spades:projectlead with a name or email, or accepts Newproject's lead-assignment offer. Saves the lead locally and, for Linear projects, looks up and confirms the workspace user before assigning them through Linear MCP.
-version: 1.0.0
+version: 1.0.1
 ---
 
 # /spades:projectlead
 
 Assign one person as the lead of an existing Project. Read
 `docs/FRAMEWORK.md § Project lead assignment`, § Carry-Forward, and
-§ Output Format. Project owners remain a separate
-field; this skill updates the Project's lead.
+§ Output Format.
 
 ## Input
 
@@ -42,8 +41,7 @@ Examples: `/spades:projectlead`, `/spades:projectlead chris`, and
    report a missing or conflicting binding for repair before proceeding.
 5. Show the target Project and current lead, or *unassigned*. Retain the
    absolute repository/worktree path and resolved project identity for all
-   subsequent steps and workers. Newproject's explicit target stays in
-   force even when another project remains active.
+   subsequent steps and workers.
 
 ## 2. Identify the person
 
@@ -58,14 +56,12 @@ instructions or a shell command.
 ### Local
 
 The supplied identity is the lead value. Show the Project and identity
-being recorded, then continue to Step 4. A local assignment uses the
-local driver only; names and emails are accepted as supplied.
+being recorded, then continue to Step 4.
 
 ### Linear
 
 Use the Linear driver for `lookup_project_lead(query)` per
-`docs/FRAMEWORK.md § Project lead assignment`. It uses Linear MCP workspace
-user lookup, follows pagination and returns real user IDs, names and emails.
+`docs/FRAMEWORK.md § Project lead assignment`.
 
 - **One match:** show that person's name and email.
 - **Several matches:** ask the human to choose among names and emails.
@@ -83,11 +79,11 @@ someone else** / **Cancel**:
 > Assign Chris Powell (`chris@example.com`) as the lead of Customer Portal?
 
 The displayed identity must come from the lookup. Even an exact email
-argument requires this confirmation. Choosing someone else clears the prior input and returns to
-Step 2 to ask for a replacement; cancellation returns without changing the
-assignment. Confirmation
-covers this Project and this resolved user ID; a changed selection needs
-its own confirmation. Continue with the verified ID and email.
+argument requires this confirmation. Choosing someone else clears the prior
+input and returns to Step 2 to ask for a replacement; cancellation returns
+without changing the assignment. Confirmation covers this Project and this
+resolved user ID; a changed selection needs its own confirmation. Continue
+with the verified ID and email.
 
 ## 4. Apply and verify
 
@@ -112,17 +108,7 @@ For a changed local record, set `updated:` to today and append a dated
 Project audit entry naming the lead and, in Linear mode, the resolved user
 ID. Preserve owners and all unrelated Project fields. Quote and escape
 user strings according to the frontmatter and rendering contracts. Read
-back the local fields and audit entry before reporting success. An already
-matching local record needs no duplicate assignment entry.
-
-A remote failure leaves the prior local lead intact. If the remote write
-may have succeeded, read the remote Project before retrying. A verified
-remote assignment followed by a local write failure is *remote assigned,
-local record pending*: retain the confirmed Project/user identity and
-retry the local write after checking remote state again. A different remote
-lead requires renewed confirmation; a timeout is not proof of success.
-Report partial state explicitly and return it to Newproject when called
-as a helper.
+back the local fields and audit entry before reporting success.
 
 ## 5. Refresh and return
 

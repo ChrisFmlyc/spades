@@ -1,7 +1,7 @@
 ---
 name: status
 description: Shows the current SPADES phase, progress, and dependency graph for active work. Use when someone asks where SPADES work stands — "where are we on this Scope", "what's the SPADES status", "show Plan progress". Renders the Plan dependency graph so the human can see which plans are unblocked vs waiting.
-version: 3.6.6
+version: 3.6.7
 ---
 
 # /spades:status
@@ -149,8 +149,11 @@ After the recommendation, when the probe found mismatches:
 ### Linear drift (N)
 
 ⚠ S-add-newsletter — local `delivering`, Linear `completed` (Done).
-    Re-run /spades:close S-add-newsletter (Pass) to push local → Linear,
-    or edit the local Scope if Linear is correct.
+    When every Plan under it is `shipped` or `rejected`, with at
+    least one `shipped`, run /spades:close S-add-newsletter (Pass)
+    to roll up locally; while a Plan is still in flight, set Linear
+    to match the local file and take that Plan through its own
+    phases.
 ```
 
 Omitted when empty; *"⚠ Drift probe skipped — Linear unreachable.

@@ -40,7 +40,7 @@ state and merging use `review_state` and `merge_review` from
 
 The canonical query for unresolved review threads. Stage 7's final
 sweep uses it, Stage 8 re-runs it immediately before merging, and
-FINISHED assertion 2 uses it on both PRs.
+FINISHED assertion 2 uses it on the ship and bookkeeping PRs.
 
 **GitHub:**
 
@@ -98,10 +98,8 @@ glab api --paginate --hostname <host> "projects/<project>/merge_requests/<iid>/d
                 then "bot" else "human" end)}]'
 ```
 
-Depending on its version, `glab --paginate` prints one array or one per
-page; `jq -s` reads either, and an empty response is an error rather
-than "no threads". A discussion is outstanding when any resolvable note
-in it is unresolved. It is a bot's (`by: "bot"`) when a listed bot
+A discussion is outstanding when any resolvable note in it is
+unresolved. It is a bot's (`by: "bot"`) when a listed bot
 opened it and every other note is that bot's, another listed bot's, or
 one of `/codereview:loop`'s and `/codereview:fix`'s own replies — a
 note that starts with `(ai-skills:` and whose `author.id` is
@@ -116,9 +114,7 @@ than `<self-id>` — and one opened by an unlisted account, including a
 ## Merge readiness (Stage 8)
 
 **GitHub:** Stage 8 step 3 in [`../SKILL.md`](../SKILL.md) runs the
-assertions inline: `gh pr view` for state, mergeability and checks, and
-the per-reviewer `CHANGES_REQUESTED` query that tells reviewers apart by
-account type.
+assertions inline.
 
 **GitLab:**
 
@@ -151,8 +147,8 @@ glab api --hostname <host> "projects/<project>" | jq -c '{squash_option, merge_m
   asynchronously: re-poll `checking`, `unchecked`, `preparing`,
   `approvals_syncing` and `ci_still_running`, and for up to 15 minutes
   `status_checks_must_pass` (an external status check still reporting).
-  Any other value is a pause that names it — `conflict`, `need_rebase`,
-  `ci_must_pass`, `not_approved`, `discussions_not_resolved`,
+  `need_rebase` returns to Stage 8 step 1. Any other value is a pause
+  that names it — `conflict`, `ci_must_pass`, `not_approved`, `discussions_not_resolved`,
   `draft_status`, `requested_changes`, `merge_request_blocked`,
   `merge_time` (merging is held until a set time), and the rest.
 - **The MR's CI pipeline** — the newest pipeline this MR ran for its
@@ -258,10 +254,7 @@ glab api --paginate --hostname <host> "projects/<project>/repository/commits/<me
   | jq -s '(if length == 0 then error("no response from glab") else add end) | [.[] | select(.name | test("deploy|vercel|netlify|release"; "i")) | {name, status}]'
 ```
 
-Nothing in either → the repo has no deployments configured. Record
-`- YYYY-MM-DD: Loop — deploy: not configured.` and continue; the
-FINISHED block shows `not configured` explicitly, so the audit trail
-claims only what happened.
+Nothing in either → the repo has no deployments configured.
 
 A matching check run or status is treated exactly like a deployment
 below: success passes, a failure pauses, anything unfinished is polled.
@@ -302,9 +295,9 @@ unfinished one → poll.
 | GitHub `state` | GitLab `status` | Action |
 |---|---|---|
 | `success` | `success` | Record `Loop — deploy: success (<environment_url>).` and continue to Stage 10. |
-| `failure`, `error` | `failed`, `canceled`, `skipped` | Pause. The Plan shipped but the deploy is broken or didn't run; close would write `shipped` over it. |
+| `failure`, `error` | `failed`, `canceled`, `skipped` | Pause. |
 | `pending`, `queued`, `in_progress` | `created`, `running`, `blocked` | Poll at 60–90 seconds. Deploys are slower than CI; `blocked` waits for a manual approval. |
-| no deployment for this SHA yet | no deployment for this SHA yet | Poll. After about 15 minutes in a repo that clearly deploys, pause and say so. |
+| no deployment for this SHA yet | no deployment for this SHA yet | Poll; after about 15 minutes in a repo that clearly deploys, Pause 20 (`SKILL.md § Pauses`). |
 
 ---
 
@@ -318,10 +311,19 @@ Four assertions, each verified against the SCM host.
 
 ### 2. Nothing open on the host
 
-Three things, on both the ship PR and the bookkeeping PR:
+**No PR or MR left open** — take the URL from every `PR opened:` and
+`MR opened:` line in the Scope's Plans and read each distinct URL once
+with `review_state`; Plans that shared a ship PR record the same URL.
+`MERGED` and `CLOSED` pass. `OPEN` → not finished; the pause names the
+PR or MR and the Plans that recorded it.
+
+Then three things, on the ship PR and the bookkeeping PR where the
+Scope opened them, as
+[`../SKILL.md § The finished gate`](../SKILL.md#the-finished-gate)
+sets out:
 
 **Zero unresolved review threads** — the § Thread sweep query on
-both PRs, counting every outstanding thread regardless of author.
+each PR, counting every outstanding thread regardless of author.
 
 **Every check green on the merge commit.** A check still running is
 pending, not failed.
@@ -408,10 +410,3 @@ configured` both pass.
 ### 4. Close bookkeeping PR squash-merged
 
 The assertion-1 probe against the bookkeeping PR.
-
----
-
-## When an assertion fails
-
-Pause with the specific assertion and its evidence; print the FINISHED
-block only when all four hold.

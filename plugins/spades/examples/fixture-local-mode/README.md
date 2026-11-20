@@ -15,17 +15,13 @@ tracker, reading canonical state from `.spades/` only.
 └── plans/P-add-healthz-endpoint-7QkP.md      # its Plan
 ```
 
-This is the same shape as `examples/fixture-linear-mode/`; only
-`.spades/config` differs (here: `backend: local`, with no `linear:`
-block).
-
 ## Manual exercise
 
 With this directory as the working directory:
 
 1. **`/spades:status`** reads `.spades/config`, sees `backend: local`,
    scans `.spades/scopes/` and reports the Scope at phase **Scoped**
-   with a Plan ready. It makes **zero** backend MCP calls.
+   with one draft Plan. It makes **zero** backend MCP calls.
 2. **`/spades:list`** does the same — backend-agnostic at the call
    site, branches on `backend:` for storage.
 

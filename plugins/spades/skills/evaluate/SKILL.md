@@ -1,7 +1,7 @@
 ---
 name: evaluate
 description: Checks delivered output against the Scope's acceptance criteria. Returns PASS / PARTIAL / FAIL. Use after `/spades:deliver` has completed delivery, when someone says "evaluate this plan", "evaluate P-…" or "check this against the acceptance criteria", or when a Plan is in status `evaluating`. Quick-path items (`/spades:quick`) skip the full evaluation and validate the PR directly.
-version: 3.11.2
+version: 3.12.0
 ---
 
 # /spades:evaluate
@@ -12,19 +12,6 @@ criteria. The human owns the verdict in every routing mode.
 
 Read `docs/FRAMEWORK.md` § .spades/ Local Layout, § Target
 Resolution, § Asking the Human, and § Output Format before running.
-
-### Asking the human
-
-Every input the evaluation takes from the human is asked as a
-question (`docs/FRAMEWORK.md § Asking the Human`): the
-target, whether to re-run a finished evaluation, the routing,
-agreeing and approving the verification plan, the result of each
-Human row, the verdict, and the Quick-path verdict and follow-up. A
-Human row's result is a decision like the verdict, so the human
-reports it by picking an option at the prompt. Free text — a row's
-evidence, an edited method, a new rationale — arrives through the
-question's *Other* field, or through a short follow-up when an
-answer needs one.
 
 ### Output format
 
@@ -42,9 +29,6 @@ Plan's `.md`; that is the AI-readable record.
   template's `{{spades.mode}}` (`plan` | `report`) sets the page's
   brand, heading, tagline, and title. This skill opens its own two
   pages only; the Plan's `.html` stays closed.
-
-Read completion events per `docs/FRAMEWORK.md § Delivery audit markers`
-so older Plans resume the correct evaluation cycle.
 
 ## Pre-Flight
 
@@ -76,7 +60,8 @@ so older Plans resume the correct evaluation cycle.
 
 ## Step 0 — Fresh run or resume
 
-Read the Plan's audit trail:
+Read the Plan's audit trail, recognising completion events per
+`docs/FRAMEWORK.md § Delivery audit markers`:
 
 - No `Evaluation started` since the last `Deliver phase complete` →
   fresh run, Step 1.
@@ -90,8 +75,6 @@ Read the Plan's audit trail:
   `/spades:ship`*.
 
 ## Step 1 — Routing question
-
-Same wording as `/spades:approve`'s routing question:
 
 1. **AI** — runs verification autonomously: executes test commands,
    inspects the diff, checks each criterion, proposes the verdict.
@@ -397,8 +380,7 @@ the rows. `verification-rows` carry the recorded verdicts and notes;
 3. **Edit rationale** — keep the verdict, capture new text.
 
 An override or edit is applied, re-rendered (page 2, or the table),
-and the question is asked again; the flow advances on Confirm. The
-human owns the final verdict in every routing mode.
+and the question is asked again; the flow advances on Confirm.
 
 ## Step 8 — Write the verdict (fan-out)
 
@@ -408,14 +390,13 @@ One wave per `docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`,
 | Sub-agent | Resource owned | Returns |
 |---|---|---|
 | `worker-file-plan-evaluate` | `.spades/plans/P-<…>.md` — PASS keeps `status: evaluating`; PARTIAL rolls back to `delivering` so `/spades:deliver` resumes; FAIL sets `rejected`. Appends `- YYYY-MM-DD: Evaluation — verdict: <PASS\|PARTIAL\|FAIL>. Evaluated revision: <sha>. Notes: <rationale>.`, where `<sha>` is the full commit of the delivery worktree's `HEAD` that Step 5 ran the rows against. | `{ status: ok }` |
-| `worker-file-scope-evaluate` *(Scope rollup only)* | `.spades/scopes/S-<…>.md` — `status: evaluating` on the first PASS per `docs/FRAMEWORK.md § Scope status rollup`, plus an audit line. | `{ status: ok }` |
 | `worker-linear-evaluate` *(`backend: linear`)* | Linear — `record_evaluation(plan_id, verdict, notes)`: the report as a sub-issue comment and the matching workflow state. Carries the resolved worktree context per § Freshness. | `{ status: ok }` |
 
 In HTML mode, re-dispatch `worker-html-plan` with `open_path: null` after
 the file write. The evaluation report remains the active review page.
 After the wave: all ok → record the dispatch mode; plan file failed
-→ abort with the error; scope file failed → surface for a manual
-patch; Linear failed → keep local files, surface, offer a retry.
+→ abort with the error; Linear failed → keep local files, surface,
+offer a retry.
 
 ## After the verdict
 
@@ -487,16 +468,9 @@ record; the check is against the PR.
 
 ## Mandatory completion handoff
 
-After each completed PASS, PARTIAL or FAIL, run the dedicated Leads worker
-and verify its receipt per `docs/FRAMEWORK.md § Leads handoff`. Supply all
-evaluation evidence, including known warnings, the diff review's
-`pre-existing` findings, and earlier captures with their observation
-keys. Account for every candidate and read back the reported records
-before recording completion.
-
-Persist the receipt, append the `Leads checked — source: evaluate;` marker
-after the latest verdict, and read it back before the next-step brief or
-return to the caller. Scope-wide evaluation checks combined evidence once
-and records the result on each evaluated Plan; Quick evaluations record it
-on the Quick item. Reuse verified completion for the same evidence and
-verdict. Report pending publication and mirror operations with the result.
+After each completed PASS, PARTIAL or FAIL, run the dedicated Leads worker,
+verify its receipt and record its `Leads checked — source: evaluate;`
+marker per `docs/FRAMEWORK.md § Leads handoff` (§ Result and verification,
+§ Evaluation and publication). Supply all evaluation evidence, including
+known warnings, the diff review's `pre-existing` findings, and earlier
+captures with their observation keys.

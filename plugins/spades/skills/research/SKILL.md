@@ -1,7 +1,7 @@
 ---
 name: research
 description: Researches a topic through an isolated researcher subagent. Use when the human says "properly research this", "look into X", "check the prior art", "second opinion on the landscape", "what does the SOTA look like for X", or asks any open question that needs external fact-finding (libraries, frameworks, benchmarks, postmortems, comparisons). Returns a structured findings report; optionally posts to a Linear parent issue with explicit human consent. Callable any time — not tied to a SPADES phase. Also matches the explicit slash-command form `/spades:research`.
-version: 2.3.4
+version: 2.3.5
 ---
 
 # /spades:research
@@ -14,7 +14,7 @@ web search and fetch. Its output contract requires `## Question`,
 
 Research is callable at any point in the loop. The researcher stays
 read-only; its coordinator completes the leads handoff to capture discoveries
-after the report. Posting the research report itself to Linear remains
+after the report. Posting the research report itself to Linear is
 optional and requires the human's explicit consent.
 
 Read `docs/FRAMEWORK.md` § Freshness and § Asking the Human before
@@ -24,10 +24,8 @@ running.
 
 1. **Working context.** Follow `docs/FRAMEWORK.md § Freshness` and
    § Scope Worktrees. Resolve a scoped target to its worktree; for standalone
-   research/review name the checkout and revision inspected. Pass that
-   absolute path and intended revision to the researcher/review workers.
-   Default-branch preparation is owned by `/repo:newbranch` when new work
-   is created, not by this read-only check.
+   research name the checkout and revision inspected. Pass that absolute
+   path and intended revision to the researcher.
 2. **Backend.** The report coordinator reads `.spades/config` for a
    scoped Linear post. The mandatory leads worker reads it separately for
    capture settings. Research still works without a configured backend.
@@ -40,8 +38,8 @@ leads handoff. The report itself stays in the conversation.
 
 **Scoped** — `--scope S-…` was passed, or the session is already
 working on a Scope or Plan (mid-`/spades:plan`, say). The report is
-prefixed with the Scope ID and the skill offers to record it against
-the Scope's backend record.
+prefixed with the Scope ID and, with `backend: linear`, the skill offers
+to post it as a comment on the Scope's issue.
 
 ## The conversation
 
@@ -55,8 +53,9 @@ the Scope's backend record.
    paths the question implies (*"compare our X to library Y"*).
 4. **Display the report** exactly as emitted; the shape is locked
    and consumers read it positionally.
-5. **Standalone → mandatory completion handoff below.**
-6. **Scoped → consent** — ask: *"This report can be
+5. **Standalone, or scoped with `backend: local`** → the report stays in
+   the conversation; continue to the mandatory completion handoff below.
+6. **Scoped with `backend: linear` → consent** — ask: *"This report can be
    posted as a comment on <issue-id>. Which would you like?"*
    - **Post this comment to <issue-id>** — post verbatim, with
      `research:` on its own first line so it reads distinctly from
@@ -66,9 +65,6 @@ the Scope's backend record.
      `markdown` code block, take the edited version back, post it
      with the `research:` prefix.
    - **Cancel.**
-
-   With `backend: local` there is no issue to post to; the consent
-   question is skipped and the report stays in the conversation.
 
 ## Linear write failure
 

@@ -11,10 +11,9 @@ and path recorded here are the ones every GitLab command and check uses.
 
 ## 1. Host and project path from the remote
 
-The remote is the existing `gitlab.remote`, else `origin`, else the sole
-remote. Read its URL with `git remote get-url <remote>`. An HTTPS URL can
-carry `user:password@` before the host: show any URL with that part replaced
-by `***@`.
+The remote is GitLab's remote as Step 2 resolves it. Read its URL with
+`git remote get-url <remote>`. An HTTPS URL can carry `user:password@` before
+the host: show any URL with that part replaced by `***@`.
 
 - `https://[user[:password]@]<host>[:<port>]/<path>[.git]` — the host is
   what follows `://` and any `…@`, up to the first `/`, keeping a `:<port>`:
@@ -112,11 +111,11 @@ person, whose threads pause `/spades:loop`.
 
 Ask, multi-select: *"Which review bots post on `<project>`'s merge requests?"*
 — **CodeRabbit**, **Greptile**, **GitLab Duo**, **None**. A bot typed under
-*Other* uses the `generic` adapter. Then ask in conversation for each chosen
-bot's GitLab username — the account its notes appear under on a reviewed MR,
-which the installer chose (often `CodeRabbit`, or a project or group bot
-user named `project_<id>_bot_…` or `group_<id>_bot_…`). GitLab Duo always
-posts as `GitLabDuo`.
+*Other* uses the `generic` adapter. GitLab Duo always posts as `GitLabDuo`.
+Ask in conversation for each other chosen bot's GitLab username — the
+account its notes appear under on a reviewed MR, which the installer chose
+(often `CodeRabbit`, or a project or group bot user named
+`project_<id>_bot_…` or `group_<id>_bot_…`).
 
 Check each username against `^[A-Za-z0-9._-]+$`, then that GitLab knows it:
 
