@@ -11,9 +11,9 @@ and path recorded here are the ones every GitLab command and check uses.
 
 ## 1. Host and project path from the remote
 
-The remote is the one Step 2 reads. Read its URL with `git remote get-url <remote>`. An HTTPS URL can
-carry `user:password@` before the host: show any URL with that part replaced
-by `***@`.
+The remote is GitLab's remote as Step 2 resolves it. Read its URL with
+`git remote get-url <remote>`. An HTTPS URL can carry `user:password@` before
+the host: show any URL with that part replaced by `***@`.
 
 - `https://[user[:password]@]<host>[:<port>]/<path>[.git]` — the host is
   what follows `://` and any `…@`, up to the first `/`, keeping a `:<port>`:

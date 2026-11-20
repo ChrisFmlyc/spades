@@ -120,17 +120,19 @@ With teams listed: ask for the team with the picker of
 Project (up to three existing ones plus **Create new Linear Project**;
 a typed name is matched against the team's Projects as in step 4, so
 the human confirms one Project before its ID is recorded).
-*Create new* records `team_id` and sets `create_new_project`; the
-Linear Project is created at Step 8 by `/spades:newproject`'s
-fan-out. Otherwise record `team_id` and `project_id`.
+Record `team_id`, and the chosen Project's ID as `project_id` or, for
+*Create new*, set `create_linear_project`; Step 8 creates that Linear
+Project. Step 4 pairs it with the active project.
 
 ## Step 2 — SCM
 
-Same "currently configured" preamble on re-run. The remote is the
-configured `github.remote` or `gitlab.remote`, else `origin`, else the
-sole remote. Its URL marks one option *(Recommended)*: a `github.com`
-host recommends GitHub, a host containing `gitlab` recommends GitLab,
-and no remote recommends Local git; any other host marks none. Ask:
+Same "currently configured" preamble on re-run. An SCM's remote is
+the one configured for it (`github.remote` for GitHub, `gitlab.remote`
+for GitLab), else `origin`, else the sole remote. The current SCM's
+remote (on a fresh install, `origin` or the sole remote) marks one
+option *(Recommended)* by its URL: a `github.com` host recommends
+GitHub, a host containing `gitlab` recommends GitLab, and no remote
+recommends Local git; any other host marks none. Ask:
 
 - **Local git** — commits to local git; with a remote,
   `/spades:ship` pushes and records the commit. Single-phase ship.
@@ -141,8 +143,8 @@ and no remote recommends Local git; any other host marks none. Ask:
   self-managed instance, with Leads filed as GitLab issues. Requires
   `glab` installed and authenticated.
 
-Other SCMs follow `docs/EXTENDING-SCM.md`. GitHub and GitLab record
-that remote as `github.remote` or `gitlab.remote`.
+Other SCMs follow `docs/EXTENDING-SCM.md`. GitHub records its remote
+as `github.remote`, GitLab as `gitlab.remote`.
 
 **GitHub chosen** → probe `gh auth status`. Unauthenticated →
 install (`brew install gh`; `winget install --id GitHub.cli`; the
@@ -178,12 +180,24 @@ with no records, only the latter. Record the intent and write
 nothing yet:
 
 - **Existing project** → `new_project: <slug>`; clear
-  `create_new_project`. With `backend: linear`, record the project's
-  `linear_project_id` as `project_id` when it has one.
+  `create_new_project`.
 - **Create a new project** → set `create_new_project` and keep
   `new_project` unset. The project is created at Step 8, after
   the config is written, so `/spades:newproject`'s precondition
   holds.
+
+With `backend: linear`, the active project's `linear_project_id` and
+the config's `linear.project_id` are the same Linear Project. A new
+project gets Step 1's Linear Project at Step 8. For an existing
+record, its `linear_project_id` decides:
+
+- **Step 1's Project, or none** → Step 1's answer stands; Step 8
+  writes it to a record without one.
+- **Another Project** (any, when Step 1 chose *Create new*) → ask:
+  **Use `<its Linear Project>`** *(Recommended)* — the Project its
+  Scopes mirror to; record its ID as `project_id` and clear
+  `create_linear_project` / **Choose another project** — ask this
+  step again.
 
 ## Step 5 — Diff and confirm
 
@@ -217,7 +231,10 @@ by this skill.
 
 List only fields present in either config. With
 `create_new_project`, the project line reads `<current_project> →
-(new project, created after config is written)`.
+(new project, created after config is written)`, and with
+`create_linear_project` the Linear project line reads
+`<current_linear_project> → (new Linear Project, created after config
+is written)`.
 Ask: **Apply changes** (→ Step 6 when the backend
 changed, else Step 7) / **Cancel — exit without writes**.
 
@@ -251,24 +268,42 @@ gitlab:                    # scm: gitlab
       kind: coderabbit      # or: greptile, duo, generic
 ```
 
-With `create_new_project` on a **fresh install**, write `project:`
-unset (and `team_id` without `project_id` for Linear). On a
-**re-run**, keep the existing `project:` and `linear.project_id`
+`project:` and `linear.project_id` are written as a pair: the active
+project and its Linear Project. For an existing project, write its
+slug and the `project_id` Steps 1 and 4 recorded, with no `project_id`
+while `create_linear_project` waits for Step 8. With
+`create_new_project`, Step 8 writes both: a **fresh install** writes
+`project:` unset (and `team_id` without `project_id` for Linear), and
+a **re-run** keeps the existing `project:` and `linear.project_id`
 until Step 8 overwrites them, so a cancelled newproject leaves the
 prior active project intact.
 
-## Step 8 — Create the project (when `create_new_project`)
+## Step 8 — Create or bind the project
 
-Invoke `/spades:newproject` inline as a sub-routine. It gathers
-title, description, repos, and owners, writes
-`.spades/projects/<slug>.md` (and the Linear Project via its
-fan-out), and sets `project:` (and `linear.project_id`) in
-`.spades/config`. Setup resumes with `project:` populated.
+Runs with `create_new_project`, or with `backend: linear` when the
+active project's record has no `linear_project_id`.
+
+**A new project** → invoke `/spades:newproject` inline as a
+sub-routine, passing Step 1's `project_id`, when recorded, as the
+Linear Project to bind. It gathers title, description, repos, and
+owners, writes `.spades/projects/<slug>.md`, binds that Linear Project
+or creates one through its fan-out, and sets `project:` (and
+`linear.project_id`) in `.spades/config`. Setup resumes with
+`project:` populated.
 
 If creation fails or the human cancels, report the retained state and
 finish the remaining scaffolding. A fresh install has no active project;
 a re-run keeps the prior project per Step 7. Point to `/spades:setup` or
 `/spades:newproject` to retry creation.
+
+**An existing record without `linear_project_id`** → with
+`create_linear_project`, create the Linear Project on `team_id` with
+the record's title and description through the Linear MCP, and record
+its ID as `project_id` and `linear.project_id`. Write `project_id` to
+the record as `linear_project_id`, set its `updated:` to today, and
+append `- YYYY-MM-DD: Bound to Linear Project <project_id>.` to its
+Audit Trail. A failed create leaves the record and config without a
+Linear Project: report it and point to `/spades:setup` to retry.
 
 ## Step 9 — Write `.spades/version`
 
