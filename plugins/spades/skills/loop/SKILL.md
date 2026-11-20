@@ -370,7 +370,7 @@ sweep is what carries every artefact written since Stage 1 into this PR
 
 Drive the ship PR to zero unresolved review threads. **Read
 [`reference/bot-review.md`](reference/bot-review.md) and follow it.**
-Invoke **`/codereview:loop`** with the PR number, or on GitLab with the
+Invoke **`/codereview:loop`** with the PR link, or on GitLab with the
 MR link and `--bots` from `gitlab.review_bots`, to handle bot findings,
 including `CHANGES_REQUESTED` reviews.
 Follow the reference file's pause conditions and § Boundaries for review
