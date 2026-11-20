@@ -19,7 +19,7 @@ Contradictions between files were settled in favour of the contract:
 - `/spades:quick`'s gate criterion 8 reads "No public API or interface breaking changes", as FRAMEWORK words it.
 - `/spades:loop` lists every pause it takes in § Pauses (rows 17–27), and a GitLab `need_rebase` takes the forward merge as GitHub's `BEHIND` does.
 - `/spades:setup` requires the repo plugin, records the configured remote before `origin`, and binds an existing project's Linear Project in Step 4.
-- `/spades:review`'s re-review rule matches the `REVIEW.md` template: a finding a person answered and resolved is not reported again.
+- `/spades:review`'s re-review rule matches the `REVIEW.md` template: an earlier finding is not reported again once a review verifies its fix or a person resolves it, and an open Important finding stays until then.
 - FRAMEWORK documents `undecided` for Plan `delivery:`/`evaluation:`, `plan_ref` for learnings, and `review_format:` in the config schema.
 - The Gemini install section is gone: the repo has no Gemini extension manifest.
 

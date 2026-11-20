@@ -100,8 +100,8 @@ review, by review bots, and by people.
 ## Re-review
 
 - **New commits only.** After the first round, a review covers only the commits since the last review.
-- **No repeats.** An earlier finding that has been fixed, or that a person answered and resolved, is not reported again.
-- **Unfixed Important findings stay.** An earlier Important finding that is neither fixed nor answered stays in the result as Important until a review verifies its fix.
+- **No repeats.** An earlier finding is not reported again once a review verifies its fix or a person resolves it.
+- **Open Important findings stay.** An earlier Important finding, answered or not, stays in the result as Important until a review verifies its fix or a person resolves it.
 - **Rethink after three rounds.** When Important findings remain after three rounds, the reviewer recommends reconsidering the approach rather than another patch.
 
 ## Human Sign-off
@@ -169,7 +169,7 @@ A locked schema.
 4. **Writing Findings** — the shape of every finding and of the
    review's opening line.
 5. **Re-review** — how later rounds narrow to new commits, avoid
-   repeats, carry unfixed Important findings, and end.
+   repeats, carry open Important findings, and end.
 6. **Human Sign-off** — paths whose changes a person approves.
    `/spades:evaluate` adds a Human row for any changed path listed
    here.
