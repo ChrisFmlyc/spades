@@ -40,7 +40,7 @@ state and merging use `review_state` and `merge_review` from
 
 The canonical query for unresolved review threads. Stage 7's final
 sweep uses it, Stage 8 re-runs it immediately before merging, and
-FINISHED assertion 2 uses it on both PRs.
+FINISHED assertion 2 uses it on the ship and bookkeeping PRs.
 
 **GitHub:**
 
@@ -317,10 +317,13 @@ with `review_state`; Plans that shared a ship PR record the same URL.
 `MERGED` and `CLOSED` pass. `OPEN` → not finished; the pause names the
 PR or MR and the Plans that recorded it.
 
-Then three things, on both the ship PR and the bookkeeping PR:
+Then three things, on the ship PR and the bookkeeping PR where the
+Scope opened them, as
+[`../SKILL.md § The finished gate`](../SKILL.md#the-finished-gate)
+sets out:
 
 **Zero unresolved review threads** — the § Thread sweep query on
-both PRs, counting every outstanding thread regardless of author.
+each PR, counting every outstanding thread regardless of author.
 
 **Every check green on the merge commit.** A check still running is
 pending, not failed.
