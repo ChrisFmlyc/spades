@@ -105,11 +105,19 @@ Once the MR is squash-merged:
 - **The push is rejected** — a push rule, a lapsed SAML SSO session, or
   branch protection; § 3 and `docs/FRAMEWORK.md § SCM Drivers →
   Pushing`.
-- **`glab` missing or unauthenticated** — the push itself can open the
-  MR: show the human
-  `git push -u <configured-remote> <branch> -o merge_request.create -o merge_request.target=<default-branch> -o merge_request.title="<title>"`
-  (the description goes in afterwards on GitLab: push options carry no
-  line breaks), then take the MR link from the push's `remote:` lines
-  and record it as in § 5.
+- **`glab` missing or unauthenticated** — open the MR without `glab`.
+  GitLab acts on push options only when the push updates the branch.
+  If the branch has commits `<configured-remote>` does not have yet,
+  show the human
+  `git push -u <configured-remote> <branch> -o merge_request.create -o merge_request.target=<default-branch> -o merge_request.title="<title>"`;
+  GitLab prints the MR's link in the push's `remote:` lines, and the
+  description goes in afterwards on GitLab, since push options carry no
+  line breaks. Once the remote has the whole branch, as it does after
+  § 3, give the human GitLab's new-MR page instead,
+  `https://<gitlab.host>/<gitlab.project>/-/merge_requests/new?merge_request%5Bsource_branch%5D=<branch>&merge_request%5Btarget_branch%5D=<default-branch>`,
+  to create the MR there with the `/repo:pr` title and body, and ask
+  them for its link. On either route the human ticks the MR's "Squash
+  commits when merge request is accepted" option, so a merge in the
+  GitLab UI squashes; record the link as in § 5.
 - **Merge conflicts** — resolved as fix commits on the branch;
   re-run `/spades:ship` once the branch is clean.
