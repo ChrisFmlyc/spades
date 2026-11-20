@@ -122,9 +122,19 @@ glab mr view <iid> -R <repo-url> --output json \
 glab api --hostname <host> "projects/<project>/merge_requests/<iid>/reviewers" \
   | jq -c --argjson bots '<bot-ids>' '[.[] | select(.state == "requested_changes")
           | {username: .user.username, by: (if (.user.id | IN($bots[])) then "bot" else "human" end)}]'
-{ glab api --hostname <host> "projects/<project>/pipelines?sha=<sha>&order_by=id&sort=desc"
-  glab api --hostname <host> "projects/<project>/pipelines?ref=refs/merge-requests/<iid>/merge&order_by=id&sort=desc"
-} | jq -sc 'add | [.[] | select(.source != "external")] | max_by(.id) // {} | {id, status, ref}'
+pushed=$(glab api --hostname <host> "projects/<project>/merge_requests/<iid>/versions" \
+  | jq -r --arg sha '<sha>' '[.[] | select(.head_commit_sha == $sha)] | max_by(.id) | .created_at // ""')
+glab api --paginate --hostname <host> "projects/<project>/merge_requests/<iid>/pipelines" \
+  | jq -sc --arg sha '<sha>' --arg pushed "$pushed" '
+      def epoch: sub("Z$"; "+00:00")
+        | (.[0:19] + "Z" | fromdateiso8601) + (.[19:-6] | if . == "" then 0 else tonumber end)
+          - (if .[-6:-5] == "-" then -1 else 1 end) * ((.[-5:-3] | tonumber) * 3600 + (.[-2:] | tonumber) * 60);
+      (if length == 0 then error("no response from glab") else add end)
+      | [.[] | select(.source != "external")
+             | select(.sha == $sha
+                      or (.ref == "refs/merge-requests/<iid>/merge" and $pushed != ""
+                          and (.created_at | epoch) >= ($pushed | epoch)))]
+      | max_by(.id) // {} | {id, status, ref}'
 glab api --hostname <host> "projects/<project>" | jq -c '{squash_option, merge_method, merge_trains_enabled}'
 ```
 
@@ -137,9 +147,17 @@ glab api --hostname <host> "projects/<project>" | jq -c '{squash_option, merge_m
   `ci_must_pass`, `not_approved`, `discussions_not_resolved`,
   `draft_status`, `requested_changes`, `merge_request_blocked`,
   `merge_time` (merging is held until a set time), and the rest.
-- **The MR's CI pipeline** — the newest of the head commit's pipelines
-  and the MR's merged-results pipelines, which run on a temporary merge
-  commit and so never carry the head SHA. The query skips `external`
+- **The MR's CI pipeline** — the newest pipeline this MR ran for its
+  current head. The MR's pipelines list holds only its own: its merge
+  request pipelines and the branch pipelines on its source branch, so
+  a tag or another branch that built the same commit never counts. Of
+  those, a pipeline whose `sha` is the head counts, and so does a
+  merged-results pipeline (`refs/merge-requests/<iid>/merge`) created
+  at or after the MR version that recorded the head. A merged-results
+  pipeline runs on a temporary merge commit and never carries the head
+  SHA; one created before that version tested an earlier head.
+  `epoch` turns GitLab's timestamps, in UTC or the instance's offset,
+  into seconds so the two compare. The query also skips `external`
   pipelines: a review bot's commit status (CodeRabbit's, for one)
   creates one on a commit with no CI pipeline, and it reads `success`
   whatever CI did. The newest of the rest:

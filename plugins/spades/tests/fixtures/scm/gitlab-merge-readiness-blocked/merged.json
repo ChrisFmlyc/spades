@@ -1,9 +1,0 @@
-[
-  {
-    "id": 22,
-    "status": "failed",
-    "source": "merge_request_event",
-    "ref": "refs/merge-requests/7/merge",
-    "sha": "tmpmerge1"
-  }
-]
