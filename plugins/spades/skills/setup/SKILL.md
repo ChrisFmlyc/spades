@@ -122,7 +122,7 @@ a typed name is matched against the team's Projects as in step 4, so
 the human confirms one Project before its ID is recorded).
 Record `team_id`, and the chosen Project's ID as `project_id` or, for
 *Create new*, set `create_linear_project`: Step 6's migration creates
-that Linear Project when it binds an existing active project, and
+that Linear Project when it binds Step 4's existing project, and
 Step 8 creates it otherwise. Step 4 pairs it with the active project.
 
 ## Step 2 — SCM
@@ -271,23 +271,27 @@ gitlab:                    # scm: gitlab
       kind: coderabbit      # or: greptile, duo, generic
 ```
 
-`project:` and `linear.project_id` are written as a pair: the active
-project and its Linear Project. `linear.team_id` and
-`linear.project_id` are written as a pair too: `team_id` is a team
-that Linear Project is on, and stands alone only in a config with no
-`project_id`. For an existing project, write its slug, the recorded
-`team_id` and the recorded `project_id`, with no `project_id` while
-`create_linear_project` is still set. With `create_new_project`,
-Step 8 writes the new project and its Linear pair; until then a
-**fresh install** writes `project:` unset (and, for Linear, `team_id`
-alone), and a **re-run** keeps the existing `project:`,
+With `backend: linear`, `project:`, `linear.team_id` and
+`linear.project_id` are written together, once the project's Linear
+binding is in place: the active project, its Linear Project, and a
+team that Linear Project is on. `team_id` stands alone only in a
+config with no `project_id`.
+
+An existing project is written here when it is ready: with `backend:
+local`, its slug; with `backend: linear`, a record with a
+`linear_project_id`, as its slug, the recorded `team_id` and the
+recorded `project_id`. Step 8 writes a new project
+(`create_new_project`) once it exists and, with `backend: linear`, an
+existing record without `linear_project_id` once it is bound. Until
+then a **fresh install** writes `project:` unset (and, for Linear,
+`team_id` alone), and a **re-run** keeps the existing `project:`,
 `linear.team_id` and `linear.project_id`, writing Step 1's `team_id`
 only when there is no `project_id` to keep.
 
 ## Step 8 — Create or bind the project
 
-Runs with `create_new_project`, or with `backend: linear` when the
-active project's record has no `linear_project_id`.
+Runs with `create_new_project`, or with `backend: linear` when Step
+4's existing record has no `linear_project_id`.
 
 **A new project** → invoke `/spades:newproject` inline as a
 sub-routine, passing Step 4's decision to make it the active project
@@ -299,23 +303,23 @@ fan-out, and sets `project:` (and `linear.team_id` with
 `linear.project_id`) in `.spades/config`. Setup resumes with
 `project:` populated.
 
-If creation fails, the human cancels, or the new project's Linear
-binding is pending or failed (`/spades:newproject` then leaves it
-created but not active, per its Step 4), report the retained state and
-finish the remaining scaffolding. A fresh install has no active
-project; a re-run keeps the prior project and its Linear pair per
-Step 7. Point to
-`/spades:setup` to retry, choosing the new project when its record was
-written, or to `/spades:newproject` when it was not.
-
-**An existing record without `linear_project_id`** → with
-`create_linear_project`, create the Linear Project on `team_id` with
-the record's title and description through the Linear MCP, and record
-its ID as `project_id` and `linear.project_id`. Write `project_id` to
-the record as `linear_project_id`, set its `updated:` to today, and
+**An existing record without `linear_project_id`** → bind it to Step
+1's Linear Project: with `create_linear_project`, first create that
+Project on `team_id` with the record's title and description through
+the Linear MCP and record its ID as `project_id`. Write `project_id`
+to the record as `linear_project_id`, set its `updated:` to today,
 append `- YYYY-MM-DD: Bound to Linear Project <project_id>.` to its
-Audit Trail. A failed create leaves the record and config without a
-Linear Project: report it and point to `/spades:setup` to retry.
+Audit Trail, and then write `project: <slug>`, `linear.team_id` and
+`linear.project_id` to `.spades/config`.
+
+If creation fails, the human cancels, or the project's Linear binding
+is pending or failed (`/spades:newproject` then leaves a new project
+created but not active, per its Step 4), the config keeps what Step 7
+wrote: a fresh install has no active project, and a re-run keeps the
+prior project and its Linear pair. Report that state, with the chosen
+project not active, and finish the remaining scaffolding. Point to
+`/spades:setup` to retry, choosing the project when its record exists,
+or to `/spades:newproject` when it was not written.
 
 ## Step 9 — Write `.spades/version`
 
