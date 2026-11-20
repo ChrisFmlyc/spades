@@ -133,7 +133,7 @@ Then **B4** (body lists the Plan, Scope, ship PR, merge SHA,
 merged-by, files touched), **B5**, **B6**, and **B7** with:
 
 - Each participating Plan sub-issue → Done.
-- Parent Issue → Done, only when every sub-issue is Done. With an
+- Parent Issue → Done when P3.2 rolls the Scope up to `done`. With an
   outcome chosen at P3.3, add the label `outcome/O-<slug>` (the child
   of the exclusive `outcome` label group `/spades:objective` created)
   to the parent Issue and comment *"Closed against `O-<slug>`."*
@@ -149,7 +149,7 @@ merged-by, files touched), **B5**, **B6**, and **B7** with:
 ✓ Plans shipped:         <participating-plan-ids>
 ✓ Scope:                 <scope_id> (done — all plans shipped)   # when rolled up
 ✓ Outcome:               O-<slug> — <title>  (or: none)          # when rolled up
-✓ Linear mirror:         sub-issue Done, parent Issue Done[, labelled outcome/O-<slug>]   # backend: linear
+✓ Linear mirror:         sub-issue Done[, parent Issue Done[, labelled outcome/O-<slug>]]   # backend: linear; parent when rolled up
 ✓ Working tree:          retained at <worktree-path>
 ✓ Status:                shipped
 
