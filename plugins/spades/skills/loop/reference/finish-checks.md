@@ -345,7 +345,8 @@ services set on it:
 ```bash
 set -eo pipefail
 glab api --paginate --hostname <host> "projects/<project>/pipelines?sha=<merge-sha>&ref=<default-branch>" \
-  | jq -s '(if length == 0 then error("no response from glab") else add end) | [.[] | select(.source != "external")]
+  | jq -s '(if length == 0 then error("no response from glab") else add end)
+        | [.[] | select(.source != "external")] | [max_by(.id) // empty]
         | { pending: ([.[] | select(.status | IN("created","waiting_for_resource","preparing",
                       "waiting_for_callback","pending","running","scheduled","canceling"))] | length),
           failed:  ([.[] | select(.status | IN("failed","canceled"))] | length) }'
@@ -357,9 +358,11 @@ glab api --paginate --hostname <host> "projects/<project>/repository/commits/<me
 
 The pipelines are the default branch's on the merge commit; when GitLab
 merged without a new commit, older MR pipelines on the same SHA don't
-count. A pipeline reading `success`, `skipped` or `manual` is green. A
-status name under `failed` counts as failed, and one under `pending`
-as pending.
+count. Of those, the newest — the highest `id` — decides, as it does
+for GitLab's own commit status: running a pipeline again on the same
+commit makes a new one, which replaces the one before it. A pipeline
+reading `success`, `skipped` or `manual` is green. A status name under
+`failed` counts as failed, and one under `pending` as pending.
 
 - `failed > 0`, or a status under `failed` → not finished; pause with
   the failing checks.
