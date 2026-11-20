@@ -1,6 +1,6 @@
 # Finish checks — merge readiness, deploy gate and the FINISHED assertions
 
-The probe mechanics for `/spades:loop` Stage 8 (merge readiness),
+The probe mechanics for `/spades:loop` Stage 8 (GitLab merge readiness),
 Stage 9 (deploy gate) and Stage 15 (FINISHED), on GitHub (`gh`) and
 GitLab (`glab`). The stages own what must be true; this file owns how
 you find out.
@@ -43,12 +43,18 @@ gh api graphql -f query='
       pullRequest(number: $pr) {
         reviewThreads(first: 100) {
           nodes { id isResolved path
-            comments(first: 10) { nodes { databaseId author { login } body url } } } } } }
+            comments(first: 10) { nodes { databaseId author { __typename login } body url } } } } } }
   }' -F owner=<owner> -F repo=<repo> -F pr=<n>
 ```
 
-A thread is outstanding when `isResolved == false`. A `[bot]` author
-goes to `/codereview:loop`; a human author is a pause.
+A thread is outstanding when `isResolved == false`. It is a bot's
+when its first comment's `author.__typename` is `Bot` and every later
+comment is a `Bot`'s or one of `/codereview:loop`'s and
+`/codereview:fix`'s own `(ai-skills:…)` replies; it goes to
+`/codereview:loop`. Any other thread — a person's, one a person has
+replied in, or one with no author — is a human's and a pause. GraphQL
+bot logins carry no `[bot]` suffix, so match on the type rather than
+the login.
 
 **GitLab:** GitLab marks no account as a review bot, so the bots are
 the accounts in `gitlab.review_bots`, matched by user ID. Look each one
@@ -89,30 +95,10 @@ one opened by an unlisted account, including a `bot: true` account or a
 
 ## Merge readiness (Stage 8)
 
-**GitHub:**
-
-```bash
-gh pr view <n> --json state,mergeable,mergeStateStatus,statusCheckRollup
-```
-
-- `state == "OPEN"`.
-- `mergeable == "MERGEABLE"` — re-poll `UNKNOWN`, pause on
-  `CONFLICTING`.
-- No required check `FAILURE` / `ERROR` / `TIMED_OUT` / `CANCELLED`,
-  none still `PENDING`.
-- No **human** reviewer's latest review is `CHANGES_REQUESTED`:
-
-  <!-- scm-test: github-human-changes-requested -->
-  ```bash
-  gh pr view <n> --json reviews \
-    --jq '[.reviews[] | select(.author.login | endswith("[bot]") | not)]
-          | group_by(.author.login) | map(last)
-          | map(select(.state == "CHANGES_REQUESTED")) | length'
-  ```
-
-  The PR-level `reviewDecision` mixes bots and humans and lags the
-  thread sweep, so the per-reviewer query is the signal. A bot's
-  `CHANGES_REQUESTED` belongs to `/codereview:loop`.
+**GitHub:** Stage 8 step 3 in [`../SKILL.md`](../SKILL.md) runs the
+assertions inline: `gh pr view` for state, mergeability and checks, and
+the per-reviewer `CHANGES_REQUESTED` query that tells reviewers apart by
+account type.
 
 **GitLab:**
 

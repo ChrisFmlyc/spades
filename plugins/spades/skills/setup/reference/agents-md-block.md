@@ -17,12 +17,13 @@ marker tells them when their copy went stale.
 ## Contents
 
 - Operating Principles — the four agile pillars and their skill map
-- SPADES Skills — the 23-skill table
+- SPADES Skills — the 24-skill table
 - The SPADES Loop — six phases, ownership, the fast-track exception
 - Phase Rules — per-phase contracts for Scope through Ship
 - Fast-Track Path — the 10-criterion gate
 - Artefacts Carry Forward
 - Architecture Constraints
+- Review Rules
 - Scope Worktrees and Freshness
 - Defer to the `repo` and `codereview` Plugins
 - Versioning
@@ -56,7 +57,7 @@ Four operating principles guide the phases and skills:
    for every Plan, giving later work an evaluation record to consult.
 4. **Improve.** `/spades:learn` records lessons; `/spades:leads` tracks
    out-of-scope discoveries. INTENT, ARCHITECTURE,
-   PATTERNS, ANTI-PATTERNS all carry a `last_reviewed` field and
+   PATTERNS, ANTI-PATTERNS, REVIEW all carry a `last_reviewed` field and
    get refreshed when reality drifts. Drift between docs and code
    is a signal to act.
 
@@ -67,11 +68,11 @@ Skill mapping:
 | Collaborate | Scope, Plan, Approve, Review |
 | Deliver | Deliver, Ship, Close, Quick, Loop |
 | Reflect | Evaluate, Status, List |
-| Improve | Learn, Leads, Intent / Architecture / Patterns / Anti-Patterns refresh |
+| Improve | Learn, Leads, Intent / Architecture / Patterns / Anti-Patterns / Review Rules refresh |
 
 ## SPADES Skills
 
-The SPADES plugin (`spades`) provides these 23 skills:
+The SPADES plugin (`spades`) provides these 24 skills:
 
 | Skill | What it does |
 |-------|-------------|
@@ -98,6 +99,7 @@ The SPADES plugin (`spades`) provides these 23 skills:
 | `/spades:architecture` | Maintain `ARCHITECTURE.md` — how the system is built |
 | `/spades:patterns` | Maintain `PATTERNS.md` — approved conventions |
 | `/spades:anti-patterns` | Maintain `ANTI-PATTERNS.md` — explicit prohibitions |
+| `/spades:review-rules` | Maintain `REVIEW.md` — how a code change is reviewed |
 
 ## The SPADES Loop
 
@@ -193,6 +195,9 @@ turn; the human's next message is the answer.
 ### 5. Evaluate (Human-owned, AI assists)
 - Check delivered output against the Scope's acceptance criteria.
 - Verdict is PASS / PARTIAL / FAIL.
+- A code Plan's evaluation includes a fresh-context review of its diff
+  by the bundled `review-diff` agent, before the PR opens. An Important
+  finding makes that check PARTIAL and returns the work to Deliver.
 - AI may assist but a human signs off the verdict.
 
 ### 6. Ship (Mixed)
@@ -270,6 +275,14 @@ Before generating any Plan, read these files if they exist:
 - `ANTI-PATTERNS.md` — things this project deliberately avoids
 
 Flag any conflicts between proposed solutions and these documents.
+
+## Review Rules
+
+`REVIEW.md` at the repo root, when present, sets how a code change is
+reviewed: what counts as an Important finding, the nit cap, paths to
+skip, how findings are written, re-review limits, and the paths a
+person signs off. Read it before reviewing a diff or answering review
+findings; `/spades:review-rules` maintains it.
 
 ## Scope Worktrees and Freshness
 

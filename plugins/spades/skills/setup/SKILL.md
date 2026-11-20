@@ -1,7 +1,7 @@
 ---
 name: setup
 description: Configures SPADES in a repository by choosing the backend, SCM (local git, GitHub or GitLab), review format and active project, writing .spades/config, and scaffolding agent rules and project documents. Checks that the `repo` plugin and the chosen SCM's CLI (`gh` or `glab`) are installed and authenticated, and with the Linear backend can register the Linear MCP server. Use for initial setup, reconfiguration or a scaffolding refresh, including "set up SPADES", "configure SPADES", "initialise SPADES", or "I want to use SPADES in this repo". Preserves existing content on re-runs.
-version: 4.14.0
+version: 4.15.0
 ---
 
 # /spades:setup
@@ -342,7 +342,7 @@ version.
 
 ## Step 13 — Project documentation
 
-Four durable docs at the repo root, each owned by a facilitator
+Five durable docs at the repo root, each owned by a facilitator
 skill:
 
 | File | Skill | Owns |
@@ -351,21 +351,24 @@ skill:
 | `ARCHITECTURE.md` | `/spades:architecture` | How the system is built |
 | `PATTERNS.md` | `/spades:patterns` | Approved conventions |
 | `ANTI-PATTERNS.md` | `/spades:anti-patterns` | Explicit prohibitions |
+| `REVIEW.md` | `/spades:review-rules` | How a code change is reviewed: what blocks, what is noise, where a person signs off |
 
 For each, in that order:
 
 1. **Detect** — *Missing*; *Scaffolded but unfilled* (two or more
    `<!-- Describe … -->` / `<!-- List … -->` placeholders);
-   *Complete*.
+   *Complete*. `REVIEW.md` is *Missing* or *Complete*: its scaffold
+   carries working defaults.
 2. **Complete** → print `✓ INTENT.md complete (last reviewed
    YYYY-MM-DD).` and move on.
-3. **Otherwise ask**: **Scaffold an empty
-   template** *(recommended on a first run)* — write the
-   facilitator's inline template verbatim with `last_reviewed:
-   <today>`; / **Skip** — write nothing.
+3. **Otherwise ask**: **Scaffold the template** *(recommended on a
+   first run)* — write the facilitator's inline template verbatim
+   with `last_reviewed: <today>`; / **Skip** — write nothing. For
+   `REVIEW.md` the template is the SPADES default review rules, in
+   force from the first review.
 
-The facilitator skills fill the content later, when the human runs
-them; Step 14 lists them as next steps.
+The facilitator skills fill or tune the content later, when the human
+runs them; Step 14 lists them as next steps.
 
 ## Step 14 — Confirm
 
@@ -383,7 +386,7 @@ without transitions.
 ✓ Config:         .spades/config
 ✓ Version:        plugin <plugin-version>, rules <agents-version>
 ✓ Updated:        AGENTS.md (marker block re-stamped v2.0.0 → v<agents-version>)
-✓ Created:        ARCHITECTURE.md, PATTERNS.md, ANTI-PATTERNS.md  (templates)
+✓ Created:        ARCHITECTURE.md, PATTERNS.md, ANTI-PATTERNS.md, REVIEW.md  (templates)
 ○ Skipped:        INTENT.md (run /spades:intent to scaffold)
 
 Next steps:
@@ -391,6 +394,7 @@ Next steps:
   /spades:architecture     — fill ARCHITECTURE.md
   /spades:patterns         — fill PATTERNS.md
   /spades:anti-patterns    — fill ANTI-PATTERNS.md
+  /spades:review-rules     — tune REVIEW.md's default review rules
   /spades:scope <title>    — start a new Scope
 ```
 

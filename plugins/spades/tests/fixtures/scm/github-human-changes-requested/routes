@@ -1,1 +1,1 @@
-^gh pr view 12 --json reviews	reviews.json
+^gh api --paginate repos/\{owner\}/\{repo\}/pulls/12/reviews\?per_page=100 	reviews.json

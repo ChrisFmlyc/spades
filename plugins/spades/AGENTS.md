@@ -8,7 +8,7 @@ that read project context, including Claude Code, Cursor, Codex and Aider.
 
 ## SPADES Skills
 
-This repo ships SPADES itself, so the plugin's 23 skills are available
+This repo ships SPADES itself, so the plugin's 24 skills are available
 when working in it. Invoke the main ones by their namespaced names:
 
 | Skill | What it does |
@@ -36,6 +36,7 @@ when working in it. Invoke the main ones by their namespaced names:
 | `/spades:architecture` | Maintain `ARCHITECTURE.md` — how the system is built |
 | `/spades:patterns` | Maintain `PATTERNS.md` — approved conventions |
 | `/spades:anti-patterns` | Maintain `ANTI-PATTERNS.md` — deliberate exclusions |
+| `/spades:review-rules` | Maintain `REVIEW.md` — how a code change is reviewed |
 
 The active backend is **linear** (see `.spades/config`); the active
 project is `spades-framework` — the framework dogfooding itself.
@@ -211,6 +212,9 @@ and the exemptions for closure and read-only views.
   - **PASS** → proceed to Ship.
   - **PARTIAL** → specific gaps, work returns to Deliver for fixes.
   - **FAIL** → fundamental issue, route back to Plan or Scope.
+- A code Plan's evaluation includes a fresh-context review of its diff
+  by the bundled `review-diff` agent, before the PR opens. An Important
+  finding makes that check PARTIAL and returns the work to Deliver.
 - AI may assist with evaluation but a human signs off the verdict.
 
 ### 6. Ship (Mixed)
@@ -256,6 +260,14 @@ Before generating any Plan, you must read these files if they exist:
 If a proposed solution conflicts with these documents, flag the
 conflict in the Plan and get explicit human approval before
 proceeding.
+
+## Review Rules
+
+`REVIEW.md` at the repo root, when present, sets how a code change is
+reviewed: what counts as an Important finding, the nit cap, paths to
+skip, how findings are written, re-review limits, and the paths a
+person signs off. Read it before reviewing a diff or answering review
+findings; `/spades:review-rules` maintains it.
 
 ## Scope Worktrees and Freshness
 

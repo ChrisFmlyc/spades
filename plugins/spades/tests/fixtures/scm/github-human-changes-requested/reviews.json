@@ -1,28 +1,37 @@
-{
-  "reviews": [
-    {
-      "author": {
-        "login": "coderabbitai[bot]"
-      },
-      "state": "CHANGES_REQUESTED"
+[
+  {
+    "user": {
+      "login": "coderabbitai[bot]",
+      "type": "Bot"
     },
-    {
-      "author": {
-        "login": "alice"
-      },
-      "state": "CHANGES_REQUESTED"
+    "state": "CHANGES_REQUESTED"
+  },
+  {
+    "user": {
+      "login": "alice",
+      "type": "User"
     },
-    {
-      "author": {
-        "login": "bob"
-      },
-      "state": "CHANGES_REQUESTED"
+    "state": "CHANGES_REQUESTED"
+  },
+  {
+    "user": {
+      "login": "bob",
+      "type": "User"
     },
-    {
-      "author": {
-        "login": "alice"
-      },
-      "state": "APPROVED"
-    }
-  ]
-}
+    "state": "CHANGES_REQUESTED"
+  },
+  {
+    "user": {
+      "login": "carol",
+      "type": "User"
+    },
+    "state": "COMMENTED"
+  },
+  {
+    "user": {
+      "login": "alice",
+      "type": "User"
+    },
+    "state": "APPROVED"
+  }
+]

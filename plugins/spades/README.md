@@ -3,7 +3,7 @@
 **A human-AI operating model for engineering teams.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-6.9.0-green.svg)](.claude-plugin/plugin.json)
+[![Version](https://img.shields.io/badge/version-6.10.0-green.svg)](.claude-plugin/plugin.json)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-blueviolet.svg)](https://claude.ai/code)
 
 SPADES assigns ownership to each phase and records the decisions,
@@ -194,12 +194,14 @@ it for you:
 ```
 
 The loop handles approval and verification when the AI can complete
-them. Evaluation pauses for your confirmation when it includes checks
+them. Approval pauses for you when a Plan changes the architecture.
+Evaluation pauses for your confirmation when it includes checks
 only a human can perform. You can discuss the evidence or ask for a
 check to be rerun before confirming.
 
-It then proceeds through shipment, bot review, squash-merge,
-`/spades:close`, and the bookkeeping PR's review and merge. Branches
+It then proceeds through shipment, bot review, a squash-merge of
+the head it re-checked against the current base, `/spades:close`, and
+the bookkeeping PR's review and merge. Branches
 and worktrees remain available after completion. Other blockers and
 human decisions follow `skills/loop/SKILL.md § Pauses`.
 
@@ -213,9 +215,9 @@ pause counts as a stopping point:
 A condition that names only the loop's completion stays unmet while the
 loop waits on you, so the goal keeps prompting at every pause.
 
-### The 23 skills
+### The 24 skills
 
-SPADES ships 23 skills, grouped by *when you reach for them*:
+SPADES ships 24 skills, grouped by *when you reach for them*:
 
 #### One-time setup
 
@@ -234,14 +236,14 @@ SPADES ships 23 skills, grouped by *when you reach for them*:
 | `/spades:plan` | Generate a Plan (`P-<slug>-<suffix>[-<dep>…]`) under a Scope. Plans can depend on prior plans within the same Scope; the dependency chain is encoded in the filename. |
 | `/spades:approve` | Human gate. Walks the 6-point approval checklist, then asks the routing question (AI / human / hybrid) and records it on the Plan. |
 | `/spades:deliver` | Execute the Plan, routed per the approval. AI runs autonomously; human is assigned and acknowledged; hybrid splits per task. |
-| `/spades:evaluate` | Check delivered output against the Scope's acceptance criteria. PASS → Ship. PARTIAL → back to Deliver. FAIL → back to Plan or Scope. |
+| `/spades:evaluate` | Check delivered output against the Scope's acceptance criteria, including a fresh-context review of a code Plan's diff before the PR opens. PASS → Ship. PARTIAL → back to Deliver. FAIL → back to Plan or Scope. |
 | `/spades:ship` | Release the deliverable. For `deliverable_type: code` it follows the selected SCM driver; GitHub and GitLab open the shared Scope PR or MR and Close records the verified merge; for `artefact` it records a reference (URL / doc ID / file path); for `action` it records evidence of completion. |
 
 #### Autopilot — run the core loop without driving it
 
 | Skill | Purpose |
 |-------|---------|
-| `/spades:loop` | Drive one Scope from Plan to closed-out. Chains `plan → approve → deliver → evaluate → ship → CodeRabbit/Greptile review → squash-merge → close → review → merge`, with human sign-off when evaluation requires it, Plans delivered in dependency order in one Scope worktree, then one shared delivery PR. Your invocation, or delegation from a goal or driver you established, supplies authorization to push, open PRs or MRs, resolve **bot** review threads, and squash-merge, bounded to this Scope's own branches and PRs. It never writes a Scope or resolves a human's review comment. See `skills/loop/SKILL.md` for invocation and verification rules. |
+| `/spades:loop` | Drive one Scope from Plan to closed-out. Chains `plan → approve → deliver → evaluate → ship → CodeRabbit/Greptile review → squash-merge → close → review → merge`, with your acceptance of any architecture change and your sign-off when evaluation requires it, Plans delivered in dependency order in one Scope worktree, then one shared delivery PR. Your invocation, or delegation from a goal or driver you established, supplies authorization to push, open PRs or MRs, resolve **bot** review threads, and squash-merge, bounded to this Scope's own branches and PRs. It never writes a Scope or resolves a human's review comment. See `skills/loop/SKILL.md` for invocation and verification rules. |
 
 #### Side path — skip the full loop for trivial work
 
@@ -262,6 +264,7 @@ SPADES ships 23 skills, grouped by *when you reach for them*:
 | `/spades:architecture` | Create or update the project's architecture document. |
 | `/spades:patterns` | Create or update approved conventions in `PATTERNS.md`. |
 | `/spades:anti-patterns` | Create or update deliberate exclusions in `ANTI-PATTERNS.md`. |
+| `/spades:review-rules` | Create or tune `REVIEW.md`, the rules every code review follows: what blocks a merge, the nit cap, skipped paths, re-review limits, and the paths a person signs off. Starts from working defaults; `/spades:setup` scaffolds it. |
 
 #### Observability — see what's happening
 
@@ -353,7 +356,7 @@ Supporting skills handle setup, reporting, and work outside the six phases:
 - **Observability** — `list` (inventory of scopes by phase) and
   `status` (what's in flight, dep graph, next action).
 
-See "The 23 skills" above for trigger phrases and when each one fires.
+See "The 24 skills" above for trigger phrases and when each one fires.
 
 ---
 

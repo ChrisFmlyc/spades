@@ -24,7 +24,7 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
 cases_dir="$root/tests/fixtures/scm"
-docs=("$root/docs/FRAMEWORK.md" "$root/skills/loop/reference/finish-checks.md")
+docs=("$root/docs/FRAMEWORK.md" "$root/skills/loop/SKILL.md" "$root/skills/loop/reference/finish-checks.md")
 
 command -v jq >/dev/null || { echo "scm-snippets: jq is required" >&2; exit 1; }
 

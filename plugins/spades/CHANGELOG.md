@@ -8,7 +8,7 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
-## [6.9.0] — 2026-11-20
+## [6.10.0] — 2026-11-20
 
 - **Minor**: GitLab is a supported SCM. `/spades:setup` offers
   **GitLab** next to Local git and GitHub, and recommends the option
@@ -27,7 +27,13 @@ or the consumer marker rules change). The consumer-repo marker block in `AGENTS.
     before its first GitLab write.
   - GitLab marks no account as a review bot, so only the accounts in
     `gitlab.review_bots` count as bots; every other thread author is a
-    person, and their threads pause the loop.
+    person, and their threads pause the loop. On both hosts a bot's
+    thread that a person has replied in is the person's, so the loop
+    no longer resolves a thread holding a human comment.
+  - Stage 8's forward merge, post-evaluation re-check and pinned-head
+    merge from 6.9.1 run on GitLab too: `need_rebase` is GitLab's
+    `BEHIND`, the merge assertions are `finish-checks.md § Merge
+    readiness`, and the merge is `merge_review` with `--sha`.
   - `docs/FRAMEWORK.md § SCM Drivers → Pushing` covers a rejected push
     on every driver. The skill stops with the remote's message, its
     credentials redacted, and names the cause: a GitLab push rule, a
@@ -46,8 +52,10 @@ or the consumer marker rules change). The consumer-repo marker block in `AGENTS.
     bot's commit status creates, reports a pipeline that failed with no
     jobs or with `yaml_errors` using the CI lint API, separates a listed
     bot's `requested_changes` from a person's, and requires a ready (not
-    draft) MR. Ship opens MRs ready for review and marked for squashing.
-    List probes paginate and run under `pipefail`. The deploy gate
+    draft) MR. It reads the MR's merged-results pipelines, which run on
+    a temporary merge commit, as well as the head commit's. Ship opens
+    MRs ready for review and marked for squashing. List probes paginate,
+    run under `pipefail` and treat an empty response as an error. The deploy gate
     checks every environment a merge deployed to, and FINISHED names
     the project's auto-close setting when linked issues stay open.
   - `docs/FRAMEWORK.md § SCM Drivers` is the single home for SCM
@@ -83,24 +91,103 @@ or the consumer marker rules change). The consumer-repo marker block in `AGENTS.
     and the SCM CLI, and can register the Linear MCP server. Loop's
     says it pushes and squash-merges without a separate confirmation,
     and its pre-flight announcement says the same. Quick's triggers
-    name the SPADES fast-track gate. The setup template's contents
-    list counts 23 skills.
+    name the SPADES fast-track gate.
   - Leads' description no longer contains a `key: value` sequence, so
     its frontmatter parses as strict YAML; on 6.8.2 a strict parser
     rejected it.
   - `scripts/test/scm-snippets.sh` runs every command snippet the docs
     tag `<!-- scm-test: … -->` against recorded `gh`, `glab` and `git`
-    output, offline, in CI: 28 cases across GitHub and GitLab review
+    output, offline, in CI: 33 cases across GitHub and GitLab review
     state, thread sweeps, merge readiness, failed pipelines and CI lint,
-    FINISHED checks, deploy status, and push rejections.
+    FINISHED checks, deploy status, `find_review`, and push rejections.
+    A rejected push now exits with git's status.
   - The maintainer rules (`AGENTS.md` at the repo root, § SCM drivers
     move together) require a change to one SCM driver's flow to be
     weighed for the others in the same PR, and
     `docs/EXTENDING-SCM.md § Changing a flow` maps each flow to its
     files.
-- Skills bumped: `close` 4.15.1 → 4.16.0, `evaluate` 3.10.2 → 3.10.3,
-  `leads` 3.4.1 → 3.5.0, `loop` 1.14.2 → 1.15.0, `quick` 2.5.1 → 2.6.0,
-  `setup` 4.13.0 → 4.14.0, `ship` 3.7.1 → 3.8.0, `status` 3.6.5 → 3.6.6.
+- Skills bumped: `close` 4.15.1 → 4.16.0, `evaluate` 3.11.1 → 3.11.2,
+  `leads` 3.4.1 → 3.5.0, `loop` 1.15.1 → 1.16.0, `quick` 2.6.0 → 2.7.0,
+  `setup` 4.14.0 → 4.15.0, `ship` 3.7.1 → 3.8.0, `status` 3.6.5 → 3.6.6.
+- `agents_version` 3.4.0 → 3.5.0.
+
+## [6.9.1] — 2026-11-19
+
+- **Patch**: `/spades:loop` merges only a head whose checks ran with
+  the default branch as fetched just before the merge, and keeps
+  architecture decisions with the human. Research into how the Claude Code team reviews agent-written
+  code found three gaps in Stage 8 and Stage 2.
+  - **Current base.** Stage 8 fetched `mergeStateStatus` but never read
+    it, so a PR behind its base could merge on checks that ran against
+    an older `main`. Step 1 now checks that the PR head contains the
+    current base, forward-merges it when it does not (merge, never
+    rebase), waits for CI and the review sweep, and restarts. Two
+    forward merges run automatically; each further one waits for the
+    human. Step 3 asserts every `mergeStateStatus` value. Step 4 repeats
+    the base check just before the merge and pins the head with
+    `--match-head-commit`.
+  - **One revision.** `/spades:evaluate` records `Evaluated revision:
+    <sha>` on the verdict line. Before merging, the loop re-runs the AI
+    rows that cover code changed after that revision, usually
+    review-bot fixes. A failing row is a rework through
+    `/codereview:fix` that shares the PARTIAL rework count; a Human row
+    whose paths changed pauses for the human. Evaluate runs its AI rows
+    only on a clean worktree, so the recorded revision holds what they
+    tested. The list of changed paths keeps conflict resolutions and
+    non-base merges, names both sides of a rename, and falls back to
+    re-checking everything when it cannot be built in full (an evaluated
+    revision that is missing or no longer an ancestor of the head, or a
+    failed git command).
+  - **Architecture.** A Plan that adds a runtime dependency or pattern,
+    edits `ARCHITECTURE.md` / `PATTERNS.md` / `ANTI-PATTERNS.md`, or
+    conflicts with them is Pause 16 at Stage 2. The loop records the
+    approval as the human's once they accept the change. FRAMEWORK
+    § The human gate and § Bounded back-edges, and the README, describe
+    both designed pauses and the new back-edges.
+  - **Review bots.** GraphQL returns bot logins without `[bot]`, so the
+    thread sweeps classify authors by `author.__typename` and Stage 8
+    classifies reviewers by REST `user.type`, reading every page of
+    reviews. CodeRabbit reviews and
+    threads no longer pause the loop as if a human wrote them.
+  - Leads: adds the seven Leads from the code-review research and
+    closes `L-loop-merge-gate-skips-merge-state-rbuV`,
+    `L-loop-reads-graphql-bot-logins-as-human-6HuL` and
+    `L-codereview-fix-worktrees-miss-pr-branch-cJlw` (fixed upstream in
+    ai-skills PR #23), `L-codereview-loop-overview-contradicts-step-4-hgNb`
+    and `L-codereview-loop-waits-on-one-review-bot-nV0T` (fixed upstream
+    in ai-skills PR #29). Their GitHub mirrors are pending.
+- Skills bumped: `evaluate` 3.11.0 → 3.11.1, `loop` 1.15.0 → 1.15.1.
+
+## [6.9.0] — 2026-11-19
+
+- **Minor**: A code Plan's diff is reviewed in a fresh context before
+  its pull request opens, and a new `/spades:review-rules` skill keeps
+  the rules every review follows in `REVIEW.md`.
+  - New bundled agent `agents/review-diff.md`. It reads the diff, the
+    Plan or Quick item, the project rule documents and `REVIEW.md`,
+    never the delivering conversation, and returns findings marked
+    `important`, `nit` or `pre-existing`. Each finding cites its file
+    and line and names its bug class with every instance.
+  - `/spades:evaluate` adds a `QR` diff review row to every code Plan.
+    It adds a `QS` security review row when the diff touches criterion-7
+    areas, and a `QH` Human row for paths `REVIEW.md § Human Sign-off`
+    reserves for a person. An `important` finding makes the row PARTIAL,
+    so the work returns to Deliver under the existing rework cap.
+    `pre-existing` findings go to the Leads handoff. A rework reviews
+    only the commits since the last review.
+  - `/spades:loop` Stage 4 runs those rows through the bundled agent.
+  - `/spades:quick` reviews its diff before publishing. Important
+    findings are fixed in the item's commit; one still open after a
+    second review moves the item to the full loop.
+  - `/spades:review-rules` writes `REVIEW.md` from working defaults the
+    human tunes section by section: Important, Nits, Skip, Writing
+    Findings, Re-review, Human Sign-off, Project Checks. It offers to
+    add `REVIEW.md` to CodeRabbit's code guidelines in `.coderabbit.yaml`.
+    `/spades:setup` scaffolds it with the other four project documents,
+    and the `AGENTS.md` block points agents at it.
+- Skills bumped: `evaluate` 3.10.2 → 3.11.0, `loop` 1.14.2 → 1.15.0,
+  `quick` 2.5.1 → 2.6.0, `setup` 4.13.0 → 4.14.0, `anti-patterns`
+  1.5.5 → 1.5.6, `review-rules` new at 1.0.0.
 - `agents_version` 3.3.0 → 3.4.0.
 
 ## [6.8.2] — 2026-10-27
