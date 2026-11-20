@@ -35,13 +35,9 @@ you reach § Presenting the report.
 
 ## Pre-Flight
 
-1. **Working context.** Follow `docs/FRAMEWORK.md § Freshness` and
-   § Scope Worktrees. Resolve the target to its worktree and name the
-   checkout and revision inspected. Pass that absolute path and intended
-   revision to the persona workers.
-2. **Config.** Read `.spades/config` for `project:`, `backend:`, and
+1. **Config.** Read `.spades/config` for `project:`, `backend:`, and
    `review_format:`; missing → `/spades:setup`.
-3. **Resolve the mode and target.**
+2. **Resolve the mode and target.**
    - Both named (`/spades:review scope S-…`, `/spades:review plan
      P-…`) → honour directly.
    - A Scope or Plan already in session context → offer it as the
@@ -54,6 +50,10 @@ you reach § Presenting the report.
 
    Full review takes the Plan as target and reads its parent Scope
    from `scope:`.
+3. **Working context.** Follow `docs/FRAMEWORK.md § Freshness` and
+   § Scope Worktrees. Resolve the selected target to its worktree and
+   name the checkout and revision inspected. Pass that absolute path
+   and intended revision to the persona workers.
 
 ## Modes
 
