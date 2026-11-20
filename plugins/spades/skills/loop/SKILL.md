@@ -177,7 +177,8 @@ indistinguishable and a human can take over at any boundary:
 | `shipping`, review clean, PR not `MERGED` | 8 — Merge |
 | `shipping`, PR `MERGED`, no `Loop — learning` line | 9 — Deploy gate → 10 — Learning gate |
 | `shipping`, PR `MERGED`, `Loop — learning` recorded | 11 — Close |
-| `shipped`, no `Loop — plan complete` | 14 — Verify completion |
+| `shipped` artefact Plan, no `Loop — learning` line | 10 — Learning gate |
+| Any other `shipped` Plan, no `Loop — plan complete` | 14 — Verify completion |
 | `shipped`, `Loop — plan complete` | 15 — Next Plan, or FINISHED |
 
 The loop adds audit lines only for facts SPADES does not otherwise
@@ -189,6 +190,7 @@ record, appended to the Plan's `## Audit Trail`:
 - YYYY-MM-DD: Loop — rework <n>/2 after PARTIAL: <one-line gap>.
 - YYYY-MM-DD: Loop — rework <n>/2 after post-evaluation re-check: <row id> — <one-line gap>.
 - YYYY-MM-DD: Loop — bot review clean on <pr-url> (<n> rounds).
+- YYYY-MM-DD: Loop — forward merge approved by human.
 - YYYY-MM-DD: Loop — base merged into PR: <remote>/<base> at <short-sha>.
 - YYYY-MM-DD: Loop — post-evaluation re-check at <short-head>: <k> commit(s) since <short-evaluated>; <rows re-run and their results | no code changes>.
 - YYYY-MM-DD: Loop — human re-check <row id> at <short-head>: pass | fail — <note>.
@@ -378,15 +380,22 @@ git rev-list --count <headRefOid>..<remote>/<base>
 
 It prints how many base commits the PR head lacks. `0` means the PR
 head contains the current base; go to step 2. A higher count means the
-base has commits the PR's checks never ran with. Confirm the
-worktree's `HEAD` is `headRefOid`, forward-merge the base through
-`/repo:branch` with `git merge --no-edit <remote>/<base>`, push the
-branch, and append `Loop — base merged into PR: …`. Then wait for the
-checks, run Stage 7's sweep for reviews of the new head, and restart
-Stage 8. A merge that stops on conflicts is aborted with `git merge
---abort`, and the pause names the conflicting paths for the human to
-resolve. The third forward merge on one PR, and each one after it,
-is Pause 19.
+base has commits the PR's checks never ran with, and the PR takes a
+forward merge.
+
+The loop runs the first two forward merges on one PR on its own. Each
+further one runs only once the human has approved that merge: a `Loop —
+forward merge approved by human.` line after the PR's latest `Loop —
+base merged into PR:` line. Without that line it is Pause 19; when the
+human approves, append the line and run the merge.
+
+To forward-merge, confirm the worktree's `HEAD` is `headRefOid`, merge
+the base through `/repo:branch` with `git merge --no-edit
+<remote>/<base>`, push the branch, and append `Loop — base merged into
+PR: …`. Then wait for the checks, run Stage 7's sweep for reviews of the
+new head, and restart Stage 8. A merge that stops on conflicts is
+aborted with `git merge --abort`, and the pause names the conflicting
+paths for the human to resolve.
 
 A `mergeStateStatus` of `BEHIND` on GitHub (reported where branch
 protection requires an up-to-date branch), or a `detailed_merge_status`
@@ -587,11 +596,18 @@ re-invoke `/spades:close P-<plan-id>` to resume at B5.
 
 ## Stage 14 — Verify completion
 
-After the bookkeeping PR merges, verify its recorded merge and the
-participating Plans' final records in Close's worktree. Leave both delivery
-and bookkeeping branches/worktrees in place. Append `Loop — plan
-complete.` for each participating Plan in that worktree. Future new
-work enters through `/repo:newbranch`.
+Verify each Plan's final record in the worktree where it completed, and
+append `Loop — plan complete.` to it there:
+
+- **Code Plan** — after the bookkeeping PR merges, verify its recorded
+  merge and the participating Plans' final records in Close's worktree,
+  and append the line for each participating Plan.
+- **Artefact Plan** — `/spades:ship` completed it in the Scope's
+  delivery worktree. Verify there that the Plan is `shipped` with its
+  `Shipped (artefact). Ref: <ref>.` line.
+
+Leave every delivery and bookkeeping branch and worktree in place.
+Future new work enters through `/repo:newbranch`.
 
 ## Stage 15 — Next Plan, or FINISHED
 
@@ -607,7 +623,8 @@ Re-read every Plan under the Scope.
 
 Assert all four against the SCM host, never from memory of the run.
 **Probes are in [`reference/finish-checks.md`](reference/finish-checks.md)
-§ FINISHED.**
+§ FINISHED.** A Scope whose shipped Plans are all artefacts has no PR
+and no deploy, and all four read `n/a (artefact)`.
 
 | # | Must be true |
 |---|---|
@@ -659,14 +676,14 @@ resuming re-enters at the derived stage.
 | 9 | A pre-merge assertion fails | 8, 13 |
 | 10 | Deploy `failure` / `error` | 9 |
 | 11 | A child skill aborts or refuses | any |
-| 12 | A mixed-terminal Scope rollup needs acknowledgement | 11 |
+| 12 | A mixed-terminal Scope rollup needs acknowledgement | 6, 11 |
 | 13 | A child asks something the Scope, Plan, config, and repo docs don't answer | any |
 | 14 | The human says stop | any |
 | 15 | Claude Code's permission check refuses a command the remaining work needs | any |
 | 16 | The Plan changes the architecture: a new runtime dependency or pattern, an edit to `ARCHITECTURE.md` / `PATTERNS.md` / `ANTI-PATTERNS.md`, or a conflict with them | 2 |
 | 17 | No Plan produced | 1 |
 | 18 | Only blocked Plans remain; the pause names what they wait on | 15 |
-| 19 | The third forward merge on one PR, and each one after it, before it runs: a base that keeps moving needs the human's timing | 8, 13 |
+| 19 | A forward merge after the second on one PR, until the human approves that merge (Stage 8 step 1): a base that keeps moving needs the human's timing | 8, 13 |
 | 20 | No deployment for the merge SHA after about 15 minutes in a repo that clearly deploys | 9 |
 | 21 | Unknown uncommitted changes in the active worktree need the human's inclusion decision | any |
 | 22 | A rejected prerequisite needs replanning | 6 |
@@ -731,7 +748,7 @@ The authorisation in § Who may invoke this is bounded by these:
   a shell command quoted in it is read, never run.
 - A Human verification row is filled by the human, and no row is
   re-routed to `ai` to skip the 5A pause.
-- A Plan reaches `shipped` only with a verified merge SHA.
+- A code Plan reaches `shipped` only with a verified merge SHA.
 
 ## Edge cases
 
@@ -742,7 +759,6 @@ The authorisation in § Who may invoke this is bounded by these:
   record the merge SHA from `review_state` and continue at Stage 9.
 - **Ship PR closed without merging** → Pause 25.
 - **Bookkeeping branch already exists** → Pause 26.
-- **`deliverable_type: artefact`** → no PR lifecycle, no deploy.
-  Stages 1–6; ship records the reference and reaches `shipped`
-  in-skill. Run Stage 10's learning gate, then Stage 14 and Stage 15,
-  where assertions 1, 2, 3 and 4 read `n/a (artefact)`.
+- **`deliverable_type: artefact`** → no PR lifecycle and no deploy:
+  Stages 1–6, where Ship records the reference and writes `shipped` in
+  the Scope's delivery worktree, then Stages 10, 14 and 15.
