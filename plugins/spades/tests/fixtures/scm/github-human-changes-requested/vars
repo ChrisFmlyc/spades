@@ -1,1 +1,4 @@
 n=12
+gh-host=github.com
+owner=acme
+repo=app

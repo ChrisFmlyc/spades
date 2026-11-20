@@ -1,1 +1,1 @@
-^gh pr view 12 --json	pr.json
+^gh pr view 12 -R github\.com/acme/app --json	pr.json

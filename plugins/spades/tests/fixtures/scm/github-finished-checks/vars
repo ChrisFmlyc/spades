@@ -1,1 +1,4 @@
 merge-sha=mmm111
+gh-host=github.com
+owner=acme
+repo=app

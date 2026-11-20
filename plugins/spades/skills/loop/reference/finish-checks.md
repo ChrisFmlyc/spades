@@ -5,6 +5,14 @@ Stage 9 (deploy gate) and Stage 15 (FINISHED), on GitHub (`gh`) and
 GitLab (`glab`). The stages own what must be true; this file owns how
 you find out.
 
+GitHub probes name the repository behind `github.remote`, as
+`docs/FRAMEWORK.md § SCM Drivers` sets out: `<gh-host>`, `<owner>` and
+`<repo>` are read from that remote's URL, and `<gh-repo>` is
+`<gh-host>/<owner>/<repo>`. `gh pr` takes `-R <gh-repo>`; `gh api`
+takes `--hostname <gh-host>`, REST endpoints address
+`repos/<owner>/<repo>`, and GraphQL queries take `-F owner=<owner> -F
+repo=<repo>`. `<n>` is the pull request's (PR's) number.
+
 GitLab probes name the project from `.spades/config`, as
 `docs/FRAMEWORK.md § SCM Drivers` sets out: `<host>` is `gitlab.host`,
 `<project>` is `gitlab.project` with each `/` as `%2F`, and `<repo-url>`
@@ -37,7 +45,7 @@ FINISHED assertion 2 uses it on both PRs.
 **GitHub:**
 
 ```bash
-gh api graphql -f query='
+gh api graphql --hostname <gh-host> -f query='
   query($owner: String!, $repo: String!, $pr: Int!) {
     repository(owner: $owner, name: $repo) {
       pullRequest(number: $pr) {
@@ -53,9 +61,9 @@ comment is a `Bot`'s or one of `/codereview:loop`'s and
 `/codereview:fix`'s own replies; it goes to `/codereview:loop`. A
 reply is theirs when it starts with `(ai-skills:` and its
 `author.login` is the account `gh` is signed in as, which
-`gh api user --jq .login` prints (look it up once per run). Any other
-thread — a person's, one a person has replied in, or one with no
-author — is a human's and a pause; an `(ai-skills:` reply from any
+`gh api --hostname <gh-host> user --jq .login` prints (look it up once
+per run). Any other thread — a person's, one a person has replied in,
+or one with no author — is a human's and a pause; an `(ai-skills:` reply from any
 other account is a person's. GraphQL bot logins carry no `[bot]`
 suffix, so match on the type rather than the login.
 
@@ -222,14 +230,14 @@ merge SHA. Two questions, in order.
 **GitHub:**
 
 ```bash
-gh api "repos/{owner}/{repo}/deployments" --jq 'length'
+gh api --hostname <gh-host> "repos/<owner>/<repo>/deployments" --jq 'length'
 ```
 
 `0` → check for deploy-shaped check runs, since some stacks (Vercel,
 Netlify, some GitHub Actions setups) report deploys that way:
 
 ```bash
-gh api "repos/{owner}/{repo}/commits/<merge-sha>/check-runs" \
+gh api --hostname <gh-host> "repos/<owner>/<repo>/commits/<merge-sha>/check-runs" \
   --jq '[.check_runs[] | select(.name | test("deploy|vercel|netlify|release"; "i"))
         | {name, status, conclusion}]'
 ```
@@ -263,8 +271,8 @@ below: success passes, a failure pauses, anything unfinished is polled.
 **GitHub:**
 
 ```bash
-gh api "repos/{owner}/{repo}/deployments?sha=<merge-sha>" --jq '.[0].id'
-gh api "repos/{owner}/{repo}/deployments/<id>/statuses" --jq '.[0] | {state, environment_url}'
+gh api --hostname <gh-host> "repos/<owner>/<repo>/deployments?sha=<merge-sha>" --jq '.[0].id'
+gh api --hostname <gh-host> "repos/<owner>/<repo>/deployments/<id>/statuses" --jq '.[0] | {state, environment_url}'
 ```
 
 **GitLab** — the deployments API has no SHA filter, so read the most
@@ -314,7 +322,7 @@ GitHub:
 
 <!-- scm-test: github-finished-checks -->
 ```bash
-gh api "repos/{owner}/{repo}/commits/<merge-sha>/check-runs" \
+gh api --hostname <gh-host> "repos/<owner>/<repo>/commits/<merge-sha>/check-runs" \
   --jq '{ pending: ([.check_runs[] | select(.status != "completed")] | length),
           failed:  ([.check_runs[] | select(.status == "completed"
                     and .conclusion != "success"
@@ -357,7 +365,7 @@ as pending.
 GitHub — `gh pr view --json` has no field for this, so use GraphQL:
 
 ```bash
-gh api graphql -f query='
+gh api graphql --hostname <gh-host> -f query='
   query($owner:String!,$repo:String!,$pr:Int!){
     repository(owner:$owner,name:$repo){ pullRequest(number:$pr){
       closingIssuesReferences(first:20){ nodes{ number state } } } }

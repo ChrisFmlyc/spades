@@ -132,9 +132,11 @@ touches:
 1. **`.spades/config`** — a `<scm>:` block with `remote:` (default
    `origin`), documented in `docs/FRAMEWORK.md § .spades/config
    schema`, plus whatever the CLI needs to address the repository
-   exactly. `gh` follows the remote; `glab` doesn't, so the GitLab
-   block also records `host` and `project`, and lists `review_bots`
-   because GitLab marks no account as a bot.
+   exactly. Neither `gh` nor `glab` follows the configured remote, so
+   every command names the repository: the GitHub driver reads it from
+   the remote's URL and passes it as `-R`, and the GitLab block records
+   `host` and `project`. The GitLab block also lists `review_bots`, because
+   GitLab marks no account as a bot.
 2. **`docs/FRAMEWORK.md § SCM Drivers`** — a column in the
    review-request and issue operation tables, the `review_state`
    field mapping (state, merge SHA, merged by, merged at, head SHA),
@@ -186,7 +188,7 @@ works differently, the driver does this:
 
 | Area | GitHub | GitLab, and what the driver does |
 |---|---|---|
-| Choosing the repository | `gh` follows the remote | `glab` picks its own; commands name `gitlab.host` and `gitlab.project` |
+| Choosing the repository | `gh` picks its own; commands pass `-R` with the repository read from `github.remote`'s URL | `glab` picks its own; commands name `gitlab.host` and `gitlab.project`, recorded at setup |
 | Review bots | `[bot]` accounts | No bot flag on notes; only `gitlab.review_bots` count, matched by user ID, with an adapter per bot kind for "review finished" |
 | A finished review | A review object | Notes only; CodeRabbit's commit status, Greptile's summary naming the head commit, or the newest discussion settling |
 | Changes requested | A review state | A reviewer state; on Premium and above it blocks merging until approved, removed or bypassed |

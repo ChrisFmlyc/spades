@@ -1,1 +1,1 @@
-^gh api --paginate repos/\{owner\}/\{repo\}/pulls/12/reviews\?per_page=100 	reviews.json
+^gh api --paginate --hostname github\.com repos/acme/app/pulls/12/reviews\?per_page=100 	reviews.json

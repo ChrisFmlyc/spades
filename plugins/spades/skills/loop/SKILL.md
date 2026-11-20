@@ -389,11 +389,14 @@ non-zero is a failed step, and a failed step is Pause 9 unless the
 step names another outcome.
 
 Read the PR first. `<headRefOid>` and `<base>` below are, on GitLab,
-the MR's `sha` and `target_branch`:
+the MR's `sha` and `target_branch`. The repository placeholders —
+`<gh-repo>`, `<gh-host>`, `<owner>` and `<repo>` on GitHub,
+`<repo-url>` on GitLab — name the configured repository as
+`docs/FRAMEWORK.md § SCM Drivers` sets out:
 
 ```bash
-gh pr view <n> --json state,baseRefName,headRefOid,mergeable,mergeStateStatus,statusCheckRollup
-glab mr view <iid> -R <repo-url> --output json   # GitLab: docs/FRAMEWORK.md § SCM Drivers
+gh pr view <n> -R <gh-repo> --json state,baseRefName,headRefOid,mergeable,mergeStateStatus,statusCheckRollup
+glab mr view <iid> -R <repo-url> --output json
 ```
 
 ### 1. Current with the base
@@ -515,7 +518,7 @@ threads, as below.
 
   <!-- scm-test: github-human-changes-requested -->
   ```bash
-  reviews=$(gh api --paginate "repos/{owner}/{repo}/pulls/<n>/reviews?per_page=100" \
+  reviews=$(gh api --paginate --hostname <gh-host> "repos/<owner>/<repo>/pulls/<n>/reviews?per_page=100" \
     --jq '.[] | select(.user.type != "Bot")
           | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED"
                    or .state == "DISMISSED")
@@ -539,9 +542,9 @@ Re-run step 1's command, and merge as soon as it prints `0`:
 
 <!-- scm-test: github-merge -->
 ```bash
-gh pr merge <n> --squash --match-head-commit <headRefOid> || {
+gh pr merge <n> -R <gh-repo> --squash --match-head-commit <headRefOid> || {
   rc=$?
-  now=$(gh pr view <n> --json headRefOid --jq .headRefOid) &&
+  now=$(gh pr view <n> -R <gh-repo> --json headRefOid --jq .headRefOid) &&
     [ "$now" != <headRefOid> ] && echo "head moved: $now"
   exit "$rc"
 }

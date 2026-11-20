@@ -1,2 +1,2 @@
-^gh pr merge 42 --squash --match-head-commit head111$	merge.txt	1
-^gh pr view 42 --json headRefOid --jq \.headRefOid$	pr.json
+^gh pr merge 42 -R github\.com/acme/app --squash --match-head-commit head111$	merge.txt	1
+^gh pr view 42 -R github\.com/acme/app --json headRefOid --jq \.headRefOid$	pr.json

@@ -55,10 +55,12 @@ Write the `/repo:pr` result to a body file, then create the PR with
 `open_review`:
 
 ```bash
-gh pr create --head <scope-branch> --base <default-branch> --title "<title>" --body-file <body-file>
+gh pr create -R <gh-repo> --head <scope-branch> --base <default-branch> --title "<title>" --body-file <body-file>
 ```
 
-Capture the PR URL from the output.
+`<gh-repo>` is the repository behind `<configured-remote>`, read from its
+URL as `docs/FRAMEWORK.md § SCM Drivers` sets out. Capture the PR URL
+from the output.
 
 ## 5. Record and exit
 
@@ -89,7 +91,7 @@ Once the PR is squash-merged:
   unauthenticated. Surface the exact error with the remediation; the
   Plan stays at `shipping`.
 - **`gh` missing or unauthenticated** — show the human the exact
-  `git push -u <configured-remote> <branch>` and `gh pr create` invocation to run
+  `git push -u <configured-remote> <branch>` and `gh pr create -R <gh-repo>` invocation to run
   by hand, then capture the resulting URL and record it as in § 5.
 - **Merge conflicts** — resolved as fix commits on the branch;
   re-run `/spades:ship` once the branch is clean.

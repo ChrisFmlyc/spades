@@ -25,6 +25,16 @@ or the consumer marker rules change). The consumer-repo marker block in `AGENTS.
     and `glab label`, and `--hostname` with `projects/<project>` on
     `glab api`. A skill checks the remote still names that project
     before its first GitLab write.
+  - GitHub commands name their repository too. `gh` also chooses one by
+    its own rules — a `gh repo set-default` choice, else a remote named
+    `upstream` ahead of `origin` — so in a clone with both remotes,
+    PRs, merges and Lead issues went to the upstream repository rather
+    than `github.remote`'s. Every `gh pr`, `gh issue` and `gh label`
+    command now takes `-R <host>/<owner>/<repo>`, read from
+    `github.remote`'s URL, and `gh api` takes `--hostname` with
+    `repos/<owner>/<repo>`. GitHub's `find_review` reads up to 1000 PRs
+    rather than `gh`'s default 30, and skips a fork's PR that shares
+    the branch name.
   - GitLab marks no account as a review bot, so only the accounts in
     `gitlab.review_bots` count as bots; every other thread author is a
     person, and their threads pause the loop. On both hosts a bot's

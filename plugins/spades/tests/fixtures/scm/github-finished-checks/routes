@@ -1,1 +1,1 @@
-commits/mmm111/check-runs	check-runs.json
+^gh api --hostname github\.com repos/acme/app/commits/mmm111/check-runs 	check-runs.json

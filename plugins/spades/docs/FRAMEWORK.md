@@ -779,8 +779,21 @@ browser (OAuth) login, a personal access token, SSH keys or an HTTPS
 credential helper. Credentials stay in the CLI's and git's own stores,
 never in `.spades/config`.
 
-- **GitHub** — run `gh` inside the worktree; it resolves the repository
-  from the remote.
+- **GitHub** — `gh` chooses a repository by its own rules (a `gh repo
+  set-default` choice, else the first of the remotes named `upstream`,
+  `github` and `origin`) rather than from `github.remote`, so every
+  GitHub command names the repository behind `github.remote`:
+  - `<gh-host>`, `<owner>` and `<repo>` come from that remote's URL
+    (`git remote get-url <remote>`), read as
+    `skills/setup/reference/gitlab.md § 1` reads a remote, except that
+    the host drops any port and GitHub's SSH-over-443 host,
+    `ssh.github.com`, is `github.com`. The path is `<owner>/<repo>`,
+    without `.git`. `<gh-repo>` is `<gh-host>/<owner>/<repo>`, passed to
+    `gh pr`, `gh issue` and `gh label` as `-R <gh-repo>`.
+  - `gh api` takes `--hostname <gh-host>`, since it does not take its
+    host from the repository. REST endpoints address
+    `repos/<owner>/<repo>`, and GraphQL queries take `-F owner=<owner>
+    -F repo=<repo>`.
 - **GitLab** — `glab` chooses a project by its own rules (`GITLAB_HOST`,
   a resolved-base setting in git config) rather than from
   `gitlab.remote`, so every GitLab command names the project recorded by
@@ -867,17 +880,29 @@ last segment of its URL.
 | Operation | `scm: github` | `scm: gitlab` |
 |---|---|---|
 | `probe_auth` | `gh auth status` | `glab auth status --hostname <gitlab.host>` |
-| `find_review(branch, base)` | `gh pr list --head <branch> --base <base> --state all --json number,url,state` | `glab api --paginate --hostname <host> "projects/<project>/merge_requests?source_branch=<branch>&target_branch=<base>&state=all"`, filtered as below |
-| `open_review(branch, base, title, body-file)` | `gh pr create --head <branch> --base <base> --title "<title>" --body-file <body-file>` | `glab mr create -R <repo-url> --source-branch <branch> --target-branch <base> --title "<title>" --description-file <body-file> --squash-before-merge --yes` |
-| `review_state(ref)` | `gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy,headRefOid` | `glab mr view <iid> -R <repo-url> --output json` |
-| `merge_review(ref)` | `gh pr merge <n> --squash` | `glab mr merge <iid> -R <repo-url> --squash --auto-merge=false --sha <head-sha> --yes`; with a merge train, `--auto-merge` in place of `--auto-merge=false` |
+| `find_review(branch, base)` | `gh pr list -R <gh-repo> --head <branch> --base <base> --state all --limit 1000 --json number,url,state,isCrossRepository`, filtered as below | `glab api --paginate --hostname <host> "projects/<project>/merge_requests?source_branch=<branch>&target_branch=<base>&state=all"`, filtered as below |
+| `open_review(branch, base, title, body-file)` | `gh pr create -R <gh-repo> --head <branch> --base <base> --title "<title>" --body-file <body-file>` | `glab mr create -R <repo-url> --source-branch <branch> --target-branch <base> --title "<title>" --description-file <body-file> --squash-before-merge --yes` |
+| `review_state(ref)` | `gh pr view <n> -R <gh-repo> --json state,mergeCommit,mergedAt,mergedBy,headRefOid` | `glab mr view <iid> -R <repo-url> --output json` |
+| `merge_review(ref)` | `gh pr merge <n> -R <gh-repo> --squash` | `glab mr merge <iid> -R <repo-url> --squash --auto-merge=false --sha <head-sha> --yes`; with a merge train, `--auto-merge` in place of `--auto-merge=false` |
 
 `gh pr create` prints the new PR's URL. `glab mr create` prints a
 human-readable summary, so read the MR's `iid` and `web_url` back with
-`find_review`. On GitLab it reads every page of the matching MRs —
-`jq -s` takes `glab`'s output as one array or one per page, and an empty
-response is an error rather than no MR — and keeps only MRs from the
-project itself, since an MR from a fork can share the branch name:
+`find_review`.
+
+A PR or MR from a fork can share the branch name, so `find_review`
+keeps only those from the repository itself. On GitHub, `--limit 1000`
+lifts `gh pr list`'s default of 30 results, and `isCrossRepository`
+marks a PR whose head is in another repository:
+
+```bash
+gh pr list -R <gh-repo> --head <branch> --base <base> --state all --limit 1000 \
+  --json number,url,state,isCrossRepository --jq '[.[] | select(.isCrossRepository | not) | {number, url, state}]'
+```
+
+On GitLab it reads every page of the matching MRs — `jq -s` takes
+`glab`'s output as one array or one per page, and an empty response is
+an error rather than no MR — and keeps only MRs whose source project is
+the target project:
 
 <!-- scm-test: find-review-gitlab -->
 ```bash
@@ -886,7 +911,8 @@ glab api --paginate --hostname <host> "projects/<project>/merge_requests?source_
   | jq -sc '(if length == 0 then error("no response from glab") else add end)
       | [.[] | select(.source_project_id == .target_project_id) | {iid, web_url, state}]'
 ```
- glab releases
+
+glab releases
 before 1.115 lack `--description-file` (on `mr create` and `issue
 create`); pass `--description "$(cat <body-file>)"` there instead.
 `--squash-before-merge` marks the MR for squashing, so a merge made in
@@ -911,7 +937,7 @@ Both read into one shape:
 
 <!-- scm-test: review-state-github -->
 ```bash
-gh pr view <n> --json state,mergeCommit,mergedAt,mergedBy,headRefOid \
+gh pr view <n> -R <gh-repo> --json state,mergeCommit,mergedAt,mergedBy,headRefOid \
   --jq '{state, merge_sha: (.mergeCommit.oid // ""), merged_by: (.mergedBy.login // ""),
          merged_at: (.mergedAt // ""), head_sha: .headRefOid}'
 ```
@@ -973,12 +999,12 @@ that `squash_commit_sha` is set, before recording a merge.
 
 | Operation | `scm: github` | `scm: gitlab` |
 |---|---|---|
-| `find_issue(lead-id)` | `gh issue list --state all --search "<lead-id> in:title" --json number,url,title,state,labels` | `glab issue list -R <repo-url> --all --search "<lead-id>" --in title --output json` |
-| `create_issue(title, body-file, labels)` | `gh issue create --title "<title>" --body-file <body-file> --label "<a>,<b>"` | `glab issue create -R <repo-url> --title "<title>" --description-file <body-file> --label "<a>,<b>" --yes` |
-| `comment_issue(ref, text)` | `gh issue comment <n> --body "<text>"` | `glab issue note <iid> -R <repo-url> --message "<text>"` |
-| `relabel_issue(ref, add, remove)` | `gh issue edit <n> --add-label <a> --remove-label <b>` | `glab issue update <iid> -R <repo-url> --label <a> --unlabel <b>` |
-| `close_issue(ref, reason)` | `gh issue close <n> --reason "completed"` (or `"not planned"`) | `comment_issue` with the reason, then `glab issue close <iid> -R <repo-url>` |
-| `create_label(name)` | `gh label create "<name>"` | `glab label create -R <repo-url> --name "<name>"` |
+| `find_issue(lead-id)` | `gh issue list -R <gh-repo> --state all --search "<lead-id> in:title" --json number,url,title,state,labels` | `glab issue list -R <repo-url> --all --search "<lead-id>" --in title --output json` |
+| `create_issue(title, body-file, labels)` | `gh issue create -R <gh-repo> --title "<title>" --body-file <body-file> --label "<a>,<b>"` | `glab issue create -R <repo-url> --title "<title>" --description-file <body-file> --label "<a>,<b>" --yes` |
+| `comment_issue(ref, text)` | `gh issue comment <n> -R <gh-repo> --body "<text>"` | `glab issue note <iid> -R <repo-url> --message "<text>"` |
+| `relabel_issue(ref, add, remove)` | `gh issue edit <n> -R <gh-repo> --add-label <a> --remove-label <b>` | `glab issue update <iid> -R <repo-url> --label <a> --unlabel <b>` |
+| `close_issue(ref, reason)` | `gh issue close <n> -R <gh-repo> --reason "completed"` (or `"not planned"`) | `comment_issue` with the reason, then `glab issue close <iid> -R <repo-url>` |
+| `create_label(name)` | `gh label create -R <gh-repo> "<name>"` | `glab label create -R <repo-url> --name "<name>"` |
 
 GitLab issues carry no close reason, so the closing comment records it.
 GitLab creates a missing label when an issue uses it, and `create_label`
