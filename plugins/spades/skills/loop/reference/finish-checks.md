@@ -311,7 +311,13 @@ Four assertions, each verified against the SCM host.
 
 ### 2. Nothing open on the host
 
-Three things, on both the ship PR and the bookkeeping PR:
+**No PR or MR left open** — take the URL from every `PR opened:` and
+`MR opened:` line in the Scope's Plans and read each distinct URL once
+with `review_state`; Plans that shared a ship PR record the same URL.
+`MERGED` and `CLOSED` pass. `OPEN` → not finished; the pause names the
+PR or MR and the Plans that recorded it.
+
+Then three things, on both the ship PR and the bookkeeping PR:
 
 **Zero unresolved review threads** — the § Thread sweep query on
 both PRs, counting every outstanding thread regardless of author.

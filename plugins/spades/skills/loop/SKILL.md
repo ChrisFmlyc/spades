@@ -646,17 +646,21 @@ Re-read every Plan under the Scope.
 
 Assert all four against the SCM host, never from memory of the run.
 **Probes are in [`reference/finish-checks.md`](reference/finish-checks.md)
-§ FINISHED.** A Scope whose shipped Plans are all artefact or action
-Plans has no PR and no deploy, and all four read `n/a` with the
-deliverable types it shipped: `n/a (artefact)`, `n/a (action)` or
-`n/a (artefact, action)`.
+§ FINISHED.**
 
 | # | Must be true |
 |---|---|
 | 1 | Ship PR squash-merged — `state: MERGED` with a merge SHA |
-| 2 | Nothing open on the host — zero unresolved threads on both PRs, every check green on the merge commit, every linked issue closed |
+| 2 | Nothing open on the host — every PR or MR named by a `PR opened:` or `MR opened:` line in the Scope's Plans, rejected Plans included, reads `MERGED` or `CLOSED`; zero unresolved threads on the ship and bookkeeping PRs; every check green on the merge commit; every linked issue closed |
 | 3 | Deploy successful, or `not configured`, shown as such |
 | 4 | Close bookkeeping PR squash-merged — `state: MERGED` with a merge SHA |
+
+A Scope whose shipped Plans are all artefact or action Plans has no
+ship PR, deploy or bookkeeping PR. Assertions 1, 3 and 4 read `n/a`
+with the deliverable types it shipped — `n/a (artefact)`,
+`n/a (action)` or `n/a (artefact, action)`. Assertion 2 then checks
+only that no PR or MR is left open, and reads `n/a` the same way when
+no Plan in the Scope opened one.
 
 An unmet assertion is Pause 27. All four
 hold → append `Loop — FINISHED.` and print:
