@@ -107,10 +107,12 @@ or the consumer marker rules change). The consumer-repo marker block in `AGENTS.
     rejected it.
   - `scripts/test/scm-snippets.sh` runs every command snippet the docs
     tag `<!-- scm-test: … -->` against recorded `gh`, `glab` and `git`
-    output, offline, in CI: 33 cases across GitHub and GitLab review
+    output, offline, in CI: 40 cases across GitHub and GitLab review
     state, thread sweeps, merge readiness, failed pipelines and CI lint,
-    FINISHED checks, deploy status, `find_review`, and push rejections.
-    A rejected push now exits with git's status.
+    FINISHED checks, deploy status, `find_review`, both hosts' merge
+    commands, and push rejections. A rejected push now exits with git's
+    status. A missing expected file, a failed replay, or a query that
+    drops `--paginate` fails the case.
   - The maintainer rules (`AGENTS.md` at the repo root, § SCM drivers
     move together) require a change to one SCM driver's flow to be
     weighed for the others in the same PR, and
