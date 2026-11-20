@@ -19,9 +19,11 @@ merge.
 
 ## 1. Review bots → `/codereview:loop`
 
-Invoke **`/codereview:loop <n>`** with the PR number on GitHub. On GitLab
-pass the MR link and the configured review bots, which tells it the host,
-the project and whose threads it may answer:
+Invoke **`/codereview:loop <pr-url>`** with the PR's link on GitHub: a
+bare number would let `gh` pick a repository by its own rules, which can
+be another remote's (`docs/FRAMEWORK.md § SCM Drivers`). On GitLab pass
+the MR link and the configured review bots, which tells it the host, the
+project and whose threads it may answer:
 
 ```
 /codereview:loop <mr-url> --bots <username>:<kind>,<username>:<kind>
