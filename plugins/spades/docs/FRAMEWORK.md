@@ -1830,23 +1830,28 @@ declared `SPADES-BLOCK` sections each skill fills.
    the mismatch — the SKILL.md and template have drifted and a
    framework PR is needed.
 3. **Render by substitution only.** Replace `{{spades.field}}`
-   placeholders, HTML-escaping user-supplied strings and passing
-   pre-rendered Markdown→HTML bodies through as-is. Expand
-   `<!-- SPADES-BLOCK:name --> … <!-- SPADES-ENDBLOCK -->` sections
-   once per item, with `{{block.field}}` substituted per item. Fill the
-   `<script type="application/yaml" id="spades-frontmatter">` tag with
-   the artefact's frontmatter (the fields the `.md` has) and the
+   placeholders, HTML-escaping plain-text values. HTML-valued fields
+   (`*_html`, a block's `html`) hold either body Markdown (Statement
+   of Intent, Technical Approach, etc.) converted to HTML as
+   CommonMark with raw HTML escaped, so any tag in the source
+   displays as text, or markup the skill builds around escaped
+   values. Links and images, from Markdown or an `href` field, point
+   only to `http:`, `https:` or `mailto:` URLs, `#` fragments or
+   relative paths; any other URL is dropped and its link text kept.
+   Expand `<!-- SPADES-BLOCK:name --> … <!-- SPADES-ENDBLOCK -->`
+   sections once per item, with `{{block.field}}` substituted per item.
+   Fill the `<script type="application/yaml" id="spades-frontmatter">`
+   tag with the artefact's frontmatter (the fields the `.md` has) and the
    `<script type="application/yaml" id="spades-audit-trail">` tag (when
-   present) with the audit trail entries in chronological order.
+   present) with the audit trail entries in chronological order,
+   writing `<`, `>`, `&` and `{` inside strings as double-quoted YAML
+   escapes (`\u003c`, `\u007b`) so no value can close the script or
+   form a template token.
    Validate per § Placeholder substitution and output validation, then
    write the result to the declared output path.
 4. **Preserve the bundled layout, styles, grid, widths and palette.**
    If the template cannot represent the required content, extend it
    through a framework PR before rendering.
-
-Body sections (Statement of Intent, Technical Approach, etc.) convert
-from Markdown to HTML as standard CommonMark and fill the
-`{{spades.X_html}}` placeholders.
 
 The skills that ship a bundled template: `scope`, `plan`,
 `newproject`, `objective`, `learn`, `leads`, `review`, `status`,
