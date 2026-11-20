@@ -178,8 +178,8 @@ indistinguishable and a human can take over at any boundary:
 | `shipping`, PR `MERGED`, no `Loop — learning` line | 9 — Deploy gate → 10 — Learning gate |
 | `shipping`, PR `MERGED`, `Loop — learning` recorded | 11 — Close |
 | `shipped` artefact Plan, no `Loop — learning` line | 10 — Learning gate |
-| Any other `shipped` Plan, no `Loop — plan complete` | 14 — Verify completion |
-| `shipped`, `Loop — plan complete` | 15 — Next Plan, or FINISHED |
+| `shipped` code Plan that the default branch does not yet hold at `shipped` | 14 — Verify completion |
+| Any other `shipped` Plan — complete per Stage 14 | 15 — Next Plan, or FINISHED |
 
 The loop adds audit lines only for facts SPADES does not otherwise
 record, appended to the Plan's `## Audit Trail`:
@@ -199,7 +199,6 @@ record, appended to the Plan's `## Audit Trail`:
 - YYYY-MM-DD: Loop — learning captured: <path>.
 - YYYY-MM-DD: Loop — learning declined: <one line on why>.
 - YYYY-MM-DD: Loop — paused at stage <k>: <reason>.
-- YYYY-MM-DD: Loop — plan complete.
 - YYYY-MM-DD: Loop — FINISHED.
 ```
 
@@ -596,15 +595,23 @@ re-invoke `/spades:close P-<plan-id>` to resume at B5.
 
 ## Stage 14 — Verify completion
 
-Verify each Plan's final record in the worktree where it completed, and
-append `Loop — plan complete.` to it there:
+A Plan is complete when its final record, `status: shipped` with its
+`Shipped` line, is in place. The state table reads completion from
+that record each time it derives the stage:
 
-- **Code Plan** — after the bookkeeping PR merges, verify its recorded
-  merge and the participating Plans' final records in Close's worktree,
-  and append the line for each participating Plan.
-- **Artefact Plan** — `/spades:ship` completed it in the Scope's
-  delivery worktree. Verify there that the Plan is `shipped` with its
-  `Shipped (artefact). Ref: <ref>.` line.
+- **Code Plan** — on the default branch, where Close's bookkeeping PR
+  puts the record when it merges. From the SPADES root, run
+  `git fetch <remote> <default-branch>`, then read the Plan with
+  `git show <remote>/<default-branch>:./.spades/plans/<plan_id>.md`
+  and check for `status: shipped` and its `Shipped (github)` or
+  `Shipped (gitlab)` line. While the default branch lacks them, the
+  bookkeeping PR has not merged: return to Stages 12–13.
+- **Artefact or action Plan** — in the Scope's delivery worktree, where
+  `/spades:ship` wrote `status: shipped` and its `Shipped (artefact)` or
+  `Shipped (action)` line.
+
+Verify every Plan that Ship or Close has just finished, including each
+participating Plan of a shared ship PR, then continue to Stage 15.
 
 Leave every delivery and bookkeeping branch and worktree in place.
 Future new work enters through `/repo:newbranch`.
