@@ -2386,9 +2386,11 @@ that's drift.
 
 ```
 ⚠ S-add-newsletter — local `delivering`, Linear `completed` (Done).
-    If the work is done, run /spades:close S-add-newsletter (Pass)
-    to roll up locally; if it is still delivering, set Linear to
-    match the local file.
+    When every Plan under it is `shipped` or `rejected`, with at
+    least one `shipped`, run /spades:close S-add-newsletter (Pass)
+    to roll up locally; while a Plan is still in flight, set Linear
+    to match the local file and take that Plan through its own
+    phases.
 ```
 
 The warning includes:
@@ -2396,9 +2398,16 @@ The warning includes:
 - Local status value
 - Linear's actual workflow state type (and team-specific name, if
   available)
-- The remediation: the human decides which status is right, and the
-  wrong record is repaired — the local file through its owning skill
-  or a roll-up, Linear by re-mirroring it from the local file
+- The remediation, which names the record to repair:
+  - A Scope that Linear shows `completed` while its local file is not
+    terminal follows its child Plans (§ Scope status rollup). Every
+    Plan `shipped` or `rejected`, with at least one `shipped`: roll
+    up locally with `/spades:close S-… (Pass)`. A Plan still in
+    flight: re-mirror Linear from the local file and take that Plan
+    through its own phases.
+  - Any other case: the human decides which status is right, and the
+    wrong record is repaired — the local file through its owning
+    skill, Linear by re-mirroring it from the local file.
 
 The probe is informational, not blocking. `/list` and `/status` still
 render their main view; the drift warnings appear in their own

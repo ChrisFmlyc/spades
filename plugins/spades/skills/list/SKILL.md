@@ -169,9 +169,11 @@ When the probe found mismatches, a subsection after the tables:
 ### Linear drift (N)
 
 ⚠ S-add-newsletter — local `delivering`, Linear `completed` (Done).
-    If the work is done, run /spades:close S-add-newsletter (Pass)
-    to roll up locally; if it is still delivering, set Linear to
-    match the local file.
+    When every Plan under it is `shipped` or `rejected`, with at
+    least one `shipped`, run /spades:close S-add-newsletter (Pass)
+    to roll up locally; while a Plan is still in flight, set Linear
+    to match the local file and take that Plan through its own
+    phases.
 ```
 
 Omitted when empty; replaced by *"⚠ Drift probe skipped — Linear
