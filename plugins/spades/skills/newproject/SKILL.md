@@ -1,7 +1,7 @@
 ---
 name: newproject
 description: Creates a new SPADES Project record — the long-lived container above Scopes (a repo, a set of repos, a service). Use when a new initiative needs its own SPADES Project, when someone says "new SPADES project", "create a SPADES project" or "set up a SPADES project for X", or after /spades:setup asks for an active project that doesn't exist yet. Writes .spades/projects/<slug>.md and (when backend is Linear) creates the corresponding Linear Project.
-version: 3.8.2
+version: 3.8.3
 ---
 
 # /spades:newproject
@@ -40,8 +40,6 @@ running.
 
    `missing` → abort: *"Run `/spades:setup` first — it configures the
    backend and, on the same pass, creates your first project."*
-   Setup calls this skill inline after writing the config, per
-   § Bootstrap Order.
 
 ## Step 1 — Draft the record
 
@@ -64,8 +62,7 @@ proposal until the human confirms it:
 2. Replace runs outside `[a-z0-9-]` with a single hyphen.
 3. Trim leading and trailing hyphens.
 4. Truncate to 64 characters.
-5. Reject an empty result, a leading hyphen, `..`, or a slug that
-   matches an existing project file.
+5. Reject an empty result, a leading hyphen, or `..`.
 
 *"Closed Door Security Website"* → `closed-door-security-website`.
 
@@ -158,8 +155,7 @@ linear_project_id: <uuid>        # backend: linear, injected after the wave
   values; optional `lead` is the canonical `lead` string. With no `lead`,
   the visible property uses the template's **Unassigned** fallback.
   HTML-escape visible user strings, including `lead`; encode literal token
-  braces per § Placeholder substitution and output validation. Owners keep
-  their own block and meaning.
+  braces per § Placeholder substitution and output validation.
 - `blocks`:
   - `objective-banner` — the project's sole `open` Objective
     `{ id, title }` when exactly one exists, else `[]`
@@ -192,40 +188,34 @@ frontmatter block), record the dispatch mode; file worker failed →
 abort, noting a Linear Project may be orphaned; HTML worker failed →
 keep the `.md`, surface, continue; Linear worker failed → keep the
 local file, surface, offer a retry. Track whether the new record and its
-Linear binding are ready; a failed or deferred Linear operation leaves lead
-assignment unavailable until the binding succeeds. Report that state without
-claiming a Linear Project was created or a lead assigned.
+Linear binding are ready, and report that state without claiming a Linear
+Project was created.
 
 ## Step 4 — Active project
 
-Ask: **Set as active project** (recommended)
-/ **Leave the active project unchanged**. When invoked inline by
-`/spades:setup` during bootstrap (`project:` unset), set it active
-without asking, then continue through the optional lead step and confirmation
-before returning to Setup.
+When `/spades:setup` invokes this skill during bootstrap (`project:`
+unset), set this Project active. Otherwise ask: **Set as active project**
+(recommended) / **Leave the active project unchanged**.
 
-Setting active: replace or insert `project: <slug>` in
-`.spades/config`, and with `backend: linear` likewise
-`linear.project_id` when binding succeeded. If setting this Project active
-while its Linear binding is still pending or failed, remove any previous
-`linear.project_id` so config cannot associate it with another Linear Project.
-Leaving the active project unchanged preserves both config fields. Keep the
-newly created `<slug>` as the handoff target independently of this choice.
+Setting active: replace or insert `project: <slug>` in `.spades/config`.
+With `backend: linear`, set `linear.project_id` to the new binding, or
+remove it while the binding is pending or failed, so config never
+associates this Project with another Linear Project.
 
 ## Step 5 — Optional project lead
 
-After the canonical `.spades/projects/<slug>.md` exists, and its
-`linear_project_id` has been resolved and persisted when `backend: linear`,
+When the canonical `.spades/projects/<slug>.md` exists and, with
+`backend: linear`, its `linear_project_id` has been resolved and persisted,
 ask once: *"Add a project lead?"* — **Yes** / **No**.
 An identity supplied in the creation request is retained for the Yes path;
 `owners` do not imply a lead.
 
 - **Yes** — invoke `/spades:projectlead --project <slug>` inline for this
   newly created Project. Pass any supplied name or email as the optional
-  person argument; otherwise let Projectlead ask for it. Pass the explicit
-  slug even when this Project was made active. Preserve arguments as data
-  when invoking the skill. Projectlead owns identity lookup, confirmation,
-  assignment, persistence and failure recovery under the shared contract.
+  person argument; otherwise let Projectlead ask for it. Preserve arguments
+  as data when invoking the skill. Projectlead owns identity lookup,
+  confirmation, assignment, persistence and failure recovery under the
+  shared contract.
 - **No**, dismissal or cancellation — skip assignment and continue normally.
   A cancellation inside Projectlead likewise returns here without changing
   the active-project choice or treating project creation as failed.
@@ -236,10 +226,6 @@ for the already-presented Project. Re-read the canonical Project after the
 helper returns so the confirmation and page reflect the persisted result.
 Report an incomplete or failed assignment as returned by Projectlead; project
 creation remains complete, and retrying uses the same explicit Project slug.
-
-If the local record or required Linear binding is missing, retain Step 3's
-failure/retry result and skip this optional handoff. The helper requires those
-prerequisites and never invokes Newproject or Setup to recreate them.
 
 ## Step 6 — Confirm
 
@@ -262,7 +248,7 @@ the next Scope command. Include the Linear success line only for a confirmed
 binding. For a partial or failed assignment, replace the lead success line
 with the helper's outcome, distinguish the persisted local lead from any
 confirmed remote change, and give the explicit-target retry command. Report
-pending binding accurately; it remains a prerequisite for the optional offer.
+pending binding accurately.
 
 ## Edge cases
 

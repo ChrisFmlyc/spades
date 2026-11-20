@@ -5,10 +5,6 @@ status on one artefact, records why, and lands it via a bookkeeping
 PR. Seven routes share one shape; the table supplies the values and
 the pre-checks below supply the route-specific judgement.
 
-All routes run SKILL.md's **B1** (preconditions), **B2** (branch),
-**B3** (commit), **B4** (PR), **B5** (verify merge), **B6** (retain worktree),
-**B7** (Linear mirror).
-
 ## Contents
 
 - The route table
@@ -60,20 +56,15 @@ rejection proceeds either way.
   Roll-up to `done` doesn't apply; use *Abandon* if you're walking
   away."*
 - **Any in flight** → abort with the list.
-- **Proceeding** → ask the outcome exactly as
-  [`flow-plan-pass.md`](flow-plan-pass.md) § P3.3: the project's
-  `open` Objectives, or *No outcome*. An Objective chosen writes
-  `strategy_link: O-<slug>`; the audit line ends `Outcome: <O-slug |
-  none>.` The abandon route never asks.
+- **Proceeding** → ask the outcome as
+  [`flow-plan-pass.md`](flow-plan-pass.md) § P3.3 does.
 
 **Project archive** — with child Scopes in flight, list them and ask:
 *Proceed — archive; in-flight Scopes keep
-their status* / *Abort — close them first*. Archive needs no reason.
+their status* / *Abort — close them first*.
 
 **Objectives (both routes)** — resolve
-`.spades/objectives/O-<slug>.md` (abort if missing). The
-parent-status precondition does not apply: Objectives are
-independent of the Project's lifecycle. With `backend: linear`,
+`.spades/objectives/O-<slug>.md` (abort if missing). With `backend: linear`,
 probe the sister `O-` issue first; if it is already Done, this run
 is a reconcile of the local record.
 
@@ -82,18 +73,16 @@ is a reconcile of the local record.
 | Route | Mirror |
 |---|---|
 | Plan reject | Sub-issue → Cancelled; label `spades:rejected`; comment *"Rejected. Reason: `<reason>`. Bookkeeping PR: `<URL>`."* |
-| Scope roll-up | Parent Issue → Done; with an outcome, label `outcome/O-<slug>` and comment *"Closed against `O-<slug>`. Bookkeeping PR: `<URL>`."* The only write to the parent Issue after creation. |
+| Scope roll-up | Parent Issue → Done; with an outcome, label `outcome/O-<slug>` and comment *"Closed against `O-<slug>`. Bookkeeping PR: `<URL>`."* |
 | Scope abandon | Parent Issue → Cancelled; label `spades:abandoned`; comment *"Abandoned. Reason: `<reason>`. Bookkeeping PR: `<URL>`. No cascade — child sub-issues unchanged."* |
 | Project archive | Linear Project → Completed |
 | Project abandon | Linear Project → Canceled; without a project-level cancelled state, label `spades:abandoned` and tell the human |
 | Objective complete | Sister `O-` issue → Done (the act that marks the milestone complete); comment *"Objective complete (team-lead judgement). Bookkeeping PR: `<URL>`."* Project and Scopes untouched. |
 | Objective abandon | Sister `O-` issue → Cancelled; label `spades:abandoned`; comment *"Objective abandoned. Reason: `<reason>`. Bookkeeping PR: `<URL>`."* |
 
-With `backend: local` the file on `main` is the record.
-
 ## Step sequence
 
-1. **B1** — Reject and Abandon skip the parent-status precondition.
+1. **B1**.
 2. Route-specific pre-check.
 3. **B2** — branch from the table.
 4. Edit the target: `status:`, `updated:`, audit line.

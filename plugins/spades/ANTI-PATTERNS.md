@@ -12,9 +12,9 @@ proposed.
   a background worker, or any long-lived process owned by this repo.
   Rationale: the value of the framework is that it is inspectable,
   forkable, and portable with zero build step.
-- **Do not reintroduce bash to the runtime path.** v2.0 ships zero
-  runtime shell — no `setup`, `setup.ps1`, or `bin/` directory. A PR
-  that re-adds any of these is rejected unless it carries an explicit
+- **Do not put bash in the runtime path.** SPADES ships no runtime
+  shell — no `setup`, `setup.ps1`, or `bin/` directory. A PR
+  that adds any of these is rejected unless it carries an explicit
   Scope arguing why the cross-platform property is worth giving up.
 - **Do not add a compiled build step.** No compiled runtime or CLI
   inside the plugin tree. CI lint TypeScript runs directly on Node
@@ -34,16 +34,14 @@ proposed.
   `AGENTS.md` and only `AGENTS.md`. Do not write `CLAUDE.md`,
   `CURSOR.md`, `CODEX.md`, or any other vendor variant. Claude Code,
   Cursor, Codex, Aider, and the rest all honour `AGENTS.md`.
-- **Do not auto-probe the backend.** v2 requires an explicit
+- **Do not auto-probe the backend.** SPADES requires an explicit
   `backend:` field in `.spades/config`. A PR that adds an MCP probe
   to "auto-detect Linear" is rejected — explicit is a feature.
-- **Do not add a second external integration speculatively.** Linear
+- **Do not add another external backend speculatively.** Linear
   is the only external backend shipped in-tree; local is filesystem-only.
-  The GitHub and GitLab SCM drivers publish PRs (merge requests on
-  GitLab) and Lead issues; Scopes, Plans and Objectives stay in the
-  configured backend. Another external backend (Notion, Confluence,
-  GitHub or GitLab Issues as a tracker, …) is a scope decision
-  and follows the contract in `docs/EXTENDING-BACKENDS.md`.
+  Another external backend (Notion, Confluence, GitHub or GitLab Issues
+  as a tracker, …) is a scope decision and follows the contract in
+  `docs/EXTENDING-BACKENDS.md`.
 - **Do not centralise state outside the repo.** All per-project state
   lives in `.spades/`. Do not propose a remote config service or
   shared database.
@@ -76,14 +74,10 @@ proposed.
 
 - **Do not add runtime dependencies.** There is no package manager
   inside the plugin tree. A PR that introduces `package.json`,
-  `requirements.txt`, `go.mod`, `Cargo.toml` is rejected
-  unless accompanied by an approved Plan that explicitly introduces a
-  runtime.
+  `requirements.txt`, `go.mod`, `Cargo.toml` is rejected.
 - **Do not add dev-only tooling casually.** Each added tool (linter,
   formatter) is friction on first contribution. Only add when the
-  value clearly outweighs the onboarding cost. The exception is the
-  `scripts/lint/` TypeScript-on-Node and Bash helpers, which are
-  CI-only and never run as part of a skill workflow.
+  value clearly outweighs the onboarding cost.
 - **Do not depend on an MCP server beyond the backend driver in use.**
   The framework must remain usable in environments with only the
   base tools and one backend.

@@ -18,9 +18,10 @@ marker tells them when their copy went stale.
 
 - Operating Principles — the four agile pillars and their skill map
 - SPADES Skills — the 24-skill table
-- The SPADES Loop — six phases, ownership, the fast-track exception
+- The SPADES Loop — six phases, ownership, `/spades:loop`
 - Phase Rules — per-phase contracts for Scope through Ship
 - Fast-Track Path — the 10-criterion gate
+- Review-page ownership
 - Artefacts Carry Forward
 - Architecture Constraints
 - Review Rules
@@ -93,7 +94,7 @@ The SPADES plugin (`spades`) provides these 24 skills:
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |
 | `/spades:leads` | Raise an out-of-scope discovery as a Lead mid-task without derailing the work; `--list`, `--show`, `--promote`, `--close` manage them |
 | `/spades:research` | Read-only research via an isolated researcher subagent |
-| `/spades:list` | List active scopes, filterable by phase |
+| `/spades:list` | List active scopes, filterable by phase or project |
 | `/spades:status` | Show current SPADES phase + dependency graph |
 | `/spades:intent` | Maintain `INTENT.md` — the durable project statement (why) |
 | `/spades:architecture` | Maintain `ARCHITECTURE.md` — how the system is built |
@@ -103,7 +104,8 @@ The SPADES plugin (`spades`) provides these 24 skills:
 
 ## The SPADES Loop
 
-Every unit of work follows six phases:
+Work that passes the fast-track gate ("Fast-Track Path (Small Work)"
+below) uses `/spades:quick`. All other work follows six phases:
 
     SCOPE → PLAN → APPROVE → DELIVER → EVALUATE → SHIP
 
@@ -113,27 +115,24 @@ Every unit of work follows six phases:
 - Approve records a routing decision (`ai` / `human` / `hybrid`) that
   determines who executes Deliver.
 
-Every phase runs, in order, unless the human explicitly instructs
-otherwise.
+The phases are mandatory and ordered.
 
-**Exception — the fast-track path.** Trivial work can use
-`/spades:quick` instead of the full loop. See "Fast-Track Path" below.
+**Running the phases.** Drive each phase by its command, or invoke
+`/spades:loop` after a human-owned Scope exists. The loop executes the
+phase skills and answers their questions from the Scope, Plan, config
+and project documents. It records those answers as `AI (/spades:loop)`.
 
-**Running the phases.** Drive them one command at a time, or run
-`/spades:loop` after the Scope exists to walk Plan → Ship → close-out
-in one invocation. The loop executes the same gates: it pauses for
-the human to sign off an evaluation that needed a human to verify
-part of it, and pauses again on a failed approval check, a human
-review comment, or a red CI check.
+At the Approve and Evaluate gates the loop answers for the human only
+where `docs/FRAMEWORK.md § The human gate` allows. Its other pauses
+follow `skills/loop/SKILL.md § Pauses`. See `docs/FRAMEWORK.md
+§ Orchestration Order (/spades:loop)` for invocation boundaries, capped
+rework and resumption.
 
 ## Phase Rules
 
-These rules describe manually driven phases. An explicitly invoked
-`/spades:loop` answers child-skill questions under `docs/FRAMEWORK.md
-§ Orchestration Order`: it self-approves after all six checks pass,
-confirms fully AI-verified evaluations and records its answers as
-`AI (/spades:loop)`. Human-only checks and the loop's other declared
-pauses still require the human.
+The rules below describe manually driven phases. An explicitly invoked
+`/spades:loop` answers child-skill questions under the orchestration
+contract above.
 
 Every skill asks the human only the decisions that the request, the
 artefacts and the repo leave open, puts the decisions open at the same
@@ -179,7 +178,6 @@ turn; the human's next message is the answer.
 - Approval records a `delivery:` routing on the Plan (`ai`, `human`,
   `hybrid`); the Plan already carries its `deliverable_type:`
   (`code`, `artefact`, `action`).
-- A revised or rejected Plan does not enter delivery.
 
 ### 4. Deliver (AI or Human — routed)
 - Execute the approved Plan. Routing comes from the Plan's `delivery:`
@@ -192,7 +190,7 @@ turn; the human's next message is the answer.
 - For `hybrid`: split per the Plan's task-level routing.
 - Run tests and verify before moving the Plan to Evaluate.
 
-### 5. Evaluate (Human-owned, AI assists)
+### 5. Evaluate (Human gate)
 - Check delivered output against the Scope's acceptance criteria.
 - Verdict is PASS / PARTIAL / FAIL.
 - A code Plan's evaluation includes a fresh-context review of its diff
@@ -205,9 +203,8 @@ turn; the human's next message is the answer.
   `.spades/config`:
   - **`scm: github`** — `/spades:ship` pushes the Deliver branch and
     opens the PR; review feedback lands on the same branch; after the
-    squash-merge, `/spades:close P-<id>` verifies the merge, records
-    the `Shipped` markers on main via a bookkeeping PR for the Scope,
-    and retains the worktrees. New work starts through `/repo:newbranch`.
+    squash-merge, `/spades:close P-<id>` verifies the merge and records
+    the `Shipped` markers on main via a bookkeeping PR for the Scope.
   - **`scm: gitlab`** — the same two-phase flow through a GitLab merge
     request (MR) and the `glab` CLI, on gitlab.com or a self-managed
     instance; the audit trail records `MR opened:` and `Shipped
@@ -237,7 +234,7 @@ is created.
 9. Revertible as one commit
 10. Existing tests cover the area
 
-If any criterion fails, use the full loop.
+If any criterion fails or is in doubt, use the full loop.
 
 ## Review-page ownership
 
@@ -274,7 +271,9 @@ Before generating any Plan, read these files if they exist:
 - `PATTERNS.md` — approved patterns and conventions
 - `ANTI-PATTERNS.md` — things this project deliberately avoids
 
-Flag any conflicts between proposed solutions and these documents.
+If a proposed solution conflicts with these documents, flag the
+conflict in the Plan and get explicit human approval before
+proceeding.
 
 ## Review Rules
 
@@ -298,9 +297,9 @@ Deliver, Evaluate and Ship use that worktree; subsequent Plans share it.
 Established delivery resumes via `/repo:newbranch --resume <branch>`.
 The documentation branch and its other Scopes remain available.
 
-One Scope's code Plans share one delivery PR. Dependencies can proceed on
-the same branch after a confirmed PASS; they become shipped only after the
-PR merge is verified. Ship waits for all participating code Plans to pass.
+One Scope's code Plans share one delivery PR. A dependency is ready when
+shipped, or after a confirmed PASS on the same branch; it becomes shipped
+only after the PR merge is verified. Ship waits for all participating code Plans to pass.
 Close records their shipment in one separate bookkeeping worktree/PR,
 also prepared through `/repo:newbranch`.
 
@@ -329,7 +328,7 @@ logic inside a SPADES skill.
 | Fix a block of review findings, one or many | `/codereview:fix` — one subagent per finding. Never pushes. |
 
 Deliver, Quick and Close call `/repo:newbranch`; established delivery
-resumes the Scope worktree. Documentation reuses a working branch. The commit guardrail remains `/repo:branch`.
+resumes the Scope worktree. Documentation reuses a working branch. The commit guardrail is `/repo:branch`.
 The dependency is one-directional: SPADES → `repo` / `codereview`.
 
 When the directory is not a git repo, `/spades:setup` invokes `/repo:init`
@@ -343,15 +342,13 @@ versions in the plugin's own SKILL.md frontmatter bump only when a file
 in that skill's directory changes, and the **AGENTS.md version** bumps only when the
 operating rules change. The marker block above (`vX.Y.Z`) carries the
 AGENTS.md version — it tells you which version of the rules your
-AGENTS.md was last stamped against, and only reads as stale when those
-rules actually changed (not on every unrelated plugin upgrade).
-Re-running `/spades:setup` re-stamps it.
+AGENTS.md was last stamped against. Re-running `/spades:setup` re-stamps it.
 
 Choose major / minor / patch by semver. When in doubt, lean higher.
 
 ## Audit Trail
 
-Every piece of work must trace through: project → scope → plan(s) →
+Every piece of work on the full loop must trace through: project → scope → plan(s) →
 approval (with routing) → delivery-phase record → evaluation verdict →
 shipment record. Work that cannot be traced through this chain must
 not ship.

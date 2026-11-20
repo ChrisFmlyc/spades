@@ -8,6 +8,23 @@ skill's directory changes; `agents_version` bumps only when `AGENTS.md`
 or the consumer marker rules change). The consumer-repo marker block in `AGENTS.md` carries the
 **AGENTS.md version** via `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`.
 
+## [6.11.0] — 2026-11-20
+
+Every skill, agent definition and doc now states each rule once, as written fresh. Rules that patched, softened or excepted an earlier rule were rewritten in place; fix history and denials of things nothing asked for were deleted; restatements of a FRAMEWORK contract became pointers. The repo-root `AGENTS.md` makes this the rule for every file an agent reads.
+
+Contradictions between files were settled in favour of the contract:
+
+- A Scope moves to `evaluating` when its first Plan does; `/spades:deliver` makes that move and `/spades:evaluate` no longer writes the Scope.
+- The human owns the Approve and Evaluate gates; `/spades:loop` answers for the human only where FRAMEWORK § The human gate allows.
+- `/spades:quick`'s gate criterion 8 reads "No public API or interface breaking changes", as FRAMEWORK words it.
+- `/spades:loop` lists every pause it takes in § Pauses (rows 17–27), and a GitLab `need_rebase` takes the forward merge as GitHub's `BEHIND` does.
+- `/spades:setup` requires the repo plugin, records the configured remote before `origin`, and binds an existing project's Linear Project in Step 4.
+- `/spades:review`'s re-review rule matches the `REVIEW.md` template: a finding a person answered and resolved is not reported again.
+- FRAMEWORK documents `undecided` for Plan `delivery:`/`evaluation:`, `plan_ref` for learnings, and `review_format:` in the config schema.
+- The Gemini install section is gone: the repo has no Gemini extension manifest.
+
+Versions: plugin 6.10.0 → 6.11.0; agents_version 3.5.0 → 3.6.0; approve 3.4.3, close 4.17.0, deliver 4.2.0, evaluate 3.12.0, leads 3.5.1, learn 5.0.8, list 3.6.5, loop 1.17.0, newproject 3.8.3, objective 1.4.2, plan 3.8.2, projectlead 1.0.1, quick 2.8.0, research 2.3.5, review 3.9.7, review-rules 1.0.1, scope 4.2.3, setup 4.16.0, ship 3.8.1, status 3.6.7.
+
 ## [6.10.0] — 2026-11-20
 
 - **Minor**: GitLab is a supported SCM. `/spades:setup` offers

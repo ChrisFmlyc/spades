@@ -11,13 +11,13 @@ verification results, and shipment evidence.
 
 ```
 SCOPE ──► PLAN ──► APPROVE ──► DELIVER ──► EVALUATE ──► SHIP
- (H)       (AI)     (AI/H)      (AI/H)      (AI/H)     (AI/H)
+ (H)       (AI)      (H)        (AI/H)       (H)       (AI/H)
 ```
 
-Humans define the outcome. AI drafts the Plan; approval records who
-will deliver it, and evaluation checks the result. `/spades:loop`
-can perform the approval and verification steps when the AI can
-complete them; checks requiring a human wait for that person.
+Humans define the outcome and own the Approve and Evaluate gates. AI
+drafts the Plan; approval records who will deliver it, and evaluation
+checks the result. `/spades:loop` answers a gate for the human only
+where `docs/FRAMEWORK.md § The human gate` allows.
 
 Six phases with a **Project layer above Scopes** and **pluggable
 backends** (Linear MCP, local filesystem, extensible to any MCP).
@@ -38,7 +38,7 @@ Install the plugin, then configure your repo:
 ```
 
 The `setup` skill asks for a backend, SCM (local git, GitHub or
-GitLab), review format, and active project. It creates a project when needed and offers empty templates
+GitLab), review format, and active project. It creates a project when needed and offers templates
 for incomplete project documents. Use the document skills to fill
 them in, then commit the generated files for your team.
 
@@ -68,11 +68,11 @@ before shipment.
   team gets them automatically.
 
 Optional:
-- **Linear MCP** — enables Claude Code to read/write issues, create sub-tasks,
-  and update statuses. Local mode needs no external tracker.
+- **Linear MCP** — for `backend: linear`; enables Claude Code to read/write
+  issues, create sub-tasks, and update statuses.
 - **[`gh`](https://cli.github.com) or [`glab`](https://gitlab.com/gitlab-org/cli)**,
   authenticated — for `scm: github` or `scm: gitlab`, where code ships through
-  pull or merge requests. `scm: local-git` needs neither.
+  pull or merge requests.
 
 ---
 
@@ -91,13 +91,6 @@ In Claude Code:
 /plugin install spades@spades-framework
 ```
 
-Updates:
-
-```text
-/plugin marketplace update
-/plugin update spades@spades-framework
-```
-
 ### Step 2: Configure SPADES in your repo
 
 Open Claude Code in your repo and run:
@@ -108,26 +101,30 @@ Open Claude Code in your repo and run:
 
 This walks you through:
 
-1. **Backend selection** — Linear (artefacts in a Linear Project) or
-   Local (artefacts under `.spades/`). Re-runnable to switch later.
+1. **Backend selection** — Linear (the records under `.spades/`,
+   mirrored to a Linear Project) or Local (the records under
+   `.spades/` only). Re-runnable to switch later.
 
-2. **Active project binding** — names the SPADES Project this repo
+2. **SCM and review format** — local git, GitHub or GitLab; reviews
+   on rendered HTML pages or in the CLI.
+
+3. **Active project binding** — names the SPADES Project this repo
    belongs to. Setup invokes `/spades:newproject` if you need one.
 
-3. **Framework file scaffolding** — refresh the SPADES marker block
+4. **Framework file scaffolding** — refresh the SPADES marker block
    in `AGENTS.md`, preserving content outside it. For `INTENT.md`,
-   `ARCHITECTURE.md`, `PATTERNS.md`, and `ANTI-PATTERNS.md`, setup
-   offers scaffolding for missing or incomplete documents and
-   preserves complete ones.
+   `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md` and
+   `REVIEW.md`, setup offers scaffolding for missing or incomplete
+   documents and preserves complete ones.
 
    SPADES writes `AGENTS.md` as its only agent-rules file — the convention that
    Claude Code, Cursor, Codex, Aider and other coding agents all read.
-   No `CLAUDE.md` or other per-vendor variants.
 
-Once setup is done, commit the generated files:
+Once setup is done, commit the generated files in the worktree it
+used:
 
 ```bash
-for file in AGENTS.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md INTENT.md .spades/; do
+for file in AGENTS.md ARCHITECTURE.md PATTERNS.md ANTI-PATTERNS.md INTENT.md REVIEW.md .gitignore .spades/; do
   if [ -e "$file" ]; then
     git add -- "$file"
   fi
@@ -162,7 +159,6 @@ The typical first run, end to end:
    framework files. Once per repo (re-runnable to switch backend).
 2. Fill the project documents with `/spades:intent`,
    `/spades:architecture`, `/spades:patterns`, and `/spades:anti-patterns`.
-   Setup has already bound or created the active project.
 3. `/spades:scope "Add the thing"` — the AI drafts the outcome and
    acceptance criteria from your request and the repo; you confirm or
    correct the draft. Asking for a change in plain words starts this
@@ -193,11 +189,10 @@ it for you:
 /spades:loop                     # drives the remaining phases
 ```
 
-The loop handles approval and verification when the AI can complete
-them. Approval pauses for you when a Plan changes the architecture.
-Evaluation pauses for your confirmation when it includes checks
-only a human can perform. You can discuss the evidence or ask for a
-check to be rerun before confirming.
+The loop answers the Approve and Evaluate gates for you only where
+`docs/FRAMEWORK.md § The human gate` allows, and pauses for you at the
+rest. You can discuss the evidence or ask for a check to be rerun
+before confirming.
 
 It then proceeds through shipment, bot review, a squash-merge of
 the head it re-checked against the current base, `/spades:close`, and
@@ -243,7 +238,7 @@ SPADES ships 24 skills, grouped by *when you reach for them*:
 
 | Skill | Purpose |
 |-------|---------|
-| `/spades:loop` | Drive one Scope from Plan to closed-out. Chains `plan → approve → deliver → evaluate → ship → CodeRabbit/Greptile review → squash-merge → close → review → merge`, with your acceptance of any architecture change and your sign-off when evaluation requires it, Plans delivered in dependency order in one Scope worktree, then one shared delivery PR. Your invocation, or delegation from a goal or driver you established, supplies authorization to push, open PRs or MRs, resolve **bot** review threads, and squash-merge, bounded to this Scope's own branches and PRs. It never writes a Scope or resolves a human's review comment. See `skills/loop/SKILL.md` for invocation and verification rules. |
+| `/spades:loop` | Drive one Scope from Plan to closed-out. Chains `plan → approve → deliver → evaluate → ship → bot review → squash-merge → deploy → close → review → merge`, with your decision at the Approve and Evaluate gates where `docs/FRAMEWORK.md § The human gate` requires it, Plans delivered in dependency order in one Scope worktree, then one shared delivery PR. Your invocation, or delegation from a goal or driver you established, supplies authorization to push, open PRs or MRs, resolve **bot** review threads, and squash-merge, bounded to this Scope's own branches and PRs. It never writes a Scope or resolves a human's review comment. See `skills/loop/SKILL.md` for invocation and verification rules. |
 
 #### Side path — skip the full loop for trivial work
 
@@ -257,7 +252,7 @@ SPADES ships 24 skills, grouped by *when you reach for them*:
 |-------|---------|
 | `/spades:review` | Multi-persona panel second opinion. Spawns four reviewer subagents in parallel (scope-guardian, architecture-strategist, security-lens, adversarial-reviewer), merges their findings, and presents a tiered report. Advisory only — never gates approval. **Use when you say:** "review this Scope", "second opinion on this Plan", "challenge this Plan". Also named in one line by `/spades:scope` and `/spades:approve`. |
 | `/spades:research` | Outside fact-finding via an isolated read-only Opus subagent. Returns a structured findings report; optional comment on the active Scope with explicit consent. Distinct from `review` — research looks *outward* at libraries, frameworks, prior art; review looks *inward* at our own work. **Use when you say:** "look into X", "prior art on Y", "check the SOTA for Z", "properly research this", "what does the landscape look like for…". |
-| `/spades:learn` | Capture a learning under `.spades/learnings/` so future Plans automatically surface it on related Scopes. `--refresh` archives stale entries and flags contradictions. **Use when you say:** "we should remember this", "we just learned X", "log this learning", "capture what we figured out". Also auto-offered by `/spades:ship` after a successful shipment. |
+| `/spades:learn` | Capture a learning under `.spades/learnings/` so future Plans automatically surface it on related Scopes. `--refresh` archives stale entries and flags contradictions. **Use when you say:** "we should remember this", "we just learned X", "log this learning", "capture what we figured out". Also suggested once a Plan ships. |
 | `/spades:intent` | Create or maintain `INTENT.md` — the project's durable statement (problem, users, what-it-does, success, non-goals, maturity). Different cadence from a Scope: a Scope describes one unit of work; INTENT describes the project's reason for existing. **Use when you say:** "what is this project for", "set up INTENT.md", "review our non-goals", "the intent doc is stale". Run it after `/spades:setup` scaffolds `INTENT.md`. |
 | `/spades:close` | Record shipment, rejection, or abandonment for the selected record; code shipment follows verified merge. |
 | `/spades:leads` | Capture an out-of-scope discovery, or list, inspect, promote, close, or reconcile Leads. |
@@ -278,21 +273,22 @@ questions. `list` is the inventory; `status` is the focus tool.
 
 ### How skills compose
 
-A few of the supporting skills hook into the core loop automatically,
-so you'll often invoke them without typing the slash command:
+A few of the supporting skills are offered or run from inside the
+core loop:
 
-- `/spades:scope` names `/spades:review` (Scope Review mode) in its
-  `Next:` lines, and its confirmation offers `/spades:loop` when you
-  asked for the change itself.
-- `/spades:approve` names `/spades:review` (Full Review mode) in one
-  line before the checklist.
+- `/spades:scope` names `/spades:review` in its `Next:` lines, and its
+  confirmation offers `/spades:loop` when you asked for the change
+  itself.
+- `/spades:approve` names `/spades:review` in one line before the
+  checklist.
 - `/spades:plan` automatically surfaces matching `.spades/learnings/`
   entries when drafting a Plan.
-- `/spades:ship` offers `/spades:learn` after a successful shipment.
-- `/spades:setup` offers empty scaffolding for incomplete project
+- `/spades:ship` and `/spades:close` suggest `/spades:learn` once a
+  Plan has shipped.
+- `/spades:setup` offers scaffolding for incomplete project
   documents and lists their facilitator skills as next steps.
 
-You can always invoke any skill directly too — the auto-offers are
+You can always invoke any skill directly too — the offers are
 prompts, not requirements.
 
 ---
@@ -344,19 +340,9 @@ action.
 
 ### Supporting skills (around the loop)
 
-Supporting skills handle setup, reporting, and work outside the six phases:
-
-- **One-time** — `setup` (configure backend, re-runnable) and
-  `newproject` (create a Project record) and `projectlead` (assign its lead).
-- **Side path** — `quick` (fast-track for trivial work; skips the
-  whole loop, uses a Quick marker as the audit).
-- **Optional helpers** — `review` (independent panel second opinion),
-  `research` (outside fact-finding), `learn` (capture a learning for
-  future Plans), `intent` (maintain the durable `INTENT.md`).
-- **Observability** — `list` (inventory of scopes by phase) and
-  `status` (what's in flight, dep graph, next action).
-
-See "The 24 skills" above for trigger phrases and when each one fires.
+Supporting skills handle setup, reporting, and work outside the six
+phases. "The 24 skills" above groups them by when you reach for them,
+with trigger phrases.
 
 ---
 
@@ -371,15 +357,12 @@ your-project/
 ├── PATTERNS.md            # Approved patterns and conventions
 ├── ANTI-PATTERNS.md       # Things not to do
 ├── INTENT.md              # Project's durable statement of intent
-└── .spades/
-    ├── version            # SPADES framework version this repo was set up against
-    ├── config             # backend + active project
-    ├── projects/          # Project records (one per project)
-    ├── scopes/            # Scope records (S-<description-slug>.md)
-    ├── plans/             # Plan records (P-<slug>-<suffix>[-<dep>…].md)
-    ├── learnings/         # Compounding learnings store
-    └── reviews/           # Persisted multi-persona review reports
+├── REVIEW.md              # How a code change is reviewed
+└── .spades/               # Config, version and SPADES records
 ```
+
+`docs/FRAMEWORK.md § .spades/ Local Layout` lists what `.spades/`
+holds.
 
 ---
 
@@ -454,7 +437,6 @@ context, even ones without the SPADES plugin.
 ## Principles
 
 1. **Humans define the outcome.** AI never decides what to build.
-   Evaluation routing determines which checks the AI or a human performs.
 2. **Plans are recorded.** Every plan is documented and attached
    to the work item.
 3. **Approval checks the Plan.** Review alignment, completeness,

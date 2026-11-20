@@ -19,10 +19,9 @@ set -euo pipefail
 #   - focus        — one-line focus statement
 #
 # Exit codes:
-#   0  all agents valid
+#   0  all agents valid, or nothing to validate (no agents/ directory,
+#      or an empty one; a skip message says which)
 #   1  one or more agents failed validation
-#   2  repo has no agents/ directory (fine for pre-v1.1.0
-#      consumers; exits 0 with a skip message in that case)
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PARSER="$REPO_ROOT/scripts/lint/frontmatter.ts"

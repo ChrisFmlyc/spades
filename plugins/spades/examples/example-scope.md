@@ -6,7 +6,6 @@ status: scoped
 type: feature
 priority: this-cycle
 origin: ad-hoc
-# strategy_link: https://linear.app/example/issue/ROAD-142   # optional; only when seeded from a roadmap / OKR / epic
 created: 2026-05-29
 updated: 2026-05-29
 ---
@@ -29,8 +28,8 @@ it, deployments rely on log scraping and guesswork.
 
 ## Architectural Constraints
 
-No additional constraints beyond ARCHITECTURE.md. The endpoint must
-use the same router and middleware stack as the existing API surface.
+The endpoint must use the same router and middleware stack as the
+existing API surface.
 
 ## Dependencies
 

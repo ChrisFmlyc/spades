@@ -27,22 +27,19 @@ get human approval before deviating.
   ship with the skill that produces them — never in a shared
   `templates/` or `fragments/` directory at the plugin root.
 
-  Within the skill directory, follow the documented Agent Skills
-  anatomy (`scripts/` — executables; `reference/` — docs read on
-  demand; `assets/` — files rendered into output):
+  Within the skill directory:
 
   - **Small templates stay inline** in SKILL.md. Most producing
     skills carry their body shape this way.
-  - **`template.html`** stays a flat sibling of SKILL.md. It is
-    addressed by exact path from `FRAMEWORK.md § worker-html-*`, and
-    flat siblings are a documented layout.
+  - **`template.html`** is a flat sibling of SKILL.md, addressed by
+    exact path from `FRAMEWORK.md § worker-html-*`.
   - **`reference/<name>.md`** holds material the skill reads on
     demand — one mutually-exclusive branch of a flow, a long output
     format, a per-SCM driver. This is what keeps a SKILL.md body
     under 500 lines without deleting content.
 
-  Two rules bind any `reference/` file, both from the official
-  guidance:
+  Two rules bind any `reference/` file, both from the official Agent
+  Skills guidance:
 
   1. **One level deep.** Every reference file links directly from
      SKILL.md and never points at another one. Nested references make
@@ -73,7 +70,8 @@ spades/                                       # repo root (this repo)
         ├── agents/<name>.md                  # subagent definitions (4 panel reviewers, diff reviewer, researcher)
         ├── docs/
         │   ├── FRAMEWORK.md                  # canonical framework reference
-        │   └── EXTENDING-BACKENDS.md         # contract for adding a backend driver
+        │   ├── EXTENDING-BACKENDS.md         # contract for adding a backend driver
+        │   └── EXTENDING-SCM.md              # contract for adding an SCM driver
         ├── examples/                         # worked example Scopes, Plans, Intent + fixture repos
         ├── scripts/lint/                     # CI lint scripts (TypeScript on Node + bash)
         ├── tests/fixtures/local-frontmatter/ # planted fixtures for lint self-tests
@@ -96,10 +94,10 @@ spades/                                       # repo root (this repo)
 
 ## Data Patterns
 
-- **Markdown + YAML frontmatter** is the only data format. Skills,
-  examples, and architecture docs are all Markdown. Structured
-  metadata lives in flat-key YAML frontmatter (no nested structures —
-  see the dependency-free parser in `scripts/lint/frontmatter.ts`).
+- **Markdown + YAML frontmatter.** Skills, examples, and architecture
+  docs are all Markdown. Structured metadata lives in flat-key YAML
+  frontmatter (no nested structures — see the dependency-free parser
+  in `scripts/lint/frontmatter.ts`).
 - **Marker blocks** delimit framework-owned regions in consumer
   `AGENTS.md`: `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->` /
   `<!-- SPADES-FRAMEWORK-END -->`. The marker-replace state machine
@@ -107,13 +105,9 @@ spades/                                       # repo root (this repo)
   the rewrite contract.
 - **`.spades/version`** is a `key=value` text file, not YAML or JSON
   (the file is tiny and machine-readable as plain text).
-- **`.spades/config`** is YAML. Records `backend:` (`linear` or
-  `local`), `project:` (the active project slug), and an optional
-  driver-specific block (`linear:` with `team_id` / `project_id`).
-- **IDs are semantic.** Projects use `<project-slug>`. Scopes use
-  `S-<description-slug>`. Plans use
-  `P-<description-slug>-<4-char-suffix>[-<dep-suffix>...]`. Learnings
-  use `YYYY-MM-DD-<short-slug>`. See `docs/FRAMEWORK.md` § ID Format.
+- **`.spades/config`** is YAML, with the schema in
+  `docs/FRAMEWORK.md` § `.spades/config` schema.
+- **IDs are semantic.** See `docs/FRAMEWORK.md` § ID Format.
 - **Plugin path references** resolve bundled resources through the
   installed plugin root. Skills read templates and reference files by
   explicit path; the runtime loads bundled agents by name.
@@ -143,8 +137,7 @@ spades/                                       # repo root (this repo)
   Re-running `/spades:setup` after a plugin upgrade re-stamps the
   marker block in place.
 - **Breaking changes** to skill contracts or frontmatter schemas must
-  bump the major version. The marker-replace state machine handles
-  the consumer-file refresh.
+  bump the major version.
 
 ## Approved Libraries
 
@@ -156,8 +149,7 @@ spades/                                       # repo root (this repo)
 | CI runner     | GitHub Actions          | n/a     | For lint validation on every PR |
 
 No npm / pip / cargo / go modules. No compiled code in the plugin
-tree. If a future change requires one, it is a major architectural
-shift and must be scoped explicitly.
+tree.
 
 ## Documentation Patterns
 

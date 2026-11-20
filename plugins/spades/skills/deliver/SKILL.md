@@ -1,7 +1,7 @@
 ---
 name: deliver
 description: Delivers an approved SPADES Plan in its Scope’s separate delivery branch and worktree. Routes to AI-autonomous run, human handoff, or hybrid based on the `delivery:` field set at Approve time. Use after `/spades:approve` has run, when someone says "deliver this", "execute this plan", "start delivery", or when a Plan is in status `approved`.
-version: 4.1.2
+version: 4.2.0
 ---
 
 # /spades:deliver
@@ -52,8 +52,7 @@ stays current.
      `/spades:plan` for that ancestor — rejections do not cascade,
      so the human replans it (or rejects the dependants) first. See
      `docs/FRAMEWORK.md § Plan rejection — no cascade`.
-   - A dependency neither `shipped` nor ready on the same Scope branch
-     per § Scope Worktrees → ask:
+   - A dependency that is not ready per § Scope Worktrees → ask:
      **Wait** (abort, finish the dependency first) / **Proceed
      anyway** (record the override in the audit trail).
 8. **Keep the source context** for transfer or resume in Step 1; open the
@@ -88,26 +87,23 @@ current-run authorisation and decisions already recorded.
 
 ## Step 2 — Mark delivering
 
-Record a one-line description (≤140 characters) when the human's
-request carries one. For `human` and `hybrid` routing without one, write
-it from the Plan's human tasks for the person picking them up. For
-`delivery: ai` the commit messages carry the detail, so the clause is
-omitted.
-
 Set the Plan to `status: delivering`, `updated: <today>`, and
 append one line:
 
 ```markdown
-- YYYY-MM-DD: Deliver phase started — routing: <ai|human|hybrid>[, branch: <prefix>/<slug>][ — "<description>"].
+- YYYY-MM-DD: Deliver phase started — routing: <ai|human|hybrid>, branch: <prefix>/<slug>[ — "<description>"].
 ```
 
-The branch clause records the delivery branch for every deliverable type;
-the description clause appears when one was given. Set the parent Scope's
-local `status:` to `delivering` if it is not already (the local rollup per
-`docs/FRAMEWORK.md § Scope status rollup`). With `backend: linear`, move
-the sub-issue to its `delivering` workflow state. The parent Issue is not
-touched: in Linear a Scope is open from creation until `/spades:close`
-marks it Done, and phase lives on the Plan sub-issues.
+The description is one line (≤140 characters): the human's own when the
+request carries one; otherwise, for `human` and `hybrid` routing, one
+written from the Plan's human tasks for the person picking them up. An
+`ai` Plan without one leaves the clause out; its commit messages carry
+the detail.
+
+Move the parent Scope's local `status:` from `planning` to `delivering`
+(the local rollup per `docs/FRAMEWORK.md § Scope status rollup`). With
+`backend: linear`, move the sub-issue to its `delivering` workflow state.
+The parent Issue is not touched.
 
 ## Step 3 — Route
 
@@ -117,15 +113,8 @@ marks it Done, and phase lives on the Plan sub-issues.
    dependency.
 2. Read `ARCHITECTURE.md`, `PATTERNS.md`, `ANTI-PATTERNS.md`; the
    work conforms to them.
-3. Execute tasks in Delivery Sequence order, honouring each posture:
-   - **`specify-first`** — write failing tests, then satisfy them.
-   - **`discover-first`** — pin current behaviour in tests, or read
-     the existing code and data carefully, before changing it.
-   - **`iterate`** — small steps, each leaving the tree green.
-   - **`spike`** — produce a decision record or follow-up tasks;
-     spike code is not merged.
-   - **`straight-through`** — a mechanical change covered by
-     existing tests.
+3. Execute tasks in Delivery Sequence order, honouring each task's
+   posture per `docs/FRAMEWORK.md § Execution Posture`.
 4. Commit as you go, one commit per task by default, with conventional
    messages. Include the task's changes and approved pending artefacts
    using `docs/FRAMEWORK.md § Carry-Forward → Commit contents`. Verify the
@@ -179,8 +168,8 @@ Every task carries a `- **Routing:** ai | human` bullet (written by
 
 On a Plan already `delivering`:
 
-1. Read the audit trail to see what is done, recognising both current and
-   historical markers per `docs/FRAMEWORK.md § Delivery audit markers`.
+1. Read the audit trail to see what is done, recognising the markers in
+   `docs/FRAMEWORK.md § Delivery audit markers`.
 2. Identify the remaining tasks or human assignments.
 3. AI tasks continue from where the trail left off.
 4. Human tasks: ask whether they are complete (continue) or still in
@@ -195,8 +184,8 @@ When every task is complete (AI portion done, human portion
 confirmed):
 
 1. Plan `status: evaluating`.
-2. Parent Scope `status: evaluating` when every Plan under it has
-   reached Evaluate.
+2. Parent Scope `status: evaluating` when it is at `delivering`
+   (`docs/FRAMEWORK.md § Scope status rollup`).
 3. For hybrid Plans append `- YYYY-MM-DD: Deliver phase complete —
    routing: hybrid.` first. Then, for AI and hybrid Plans, append
    `- YYYY-MM-DD: Plan ready for evaluation — routing: <ai|hybrid>.`

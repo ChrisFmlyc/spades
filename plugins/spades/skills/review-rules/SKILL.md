@@ -1,7 +1,7 @@
 ---
 name: review-rules
 description: Creates or maintains REVIEW.md, the project's rules for reviewing a code change — what counts as an Important finding, the nit cap, paths to skip, how findings cite file and line, re-review limits, and which paths need a person's sign-off. Starts from SPADES defaults the human tunes. Use when someone says "set up REVIEW.md", "update the review rules", "tune what the reviewer flags", "stop the review bot nitpicking", "skip these paths in code review", or when REVIEW.md is missing or flagged stale. Requires the human's confirmation before recording each section. A second opinion on a Scope or Plan is /spades:review.
-version: 1.0.0
+version: 1.0.1
 ---
 
 # /spades:review-rules
@@ -100,8 +100,8 @@ review, by review bots, and by people.
 ## Re-review
 
 - **New commits only.** After the first round, a review covers only the commits since the last review.
-- **No repeats.** An earlier finding that has been fixed, or answered and resolved, is not reported again.
-- **Unfixed Important findings stay.** An earlier Important finding the new commits leave unfixed stays in the result as Important until the reviewer verifies its fix.
+- **No repeats.** An earlier finding that has been fixed, or that a person answered and resolved, is not reported again.
+- **Unfixed Important findings stay.** An earlier Important finding that is neither fixed nor answered stays in the result as Important until a review verifies its fix.
 - **Rethink after three rounds.** When Important findings remain after three rounds, the reviewer recommends reconsidering the approach rather than another patch.
 
 ## Human Sign-off

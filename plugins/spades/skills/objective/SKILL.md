@@ -1,7 +1,7 @@
 ---
 name: objective
 description: Creates or edits a SPADES Objective — a coherent strategic action associated with a project (Rumelt/OKR sense), prefixed O-. Use when someone says "create an objective", "set an objective", "add an objective", "new objective", "add a milestone for this project", or "/spades:objective <description>". An Objective is independent of Scopes — it never contains, requires, or gates on one. Closing an Objective is done via /spades:close O-<slug>.
-version: 1.4.1
+version: 1.4.2
 ---
 
 # /spades:objective
@@ -38,10 +38,8 @@ Read `docs/FRAMEWORK.md` § Hierarchy → Objectives, § ID Format,
 2. **Read `backend:` and `review_format:`.**
 3. **Verify the Project is active** per `docs/FRAMEWORK.md § Target
    Resolution → Parent-status precondition`; an `abandoned` or
-   `archived` Project is a hard abort for create and edit. (Closing
-   an Objective is exempt.)
-4. **Check `INTENT.md`.** Mention a missing file and proceed;
-   creating an Objective does not require it.
+   `archived` Project is a hard abort for create and edit.
+4. **Check `INTENT.md`.** Mention a missing file and proceed.
 
 ## Step 1 — Mode
 
@@ -103,6 +101,7 @@ created: YYYY-MM-DD
 updated: YYYY-MM-DD
 linear_milestone_id: <id>       # backend: linear, injected after the wave
 linear_issue_id: <id>           # backend: linear, injected after the wave
+linear_label_id: <id>           # backend: linear, injected after the wave
 ---
 
 # <title>
@@ -149,7 +148,7 @@ assistant message, `subagent_type: general-purpose`:
 |---|---|---|
 | `worker-file-objective` | `.spades/objectives/O-<slug>.md`, written without the Linear IDs | `{ status: ok }` |
 | `worker-html-objective` *(HTML mode)* | `.spades/objectives/O-<slug>.html` | `{ status: ok, path, opened }` |
-| `worker-linear-objective` *(`backend: linear`)* | Linear — three objects: **(1)** `save_milestone(project: <linear.project_id>, name: "O-<slug>", description: <objective text>)`; **(2)** `save_issue(team: <linear.team_id>, project: <linear.project_id>, title: "O-<slug> — <title>", description: <objective text>, milestone: "O-<slug>")`, the sister tracking issue whose Done state is the Objective's completion signal; **(3)** the outcome label: ensure a workspace-level label group named `outcome` exists (`issueLabelCreate` with no `teamId`; idempotent — reuse it when found), then `issueLabelCreate(name: "O-<slug>", parentId: <group id>, description: <strategy_link, or the title when empty>)`. Label groups are exclusive, so a Scope can carry at most one outcome. `/spades:close` applies this label to a Scope's parent Issue at roll-up; nothing applies it at creation. Carries the resolved worktree context per § Freshness. | `{ status: ok, linear_milestone_id, linear_issue_id, linear_label_id }` |
+| `worker-linear-objective` *(`backend: linear`)* | Linear — three objects: **(1)** `save_milestone(project: <linear.project_id>, name: "O-<slug>", description: <objective text>)`; **(2)** `save_issue(team: <linear.team_id>, project: <linear.project_id>, title: "O-<slug> — <title>", description: <objective text>, milestone: "O-<slug>")`, the sister tracking issue whose Done state is the Objective's completion signal; **(3)** the outcome label: ensure a workspace-level label group named `outcome` exists (`issueLabelCreate` with no `teamId`; idempotent — reuse it when found), then `issueLabelCreate(name: "O-<slug>", parentId: <group id>, description: <strategy_link, or the title when empty>)`. Label groups are exclusive, so a Scope can carry at most one outcome. `/spades:close` applies this label to a Scope's parent Issue at roll-up. Carries the resolved worktree context per § Freshness. | `{ status: ok, linear_milestone_id, linear_issue_id, linear_label_id }` |
 
 With `backend: local` the file is the whole Objective. After the
 wave: all ok → inject the three Linear IDs into the `.md` (and the

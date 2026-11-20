@@ -24,7 +24,7 @@ when working in it. Invoke the main ones by their namespaced names:
 | `/spades:deliver` | Execute an approved Plan, routed per the approval decision |
 | `/spades:evaluate` | Check delivered output against acceptance criteria |
 | `/spades:ship` | Open the PR or MR (code) or record the deliverable (artefact / action) |
-| `/spades:close` | Conversational close-out entry. Asks pass / reject / abandon based on target type. Pass = finalise (Plan → shipped, Scope → done, Project → archived, Objective → complete). Reject (Plans) and Abandon (Scopes, Projects, Objectives) require a reason. Objective completion is ungated and has no cascade. Opens a bookkeeping PR for any file change. |
+| `/spades:close` | Conversational close-out entry. Asks pass / reject / abandon based on target type. Pass = finalise (Plan → shipped, Scope → done, Project → archived, Objective → complete). Reject (Plans) and Abandon (Scopes, Projects, Objectives) require a reason. Objective completion is ungated and has no cascade. Records terminal states on `main` through a bookkeeping PR. |
 | `/spades:quick` | Fast-track for trivial work — quick-item marker file (`.spades/quick/Q-<id>.md`) is the canonical audit record |
 | `/spades:review` | Multi-persona panel second opinion (4 subagents) on Scope/Plan |
 | `/spades:learn` | Capture a learning under `.spades/learnings/` |
@@ -43,19 +43,15 @@ project is `spades-framework` — the framework dogfooding itself.
 
 ## The SPADES Loop
 
-Every unit of work in this project follows six phases:
+Work that passes the fast-track gate ("Fast-Track Path (Small Work)"
+below) uses `/spades:quick`. All other work follows six phases:
 
     SCOPE → PLAN → APPROVE → DELIVER → EVALUATE → SHIP
 
 Humans own Scope and the Approve / Evaluate gates. AI owns Plan; Deliver is
 routed at Approve time (`ai` / `human` / `hybrid`). Ship branches on
-`deliverable_type` (`code` / `artefact` / `action`). You must never
-skip a phase or combine phases without explicit human instruction.
-
-**Exception — the fast-track path.** Trivial work (a typo, a one-line
-tweak, a config nudge) can use `/spades:quick` instead of the full
-loop. See "Fast-Track Path (Small Work)" below for the gate criteria.
-When in doubt, use the full loop.
+`deliverable_type` (`code` / `artefact` / `action`). The phases are
+mandatory and ordered.
 
 ### Running the phases: by hand, or via `/spades:loop`
 
@@ -64,16 +60,13 @@ human-owned Scope exists. The loop executes the phase skills and answers
 their questions from the Scope, Plan, config and project documents.
 It records those answers as `AI (/spades:loop)`.
 
-The loop runs all six approval checks and self-approves only when they
-pass. It derives evaluation from the verification rows: when every row has been
-AI-verified, it confirms the verdict; when a row requires a human, that
-human performs the check and confirms the verdict. Other pauses follow
+At the Approve and Evaluate gates the loop answers for the human only
+where `docs/FRAMEWORK.md § The human gate` allows. Its other pauses follow
 `skills/loop/SKILL.md § Pauses`.
 
 Route tasks and checks to `ai` by default, and to `human` when the agent
 cannot perform them. The loop uses the same status fields and audit records
-as manual execution, so the human can take over at any stage. Completed
-branches and worktrees remain available.
+as manual execution, so the human can take over at any stage.
 
 See `docs/FRAMEWORK.md § Orchestration Order (/spades:loop)` for invocation
 boundaries, capped rework and resumption.
@@ -125,7 +118,7 @@ and the exemptions for closure and read-only views.
 
 ### 1. Scope (Human-Owned)
 
-- You must NEVER begin planning or writing code without a written Scope.
+- You must NEVER begin planning or writing code without a signed-off Scope.
 - A Scope has an ID of the form `S-<description-slug>` and lives at
   `.spades/scopes/S-<slug>.md` (with a backend mirror when `backend:
   linear`).
@@ -137,7 +130,7 @@ and the exemptions for closure and read-only views.
   every criterion passes, invoke `/spades:quick`; otherwise invoke
   `/spades:scope` with the request as its description. The human owns
   the Scope by confirming its content, so starting the draft needs no
-  separate go-ahead. Plan begins once the Scope is written.
+  separate go-ahead.
 - A request that arrives during other work, including a `/spades:loop`
   run, is acknowledged at once. Work the current task's acceptance
   criteria need stays in that task; other work starts its intake as soon
@@ -154,9 +147,7 @@ and the exemptions for closure and read-only views.
   `P-<description-slug>-<4-char-suffix>[-<dep-suffix>...]`. The 4-char
   suffix is randomly minted at creation; dependency suffixes encode
   which prior Plans must be ready first per § Scope Worktrees and Freshness.
-- Plans declare dependencies via `depends_on:` in frontmatter. A dependency
-  is ready when shipped, or confirmed PASS on this Scope branch; readiness
-  permits dependent delivery without claiming the dependency is shipped.
+- Plans declare dependencies via `depends_on:` in frontmatter.
 - Each Plan body includes: technical approach, 3–7 tasks, risks &
   assumptions, testing & verification, delivery sequence.
 - Each task in a Plan declares an execution posture (`specify-first`,
@@ -176,8 +167,8 @@ and the exemptions for closure and read-only views.
 - On approval, the gate ALSO records a **routing decision** on the
   Plan's frontmatter: `delivery: ai | human | hybrid`. This determines
   who executes Deliver.
-- If revised or rejected, do not begin delivery. Apply `plan-rejected`
-  (Linear) or note in the local audit trail.
+- If revised or rejected, apply `plan-rejected` (Linear) or note it in
+  the local audit trail.
 - **Panel second opinion (optional).** The human may request
   `/spades:review` before deciding. It spawns four persona subagents —
   scope-guardian, architecture-strategist, security-lens,
@@ -189,21 +180,21 @@ and the exemptions for closure and read-only views.
 
 - Execute the approved Plan via `/spades:deliver`. Routing comes from the
   Plan's `delivery:` field set at Approve time.
-- Deliver creates the Scope's separate delivery branch and worktree through
-  `/repo:newbranch`, using the intended `branch:` recorded on the Scope.
-  Every Plan in the Scope shares it; `/spades:ship` publishes the branch
-  through its PR after the participating code Plans pass evaluation.
+- The first Deliver in a Scope creates its separate delivery branch and
+  worktree through `/repo:newbranch`, using the intended `branch:`
+  recorded on the Scope. Every Plan in the Scope shares it.
 - For `delivery: ai`: run the work autonomously, honouring each task's
   execution posture. Commit as you go.
 - For `delivery: human`: record the assignment in the backend and
-  stand down. Do not auto-deliver.
+  stand down.
 - For `delivery: hybrid`: split per the Plan's per-task routing.
 - Before starting, verify dependencies are ready per § Scope Worktrees
-  and Freshness. A rejected dependency requires replanning.
+  and Freshness. A rejected dependency follows
+  `docs/FRAMEWORK.md § Plan rejection — no cascade`.
 - If you discover the Plan is wrong mid-Deliver, STOP. Surface the
   discrepancy; do not silently change direction.
 
-### 5. Evaluate (Human-Owned)
+### 5. Evaluate (Human Gate)
 
 - After Deliver completes, the Plan moves to `status: evaluating`. Run
   `/spades:evaluate` to check delivered output against the Scope's
@@ -232,8 +223,7 @@ and the exemptions for closure and read-only views.
       self-managed instance; the audit trail records `MR opened:` and
       `Shipped (gitlab). MR: …`.
     - **`scm: local-git`** — single-phase: push to the configured
-      remote (if any), record the commit SHA, mark shipped. No PR,
-      no CodeRabbit.
+      remote (if any), record the commit SHA, mark shipped.
     - Other SCMs (Bitbucket, Gitea, …) follow the contract in
       `docs/EXTENDING-SCM.md`.
   - **`artefact`** — record the artefact reference (URL, doc ID, file
@@ -246,8 +236,8 @@ and the exemptions for closure and read-only views.
   at least one `shipped`. When any sibling is `rejected`, the rollup
   is acknowledged by the human's answer so the rejection is
   recorded explicitly in the Scope audit trail. A Scope where every
-  Plan was `rejected` does not roll up to `done` — it remains at
-  `shipping` until the human re-scopes or abandons explicitly.
+  Plan was `rejected` remains at `shipping` until the human re-scopes
+  or abandons it.
 
 ## Architecture Constraints
 
@@ -283,9 +273,9 @@ Deliver, Evaluate and Ship use that worktree; subsequent Plans share it.
 Established delivery resumes via `/repo:newbranch --resume <branch>`.
 The documentation branch and its other Scopes remain available.
 
-One Scope's code Plans share one delivery PR. Dependencies can proceed on
-the same branch after a confirmed PASS; they become shipped only after the
-PR merge is verified. Ship waits for all participating code Plans to pass.
+One Scope's code Plans share one delivery PR. A dependency is ready when
+shipped, or after a confirmed PASS on the same branch; it becomes shipped
+only after the PR merge is verified. Ship waits for all participating code Plans to pass.
 Close records their shipment in one separate bookkeeping worktree/PR,
 also prepared through `/repo:newbranch`.
 
@@ -339,8 +329,7 @@ sub-agent already wrote.
 The canonical contract — including the one-sub-agent-per-resource
 rule, dispatch modes (`subagent-dispatch` / `sequential-inproc` /
 `degraded`), and failure semantics — lives in
-`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`. This is the
-operating-rules-level statement; that section is the contract.
+`docs/FRAMEWORK.md § Sub-agent Dispatch (Fan-Out)`.
 
 ## Defer to the `repo` Plugin for Git Operations
 
@@ -357,7 +346,7 @@ logic inside a SPADES skill.
 | Refuse to commit on `main` / `master` | `/repo:branch` enforces this absolutely — no overrides. |
 
 Deliver, Quick, and Close call `/repo:newbranch` for new work; existing
-delivery phases resume its worktree. `/repo:branch` remains the commit and
+delivery phases resume its worktree. `/repo:branch` is the commit and
 name guardrail, invoked by the repo workflow. The dependency is
 one-directional: SPADES → `repo`, never the reverse.
 
@@ -377,9 +366,6 @@ re-implementing the fix-or-answer contract, and handles only what
 and the final sweep before merge. A human's thread is never
 auto-resolved by either plugin. Same one-directional rule: SPADES →
 `codereview`, never the reverse.
-
-Before any commit or `/spades:ship` that touches `plugins/spades/`, run
-the § Versioning release gate (version bump + changed skills + CHANGELOG).
 
 ### Repository setup
 
@@ -418,7 +404,7 @@ Commit only when every applicable check is complete:
 ```
 [ ] plugin version  X.Y.Z → X.Y.Z   (plugin.json + marketplace ×2 + .spades/version — all four)
 [ ] skills bumped   <name> a.b.c → a.b.c, …   (every skill dir with ANY changed file, incl. template.html)
-[ ] agents_version  X.Y.Z → X.Y.Z   (only if AGENTS.md changed; else n/a)
+[ ] agents_version  X.Y.Z → X.Y.Z   (only if AGENTS.md or agents-md-block.md changed; else n/a)
 [ ] CHANGELOG entry added under the new plugin version
 ```
 
@@ -443,9 +429,9 @@ release gate checks that changed components received a bump.
   `plugins/spades/.spades/version` as `agents_version=X.Y.Z`, and
   stamped into the consumer-repo marker
   (`<!-- SPADES-FRAMEWORK-START vX.Y.Z -->`) by `/spades:setup`. Bumps
-  **only** when the rules consumers carry change, including
-  `skills/setup/reference/agents-md-block.md`. The marker tracks this
-  rules version so consumers can detect stale operating instructions.
+  **only** when `AGENTS.md` or `skills/setup/reference/agents-md-block.md`
+  changes. The marker tracks this rules version so consumers can detect
+  stale operating instructions.
 
 ### Choosing major / minor / patch
 
@@ -480,9 +466,9 @@ different levels:
 - Skill B: `2.0.0` → `2.1.0` (additive)
 - Plugin: `2.0.0` → `3.0.0` (at least the highest of the skill bumps)
 
-The plugin version is always **at least** the highest of the skill
-versions that changed — a breaking change in any one skill forces
-the plugin to bump major.
+The plugin bump is always **at least** the highest of the skill
+bumps — a breaking change in any one skill forces the plugin to bump
+major.
 
 `scripts/lint/lint-skill-frontmatter.sh` requires a `version:` field on
 every skill's SKILL.md. Missing versions fail CI.
@@ -502,7 +488,7 @@ under the new plugin version. Entry shape:
 
 ## Audit Trail
 
-Every piece of work must trace through:
+Every piece of work on the full loop must trace through:
 
 1. A Project record
 2. A signed-off Scope
@@ -520,10 +506,6 @@ Trivial work that passes every criterion below uses `/spades:quick`.
 The quick-item marker is the canonical audit record; the PR description
 carries its checklist. No separate Scope or Plan record is created.
 
-**When a human describes a small fix, check the fast-track gate
-BEFORE invoking `/spades:scope`.** If every criterion below passes,
-run `/spades:quick`. Otherwise fall back to the full loop.
-
 ### The Gate — ALL must be true
 
 1. Single concern (one bug, one tweak, one touch-up)
@@ -538,8 +520,8 @@ run `/spades:quick`. Otherwise fall back to the full loop.
 10. Existing tests cover the area (trivial extension is fine; new
     test scaffolding is not)
 
-If *any* criterion fails, stop and invoke `/spades:scope` for the full
-loop. The gate is all-or-nothing.
+If *any* criterion fails or is in doubt, stop and invoke `/spades:scope`
+for the full loop.
 
 ### Incident response
 
@@ -578,8 +560,7 @@ Plans use `rejected` (via `/spades:approve` or `/spades:evaluate`
 FAIL); Quick items have no terminal walk-away status at all.
 
 An unfinished Quick item is dropped by deleting its marker at
-`.spades/quick/Q-<id>.md`; git history records the deletion. Quick items
-therefore need no separate abandonment status.
+`.spades/quick/Q-<id>.md`; git history records the deletion.
 
 
 

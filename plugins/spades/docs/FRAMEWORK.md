@@ -18,14 +18,14 @@ Every unit of work moves through six phases:
 SCOPE → PLAN → APPROVE → DELIVER → EVALUATE → SHIP
 ```
 
-| Phase     | Who owns it          | Output                                   |
-|-----------|----------------------|------------------------------------------|
-| Scope     | Human (AI assists)   | A signed-off Scope record                |
-| Plan      | AI (human reviews)   | One or more Plan records, with deps      |
-| Approve   | Human gate           | `delivery:` routing recorded on the Plan |
-| Deliver   | AI or human (routed) | Implementation artefacts                 |
-| Evaluate  | Human (AI assists)   | PASS / PARTIAL / FAIL verdict            |
-| Ship      | Mixed                | Deliverable shipped (PR merged, or…)     |
+| Phase    | Who owns it                   | Output                                   |
+|----------|-------------------------------|------------------------------------------|
+| Scope    | Human (AI assists)            | A signed-off Scope record                |
+| Plan     | AI (human reviews)            | One or more Plan records, with deps      |
+| Approve  | Human gate (§ The human gate) | `delivery:` routing recorded on the Plan |
+| Deliver  | AI or human (routed)          | Implementation artefacts                 |
+| Evaluate | Human gate (§ The human gate) | PASS / PARTIAL / FAIL verdict            |
+| Ship     | Mixed                         | Deliverable shipped (PR merged, or…)     |
 
 The phases are mandatory and ordered. The only sanctioned shortcut is
 the **fast-track path** (see § Fast-Track Path).
@@ -68,8 +68,8 @@ of the other:
 
 ```
 Project (project-slug)
-├── Objective (O-<slug>)        e.g. "O-q3-trust-launch"   ← independent
-└── Scope (S-<description>)      e.g. "S-add-ai-helper-bot"  ← unchanged
+├── Objective (O-<slug>)        e.g. "O-q3-trust-launch"
+└── Scope (S-<description>)      e.g. "S-add-ai-helper-bot"
     └── Plan (P-<description>-<id>)
 ```
 
@@ -92,16 +92,13 @@ Rules that define an Objective (the full contract):
   lifecycle changes never touch an Objective.
 - **The human alone judges completion.** Completion is *ungated* — there is
   no rollup and no derived state. The team lead decides it is done.
-- **Loose directional relationship to Scopes.** In principle, as Scopes are
-  completed the project moves *closer* to its Objective — but this is a
-  strategic, human-held intuition, not a mechanical link. A Scope records
-  the Objective it delivered against **once, as it closes**: `/spades:close`
-  (Scope roll-up) offers the project's open Objectives, writes
+- **Recorded against a Scope at close.** A Scope records the Objective it
+  delivered against **once, as it closes**: `/spades:close` (Scope
+  roll-up) offers the project's open Objectives, writes
   `strategy_link: O-<slug>` on the Scope, and, with `backend: linear`,
   applies the `outcome/O-<slug>` label to the Scope's parent Issue. The
-  record is documentary — it gates nothing and cascades nothing — but it
-  is deterministic, so an external reader can attribute closed Scopes to
-  Objectives without guessing.
+  record is documentary: it gates nothing and cascades nothing, and it
+  lets an external reader attribute closed Scopes to Objectives.
 
 The minimal Objective record and its backend mapping are defined in
 § ID Format, § .spades/ Local Layout, and § Backend Interface below.
@@ -114,11 +111,9 @@ org uses (Linear, Jira, Productboard, a spreadsheet, etc.). A Scope
 is the moment a Roadmap item becomes concrete work.
 
 The roadmap reaches SPADES through the Objective (`O-<slug>`), whose
-own `strategy_link:` points at the upstream roadmap item. A Scope does
-**not** name an outcome when it is created. It names the Objective it
-delivered against once, at `/spades:close` (Scope roll-up), which
-writes `strategy_link: O-<slug>` on the Scope. The audit chain then
-runs unbroken from strategy to shipped work:
+own `strategy_link:` points at the upstream roadmap item. A Scope names
+the Objective it delivered against once, at `/spades:close` (§ Objectives
+above), so the audit chain runs unbroken from strategy to shipped work:
 
 ```
 <Roadmap item>  →  Objective O-<slug> (strategy_link: <ref>)
@@ -129,7 +124,7 @@ runs unbroken from strategy to shipped work:
 
 Scopes can also arise **reactively** — incidents, tech debt, ad-hoc
 requests — or simply outside any strategy. At close the human picks
-*No outcome*, `strategy_link:` stays absent, and the existing
+*No outcome*, `strategy_link:` stays absent, and the
 `origin:` field carries the rationale (`reactive`, `ad-hoc`, `okr`).
 A Scope with no outcome is a valid Scope; SPADES never requires one.
 
@@ -173,22 +168,25 @@ Skill responsibilities:
 
 - `/spades:plan` bumps the Scope from `scoped` → `planning` on the
   first Plan created.
-- `/spades:approve` does NOT change the Scope's status — the Plan's
-  own `status: approved` carries the gate decision. The Scope stays
-  at `planning` through the approval gate.
+- `/spades:approve` leaves the Scope at `planning`; the Plan's own
+  `status: approved` carries the gate decision.
 - `/spades:deliver` bumps `planning` → `delivering` on the first Plan
-  entering Deliver.
-- `/spades:evaluate` bumps to `evaluating` on the first PASS verdict.
+  entering Deliver, and `delivering` → `evaluating` on the first Plan
+  it moves to `evaluating`.
 - `/spades:ship` bumps to `shipping` on the first PR opened.
-- `/spades:close` is the **only** skill that transitions Scope →
-  `done`. It applies the mixed-terminal rollup rules below, and it
-  is where the Scope's outcome is asked and recorded.
+- The skill that marks a Plan `shipped` transitions the Scope →
+  `done`, applying the mixed-terminal rollup rules below:
+  `/spades:close` on the two-phase path (`code` with `scm: github` or
+  `scm: gitlab`), where it also asks and records the Scope's outcome,
+  and `/spades:ship` on its single-phase paths (`code` with
+  `scm: local-git`, `artefact`, `action`).
 
 The rollup above is **local**. In Linear the Scope's parent Issue has
-two states: open (its creation state) and Done or Cancelled, set by
-`/spades:close`. No skill between creation and close writes to the
-parent Issue; every intermediate phase lives on the Plan sub-issues
-(their workflow state and audit comments).
+two states: open (its creation state) and Done or Cancelled. Done is
+set by the skill that rolls the Scope up to `done`, Cancelled by
+`/spades:close` when it abandons the Scope; no other skill writes to
+the parent Issue after creation. Every intermediate phase lives on the
+Plan sub-issues (their workflow state and audit comments).
 
 **One-way transitions only.** A Scope never moves backward. If Plan
 B is rejected after Plan A has shipped, the Scope stays at `shipping`
@@ -196,13 +194,13 @@ B is rejected after Plan A has shipped, the Scope stays at `shipping`
 its own track. The Scope's audit trail records both transitions.
 
 **Rejected Plans do not block rollup, but require explicit
-acknowledgement.** They're terminal — `/spades:close` classifies
-each sibling as `shipped`, `rejected`, or still in flight, then
-applies the rollup rules:
+acknowledgement.** They're terminal — the skill rolling the Scope up
+classifies each sibling as `shipped`, `rejected`, or still in flight,
+then applies the rollup rules:
 
 - Every sibling `shipped` → roll up silently to `done`.
 - Mix of `shipped` and `rejected`, at least one `shipped` →
-  `/spades:close` asks the human, listing the rejected
+  the skill asks the human, listing the rejected
   siblings; on confirmation the Scope rolls up to `done` with the
   rejections acknowledged in the audit trail.
 - Every sibling `rejected` (no `shipped`) → no rollup. The Scope
@@ -247,7 +245,8 @@ from its filename), filesystem-safe, and stable.
   the Lead is picked up.
 - Published, with `scm: github` or `scm: gitlab`, as an issue in the
   repository behind `github.remote` or `gitlab.remote`, titled
-  `L-<slug> — <title>` and labelled `spades:lead` plus its type. With `backend: linear` it is also mirrored
+  `L-<description-slug>-<suffix> — <title>` and labelled `spades:lead`
+  plus its type. With `backend: linear` it is also mirrored
   per § The two shipped drivers. The local file stays canonical;
   `skills/leads/SKILL.md` owns the procedure.
 
@@ -270,14 +269,8 @@ from its filename), filesystem-safe, and stable.
   `/spades:status` surface quick items in their own subsection,
   distinct from Scopes. `/spades:evaluate` accepts a `Q-…` target
   and runs its Quick-Path Branch (PR retro-validation).
-- **Two-phase lifecycle.** `/spades:quick` opens the marker at
-  `status: shipping` and opens the PR. After the PR merges, the
-  human runs `/spades:close Q-<id>` to flip to `status: shipped`
-  (matching the Plan ship → close two-phase shape). The flip lands on
-  `main` through a one-commit bookkeeping PR of its own, because the
-  Quick branch is already merged. `status: shipped` always means
-  *actually merged* — never PR-opened-but-unmerged. See `/spades:quick`
-  and the Quick Close Flow in `/spades:close`.
+- **Two-phase lifecycle** (`shipping`, then `shipped` after merge), per
+  § Fast-Track Path.
 
 Worked examples:
 
@@ -305,7 +298,7 @@ while retaining a readable filename.
 ```
 .spades/
 ├── config                                    # backend + active project
-├── version                                   # framework version (2.0.0)
+├── version                                   # spades_version= (plugin) and agents_version= (operating rules)
 ├── projects/<project-slug>.md                # project records
 ├── objectives/O-<description-slug>.md        # objective records (independent of scopes)
 ├── scopes/S-<description-slug>.md            # scope records
@@ -322,6 +315,7 @@ while retaining a readable filename.
 backend: linear | local
 project: <project-slug>             # active project for this repo
 scm: github | gitlab | local-git    # source-code-management tool (default: local-git)
+review_format: html | cli           # set by /spades:setup Step 3 — Review format (default: cli); § Output Format
 leads: on | off                     # lead capture kill switch (default: on)
 linear:                             # only when backend: linear
   team_id: <uuid>
@@ -342,9 +336,8 @@ local_git:                          # only when scm: local-git AND a remote is c
 § SCM Drivers describes the three drivers. Other SCMs (Bitbucket,
 Gitea, …) become drivers per `docs/EXTENDING-SCM.md`.
 
-There is **no auto-probe**. The `setup` skill writes this file
-explicitly when the human chooses a backend. Skills that read it
-trust the value verbatim.
+The `setup` skill writes this file when the human chooses a backend.
+Skills that read it trust the value verbatim.
 
 ### `.spades/projects/<slug>.md` frontmatter
 
@@ -373,8 +366,8 @@ linear_lead_id: <uuid>              # optional; verified Linear user ID, require
 The optional `lead` field is a nonempty string: the supplied name or email
 for a local project, or the confirmed user email for a Linear project.
 `linear_lead_id` is an optional user UUID paired with `lead` after verified
-Linear assignment. Both fields may be absent on an unassigned or older
-Project. Owners and discovery Leads retain their separate meanings.
+Linear assignment. Both fields are absent on an unassigned Project.
+`owners` and discovery Leads are separate from `lead`.
 
 A direct invocation targets the active Project; a caller can pass an
 explicit Project slug while preserving the active-project setting.
@@ -498,8 +491,8 @@ scope: S-add-ai-helper-bot
 title: "RAG Pipeline Lookup"
 depends_on: [28sD]                  # list of prior plans' id_suffix values
 status: draft | approved | delivering | evaluating | shipping | shipped | rejected
-delivery: ai | human | hybrid       # set by /spades:approve
-evaluation: ai | human | hybrid     # set by /spades:evaluate
+delivery: ai | human | hybrid | undecided     # set by /spades:approve
+evaluation: ai | human | hybrid | undecided   # set by /spades:evaluate
 deliverable_type: code | artefact | action  # what Ship needs to do
 created: 2026-05-29
 updated: 2026-05-29
@@ -530,6 +523,7 @@ created: 2026-05-29
 status: active | archived
 public_safe: true | false
 scope_ref: S-add-ai-helper-bot      # optional
+plan_ref: P-rag-pipeline-lookup-3HyD  # optional
 ---
 ```
 
@@ -560,8 +554,7 @@ inline in this order:
    the human to `/spades:setup` and stops. Setup then creates the project
    through the sequence above.
 
-Setup owns prerequisite execution. Newproject requires the config and
-never invokes Setup.
+Setup owns prerequisite execution.
 
 ---
 
@@ -642,27 +635,27 @@ take over or return control at any stage boundary.
 
 ### The human gate
 
-The loop has two designed pauses. **Approve pauses when the Plan
-changes the architecture**: a new runtime dependency or pattern, an
-edit to `ARCHITECTURE.md`, `PATTERNS.md` or `ANTI-PATTERNS.md`, or a
-conflict with them. Otherwise the AI executes Approve (the six checks
-are walked; a clean sweep self-approves). The **Evaluate sign-off
-fires only when the evaluation needed a human.** Evaluate's verdict
-is derived from the rows. If every row was
-AI-verified, the loop confirms the verdict itself and carries on; if
-one or more rows could only be run by a human, the human runs them
-and confirms the verdict.
+The human owns both gates, Approve and Evaluate. `/spades:loop`
+answers for the human at a gate only where this section allows.
+**Approve pauses when the Plan changes the architecture**: a new
+runtime dependency or pattern, an edit to `ARCHITECTURE.md`,
+`PATTERNS.md` or `ANTI-PATTERNS.md`, or a conflict with them.
+Otherwise the AI executes Approve (the six checks are walked; a clean
+sweep self-approves). The **Evaluate sign-off fires only when the
+evaluation needed a human.** Evaluate's verdict is derived from the
+rows. If every row was AI-verified, the loop confirms the verdict
+itself and carries on; if one or more rows could only be run by a
+human, the human runs them and confirms the verdict.
 
-Assign a `human` row only when no agent can run the check, per
-`skills/loop/SKILL.md § Autonomy doctrine`. Route auth, secrets, schema
-migrations and data deletion checks by the same verifiability criterion.
+Assign a `human` row only when no agent can run the check, whatever it
+covers (auth, secrets, schema migrations and data deletion included), per
+`skills/loop/SKILL.md § Autonomy doctrine`.
 
-Under the loop, the child skills' own questions from Plan onward are
-answered by the loop, not forwarded — `/spades:plan`'s title and breakdown,
-`/spades:approve`'s decision, `/spades:learn`'s classification, and
-the rest. The child skills stay written for hand-driving and are
-unchanged by this; **the loop is the override**, and it records its
-answers as its own (`AI (/spades:loop)`), never as the human's.
+The child skills are written for hand-driving. Under the loop, the loop
+answers their questions from Plan onward — `/spades:plan`'s title and
+breakdown, `/spades:approve`'s decision, `/spades:learn`'s
+classification, and the rest — and records each answer as its own
+(`AI (/spades:loop)`), never as the human's.
 
 ---
 
@@ -720,19 +713,19 @@ their storage; skills don't need to know how.
   exclusive workspace label group `outcome`, whose description carries
   the Objective's `strategy_link`. Exclusivity is what makes "a Scope
   delivers against at most one outcome" a Linear guarantee.
-- Scope → parent Issue. Open from creation; Done (or Cancelled) at
-  `/spades:close`, which is the only write to it after creation. With an
+- Scope → parent Issue. Open from creation; Done or Cancelled per
+  § Scope status rollup, the only writes to it after creation. With an
   outcome chosen at close, labelled `outcome/O-<slug>`.
 - Plan → sub-issue under the parent. Carries every phase transition:
   workflow state plus the approve, evaluation, and shipped comments.
-- Lead → a Linear **Issue on the Project**, titled `L-<slug> — <title>`,
+- Lead → a Linear **Issue on the Project**, titled
+  `L-<description-slug>-<suffix> — <title>`,
   labelled `spades:lead` plus its classification, held in the team's
   triage/backlog state. It is not a Scope and never becomes one —
   promoting a Lead removes the `spades:lead` label and comments; the
   work then enters the loop through `/spades:scope` or `/spades:quick`.
   Mirrored whenever the project's backend is Linear, on the same terms
-  as every other artefact — the `leads:` key is a kill switch, never a
-  backend selector.
+  as every other artefact.
 - `record_*` operations → comments on the Plan sub-issue
 - Statuses → Linear workflow states
 
@@ -1119,17 +1112,15 @@ Read-only discovery may search worktrees for the ID.
 Several skills act on an existing Scope or Plan: `review`, `plan`,
 `approve`, `deliver`, `evaluate`, `ship`. If the human invokes one without
 naming a target (no ID, no slug, no description), the skill must
-walk the human through finding the right one — not abort. This
-section is the canonical contract; skills reference it rather than
-restating it.
+walk the human through finding the right one — not abort.
 
 ### The flow
 
 1. **Determine the artefact type.**
    - For skills that work on exactly one type (e.g. `/spades:approve`
      always operates on a Plan), skip this step.
-   - For type-flexible skills (today, only `/spades:review` qualifies
-     — Scope review, Plan review, or Full Review of both), ask:
+   - For a type-flexible skill (`/spades:review`: Scope review, Plan
+     review, or Full Review of both), ask:
      - *Scope review* — target is a Scope
      - *Plan review* — target is a Plan
      - *Full review* — target is a Plan together with its parent Scope
@@ -1153,12 +1144,11 @@ restating it.
      (most-recently-updated first, then alphabetical by ID), plus
      *Describe a different one — list more / search* as the fourth
      option.
-   - If there are 0 candidates: ask no question. Tell
-     the human what's missing and suggest the upstream skill (see
-     the per-skill table). Don't pretend to offer choices. When the
-     upstream skill is `/spades:scope` and the request describes the
-     work, start it with that description in the same turn per
-     § Asking the Human → Requested work.
+   - If there are 0 candidates: ask no question. When the upstream
+     skill (see the per-skill table) is `/spades:scope` and the request
+     describes the work, start it with that description in the same
+     turn per § Asking the Human → Requested work; otherwise tell the
+     human what's missing and suggest the upstream skill.
 
    Each option's label is the artefact's **ID + short title** (e.g.
    `S-add-ai-helper-bot — Add AI Helper Bot`). The description
@@ -1208,10 +1198,9 @@ When the filter returns nothing, suggest the upstream skill:
 
 If the invocation passed an argument — an ID, a slug, or a phrase —
 skip steps 1–3 and go straight to fuzzy resolution against the
-candidate set. If the argument exactly matches an ID, no
-confirmation prompt is needed; if it's a slug or phrase, surface
-the resolution back as a question for one-step confirmation
-before continuing.
+candidate set. If the argument exactly matches an ID, use it; if
+it's a slug or phrase, surface the resolution back as a question
+for one-step confirmation before continuing.
 
 ### Parent-status precondition
 
@@ -1242,8 +1231,7 @@ the **Pass** route (Plan ship and Scope rollup).
 - **Objective close flows** (`complete` and `abandon`) are exempt from the
   parent-status check. An Objective is independent of the Project's
   lifecycle (§ Hierarchy → Objectives), so the team lead may wrap up an
-  Objective even as its Project winds down. Only *creating/editing* an
-  Objective is gated on the Project being active.
+  Objective even as its Project winds down.
 - `/spades:list` and `/spades:status` are read-only; they surface
   abandoned ancestors and their descendants (under the `all` filter)
   without refusing.
@@ -1291,7 +1279,7 @@ outside world (merged on main) — never PR-opened-but-unmerged. If
 the PR is closed without merging, `/spades:close Q-<id>` offers
 to **drop** the marker (delete the file). Quick items have no
 `rejected` or `abandoned` terminal status — a deleted marker is
-sufficient (see § Deliberate non-goals).
+sufficient (see `AGENTS.md` § Deliberate Non-Goals).
 
 ### The gate — ALL must be true
 
@@ -1306,8 +1294,7 @@ sufficient (see § Deliberate non-goals).
 9. Revertible as one commit
 10. Existing tests cover the area
 
-If *any* criterion fails, fall back to the full loop. The gate is
-all-or-nothing.
+If *any* criterion fails, fall back to the full loop.
 
 ---
 
@@ -1352,14 +1339,13 @@ as the same events. Existing audit history remains unchanged.
 
 ## Audit Trail
 
-Every piece of work must be traceable through:
+Every piece of work on the full loop must trace through:
 
-1. A project record
-2. A signed-off scope
-3. One or more approved plans (or, for fast-track work, a filled PR
-   template)
+1. A Project record
+2. A signed-off Scope
+3. One or more approved Plans (with dependency relationships)
 4. An approval decision with routing
-5. A delivery-phase record of who/what executed the work
+5. A delivery-phase record of who/what executed each task
 6. An evaluation verdict
 7. A shipment record
 
@@ -1385,43 +1371,26 @@ and completed work:
 - **`done`** (Scopes) / **`shipped`** (Plans) / **`archived`**
   (Projects) / **`complete`** (Objectives) — the work is complete.
 
-Objectives have **no `rejected`** state (there is no approach to reject —
-an Objective is a strategic statement, not an attempt). Completing an
-Objective (`complete`) is the team lead's **ungated** judgement: it is not
-gated on any Scope, runs no rollup, and — like every Objective transition —
-has **no cascade** to the Project or to Scopes (and none reaches it). See
-§ Hierarchy → Objectives.
+Objectives have **no `rejected`** state: an Objective is a strategic
+statement, not an attempt. Completing one is the team lead's ungated
+judgement and cascades nothing (§ Hierarchy → Objectives).
 
 Directional rule: `rejected → abandoned` is allowed (you rejected
 several Plans, then decided the whole Scope isn't worth doing →
 abandon the Scope). `abandoned → anything` is not. Terminal means
 terminal.
 
-**No cascade — but the gate refuses.** Abandoning a Scope does NOT
-automatically reject or abandon its in-flight Plans. Those Plans
-stay at whatever status they were in; the parent's `abandoned` is
-the authoritative signal. `/spades:list` and `/spades:status` hide
-children of abandoned parents in the default view but they remain
-accessible via `/spades:list all`. Cascading writes that can
-partially fail would risk lying about state.
+**No cascade.** A Scope can be abandoned mid-flight. Abandoning it
+leaves its Plans at their current status; the parent's `abandoned` is
+the authoritative signal, because cascading writes that can partially
+fail would risk lying about state. `/spades:list` and `/spades:status`
+hide children of abandoned parents in the default view; `/spades:list
+all` shows them. Producing skills refuse to act on a child of an
+`abandoned` ancestor (§ Target Resolution → Parent-status
+precondition).
 
-This deliberate-no-cascade design is paired with a hard gate:
-producing skills (`/spades:scope`, `/spades:plan`, `/spades:approve`,
-`/spades:deliver`, `/spades:evaluate`, `/spades:ship`, and `/spades:close`
-on the Pass route) refuse to act on a child of an `abandoned`
-ancestor. See § Target Resolution → Parent-status precondition for
-the contract.
-
-Mid-flight abandonment is explicitly allowed. You do not need to
-terminate child Plans first; the whole point of `abandoned` is to
-walk away from in-flight work cleanly.
-
-Quick items have no `abandoned` (or `rejected`) state — if you
-start a quick item and bail, delete the marker file. Quick is the
-lightweight path; a terminal status would be ceremony for a
-delete. `/spades:close Q-<id>` handles the drop conversationally:
-when the PR is closed without merging (or never opened), it offers
-*Drop* alongside the normal *Pass — flip to shipped* option.
+Quick items have no `abandoned` or `rejected` state; § Fast-Track Path
+covers dropping one.
 
 ### Plan rejection — no cascade
 
@@ -1439,9 +1408,6 @@ whatever state they were in (`draft`, `approved`) — but they are
   - Mark the dependants `rejected` too, with a one-line rationale in
     each Plan's audit trail.
 
-The human chooses whether to replan or reject the dependants; the framework
-never makes that decision automatically.
-
 ### The `Shipped` marker (contract)
 
 Every Plan that reaches `status: shipped` MUST have a line beginning
@@ -1458,11 +1424,8 @@ reflect what was shipped and where:
 Other drivers follow `docs/EXTENDING-SCM.md` § 4. A Quick item's
 marker file takes the same `Shipped` line.
 
-`/spades:ship` Step 0 and `/spades:close` Step 1 both grep for the
-`Shipped` prefix to detect resume state and finalisation state. New
-SCM drivers MUST emit the prefix; the suffix is free-form within the
-contract. Plans NEVER transition to `status: shipped` without a
-matching audit line.
+`/spades:ship` and `/spades:close` both grep for the `Shipped` prefix
+to detect resume state and finalisation state.
 
 ## Scope Worktrees
 
@@ -1487,8 +1450,8 @@ worktree is established. Preserve both fields on subsequent edits and renders.
 Canonical Markdown records are durable project state and travel through
 normal PRs. Documentation records can accumulate for one session PR; each
 Scope's records can also accompany its delivery PR. A phase boundary does
-not require a separate commit or PR. Existing output-format rules govern
-HTML companions.
+not require a separate commit or PR. § Output Format governs HTML
+companions.
 
 ### Starting delivery
 
@@ -1558,9 +1521,10 @@ Once delivery starts, all Plans in a Scope use its delivery branch. Under a
 two-phase SCM (§ SCM Drivers), one delivery PR contains that Scope's work. A dependency is ready for further work on this
 branch when it is `shipped`, or when it has completed Deliver and has a confirmed
 PASS after its latest delivery changes. The latter is readiness for local
-execution, not shipment: the Plan stays `evaluating`. Rejected dependencies
-still require replanning. A new change to dependency output invalidates its
-previous PASS and requires relevant dependent verification again.
+execution, not shipment: the Plan stays `evaluating`. A rejected dependency
+blocks per § Plan rejection — no cascade. A new change to dependency output
+invalidates its previous PASS and requires relevant dependent verification
+again.
 
 Before opening or merging the Scope PR, every non-rejected code Plan must
 have a current confirmed PASS and the Scope's accepted criteria must be
@@ -1586,7 +1550,7 @@ by `/repo:newbranch` (§ Scope Worktrees). Documentation sessions reuse their
 working branch; Scope, Plan and Approve report that context without requiring
 another branch, pull or clean checkout. Deliver verifies transferred records
 against the fresh base before execution. Review and research inspect their
-assigned context. Default-branch preparation belongs to `/repo:newbranch`.
+assigned context.
 
 Existing Scope work is read from its resolved worktree. Main advancing does
 not turn a Plan's own committed work into unrelated changes or justify
@@ -1597,9 +1561,8 @@ the PR branch, then rerun affected checks.
 Pass the absolute worktree path and intended revision to read-across
 subagents. A review worker must see the PR/Scope revision being reviewed;
 existence of the named files alone is not enough. A worker that receives a
-different checkout returns the mismatch before editing. Default-branch
-preparation stays in `/repo:newbranch`; workers verify their assigned
-context rather than pulling or switching main.
+different checkout returns the mismatch before editing. Workers verify
+their assigned context rather than pulling or switching main.
 
 ---
 
@@ -1660,7 +1623,7 @@ checkout onto another branch or sweeping an entire directory blindly.
 
 ## Output Format (CLI vs HTML)
 
-`/spades:setup` Step 1.7 records `review_format:` in
+`/spades:setup` records `review_format:` in
 `.spades/config` — one of `cli` (default) or `html`. The value
 controls *whether* an HTML companion file is written alongside
 the canonical Markdown, and the *medium* of presentation for
@@ -1693,14 +1656,13 @@ opens follow the same ownership rule; helper skills inherit it.
   the active task.
   The persistent `.spades/<name>.html` companion is rendered quietly.
 - Evaluate selects its verification page at the verification step and its
-  report at the results step, one page per step. Plan and Scope refreshes
-  remain quiet throughout evaluation.
+  report at the results step, one page per step. Plan refreshes remain
+  quiet throughout evaluation.
 - Status, List and the explicitly requested Leads board select their own view.
   Capturing a Lead during another task keeps that task's presentation context.
 
 In CLI mode, reference documents are read as context and any file presentation
-stays with the active task's target. Review-form content is presented in the
-CLI review pane (§ CLI review pane).
+stays with the active task's target.
 
 ### Universal rule — `.md` always, `.html` additive in HTML mode
 
@@ -1723,15 +1685,14 @@ writes a verification-plan page and a completed-report page. See
 #### Transient views
 
 Status and List read existing artefacts to produce a current-state view.
-CLI mode prints that view to the terminal — it asks no decision, so the
-CLI review pane does not apply. HTML mode also writes and opens
+CLI mode prints that view to the terminal. HTML mode also writes and opens
 `.spades/.tmp/<view>.html`, a gitignored file regenerated on each call.
 Short status messages remain in the terminal in both modes.
 
 ### Producing skills — `cli` vs `html` write
 
-Producing skills are `/spades:newproject`, `/spades:scope`,
-`/spades:plan`, `/spades:learn`, `/spades:review`,
+Producing skills are `/spades:newproject`, `/spades:objective`,
+`/spades:scope`, `/spades:plan`, `/spades:learn`, `/spades:review`,
 `/spades:intent`, `/spades:architecture`, `/spades:patterns`,
 `/spades:anti-patterns`, `/spades:review-rules`. Each writes an artefact at the end of
 its flow.
@@ -1739,36 +1700,17 @@ its flow.
 - **`review_format: cli`** — present the draft for approval in the
   CLI review pane (§ CLI review pane), and once the human approves
   it write the canonical `.md` under `.spades/<dir>/<id>.md` (or the
-  repo root for project docs). No HTML written.
+  repo root for project docs). `/spades:review` writes its report
+  first and then presents it in the pane, because a review report is
+  a record, not a draft for approval. No HTML written.
 - **`review_format: html`** — write the canonical `.md` exactly
-  as in CLI mode, AND ADDITIONALLY write `.html` companion at
+  as in CLI mode, and a `.html` companion at
   `.spades/<dir>/<id>.html` (or `.spades/<name>.html` for
-  project docs alongside their `<NAME>.md`) using the skill's
-  sibling `template.html` resource (located at
-  `${CLAUDE_PLUGIN_ROOT}/skills/<skill-name>/template.html`).
-  Render by:
-  1. Reading the sibling template file end-to-end.
-  2. Replacing every `{{spades.field}}` placeholder with the
-     artefact's field value (HTML-escape user-supplied strings;
-     pre-rendered Markdown→HTML bodies pass through as-is).
-  3. Expanding `<!-- SPADES-BLOCK:name --> … <!-- SPADES-ENDBLOCK -->`
-     sections by repeating the block content once per item, with
-     `{{block.field}}` substituted per item.
-  4. Filling the `<script type="application/yaml"
-     id="spades-frontmatter">` block with the artefact's
-     frontmatter (same fields the `.md` version would have).
-  5. Filling the `<script type="application/yaml"
-     id="spades-audit-trail">` block (if present) with the audit
-     trail entries in chronological order.
-  6. Validating the completed HTML per § Placeholder substitution and
-     output validation, then writing it to `.spades/<dir>/<id>.html`.
-  7. Opening only the selected `open_path` per § Review-page ownership
-     through the worker contract; other outputs are written quietly.
-
-The Markdown-to-HTML conversion for body sections (Statement of
-Intent, Technical Approach, etc.) follows standard CommonMark; the
-skill renders the converted HTML into the `{{spades.X_html}}`
-placeholders.
+  project docs alongside their `<NAME>.md`), rendered from the
+  skill's sibling `template.html` per § HTML rendering: template
+  validation and substitution. Open only the selected `open_path`
+  per § Review-page ownership through the worker contract; other
+  outputs are written quietly.
 
 #### HTML review flow
 
@@ -1781,9 +1723,6 @@ substantive excerpt to the CLI for approval. Use this sequence:
 2. Render and write the working draft, open the selected review page and
    wait for review.
 3. Apply requested edits to the file; the human reloads the page.
-
-CLI mode retains the sequence: draft, present in the CLI review pane,
-obtain approval, then write.
 
 #### CLI review pane
 
@@ -1811,7 +1750,7 @@ content in CLI mode follows this contract:
   section-by-section flow (Intent, Architecture, Patterns,
   Anti-Patterns, Learn) presents one section per question and that
   section always fits. A whole-artefact review (Scope, Plan, Project,
-  Objective, review digest, the approve / deliver / ship / close
+  Objective, review digest, the approve / ship / close
   presentations) presents the artefact in pages when it exceeds about
   sixty lines: one question per top-level section in the artefact's
   own order, each pane holding that section complete, with a final
@@ -1837,8 +1776,8 @@ briefs — stays as terminal text in both modes.
 
 #### What counts as "review-form text" (HTML in HTML mode) vs "conversational text" (CLI in both modes)
 
-Consumer skills (`approve`, `evaluate`, `deliver`, `ship`, `close`,
-`intent`) use the same presentation split:
+Consumer skills (§ Consumer skills — `cli` vs `html` presentation) use
+the same presentation split:
 
 **Stays CLI in both modes — short, conversational, operational:**
 
@@ -1866,8 +1805,7 @@ In **HTML mode**, review-form content goes through the open `.html`
 In **CLI mode**, it goes through the CLI review pane. The terminal
 carries only the conversational layer in both modes.
 
-CLI mode never writes or opens HTML; neither mode pastes review-form
-text to the terminal.
+CLI mode never writes or opens HTML.
 
 #### HTML rendering: template validation and substitution
 
@@ -1892,20 +1830,28 @@ declared `SPADES-BLOCK` sections each skill fills.
    the mismatch — the SKILL.md and template have drifted and a
    framework PR is needed.
 3. **Render by substitution only.** Replace `{{spades.field}}`
-   placeholders, expand `<!-- SPADES-BLOCK:name --> … <!-- SPADES-ENDBLOCK -->`
-   sections per their per-item fields, fill the
-   `<script type="application/yaml" id="spades-frontmatter">` tag,
-   fill the `<script type="application/yaml" id="spades-audit-trail">`
-   tag (when present), validate per § Placeholder substitution and
-   output validation, then write the result to the declared output path.
+   placeholders, HTML-escaping user-supplied strings and passing
+   pre-rendered Markdown→HTML bodies through as-is. Expand
+   `<!-- SPADES-BLOCK:name --> … <!-- SPADES-ENDBLOCK -->` sections
+   once per item, with `{{block.field}}` substituted per item. Fill the
+   `<script type="application/yaml" id="spades-frontmatter">` tag with
+   the artefact's frontmatter (the fields the `.md` has) and the
+   `<script type="application/yaml" id="spades-audit-trail">` tag (when
+   present) with the audit trail entries in chronological order.
+   Validate per § Placeholder substitution and output validation, then
+   write the result to the declared output path.
 4. **Preserve the bundled layout, styles, grid, widths and palette.**
    If the template cannot represent the required content, extend it
    through a framework PR before rendering.
 
+Body sections (Statement of Intent, Technical Approach, etc.) convert
+from Markdown to HTML as standard CommonMark and fill the
+`{{spades.X_html}}` placeholders.
+
 The skills that ship a bundled template: `scope`, `plan`,
-`newproject`, `learn`, `review`, `status`, `list`, `intent`,
-`evaluate`, `architecture`, `patterns`, `anti-patterns`,
-`review-rules`.
+`newproject`, `objective`, `learn`, `leads`, `review`, `status`,
+`list`, `intent`, `evaluate`, `architecture`, `patterns`,
+`anti-patterns`, `review-rules`.
 
 ### Consumer skills — `cli` vs `html` presentation
 
@@ -1948,16 +1894,9 @@ prefix, tagline, browser title.
     are regenerated on every invocation; `/spades:setup` appends
     `.spades/.tmp/` to the consumer repo's `.gitignore` at install
     time, so these files are never committed.
-  - For evaluate's *produced* pages: persistent at
-    `.spades/evaluations/<plan-id>-<date>-plan.html` (page 1,
-    written at Step 3) and
-    `.spades/evaluations/<plan-id>-<date>-report.html` (page 2,
-    written at Step 6). Both ship in the Scope branch's own
-    PR (no separate bookkeeping flow because evaluate runs
-    mid-flow, not on `main`).
-
-In CLI mode, consumer skills present review content in the CLI review
-pane (§ CLI review pane).
+  - For evaluate's *produced* pages (pages 1 and 2 above): both are
+    persistent and ship in the Scope branch's own PR, since evaluate
+    runs mid-flow, not on `main`.
 
 ### OPEN_CMD detection prelude
 
@@ -2001,8 +1940,7 @@ transient views and both evaluation pages. Apply it once at the document
 root, so text, controls and spacing open at 120% without a browser setting.
 Responsive viewport breakpoints account for the scale: the 900px layout
 threshold is 1080px at 120%. Keep the viewport's `initial-scale=1.0` and
-allow the reader to adjust browser zoom further. Refresh existing pages
-from the current template to pick up the default.
+allow the reader to adjust browser zoom further.
 
 #### Placeholder substitution and output validation
 
@@ -2064,18 +2002,15 @@ A *resource* is one of:
 - The Linear API surface for one logical operation (create issue
   + capture ID; record comment + status update).
 - One bounded analysis / computation whose result the coordinator
-  needs (rarely used by today's skills, reserved for future).
+  needs.
 
 ### The coordinator is not a sub-agent
 
-The skill body itself remains the orchestrator. It reads, decides,
+The skill body itself is the orchestrator. It reads, decides,
 dispatches, collects, stitches, prints. It is free to read and
 write any file. After a fan-out wave it does any small integration
 writes — for example, injecting a captured `linear_issue_id` into
 the frontmatter of a file the file sub-agent already wrote.
-That's two writes to the same file but **sequential** (sub-agent
-first, coordinator second) — the no-contention rule only forbids
-two sub-agents racing on one file.
 
 ### Spawning
 
@@ -2101,8 +2036,7 @@ Each sub-agent's prompt should be self-contained and include:
 - **Working context** — the absolute worktree path, branch and intended
   revision per § Freshness. File and read-across workers verify that
   context before reading or writing; Linear workers receive the same
-  context and the resolved resource IDs. Default-branch preparation
-  remains owned by `/repo:newbranch`.
+  context and the resolved resource IDs.
 
 ### Dispatch modes
 
@@ -2263,7 +2197,7 @@ explicit side effect controlled by the coordinator's `open_path`.
 **The rule:** whenever a skill produces both an `.md` and an
 `.html` artefact, the `.html` render is dispatched to a
 `worker-html-<artefact>` sub-agent in the same fan-out wave as
-the `.md` write. The main agent never renders HTML inline.
+the `.md` write.
 
 **Contract:**
 
@@ -2335,8 +2269,8 @@ check) rather than blocking on the render.
 own dispatch wave. Wave 1 renders the verification plan; wave 2 renders
 the report after verification results are collected. Each wave selects
 only that step's evaluation output as `open_path`. Evaluate's writeback
-workers update the existing Plan and Scope records per its skill; related
-HTML refreshes use `open_path: null`.
+workers update the existing Plan record per its skill; related HTML
+refreshes use `open_path: null`.
 
 **Skills that produce persistent + transient HTML** (`intent`,
 `architecture`, `patterns`, `anti-patterns`, `review-rules`): two `.html` files
@@ -2393,10 +2327,9 @@ retries. They do NOT catch:
 `/spades:list` and `/spades:status` run an **active drift probe**
 when `backend: linear` and surface any drift in the same view as the
 rest of their output. The probe is *additive* — it uses the local
-and Linear data the skills already fetch (per § Sub-agent Dispatch's
-"two-source read"), so cost is at most a single comparison pass per
-artefact, no extra round-trips beyond what those skills already
-make.
+and Linear data the skills already fetch, so cost is at most a single
+comparison pass per artefact, no extra round-trips beyond what those
+skills already make.
 
 #### What gets compared
 

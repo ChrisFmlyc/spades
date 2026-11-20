@@ -1,17 +1,15 @@
 ---
 name: close
 description: Closes a Plan, Scope, Project, Objective, or Quick item through its matching lifecycle flow. Asks the human to finalise as shipped/done/archived/complete, reject a Plan, or abandon a Scope, Project, or Objective; Quick items follow their verified PR state. Flags `--reject "reason"` and `--abandon "reason"` skip the menu with the supplied reason. Records the result on the default branch through a bookkeeping pull request (a merge request on GitLab) that it commits, pushes and opens, using the `repo` plugin. Use whenever someone asks to close a SPADES item — "close this Plan", "close this Scope", "close P-…", "close S-…", "close O-…", "close Q-…", "complete this objective", "abandon this scope", "reject this plan" — or says a Quick item's PR or MR closed without merging.
-version: 4.16.0
+version: 4.17.0
 ---
 
 # /spades:close
 
-Resolve the target and run its close-out flow. Plans, Scopes, Projects
-and Objectives record their terminal state on `main` through a bookkeeping
-PR. Quick items land their marker flip on `main` the same way, through a
-one-commit bookkeeping PR of their own: the Quick branch is already
-merged, so a commit there never reaches `main`. A dropped Quick item's
-marker never reached `main`, so its deletion is local.
+Resolve the target and run its close-out flow. Plans, Scopes, Projects,
+Objectives and shipped Quick items record their terminal state on `main`
+through a bookkeeping PR; a dropped Quick item's marker is deleted
+locally.
 
 Four close actions:
 
@@ -99,8 +97,8 @@ An empty answer re-prompts: the audit trail needs the why.
 
 **Step 3 — Route.** *Leave in draft* exits with *"Plan `<id>` left at
 `draft`. Run `/spades:approve` when ready."* Pass on a Plan →
-`flow-plan-pass.md`. Everything else → `flow-status-change.md`. A
-Quick item → `flow-quick.md`.
+`flow-plan-pass.md`. A Quick item → `flow-quick.md`. Everything else →
+`flow-status-change.md`.
 
 ## Shortcuts
 
@@ -109,9 +107,8 @@ Quick item → `flow-quick.md`.
 - `/spades:close <project-slug> --abandon "reason"`
 - `/spades:close O-foo --abandon "reason"`
 
-Objective completion carries no reason, so it has no flag: run
-`/spades:close O-foo` and pick *Pass*. A flag on the wrong target
-type, or a flag without a reason, aborts with the correct form.
+A flag on the wrong target type, or a flag without a reason, aborts
+with the correct form.
 
 ## Bookkeeping-PR machinery
 
@@ -124,8 +121,9 @@ Scope resolution; `flow-quick.md` selects which of B2–B7 apply.
 2. **A two-phase SCM.** With `scm: github` or `scm: gitlab`, Close
    finalises through a PR, using the operations in `docs/FRAMEWORK.md
    § SCM Drivers`; their CLI must pass `probe_auth`. With
-   `scm: local-git` the artefact reached its terminal status inside
-   `/spades:ship` and there is nothing to close — abort and say so.
+   `scm: local-git` the work reached its terminal status inside
+   `/spades:ship` or `/spades:quick` and there is nothing to close —
+   abort and say so.
 3. **`repo` plugin installed**:
 
    ```bash
@@ -137,13 +135,10 @@ Scope resolution; `flow-quick.md` selects which of B2–B7 apply.
    walks through installing it."*
 4. **Working context.** Resolve the source Scope/worktree and approved
    pending records per § Scope Worktrees and § Carry-Forward. Keep the
-   source unchanged while preparing the bookkeeping handoff. Default-branch
-   checks and pulling belong to `/repo:newbranch` in B2.
-
+   source unchanged while preparing the bookkeeping handoff.
 5. **Verify ancestors active** per `docs/FRAMEWORK.md § Target
-   Resolution → Parent-status precondition`, on the Pass route only.
-   Reject and Abandon create terminal status; Objectives are
-   independent of their Project.
+   Resolution → Parent-status precondition`, on the Plan and Scope
+   Pass routes.
 6. **Open the review surface** per § Output format.
 
 ### B2 — Bookkeeping worktree
@@ -169,8 +164,9 @@ proposed commit. Commit through `/repo:branch` with the flow's
 ### B4 — Open the bookkeeping PR
 
 Pass the draft title/body through `/repo:pr` and write its result to a
-body file. Push to the configured remote, then open the PR with
-`open_review(<bookkeeping-branch>, <default-branch>, <title>,
+body file. Push to the configured remote (with `scm: gitlab`, after
+checking it against `gitlab.host` and `gitlab.project`), then open the
+PR with `open_review(<bookkeeping-branch>, <default-branch>, <title>,
 <body-file>)`:
 
 ```bash
@@ -179,8 +175,7 @@ git push -u <configured-remote> <bookkeeping-branch>
 
 A rejected push stops Close with the records committed on the
 bookkeeping branch: show the remote's message and its cause per
-`docs/FRAMEWORK.md § SCM Drivers → Pushing`. With `scm: gitlab`, check
-the remote against `gitlab.host` and `gitlab.project` before pushing.
+`docs/FRAMEWORK.md § SCM Drivers → Pushing`.
 
 Body: `## Summary`, `## Linked artefacts` (IDs, and the ship PR plus
 merge SHA where relevant), `## Files touched`, and a plain statement
@@ -193,44 +188,27 @@ that the PR contains audit-trail changes and any approved transferred records.
 
 ### B5 — Verify the bookkeeping PR merged
 
-The SCM's CLI is available (B1), so probe with `review_state` rather
-than ask; read the state and merge SHA as `docs/FRAMEWORK.md § SCM
-Drivers` normalises them.
+Probe the bookkeeping PR with `review_state` and read the state and
+merge SHA as `docs/FRAMEWORK.md § SCM Drivers` normalises them.
 
 - **`MERGED`** → capture the SHA; continue to B6.
-- **`OPEN`** → say so and exit cleanly. Once the human merges it,
+- **`OPEN`** → a driver that opened this PR and can merge it merges it
+  here. Otherwise say so and exit cleanly; once the human merges it,
   re-run `/spades:close` in the bookkeeping worktree to verify the merge
-  and finish any Linear mirror. A driver that opened this PR
-  and can merge it merges it here instead of exiting.
+  and finish any Linear mirror.
 - **`CLOSED` unmerged** → surface it and stop; the edits are
   unlanded until the PR is re-opened or re-created.
-- **Probe failure** (CLI error, malformed response) → ask the human
-  whether the PR merged; that is the one case only they can answer.
+- **Probe failure** (as § SCM Drivers defines it) → ask the human
+  whether the PR merged.
 
 ### B6 — Retain the worktree
 
-Verify the bookkeeping PR is merged and retain its branch, worktree and
-remaining state in the current checkout. Report the merge reference and
-any uncommitted residue; default-branch preparation belongs to the next
-`/repo:newbranch` call.
+Retain the bookkeeping branch and worktree per `docs/FRAMEWORK.md
+§ Scope Worktrees → Retaining work`. Report the merge reference and any
+uncommitted residue.
 
 ### B7 — Linear mirror (`backend: linear`)
 
 Runs after the bookkeeping commit is on `main`, so Linear never
 leads the audit trail. Each flow states its own transition and
 comment. With `backend: local` the file on `main` is the record.
-
-## Subsequent work
-
-Close verifies shipment and records its audit PR. The next piece of work
-calls `/repo:newbranch`; default-branch preparation happens there. Cleanup
-is a separate explicit request and does not gate close-out.
-
-## Edge cases
-
-- **Ship PR still open** — the Plan Pass flow reports it and exits
-  before touching git or files.
-- **Bookkeeping PR blocked by branch protection** — B5 sees `OPEN`
-  and exits; the next probe after a manual merge continues.
-- **Bookkeeping branch exists from an interrupted run** — B2 resumes
-  its worktree and PR.

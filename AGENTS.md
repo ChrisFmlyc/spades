@@ -24,7 +24,7 @@ and the plugin's own dogfooded `.spades/` state.
   `plugins/spades/docs/FRAMEWORK.md`. A skill references a
   contract rather than restating it.
 - **Versioning and the release gate** — `plugins/spades/AGENTS.md`
-  § Versioning. Every PR bumps the plugin version; a skill or
+  § Versioning. Every PR to the plugin bumps its version; a skill or
   `AGENTS.md` bumps its own version only when its content changes.
 
 ## Marketplace version
@@ -55,11 +55,28 @@ The `repo` and `codereview` plugins that SPADES hands branch, PR and
 review work to keep GitHub and GitLab paths side by side under the same
 rule, in their own repo.
 
-## Writing skills
+## Writing skills and agent docs
 
-A skill is written green-field: the correct behaviour, stated once,
-in positive terms. When a fix is needed, refine the instruction so it
-is right rather than appending a prohibition or the history of the
-fix. The `description` is the only text an agent sees before it
-decides to load the skill, so it says what the skill does and when
-to use it, in third person, key use case first.
+Every file an agent reads is written green-field, as if fresh, so it
+carries its rules at the highest fidelity. That covers skills and
+their references, agent definitions, `AGENTS.md`, `docs/`, templates
+and READMEs.
+
+- State each rule once, in positive terms, as the correct behaviour,
+  in the one place it belongs. Everywhere else, point to it.
+- When a rule is wrong, rewrite or delete that line. A wrong "always
+  use a VPN" is removed, never answered by a second sentence that
+  undoes, softens, overrides or excepts it.
+- Write the current behaviour only: no history of fixes ("now", "no
+  longer", "previously") and no denial of something nothing asked
+  for.
+- A condition that belongs to a rule sits inside that rule. Cases
+  that differ read as one list or table.
+- When two passages disagree, settle which is right and keep only
+  that one.
+- After an edit, re-read the whole file, and every file that restates
+  the same contract, for these faults.
+
+The `description` is the only text an agent sees before it decides
+to load a skill, so it says what the skill does and when to use it,
+in third person, key use case first.

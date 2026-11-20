@@ -14,10 +14,10 @@ a package.
 
 - **Users** are engineers working in any coding agent that honours
   `AGENTS.md` (Claude Code, Cursor, Codex, Aider, …). The SPADES
-  Claude Code plugin adds 23 slash-commands; in other agents, the
+  Claude Code plugin adds 24 slash-commands; in other agents, the
   rules still apply via `AGENTS.md`.
 - **Surface area** is a set of Markdown skill files
-  (`plugins/spades/skills/<name>/SKILL.md`), five subagent definitions
+  (`plugins/spades/skills/<name>/SKILL.md`), six subagent definitions
   (`plugins/spades/agents/*.md`), framework reference docs under
   `plugins/spades/docs/`, and CI-only lint scripts.
 - **Core loop** is six phases with explicit ownership:
@@ -48,7 +48,7 @@ and § ID Format for the contracts.
 
 SPADES supports multiple backends. The active backend is named
 explicitly in `.spades/config` (`backend: linear | local`) — no
-auto-probe. Two drivers ship today:
+auto-probe. Two drivers ship:
 
 - **Linear** (via the Linear MCP) — Project ↔ Linear Project; Scope ↔
   parent Issue; Plan ↔ sub-issue; audit records post as comments.
@@ -125,7 +125,7 @@ later surfaces automatically on related Scopes.
 | Skill format     | Markdown with YAML frontmatter           | `plugins/spades/skills/<name>/SKILL.md`. Plugin-namespaced as `/spades:<name>`. |
 | Distribution     | Claude Code plugin marketplace           | `.claude-plugin/marketplace.json` at repo root; plugin at `plugins/spades/`. |
 | Bundled resources| `agents/`, `docs/`, `examples/`          | All siblings of `skills/` in the plugin tree. The runtime loads agents by name; skills read their bundled templates and references by explicit path. |
-| Backend drivers  | Linear MCP, local filesystem             | Linear is the only MCP-backed driver shipped today; local is filesystem-only. Other MCPs (Notion, Confluence) are extension points documented in `docs/EXTENDING-BACKENDS.md`. |
+| Backend drivers  | Linear MCP, local filesystem             | Linear is the only MCP-backed driver shipped; local is filesystem-only. Other MCPs (Notion, Confluence) are extension points documented in `docs/EXTENDING-BACKENDS.md`. |
 | Agents           | Any AGENTS.md-honouring coding agent     | Skills target Claude Code first because of the plugin surface, but the rules in `AGENTS.md` apply to every agent. |
 | Versioning       | Marker block + `.spades/version`          | `<!-- SPADES-FRAMEWORK-START vX.Y.Z -->` delimits the framework-owned block inside consumer `AGENTS.md`. The marker uses `agents_version` from `.spades/version`; the plugin version comes from `.claude-plugin/plugin.json`. |
 | CI               | GitHub Actions (`.github/workflows/lint.yml`) | Parallel lint jobs — see `scripts/lint/README.md` for the list. Node 22.18+ (built-ins only) for the frontmatter parser. |
@@ -203,7 +203,7 @@ the directory layout and reference rules.
   `description`, and `version`.
 - **Backend labels** (Linear): full-loop labels are `ai-planned`,
   `ai-delivered`, `human-delivery`, `hybrid-delivery`, `plan-rejected`,
-  `needs-arch-review`, `deliverable_type:<value>`; fast-track labels
+  `deliverable_type:<value>`; fast-track labels
   are `spades:quick`, `type:bug|tweak|chore|docs|refactor`.
 - **Marker block** (`<!-- SPADES-FRAMEWORK-START vX.Y.Z -->` …
   `<!-- SPADES-FRAMEWORK-END -->`) delimits framework-owned regions
@@ -217,10 +217,9 @@ the directory layout and reference rules.
   parses and carries required fields; (b) every reviewer/researcher
   agent's frontmatter parses and carries the persona fields;
   (c) example Scopes and Plans under `examples/` conform to the v2
-  schemas; (d) every project/scope/plan/learning under `.spades/`
+  schemas; and (d) every project/scope/plan/learning under `.spades/`
   conforms to the schema, with planted-fixture self-tests in
-  `tests/fixtures/local-frontmatter/`; (e) the plugin manifest and
-  marketplace manifest parse and carry the expected fields.
+  `tests/fixtures/local-frontmatter/`.
 - **CI** runs these on every PR via `.github/workflows/lint.yml`. The
   set of lint jobs is enumerated in that workflow.
 - **Consumer projects** are responsible for their own test suites —

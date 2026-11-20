@@ -41,7 +41,7 @@ A driver MUST define a probe command that:
 Example (GitHub): `gh auth status` (zero exit → reachable).
 
 `/spades:setup`'s SCM-selection step calls the probe. On failure,
-the install guide runs instead of aborting.
+the install guide runs.
 
 ### 2. Install guide
 
@@ -110,7 +110,7 @@ example):
 
 ### 4. Audit-trail format
 
-The driver MUST use these markers so `/spades:ship`'s Step 0 can
+The driver MUST use these markers so `/spades:ship`'s Step 1 can
 detect resume state:
 
 - Two-phase drivers: `PR opened: <URL>` (or `MR opened: <URL>`)
@@ -234,8 +234,8 @@ so in the PR description.
   flow shapes (single-phase, two-phase). A "review pending" or
   "approval-required" intermediate state isn't part of the
   framework — that lives inside the SCM's own UI.
-- **Don't reshape the audit-trail markers.** Step 0's resume
-  detection relies on `PR opened:` / `MR opened:` and `Shipped`.
+- **Don't reshape the audit-trail markers.** `/spades:ship`'s Step 1
+  resume detection relies on `PR opened:` / `MR opened:` and `Shipped`.
   Pick one of those for your driver; don't invent a third.
 - **Don't store credentials in `.spades/config`.** Tokens, SSH keys,
   API URLs with embedded auth — none of that belongs in the SPADES

@@ -9,7 +9,7 @@ The merge that produces the findings is SKILL.md's job.
 
 - Report envelope — the JSON block, its fields, and the Plan stamp
 - Dispatch-mode banner — the three-point agreement check
-- Tiered digest — CLI vs HTML, ordering, budgets, both shapes
+- Tiered digest — ordering, budgets, both shapes
 - Persisted report — canonical `.md`, `worker-html-review`,
   failure fallback
 
@@ -61,12 +61,8 @@ review" in an audit trail know what produced it.
 
 ## Tiered digest
 
-**CLI mode** — the digest is the review surface; print it in full.
-**HTML mode** — the rendered `.html` is the surface; the terminal
-gets `✓ Review written: <path>` and conversational text. Both modes
-write the canonical `.md`.
-
-Order:
+The digest is the CLI-mode review surface, presented as SKILL.md
+§ Output format describes. Order:
 
 1. Banner and envelope.
 2. Section title.
@@ -172,7 +168,8 @@ Full report: .spades/reviews/s-add-ai-helper-bot-2026-05-17.md
 
 ## Persisted report
 
-Written on every run, `degraded` included, before the digest prints.
+Written on every run, `degraded` included, before the digest is
+presented.
 
 ### Canonical `.md` (both modes)
 
@@ -230,5 +227,5 @@ Required markers: `persona-cards`, `findings`, `convergence-cards`.
 
 A failed persistence write never aborts the review. Say so inline
 (`Full report: write failed — <reason>`) and continue. In HTML mode,
-when the `.md` or `.html` write failed, print the digest to the CLI
-as the backup surface.
+when the `.md` or `.html` write failed, present the digest in the CLI
+review pane as the backup surface.

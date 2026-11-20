@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Generates a structured SPADES Plan from a Scope. A Plan is a unit of executable work with an ID like `P-<description-slug>-<4-char-suffix>[-<dep-suffix>…]`. Plans can depend on prior plans within the same scope. Use when a Scope exists and the human wants to move to planning, when someone says "plan this", "break this down", "generate a plan", or when a scope is in status `scoped`/`planning`.
-version: 3.8.1
+version: 3.8.2
 ---
 
 # /spades:plan
@@ -32,16 +32,13 @@ running.
 Use the parent Scope's documentation checkout before delivery, or its
 established delivery worktree afterwards, per `docs/FRAMEWORK.md § Scope
 Worktrees`. Drafting another Plan reuses that context. Deliver creates the
-separate implementation branch; all Plans in the Scope share it. Readiness
-for dependent delivery is a confirmed PASS on that branch or shipment.
+separate implementation branch; all Plans in the Scope share it.
 
 1. **Confirm setup and active project.** Abort otherwise.
 2. **Read `backend:` and `review_format:`** from `.spades/config`.
 3. **Resolve the target Scope** per `docs/FRAMEWORK.md § Target
    Resolution` — artefact type Scope; status filter `scoped`,
-   `planning`; zero candidates → suggest `/spades:scope <title>`. A
-   passed ID, slug, or title resolves via `find_scope_fuzzy` with a
-   confirmation when ambiguous.
+   `planning`; zero candidates → suggest `/spades:scope <title>`.
 4. **Verify ancestors active** per § Target Resolution →
    Parent-status precondition: an `abandoned` Scope, or an
    `abandoned` / `archived` Project, is a hard abort.
@@ -57,11 +54,10 @@ for dependent delivery is a confirmed PASS on that branch or shipment.
    Assumptions for the human to rule on at Approve.
 3. **Prior learnings.** Glob `.spades/learnings/*.md`, skipping
    `private/` and `status: archived`. A learning matches when its
-   `scope_ref` equals this Scope's ID, or when its `tags`
+   `scope_ref` equals this Scope's ID, or when enough of its `tags`
    (case-insensitive) appear in the Scope's title or the tech-stack
-   section of `ARCHITECTURE.md`. With fewer than 20 active learnings
-   one matching tag is enough; from 20 upward require two. The
-   `scope_ref` match is unaffected by the threshold.
+   section of `ARCHITECTURE.md`: one tag with fewer than 20 active
+   learnings, two from 20 upward.
 4. **Existing Plans under this Scope** via `list_plans(scope_id)` —
    the candidates for `depends_on:`.
 
@@ -129,8 +125,8 @@ The Plan has these sections:
   `action` (a one-off human act). This drives `/spades:ship`.
 
 The draft opens with the Scope summary, the ID and filename, the
-dependencies and the proposed `deliverable_type`. One question
-confirms it:
+dependencies and the proposed `deliverable_type`. One call confirms
+it:
 
 1. **The Plan** — *Use this Plan* *(Recommended)* / *Change something*.
    A change names a misread Scope, a wrong task or estimate, or a task
@@ -256,17 +252,18 @@ Required markers: `tasks`, `risks-items`, `delivery-sequence`,
 ## Step 6 — Confirm the Plan (HTML mode)
 
 With the page open, ask Step 4's confirmation call. A change is a
-targeted edit to the `.md` followed by a re-dispatch of
-`worker-html-plan` with `open_path: null` to refresh the
-already-presented page, then the Plan question again.
+targeted edit to the `.md`, a re-dispatch of `worker-html-plan`, then
+the Plan question again:
 
-A changed dependency also re-derives the filename (Step 3). Rename the
-`.md` and `.html` to it, then re-dispatch `worker-html-plan` with
-`open_path` set to the renamed `.html` to present the Plan at its new
-path. Tell the human the review page has moved to that file: it opened
-in the browser when the worker returns `opened: true`; otherwise give
-its `file://` link. The Plan ID keeps its name, so the Scope's audit
-entry stays as written.
+- **Same filename** — re-dispatch with `open_path: null` to refresh the
+  already-presented page.
+- **Changed dependency** — re-derive the filename (Step 3), rename the
+  `.md` and `.html` to it, and re-dispatch with `open_path` set to the
+  renamed `.html` to present the Plan at its new path. Tell the human
+  the review page has moved to that file: it opened in the browser when
+  the worker returns `opened: true`; otherwise give its `file://` link.
+  The Plan ID keeps its name, so the Scope's audit entry stays as
+  written.
 
 ## Step 7 — Write and mirror (fan-out)
 
@@ -316,7 +313,7 @@ starts after approval.
 
 1. Read the Plan by ID.
 2. Show the current content and the parts the human wants changed.
-3. Iterate conversationally (CLI) or via targeted edits and
+3. Iterate in the CLI review pane (CLI) or via targeted edits and
    re-render (HTML).
 4. Write back, preserving `id`, `id_suffix`, `scope`, `created`,
    `depends_on`, `linear_issue_id`; set `updated`.

@@ -4,9 +4,8 @@
  *
  * Node built-ins only: no npm, no package.json, no node_modules, no YAML
  * library. SPADES frontmatter is intentionally shallow (flat key: value pairs,
- * optionally with list values like `[a, b, c]` or dash-prefixed items). If we
- * ever need nested structures we'll either take a YAML dependency or simplify
- * the schema.
+ * optionally with list values like `[a, b, c]` or dash-prefixed items). If a
+ * check ever needs nested structures, simplify the schema.
  *
  * Runs under Node's native TypeScript type-stripping — `node frontmatter.ts`,
  * no build step, no transpiler, no flags. Requires **Node >= 22.18** (or >=

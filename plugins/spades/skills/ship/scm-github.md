@@ -20,14 +20,10 @@ after verifying that it matches the recorded branch.
 
 ## 2. Commit approved pending records
 
-Follow `docs/FRAMEWORK.md § Carry-Forward → Commit contents`. Inspect the
-complete index, include authorised pending records, and preserve excluded
-staged/unstaged changes. Existing committed work is already part of this
-branch's PR and needs no additional inclusion question. Unknown uncommitted
-work needs the human's decision before adding it.
-
-If approved records remain, commit them through `/repo:branch` with
-`chore(spades): record audit artefacts for <scope_id>`.
+If approved pending records remain, commit them through `/repo:branch`
+with `chore(spades): record audit artefacts for <scope_id>`, following
+`docs/FRAMEWORK.md § Carry-Forward of SPADES-Owned Artefacts` (§ Existing
+uncommitted work, § Commit contents).
 
 ## 3. Push
 
@@ -87,9 +83,8 @@ Once the PR is squash-merged:
 
 ## Edge cases
 
-- **The PR fails to open** — branch not pushed, no remote, `gh`
-  unauthenticated. Surface the exact error with the remediation; the
-  Plan stays at `shipping`.
+- **The PR fails to open** — branch not pushed, no remote. Surface the
+  exact error with the remediation; the Plan stays at `shipping`.
 - **`gh` missing or unauthenticated** — show the human the exact
   `git push -u <configured-remote> <branch>` and `gh pr create -R <gh-repo>` invocation to run
   by hand, then capture the resulting URL and record it as in § 5.

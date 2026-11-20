@@ -1,7 +1,7 @@
 ---
 name: ship
 description: Ships the deliverable produced by an approved Plan after evaluation. Branches on `deliverable_type:` — code gets a GitHub PR or GitLab MR + review + merge; artefact gets a recorded reference (URL, path, doc ID); action gets evidence of completion. Use after `/spades:evaluate` has issued a PASS, when someone says "ship this", "release this", "merge it", or when a Plan is in status `evaluating` with a PASS verdict.
-version: 3.8.0
+version: 3.8.1
 ---
 
 # /spades:ship
@@ -43,22 +43,13 @@ while the Plan remains the active review page.
    stop and direct the caller to `/spades:deliver P-…` for the remaining
    gaps. Any other status or verdict → abort with a clear message.
 7. **Scope PR readiness (`code`, two-phase SCM).** With `scm: github` or
-   `scm: gitlab` (`docs/FRAMEWORK.md § SCM Drivers`), before marking any Plan
-   shipping, check every non-rejected code Plan in the Scope has completed
-   delivery and a current confirmed PASS. If siblings are pending, keep
-   this Plan `evaluating` and continue their delivery/evaluation first.
-   Scope criteria and artefact/action dependencies retain their own gates.
-8. **Verify Leads completion and carry-forward.** Follow
-   `docs/FRAMEWORK.md § Leads handoff` for every participating Plan. Require
-   the completion marker after its latest verdict and verify the reported
-   records in the delivery context. Complete a missing or unverifiable
-   handoff from stored evidence before publishing. For `deliverable_type: code`,
-   include the current run's authorised Lead changes and evaluation records
-   in the proposed commit and verify their inclusion. For `artefact` and
-   `action`, retain those records and their receipt in the delivery context,
-   with their next authorised commit handoff recorded. Report pending
-   publication and mirror operations, plus records owned by other worktrees,
-   with each item's source and next handoff.
+   `scm: gitlab`, before marking any Plan `shipping`, check the Scope is
+   ready for its PR per `docs/FRAMEWORK.md § Scope Worktrees → Plans share
+   the Scope branch`. If siblings are pending, keep this Plan `evaluating`
+   and continue their delivery/evaluation first.
+8. **Verify Leads completion and carry-forward** for every participating
+   Plan per `docs/FRAMEWORK.md § Leads handoff → Evaluation and
+   publication`, before publishing.
 9. **Open the review surface** per § Output format.
 
 ## Step 1 — Fresh run or resume (`deliverable_type: code`)
@@ -103,13 +94,10 @@ matching driver file, which owns branch verification, the pre-push
 sweep, the push, PR opening where the SCM has one, and the audit
 markers.
 
-- `scm: github` → **read `${CLAUDE_PLUGIN_ROOT}/skills/ship/scm-github.md`
-  and follow it.** Two-phase: this run pushes and opens the PR, then
-  exits with the Plan at `shipping`; `/spades:close P-<id>` records
-  the `Shipped` marker after the merge.
-- `scm: gitlab` → **read `${CLAUDE_PLUGIN_ROOT}/skills/ship/scm-gitlab.md`
-  and follow it.** Two-phase, as GitHub: this run pushes and opens the
-  merge request (MR), then exits with the Plan at `shipping`;
+- `scm: github` → **read `${CLAUDE_PLUGIN_ROOT}/skills/ship/scm-github.md`**;
+  `scm: gitlab` → **read `${CLAUDE_PLUGIN_ROOT}/skills/ship/scm-gitlab.md`**;
+  **follow it.** Two-phase: this run pushes and opens the PR (a merge
+  request, MR, on GitLab), then exits with the Plan at `shipping`;
   `/spades:close P-<id>` records the `Shipped` marker after the merge.
 - `scm: local-git` → **read `${CLAUDE_PLUGIN_ROOT}/skills/ship/scm-local-git.md`
   and follow it.** Single-phase: push when a remote is configured,
@@ -175,8 +163,6 @@ rollup per `docs/FRAMEWORK.md § Scope status rollup`:
   unchanged and the Plan's audit trail records
   `- YYYY-MM-DD: Scope rollup deferred (mixed-terminal; human
   declined).`
-- **Every sibling `rejected`** → no rollup; the Scope shipped
-  nothing, so surface that and leave it at `shipping`.
 - **A sibling still in flight** → no rollup.
 
 With `backend: linear`, move the sub-issue to Done, and the parent
@@ -208,6 +194,3 @@ auth — live in the driver files. Across all deliverable types:
 - **The deliverable lives somewhere the human can't show you.**
   Accept a free-form evidence string; the audit trail records what
   the human attested to.
-- **No driver for the configured `scm:`.** The fix is upstream of
-  ship: add a driver per `docs/EXTENDING-SCM.md` or change
-  `.spades/config`.

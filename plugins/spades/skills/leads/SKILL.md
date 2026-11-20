@@ -1,7 +1,7 @@
 ---
 name: leads
 description: Captures out-of-scope discoveries as Leads immediately during any task, including recurring known issues, and returns to that task. Classifies findings, reuses existing Leads, and records one sighting per observation context. With GitHub or GitLab as the configured SCM, publishes every Lead as an issue on that host labelled with its type. Also runs completion checks for Evaluate, Learn and Research; lists Leads across the requested worktrees; shows, closes or synchronises a Lead on request; and promotes one into a Scope or Quick item on the route the human chooses.
-version: 3.5.0
+version: 3.5.1
 argument-hint: '[--list [--all-worktrees] | --show L-<id> | --promote L-<id> [<work-id>] | --close L-<id> "<reason>" | --sync L-<id>]'
 ---
 
@@ -14,9 +14,6 @@ issue observed again is a candidate for another sighting.
 
 Read `docs/FRAMEWORK.md` § Lead ID, § Leads handoff, § Carry-Forward of
 SPADES-Owned Artefacts and § Output Format. Local Markdown is canonical.
-With `scm: github` or `scm: gitlab` every Lead is published as an issue
-on that host, and with `backend: linear` Linear mirrors it; a repo
-configured for both gets both.
 
 ## Dispatch and context
 
@@ -30,13 +27,12 @@ boundaries. Check cited evidence as needed. Completion checks review the
 supplied work and its discoveries; repository-wide inventory is a separate
 operation. Carry the original observation contexts through later phases.
 
-Read `.spades/config`. Raising and completion checks return `unconfigured`
-when configuration or `project:` is missing, and `disabled` for `leads: off`.
-The default is `leads: on`. Management commands remain available when
-raising is off; missing configuration returns a `/spades:setup` pointer.
-Read `backend:`, `scm:`, `github.remote` or `gitlab.remote`, and
-`review_format:`, and create
-`.spades/leads/` when writing.
+Read `.spades/config`: `backend:`, `scm:`, `github.remote` or
+`gitlab.remote`, `review_format:` and `leads:` (default `on`). Raising and
+completion checks return `unconfigured` when configuration or `project:` is
+missing, and `disabled` for `leads: off`. Management commands run under
+either `leads:` value and return a `/spades:setup` pointer when
+configuration is missing. Create `.spades/leads/` when writing.
 
 ## Capture
 
@@ -178,12 +174,11 @@ ambiguous matches return a reconciliation conflict.
 New mirrors are titled `<Lead ID> — <title>`, carry the public-safe body
 and are labelled `spades:lead` and `<type>`, so a `bug` Lead is filed
 under `bug` and a `feature` Lead under `feature`. A Linear issue also takes
-the team's triage/backlog state. Every type is published. A `security`
-body states the affected area and the consequence and cites the evidence
-by reference, leaving reproduction steps, secrets and exploit detail in
-the local record. Apply the recorded promotion or closure in that same
-operation when the Lead has already changed state. Existing mirrors retain
-unrelated labels. Create a missing `spades:lead` or type label. Append a
+the team's triage/backlog state. A `security` body states the affected
+area and the consequence and cites the evidence by reference, leaving
+reproduction steps, secrets and exploit detail in the local record.
+Apply the recorded promotion or closure in that same operation when the
+Lead has already changed state. Existing mirrors retain unrelated labels. Create a missing `spades:lead` or type label. Append a
 new sighting comment once, identified by its Lead ID and context key;
 retries first check whether it already exists.
 
@@ -213,7 +208,7 @@ views; they report reconciliation needs for a later management operation.
 | Operation | Result |
 |---|---|
 | `--show L-<id>` | Display the record, source worktree and current publication/mirror evidence. |
-| `--promote L-<id> [<work-id>]` | With a target, set `status: promoted`, record the supplied `S-…`, `Q-…` or document in `promoted_to:`, mirror the target in a comment and remove `spades:lead`, preserving other labels. With no target, follow § Promotion without a target: recommend a route, ask the human to choose, hand the Lead to the chosen skill, and finish the promotion with the ID that skill returns. |
+| `--promote L-<id> [<work-id>]` | With a target, set `status: promoted`, record the supplied `S-…`, `Q-…` or document in `promoted_to:`, mirror the target in a comment and remove `spades:lead`, preserving other labels; step 5 of § Promotion without a target sets where and when each write lands. With no target, follow § Promotion without a target: recommend a route, ask the human to choose, hand the Lead to the chosen skill, and finish the promotion with the ID that skill returns. |
 | `--close L-<id> "<reason>"` | Set `status: closed` and `closed_reason:` such as `done`, `not worth it`, or `duplicate of L-…`. Record supporting evidence when closed as done. Mirror the reason and close each mirror: the GitHub issue as completed for `done` and not planned otherwise, the GitLab issue closed after a comment giving the reason, the Linear issue in the team's appropriate terminal state. |
 | `--sync L-<id>` | Read the local record and each configured mirror, then complete pending mirror operations, creating a missing mirror, for the recorded decision. Verify the result and append reconciliation evidence. |
 
@@ -303,8 +298,6 @@ closure and mirror verification procedure as `--close`.
 table per lifecycle state, ordered by `sightings` then `created`, with the
 full Lead ID as the first column of every row. Show counts for open,
 promoted and closed records and identify the inspected worktree/revision.
-Never group by `area` with a heading per group: with one Lead per area that
-is a heading per Lead, and the reader has to scan headings to find an ID.
 
 `--list --all-worktrees`, or a request for all Leads across the process,
 reads Lead records from every registered worktree and the supplied current
@@ -356,8 +349,7 @@ Open <n> · Promoted <n> · Closed <n> · Total <n>
 |---|---|---|
 ```
 
-- **Lead** is the full `L-<slug>-<suffix>` ID, first in every row, never
-  abbreviated or replaced by the title.
+- **Lead** is the full `L-<slug>-<suffix>` ID, first in every row.
 - **S** is `sightings:`. Open rows sort by sightings descending, then
   `created` ascending; promoted and closed rows by `created`.
 - **Area** is the first file or document the record's `area:` names, cut
@@ -365,7 +357,7 @@ Open <n> · Promoted <n> · Closed <n> · Total <n>
   record keeps the full text; `--show` prints it.
 - **Title** is the record's `title:` in full. **Reason** is
   `closed_reason:` cut at its first ` — `.
-- Omit an empty Promoted or Closed section rather than print an empty table.
+- Omit an empty Promoted or Closed section.
 - Source, publication and mirror details follow the tables, and only for
   records that are not on the default branch, lack the `github_issue:`,
   `gitlab_issue:` or `linear_issue_id:` a configured mirror needs, or

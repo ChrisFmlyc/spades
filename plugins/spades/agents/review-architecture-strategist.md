@@ -23,11 +23,11 @@ and to flag anything the Plan introduces that does not fit.
 2. **PATTERNS.md drift.** Does the Plan follow the established
    coding, data, or deployment patterns? Or does it invent a new
    pattern where an approved one already exists?
-3. **ANTI-PATTERNS.md violations.** This is a hard gate. If the Plan
-   proposes something explicitly forbidden ("do not add a runtime",
-   "do not introduce a second tracker"), that is a **blocking**
-   finding — it requires either a Plan revision or an explicit
-   architecture override from a human.
+3. **ANTI-PATTERNS.md violations.** If the Plan proposes something
+   explicitly forbidden ("do not add a runtime", "do not introduce a
+   second tracker"), that is a **blocking** finding — it requires
+   either a Plan revision or an explicit architecture override from a
+   human.
 4. **Dependency hygiene.** Does the Plan introduce new runtime
    dependencies? How many stars / how maintained? Does the
    ANTI-PATTERNS doc have a rule about this?

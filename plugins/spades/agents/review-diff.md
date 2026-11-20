@@ -85,11 +85,11 @@ Defaults:
 When earlier findings are supplied, the diff covers only the commits
 since the last review. Review the new commits, and check each earlier
 Important finding against the worktree. An earlier finding that has
-been fixed, or answered and resolved, is not reported again. An
-earlier Important finding the new commits leave unfixed stays in the
-result as `important`, cited at its current line, or where it was
-first reported when it has no current line, until a review verifies
-its fix.
+been fixed, or that a person answered and resolved, is not reported
+again. An earlier Important finding that is neither fixed nor answered
+stays in the result as Important until a review verifies its fix. Cite
+it at its current line, or where it was first reported when it has no
+current line.
 
 ## Output contract
 

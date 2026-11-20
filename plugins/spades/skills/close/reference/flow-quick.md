@@ -1,15 +1,12 @@
 # Flow — Quick item close
 
-Reached from `SKILL.md` Step 0 for a `Q-<slug>-<suffix>` target.
-There is no menu: the action is to verify the PR merged and flip the
-marker to `shipped`, with *Drop* offered once the PR is confirmed
-closed unmerged. Quick items are leaf nodes — no Scope rollup — but the
-flip has to reach `main`, and the Quick branch is already merged, so a
-commit there never lands. The flip travels the same way a Plan's
-`Shipped` marker does: a one-commit bookkeeping branch and PR from
-`main` (**B2–B6**), prepared through `/repo:newbranch`. A Drop opens
-no bookkeeping PR: its marker never reached `main`. Found on a consumer
-repo where four merged Quick items still read `shipping` on `main`.
+Reached from `SKILL.md` Step 3 for a `Q-<slug>-<suffix>` target. The
+flow verifies the PR merged and flips the marker to `shipped`, or drops
+the marker when the PR closed unmerged. Quick items are leaf nodes — no
+Scope rollup. The Quick branch is already merged, so a commit there
+never reaches `main`: the flip travels the same way a Plan's `Shipped`
+marker does, through a one-commit bookkeeping branch and PR from `main`
+(**B2–B6**).
 
 ## Contents
 
@@ -21,27 +18,21 @@ repo where four merged Quick items still read `shipping` on `main`.
 
 ## Q1 — Pre-flight
 
-1. **Setup and active project** from `.spades/config`.
+1. **B1**, without its Scope resolution.
 2. **Read the marker** `.spades/quick/<Q-id>.md`: `id`, `pr_url`,
    `branch`, `linear_issue_id`, `status`. A marker already at
    `shipped` is terminal: *"Quick item `<Q-id>` is already
    `shipped`."*
-3. **A two-phase SCM** (`scm: github` or `scm: gitlab`). With
-   `scm: local-git` the marker was written at `shipped` by
-   `/spades:quick`; there is nothing to close.
-4. Read the marker from the current checkout; the Quick branch is not
+3. Read the marker from the current checkout; the Quick branch is not
    resumed. Leave the source marker unchanged until Q5: the Q3 edit is
    made in the bookkeeping worktree Q5 prepares, and the Q4 deletion
-   waits for Q5's mirror. A re-run after a failed Q5 finds it here
-   again.
-5. Print the marker's title and `pr_url`.
+   waits for Q5's mirror.
+4. Print the marker's title and `pr_url`.
 
 ## Q2 — Probe the PR
 
 Probe `pr_url` with `review_state` and read it as `docs/FRAMEWORK.md
-§ SCM Drivers` normalises it. Dispatch on the verified PR state. Offer
-Drop only for a confirmed `CLOSED` PR because it deletes the canonical
-marker.
+§ SCM Drivers` normalises it. Dispatch on the verified PR state.
 
 **Probe failure** (as § SCM Drivers defines it) → abort:
 
@@ -61,8 +52,6 @@ marker.
 
 ### Replacement-PR sub-flow
 
-The marker stays read-only until the replacement probe succeeds.
-
 1. Prompt free-form for the replacement URL.
 2. Validate: a PR URL on the same host and repository as the current
    `pr_url` (`<host>/<owner>/<repo>/pull/<n>` on GitHub,
@@ -70,16 +59,15 @@ The marker stays read-only until the replacement probe succeeds.
    GitLab, where the project path can hold subgroups), and different
    from it. Otherwise re-prompt or *Cancel*.
 3. Probe the replacement with the same `review_state` call.
-   - **Failure** → *Try a different URL* / *Cancel*, marker untouched.
+   - **Failure** → *Try a different URL* / *Cancel*.
    - **Success** → carry the replacement as the new `pr_url` (Q3's
-     edit writes it; the source marker stays untouched) and dispatch
-     on its `state` as above. The original URL survives in the
+     edit writes it) and dispatch on its `state` as above. The original URL survives in the
      `Quick-path opened` audit line.
 
 ## Q3 — Flip to shipped
 
-Decide the edit; Q5 writes it to the marker in the bookkeeping worktree,
-never to the source checkout: `status: shipped`, `updated:` today, the
+Decide the edit; Q5 writes it to the marker in the bookkeeping
+worktree: `status: shipped`, `updated:` today, the
 replacement `pr_url` if Q2 supplied one, and append:
 
 ```markdown
@@ -101,9 +89,7 @@ trace. Continue to Q5.
 
 ## Q5 — Persist, mirror and confirm
 
-**After Q3.** The Quick branch is merged; a commit on it never reaches
-`main`. Land the edit through the shared bookkeeping machinery, leaving
-the source marker untouched throughout:
+**After Q3.** Land the edit through the shared bookkeeping machinery:
 
 1. **B2** with the description *"ship <Q-id>"* and the preferred name
    `chore/ship-<q-slug>`, where `<q-slug>` is the marker's slug without
@@ -118,19 +104,16 @@ the source marker untouched throughout:
    artefacts` (the Q-id, its PR and merge SHA, and the Linear issue if
    any), `## Files touched` (the marker alone), and the plain statement
    that the PR contains audit-trail changes.
-4. **B5** — verify that PR merged. A driver that opened it and can
-   merge it (a bot-review sweep, then squash) merges it here; otherwise
-   exit and re-run `/spades:close Q-<id>` after the human merges it.
+4. **B5** — verify that PR merged. The re-run after a human merge is
+   `/spades:close Q-<id>`.
 5. **B6** — retain the worktree.
 
-Verify the bookkeeping commit contains the intended marker change and
-the PR merged before mirroring or confirming completion. If any step
-fails, report persistence as pending, retain the Q-id, bookkeeping
-branch, outcome and mirror metadata, and resume from that step; the
-source marker still reads `shipping`, so a re-run re-reads it in Q1 and
-resumes the bookkeeping branch in B2.
+If any step fails, report persistence as pending, retain the Q-id,
+bookkeeping branch, outcome and mirror metadata, and resume from that
+step: the source marker still reads `shipping`, so a re-run re-reads it
+in Q1 and resumes the bookkeeping branch in B2.
 
-**After Q4.** No bookkeeping PR. Run the mirror below, then delete
+**After Q4.** Run the mirror below, then delete
 `.spades/quick/<Q-id>.md` from the current checkout. Deleting last
 means a failed mirror leaves the marker for the re-run.
 
