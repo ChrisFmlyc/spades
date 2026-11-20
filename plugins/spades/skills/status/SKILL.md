@@ -149,8 +149,9 @@ After the recommendation, when the probe found mismatches:
 ### Linear drift (N)
 
 ⚠ S-add-newsletter — local `delivering`, Linear `completed` (Done).
-    Re-run /spades:close S-add-newsletter (Pass) to roll up locally,
-    or edit Linear if the local file is wrong.
+    If the work is done, run /spades:close S-add-newsletter (Pass)
+    to roll up locally; if it is still delivering, set Linear to
+    match the local file.
 ```
 
 Omitted when empty; *"⚠ Drift probe skipped — Linear unreachable.
