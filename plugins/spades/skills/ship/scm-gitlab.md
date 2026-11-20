@@ -58,13 +58,15 @@ Write the `/repo:pr` result to a body file, then create the MR with
 `open_review`:
 
 ```bash
-glab mr create -R <repo-url> --source-branch <scope-branch> --target-branch <default-branch> \
+glab mr create -R <repo-url> --head <repo-url> --source-branch <scope-branch> --target-branch <default-branch> \
   --title "<title>" --description-file <body-file> --squash-before-merge --yes
 ```
 
-`<repo-url>` is `https://<gitlab.host>/<gitlab.project>`. `glab mr create`
-prints a summary rather than a URL, so read the MR's `iid` and `web_url`
-back with `find_review(<scope-branch>, <default-branch>)`.
+`<repo-url>` is `https://<gitlab.host>/<gitlab.project>`. `-R` names it
+as the MR's target project and `--head` as its source project, the one
+§ 3 pushed the branch to. `glab mr create` prints a summary rather than
+a URL, so read the MR's `iid` and `web_url` back with
+`find_review(<scope-branch>, <default-branch>)`.
 
 The MR opens ready for review, never as a draft: review bots skip draft
 MRs, and GitLab opens one as a draft when its title starts with `Draft:`

@@ -881,9 +881,16 @@ last segment of its URL.
 |---|---|---|
 | `probe_auth` | `gh auth status` | `glab auth status --hostname <gitlab.host>` |
 | `find_review(branch, base)` | `gh pr list -R <gh-repo> --head <branch> --base <base> --state all --limit 1000 --json number,url,state,isCrossRepository`, filtered as below | `glab api --paginate --hostname <host> "projects/<project>/merge_requests?source_branch=<branch>&target_branch=<base>&state=all"`, filtered as below |
-| `open_review(branch, base, title, body-file)` | `gh pr create -R <gh-repo> --head <branch> --base <base> --title "<title>" --body-file <body-file>` | `glab mr create -R <repo-url> --source-branch <branch> --target-branch <base> --title "<title>" --description-file <body-file> --squash-before-merge --yes` |
+| `open_review(branch, base, title, body-file)` | `gh pr create -R <gh-repo> --head <branch> --base <base> --title "<title>" --body-file <body-file>` | `glab mr create -R <repo-url> --head <repo-url> --source-branch <branch> --target-branch <base> --title "<title>" --description-file <body-file> --squash-before-merge --yes` |
 | `review_state(ref)` | `gh pr view <n> -R <gh-repo> --json state,mergeCommit,mergedAt,mergedBy,headRefOid` | `glab mr view <iid> -R <repo-url> --output json` |
 | `merge_review(ref)` | `gh pr merge <n> -R <gh-repo> --squash` | `glab mr merge <iid> -R <repo-url> --squash --auto-merge=false --sha <head-sha> --yes`; with a merge train, `--auto-merge` in place of `--auto-merge=false` |
+
+`open_review` opens the review request from a branch of the configured
+repository itself. `gh pr create` reads a `--head` without an `<owner>:`
+prefix as a branch of `<gh-repo>`. `glab mr create` takes the target
+project from `-R` and the source project from `--head`, both
+`<repo-url>`; without `--head` it picks the source project from the
+checkout's remotes, which can be a fork.
 
 `gh pr create` prints the new PR's URL. `glab mr create` prints a
 human-readable summary, so read the MR's `iid` and `web_url` back with
