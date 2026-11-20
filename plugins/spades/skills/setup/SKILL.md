@@ -283,10 +283,11 @@ local`, its slug; with `backend: linear`, a record with a
 recorded `project_id`. Step 8 writes a new project
 (`create_new_project`) once it exists and, with `backend: linear`, an
 existing record without `linear_project_id` once it is bound. Until
-then a **fresh install** writes `project:` unset (and, for Linear,
-`team_id` alone), and a **re-run** keeps the existing `project:`,
-`linear.team_id` and `linear.project_id`, writing Step 1's `team_id`
-only when there is no `project_id` to keep.
+then a **fresh install** and a **switch to `backend: linear`** write
+`project:` unset (and, for Linear, Step 1's `team_id` alone), and any
+other **re-run** keeps the existing `project:`, `linear.team_id` and
+`linear.project_id`, writing Step 1's `team_id` only when there is no
+`project_id` to keep.
 
 ## Step 8 — Create or bind the project
 
@@ -315,11 +316,13 @@ Audit Trail, and then write `project: <slug>`, `linear.team_id` and
 If creation fails, the human cancels, or the project's Linear binding
 is pending or failed (`/spades:newproject` then leaves a new project
 created but not active, per its Step 4), the config keeps what Step 7
-wrote: a fresh install has no active project, and a re-run keeps the
-prior project and its Linear pair. Report that state, with the chosen
-project not active, and finish the remaining scaffolding. Point to
-`/spades:setup` to retry, choosing the project when its record exists,
-or to `/spades:newproject` when it was not written.
+wrote: no active project after a fresh install or a switch to
+`backend: linear`, and the prior project with its Linear pair after
+any other re-run. Report that state, with the chosen project not
+active, and finish the remaining scaffolding. Point to `/spades:setup`
+to retry, choosing that project again at Step 4: for a new project,
+the record `/spades:newproject` wrote, or **Create a new project** when
+it wrote none.
 
 ## Step 9 — Write `.spades/version`
 
@@ -433,6 +436,12 @@ Next steps:
 
 A skipped migration reads `○ Migration: skipped — local artefacts
 stay on disk; new Linear-side work starts empty.`
+
+When Step 8 leaves the chosen project inactive, its line names the
+project the config keeps (`none`, or the prior one marked
+`(unchanged)`) and, in brackets, the chosen project's state and Step
+8's retry: `✗ Active project: none   (<slug> created, Linear binding
+failed — re-run /spades:setup and choose <slug>)`.
 
 ## Why `AGENTS.md`
 
