@@ -50,33 +50,43 @@ gh api graphql -f query='
 A thread is outstanding when `isResolved == false`. It is a bot's
 when its first comment's `author.__typename` is `Bot` and every later
 comment is a `Bot`'s or one of `/codereview:loop`'s and
-`/codereview:fix`'s own `(ai-skills:…)` replies; it goes to
-`/codereview:loop`. Any other thread — a person's, one a person has
-replied in, or one with no author — is a human's and a pause. GraphQL
-bot logins carry no `[bot]` suffix, so match on the type rather than
-the login.
+`/codereview:fix`'s own replies; it goes to `/codereview:loop`. A
+reply is theirs when it starts with `(ai-skills:` and its
+`author.login` is the account `gh` is signed in as, which
+`gh api user --jq .login` prints (look it up once per run). Any other
+thread — a person's, one a person has replied in, or one with no
+author — is a human's and a pause; an `(ai-skills:` reply from any
+other account is a person's. GraphQL bot logins carry no `[bot]`
+suffix, so match on the type rather than the login.
 
 **GitLab:** GitLab marks no account as a review bot, so the bots are
 the accounts in `gitlab.review_bots`, matched by user ID. Look each one
-up once per run:
+up once per run, and with them the ID of the account `glab` is signed
+in as, which posts `/codereview:loop`'s and `/codereview:fix`'s
+replies:
 
 ```bash
+set -o pipefail
 glab api --hostname <host> "users?username=<username>" | jq '.[0].id'
+glab api --hostname <host> user | jq .id
 ```
 
-Then, with those IDs as a JSON array (`[]` when there are none):
+The signed-in ID is an integer; anything else fails the probe. Then,
+with the bot IDs as a JSON array (`[]` when there are none) and the
+signed-in ID as `<self-id>`:
 
 <!-- scm-test: gitlab-thread-sweep -->
 ```bash
 set -o pipefail
 glab api --paginate --hostname <host> "projects/<project>/merge_requests/<iid>/discussions" \
-  | jq -s --argjson bots '<bot-ids>' '(if length == 0 then error("no response from glab") else add end)
+  | jq -s --argjson bots '<bot-ids>' --argjson me '<self-id>' '(if length == 0 then error("no response from glab") else add end)
       | [.[] | select(any(.notes[]; .resolvable and (.resolved | not)))
         | [.notes[] | select(.system | not)] as $n
         | {id, author: $n[0].author.username, author_id: $n[0].author.id,
            path: $n[0].position.new_path, body: $n[0].body,
            by: (if ($n[0].author.id | IN($bots[]))
-                   and all($n[]; (.author.id | IN($bots[])) or (.body | startswith("(ai-skills:")))
+                   and all($n[]; (.author.id | IN($bots[]))
+                                 or (.author.id == $me and (.body | startswith("(ai-skills:"))))
                 then "bot" else "human" end)}]'
 ```
 
@@ -85,11 +95,13 @@ page; `jq -s` reads either, and an empty response is an error rather
 than "no threads". A discussion is outstanding when any resolvable note
 in it is unresolved. It is a bot's (`by: "bot"`) when a listed bot
 opened it and every other note is that bot's, another listed bot's, or
-one of `/codereview:loop`'s and `/codereview:fix`'s own `(ai-skills:…)`
-replies; it goes to `/codereview:loop`. Anything else is `by: "human"`
-and a pause: a thread a person opened, one a person has replied in, and
-one opened by an unlisted account, including a `bot: true` account or a
-`project_<n>_bot_…` user.
+one of `/codereview:loop`'s and `/codereview:fix`'s own replies — a
+note that starts with `(ai-skills:` and whose `author.id` is
+`<self-id>`; it goes to `/codereview:loop`. Anything else is
+`by: "human"` and a pause: a thread a person opened, one a person has
+replied in — including an `(ai-skills:` note from any account other
+than `<self-id>` — and one opened by an unlisted account, including a
+`bot: true` account or a `project_<n>_bot_…` user.
 
 ---
 

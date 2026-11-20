@@ -3,3 +3,4 @@ project=acme%2Fapp
 repo-url=https://gitlab.example.com/acme/app
 iid=7
 bot-ids=[101,303]
+self-id=900
